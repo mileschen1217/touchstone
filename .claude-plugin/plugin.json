@@ -1,0 +1,8 @@
+{
+  "name": "m-workflow",
+  "description": "Workflow-discipline skill family — R4 spike (no-op skill for plugin install + path-resolution verification).",
+  "version": "0.0.1",
+  "author": { "name": "miles_chen", "email": "mileschen1217@gmail.com" },
+  "license": "MIT",
+  "keywords": ["workflow", "spike"]
+}
