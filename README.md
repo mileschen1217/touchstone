@@ -1,29 +1,61 @@
 # m-workflow
 
-Workflow-discipline skill family for Claude Code. Bundles design-spec, design-review, arch-review, epic-driven-roadmap, code-review, and related stage skills.
+A Claude Code plugin bundling 11 workflow-stage skills plus an init skill, packaged for cross-project portability.
 
-**Status:** R4 spike (0.0.1) — verifying plugin install + path resolution semantics. Not for general use yet.
+**Status:** `experimental-buildroot-only` (MVP). Does not claim portability until AC-7b second-project validation passes.
 
 ## Install (local development)
 
 ```bash
-claude plugin install --local ~/projects/m-workflow
+claude plugin marketplace add ~/projects/m-workflow
+claude plugin install m-workflow@m-workflow-dev
 ```
 
-After install, restart Claude Code. The skill `/m-workflow:spike` should appear in the available-skills list.
+Then in any project:
 
-## R4 spike goal
+```
+/m-workflow:init        # writes .claude/m-workflow.yaml
+/m-workflow:design-spec <feature>
+/m-workflow:design-review <spec-path>
+... etc
+```
 
-Verify how Claude Code's Skill execution context resolves file paths when a skill runs from inside an installed plugin. Specifically:
+## Skill inventory
 
-- Can a SKILL.md `Read` a sibling file by relative path?
-- Can a SKILL.md `Read` a plugin-root-level file by `../../`?
-- Is there an environment variable exposing plugin root?
-- Does `Skill(skill: "m-workflow:spike")` work cross-skill?
+| Slash command | Stage / role |
+|---|---|
+| `/m-workflow:init` | One-time per-project setup (writes yaml) |
+| `/m-workflow:design-spec` | Author a design spec |
+| `/m-workflow:design-review` | Pattern A doc review (dispatches cross-provider-reviewer) |
+| `/m-workflow:arch-review` | Standalone arch consult (dispatches cross-provider-architect) |
+| `/m-workflow:arch-discovery` | E2E system discovery |
+| `/m-workflow:epic-driven-roadmap` | Scaffold / close / audit epics |
+| `/m-workflow:code-review` | Per-commit or batch code review |
+| `/m-workflow:test-quality-audit` | Audit test suite quality + coverage |
+| `/m-workflow:harness-audit` | Composite harness-health dashboard |
+| `/m-workflow:extract-knowledge` | Distill research docs into reusable notes |
+| `/m-workflow:cross-provider-reviewer` | Pattern A composite (CC + Codex review) |
+| `/m-workflow:cross-provider-architect` | Pattern A composite (CC + Codex architect) |
 
-Run `/m-workflow:spike` after install. The skill body lists the verification probes and reports results.
+## Disciplines
 
-## Related
+Plugin's stage skills branch on `adopted_disciplines` in `<project>/.claude/m-workflow.yaml`.
 
-- Design spec: `~/moxabuild.stacking/buildroot/.swarm/specs/2026-05-17-m-workflow-plugin.md`
-- Parent epic: `~/moxabuild.stacking/buildroot/.swarm/epics/workflow-architecture-refactor/`
+| Discipline | Effect |
+|---|---|
+| `source-as-truth` | Stage skills load CONTEXT.md vocabulary at Step 0; apply Bridge content audit (P1/P2/P3), kill-on lifecycle, standing-vs-transient classification. |
+
+## Maintenance
+
+- **Vocabulary edits:** `CONTEXT.md` only. SKILL.md bodies read CONTEXT.md at runtime; no inline copies to sync.
+- **Plugin variable reference:** the plugin-root variable points to install dir; the project-dir variable points to user's working project. See spec § Plugin variable reference for the full table.
+- **Audit scripts:** `scripts/migration-audit.sh` runs in 3 modes (namespace / magic-string / unexpanded-vars). `scripts/test-wrapper.sh` is the AC-6a probe.
+
+## Spec + Plan
+
+Design spec: `.swarm/specs/2026-05-17-m-workflow-plugin.md` (rev 4 accepted).
+Implementation plan: `.swarm/plans/2026-05-17-m-workflow-plugin.md`.
+
+## License
+
+MIT
