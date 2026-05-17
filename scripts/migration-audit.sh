@@ -52,9 +52,11 @@ case "$MODE" in
       file=$(echo "$hit" | awk -F: '{print $1}')
       line_content=$(echo "$hit" | awk -F: '{for(i=3;i<=NF;i++) printf "%s%s", $i, (i<NF?":":"\n")}')
 
-      # Check file role: wrapper if first ~20 lines contain DEPRECATED in description block
+      # Wrapper detection: search for DEPRECATED in first 20 lines (frontmatter region).
+      # Single-line check works for both single-line `description: DEPRECATED...` and multi-line
+      # YAML block where DEPRECATED appears on the line after `description: |`.
       is_wrapper=0
-      if [ -f "$file" ] && head -20 "$file" | grep -qE "^description:.*DEPRECATED|description:.*\n.*DEPRECATED"; then
+      if [ -f "$file" ] && head -20 "$file" | grep -q "DEPRECATED"; then
         is_wrapper=1
       fi
 
