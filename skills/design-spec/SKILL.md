@@ -48,7 +48,14 @@ Explore → /m-design-spec → /superpowers:writing-plans → Build (ATDD+TDD)
 
 ## Step 0 — Load vocabulary
 
-Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml` if it exists. Check `adopted_disciplines`.
+Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`.
+
+**If yaml absent** (file not found):
+  Print one line: `ℹ️  No .claude/m-workflow.yaml — using default paths. Run /m-workflow:init to configure.`
+  Use hardcoded defaults for all path lookups in this invocation: `specs_dir=.swarm/specs`, `adr_dir=.swarm/docs/adr`, `epics_dir=.swarm/epics`, `plans_dir=.swarm/plans`, `archive_specs_dir=.swarm/archive/specs`.
+  Treat `adopted_disciplines` as empty. Do not refuse; continue to drafting. Skip the CONTEXT.md Read below; in dispatch envelope omit `source_as_truth_vocab` and set `discipline_mode: "none"`.
+
+**If yaml present:** check `adopted_disciplines`.
 
 If contains `source-as-truth`:
   Read `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md § "Bridge content gate"` — load text into context.

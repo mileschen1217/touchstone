@@ -38,7 +38,14 @@ Out of scope — return "not in scope; this skill reviews specs / plans / ADRs /
 
 ### 0. Load vocabulary
 
-Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`. Check `adopted_disciplines`.
+Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`.
+
+**If yaml absent** (file not found):
+  Print one line: `ℹ️  No .claude/m-workflow.yaml — using default paths. Run /m-workflow:init to configure.`
+  Use hardcoded defaults: `specs_dir=.swarm/specs`, `adr_dir=.swarm/docs/adr`, `epics_dir=.swarm/epics`, `plans_dir=.swarm/plans`, `archive_specs_dir=.swarm/archive/specs`.
+  Treat `adopted_disciplines` as empty. Do not refuse; continue. Skip CONTEXT.md Read; envelope `discipline_mode: "none"`; omit `source_as_truth_vocab`.
+
+**If yaml present:** check `adopted_disciplines`.
 
 If contains `source-as-truth`:
   Read `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md § "Bridge content gate"` AND `§ "Standing vs transient bridge"` — load both sections.
