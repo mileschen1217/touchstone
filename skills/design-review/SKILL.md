@@ -27,6 +27,16 @@ Required when any of:
 Out of scope — return "not in scope; this skill reviews specs / plans / ADRs / discovery docs only" and exit:
 - Research notes, daily notes, MOCs, retros, READMEs, kb articles
 
+## Relationship to /m-design-spec (this is the gate; its Step-5 review is not)
+
+`/m-design-spec` runs its own architect critique while drafting (its "Step-5 review"). That is **not** this gate — it is an author-time, advisory, skippable (`quick`) pass that judges the freshly-drafted spec. **This skill is the Build gate**: C+H tiered (see §4), it blocks Build, and it judges the **final, human-accepted** artifact. The two are separated by the human accept step:
+
+```
+/m-design-spec  →  Status: Draft  →  human edits / accepts ★  →  /m-design-review (here)
+```
+
+`/m-design-spec`'s Step-5 review only *discharges* this gate when it was iterated to this skill's tiered standard (C+H=0) **and** the spec was not edited afterward. If the spec changed during the human's review, run this skill on the final version — the earlier critique judged a different artifact. Do not treat "design-spec was run" as "the gate passed".
+
 ## Usage
 
 ```

@@ -213,6 +213,26 @@ Use fresh context — the composite skill orchestrates fresh subagent contexts; 
 - Next step: `/superpowers:writing-plans` takes the spec as input for plan
   generation
 
+## Boundary — the Step-5 review is NOT the Build gate
+
+The architect dispatch in Step 5 is an **author-time, one-shot, non-gating** critique that improves the draft. It is a different thing from `/m-design-review`, the Stage-0 **Build gate**. Conflating the two is a recurring mistake — they overlap (both run a cross-provider review of the spec) but differ in cadence, enforcement, and what version they judge:
+
+| | Step-5 review (this skill) | `/m-design-review` (the gate) |
+|---|---|---|
+| Role | author-time critique, improve the draft | Build gate, pass/fail before implementation |
+| Verdict | `approve\|revise\|block`, advisory — no enforced iterate-to-green | C+H tiered: C+H≥5 → mandatory 2nd pass, **blocks Build until C+H=0** |
+| Skippable | yes (`quick`) | no — not on user discretion at C+H≥5 |
+| Judges | the freshly-drafted version | the **final, human-accepted** version |
+
+The human-accept step sits **between** them:
+
+```
+/m-design-spec            →   Status: Draft   →   human reads / edits / accepts ★   →   /m-design-review (Build gate)
+(draft + Step-5 critique)                          (lifecycle owned by the human)        (C+H gate, blocks Build)
+```
+
+Running this skill does **not** discharge `/m-design-review`. The Step-5 critique only *satisfies* the gate when it was iterated to the gate's tiered standard (C+H=0) **and** the spec was not edited afterward; if the human edits the spec during review, re-run `/m-design-review` on the final version. Do not merge the two: the seam is exactly the human-in-the-loop accept step, and a merged action would gate the pre-edit draft, not the accepted artifact.
+
 ## Usage
 
 ```
@@ -243,7 +263,9 @@ Parse left-to-right:
 Specs are written as `Status: Draft`. Transitions to `Accepted` / `Superseded`
 are manual edits when the user approves or replaces a spec. The skill does not
 manage lifecycle — when a spec is ready to implement, the human changes the
-status and hands off to `/superpowers:writing-plans`.
+status and hands off to `/superpowers:writing-plans`. The `Draft → human accept`
+step is the seam between this skill's Step-5 critique and the `/m-design-review`
+Build gate (see Boundary above) — keep it human-owned.
 
 ## Related
 
@@ -252,6 +274,7 @@ status and hands off to `/superpowers:writing-plans`.
 - Architecture consult (upstream, conditional): `/m-arch-review` — for
   resolving architectural questions before drafting the spec
 - ATDD chain (downstream): `ATDD — spec and test development` in global CLAUDE.md
+- Build gate (downstream, distinct from Step-5 review): `/m-design-review` — see Boundary section
 - Plan generation (downstream): `/superpowers:writing-plans`
 - ADR workflow: `~/.claude/skills/m-arch-review/adr-authoring.md`
 - Example spec matching the template:
