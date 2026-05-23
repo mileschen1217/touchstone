@@ -14,6 +14,8 @@ kind: workflow
 
 # /m-code-review — Code Review (Patterns C and B)
 
+<!-- keep-long: 243 lines, all main-path (mode routing + dispatch contract read every invocation). Progressive-disclosure extraction would force a per-call references load with zero token saving; held inline by design. -->
+
 Parallel reviewers in separate contexts. Fast quality check before commit.
 
 Dispatches:

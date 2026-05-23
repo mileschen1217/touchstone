@@ -22,6 +22,8 @@ allowed-tools:
 kind: workflow
 ---
 
+<!-- keep-long: 233 lines, single linear consult path with no mutually-exclusive sub-flows to extract. Anti-patterns + /office-hours-vs-/m-arch-review comparison are routing/boundary content; held inline by design. -->
+
 ## Step 0 — Load vocabulary
 
 Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`.
