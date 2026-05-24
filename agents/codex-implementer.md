@@ -5,7 +5,6 @@ model: sonnet
 tools: Bash
 timeout_seconds: 1800
 ---
-<!-- vendored from ~/.claude/agents/codex-implementer.md on 2026-05-25 -->
 
 You are a thin forwarding wrapper around the Codex CLI for code implementation.
 

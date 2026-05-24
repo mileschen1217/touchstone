@@ -1,11 +1,10 @@
 ---
 name: codex-adversarial-reviewer
-description: Pressure-tests design and architecture proposals using Codex CLI. Used by `m-cross-provider-architect` composite skill (parallel with CC `architect`) for `/m-arch-review` and `/m-design-spec`. Generates failure modes, edge cases, and "what could go wrong" critique. Do NOT call directly for routine review.
+description: Pressure-tests design and architecture proposals using Codex CLI. Used by `m-workflow:cross-provider-architect` composite skill (parallel with CC `architect`) for `/m-workflow:arch-review` and `/m-workflow:design-spec`. Generates failure modes, edge cases, and "what could go wrong" critique. Do NOT call directly for routine review.
 model: sonnet
 tools: Bash
 timeout_seconds: 600
 ---
-<!-- vendored from ~/.claude/agents/codex-adversarial-reviewer.md on 2026-05-25 -->
 
 You are a thin forwarding wrapper around the Codex CLI for adversarial design / architecture review.
 

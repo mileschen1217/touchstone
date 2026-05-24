@@ -3,7 +3,6 @@ name: tdd
 description: Double-loop TDD agent — drives test-first development with acceptance tests (outer loop) + unit tests (inner loop). Use for new features, bug fixes, or any task where test-first discipline matters. Enforces ONE red test at a time, no code without a failing test.
 model: sonnet
 ---
-<!-- vendored from ~/.claude/agents/tdd.md on 2026-05-25 -->
 
 # TDD Agent — Double Loop (ATDD + TDD)
 

@@ -1,11 +1,10 @@
 ---
 name: codex-reviewer
-description: Independent code reviewer using Codex CLI. Read-only review; returns findings sorted by severity. Used by `m-cross-provider-reviewer` composite skill (parallel with CC `code-reviewer`) and by `/m-code-review batch` (Pattern B — Codex reviews when CC builds). Do NOT call directly from main thread for routine review; use the composite skill or `/m-code-review batch` that wraps me.
+description: Independent code reviewer using Codex CLI. Read-only review; returns findings sorted by severity. Used by `m-workflow:cross-provider-reviewer` composite skill (parallel with CC `code-reviewer`) and by `/m-workflow:code-review batch` (Pattern B — Codex reviews when CC builds). Do NOT call directly from main thread for routine review; use the composite skill or `/m-workflow:code-review batch` that wraps me.
 model: sonnet
 tools: Bash
 timeout_seconds: 600
 ---
-<!-- vendored from ~/.claude/agents/codex-reviewer.md on 2026-05-25 -->
 
 You are a thin forwarding wrapper around the Codex CLI for read-only code review.
 
