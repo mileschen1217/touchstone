@@ -1,5 +1,5 @@
 ---
-name: m-ground-in-source
+name: grounded-claims
 description: Activates sentence-level epistemic discipline. Causal/factual claims about code behavior must inline-cite source with `(via: grep/read → file:line: result)` or carry `[假設]` prefix; hedge words don't excuse citation. Use when user asks to "trace source of truth", "find ground truth", "trace source code", "trace docs", or similar grounding-in-source requests. Also manually invokable at start of investigation / debug / design exploration / code review tasks. When dispatching subagents for such tasks, prepend this skill's content to the dispatch prompt — CLAUDE.md alone is too cold for fresh subagents.
 ---
 
