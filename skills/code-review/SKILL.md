@@ -12,7 +12,7 @@ user-invocable: true
 kind: workflow
 ---
 
-# /m-code-review — Code Review (Patterns C and B)
+# /m-workflow:code-review — Code Review (Patterns C and B)
 
 <!-- keep-long: 243 lines, all main-path (mode routing + dispatch contract read every invocation). Progressive-disclosure extraction would force a per-call references load with zero token saving; held inline by design. -->
 
@@ -26,17 +26,17 @@ Dispatches:
 ## Usage
 
 ```
-/m-code-review                          # default: HEAD commit, Pattern C
-/m-code-review <commit-ish>             # named single commit, Pattern C
-/m-code-review batch                    # logical group (default range: <main>..HEAD), Pattern B
-/m-code-review batch <range>            # explicit logical group, Pattern B
+/m-workflow:code-review                          # default: HEAD commit, Pattern C
+/m-workflow:code-review <commit-ish>             # named single commit, Pattern C
+/m-workflow:code-review batch                    # logical group (default range: <main>..HEAD), Pattern B
+/m-workflow:code-review batch <range>            # explicit logical group, Pattern B
 
-/m-code-review with codex               # Pattern C; codex-reviewer replaces generic Sonnet
-/m-code-review with cc                  # Pattern C; explicit (no-op — Sonnet is the default)
-/m-code-review batch with cc            # Pattern B; force CC reviewer regardless of builder
-/m-code-review batch with codex         # Pattern B; force Codex reviewer regardless of builder
-/m-code-review solo                     # Pattern C; primary reviewer only — skip language/security/DB specialists
-/m-code-review solo with codex          # Pattern C; codex-reviewer alone, no specialists
+/m-workflow:code-review with codex               # Pattern C; codex-reviewer replaces generic Sonnet
+/m-workflow:code-review with cc                  # Pattern C; explicit (no-op — Sonnet is the default)
+/m-workflow:code-review batch with cc            # Pattern B; force CC reviewer regardless of builder
+/m-workflow:code-review batch with codex         # Pattern B; force Codex reviewer regardless of builder
+/m-workflow:code-review solo                     # Pattern C; primary reviewer only — skip language/security/DB specialists
+/m-workflow:code-review solo with codex          # Pattern C; codex-reviewer alone, no specialists
 ```
 
 The `batch` keyword is the explicit Pattern B trigger. Without it, even a multi-commit range invocation defaults to Pattern C applied per-commit.
@@ -60,8 +60,8 @@ When invoked with `batch` keyword, route to Pattern B — vendor-not-builder rev
 ### Procedure
 
 1. Resolve the commit range:
-   - `/m-code-review batch <range>` → use `<range>`
-   - `/m-code-review batch` → default `$(git merge-base HEAD main)..HEAD` (or `master`; project CLAUDE.md may override)
+   - `/m-workflow:code-review batch <range>` → use `<range>`
+   - `/m-workflow:code-review batch` → default `$(git merge-base HEAD main)..HEAD` (or `master`; project CLAUDE.md may override)
 2. Detect builder (skipped if `force_reviewer` is set):
    - Scan commit-message trailers in the range:
      ```
@@ -87,7 +87,7 @@ When invoked with `batch` keyword, route to Pattern B — vendor-not-builder rev
 
 ### Why Pattern B not Pattern A here
 
-Per-batch volume is high enough that Pattern A's 2× cost is not justified. Cross-vendor diversity is preserved via the swap. High-leverage Pattern A is reserved for `/m-design-review` (Stage 0) and `/m-arch-review` / `/m-design-spec`.
+Per-batch volume is high enough that Pattern A's 2× cost is not justified. Cross-vendor diversity is preserved via the swap. High-leverage Pattern A is reserved for `/m-workflow:design-review` (Stage 0) and `/m-workflow:arch-review` / `/m-workflow:design-spec`.
 
 ## Dependencies
 
@@ -184,7 +184,7 @@ Step 2 flagged the concern. Default prompts from those agents' definitions apply
 **If ECC is not installed**, log "ECC plugin not installed — language-specific
 reviewers skipped" and proceed with generic only.
 
-**For specific-file invocation** (`/m-code-review path/to/file`):
+**For specific-file invocation** (`/m-workflow:code-review path/to/file`):
 
 Still detect language from the file extension. Dispatch generic reviewer with
 the specific-file prompt:
@@ -229,7 +229,7 @@ Mark which reviewer(s) found each issue for traceability.
 | 1 | ... | Critical | Sonnet + python-reviewer | Fixed: ... |
 | 2 | ... | High | security-reviewer | Fixed: ... |
 | 3 | ... | Low | python-reviewer | Fixed inline (trivial) |
-| 4 | ... | Medium | Sonnet | Deferred to /m-code-review batch |
+| 4 | ... | Medium | Sonnet | Deferred to /m-workflow:code-review batch |
 
 Ready to commit: {yes/no}
 ```
@@ -244,6 +244,6 @@ Ready to commit: {yes/no}
 - **AI judgment, not regex**, for security/DB dispatch — prefer skipping in
   ambiguous cases to avoid agent-spawn noise
 - Fix only Critical/High by default. Low fixable inline if trivial.
-  Medium deferred to `/m-code-review batch`.
-- No re-review loop — scope is too small to justify (that's `/m-code-review batch`'s job)
+  Medium deferred to `/m-workflow:code-review batch`.
+- No re-review loop — scope is too small to justify (that's `/m-workflow:code-review batch`'s job)
 - Project CLAUDE.md may override the diff path

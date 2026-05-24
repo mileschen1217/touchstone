@@ -1,6 +1,6 @@
 # ADR Authoring (integration with ECC skill)
 
-Referenced by `/m-arch-review` and `/m-design-spec`. Not a standalone skill.
+Referenced by `/m-workflow:arch-review` and `/m-workflow:design-spec`. Not a standalone skill.
 
 The authoring procedure and template are owned by ECC's
 `architecture-decision-records` skill. This file documents how to invoke it
@@ -17,7 +17,7 @@ the decision affects future work. Skip ADRs for:
 
 ## Invocation
 
-When `/m-arch-review` or `/m-design-spec` concludes with a decision worth
+When `/m-workflow:arch-review` or `/m-workflow:design-spec` concludes with a decision worth
 recording:
 
 1. Invoke ECC's ADR skill:
@@ -34,7 +34,7 @@ recording:
 
 2. After ECC writes the ADR, add two custom header fields we use by convention:
 
-   - **`Triggered by:`** — `/m-arch-review` or `/m-design-spec (spec filename)`.
+   - **`Triggered by:`** — `/m-workflow:arch-review` or `/m-workflow:design-spec (spec filename)`.
      Makes the skill origin visible.
    - **`Related ADRs:`** — comma-separated list of prior ADR numbers this
      builds on (grep the `docs/adr/` directory for related topics).
@@ -42,8 +42,8 @@ recording:
    Add these as an additional header section between "Deciders" and "Context".
 
 3. Back-link:
-   - `/m-design-spec` → add the new ADR to the spec's `Related` section
-   - `/m-arch-review` → the review memo (if persisted) references the ADR
+   - `/m-workflow:design-spec` → add the new ADR to the spec's `Related` section
+   - `/m-workflow:arch-review` → the review memo (if persisted) references the ADR
 
 ## Graceful degradation
 

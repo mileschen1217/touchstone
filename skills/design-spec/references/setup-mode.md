@@ -10,7 +10,7 @@ Triggered when `.claude/design-spec.yaml` does not exist in the current project.
 2. Write `.claude/design-spec.yaml`:
    ```yaml
    specs_dir: docs/specs
-   template: ~/.claude/skills/m-design-spec/template.md
+   template: ~/.claude/skills/m-workflow:design-spec/template.md
    ```
 3. Create `specs_dir` if missing
 4. Confirm setup complete, proceed to Draft Mode

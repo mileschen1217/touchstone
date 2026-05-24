@@ -1,6 +1,6 @@
 ---
 name: cross-provider-reviewer
-description: Pattern A composite skill — reviews any artifact using CC `code-reviewer` + Codex `codex-reviewer` in parallel; synthesizes with explicit divergence labeling. Auto-falls back to CC-only when Codex unavailable. Used by `/m-design-review` (with doc-review `system_prompt` via envelope) and available for ad-hoc cross-provider review.
+description: Pattern A composite skill — reviews any artifact using CC `code-reviewer` + Codex `codex-reviewer` in parallel; synthesizes with explicit divergence labeling. Auto-falls back to CC-only when Codex unavailable. Used by `/m-workflow:design-review` (with doc-review `system_prompt` via envelope) and available for ad-hoc cross-provider review.
 allowed-tools:
   - Bash
   - Read
@@ -81,7 +81,7 @@ Skill body's final assistant text: the synthesized review.md content. The orches
 
 ## Cost note
 
-Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/m-design-review`), arch consult (`/m-arch-review`), design spec (`/m-design-spec`), or ad-hoc opt-in for high-risk diffs.
+Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/m-workflow:design-review`), arch consult (`/m-workflow:arch-review`), design spec (`/m-workflow:design-spec`), or ad-hoc opt-in for high-risk diffs.
 
 ## Dependencies
 

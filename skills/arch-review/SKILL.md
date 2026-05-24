@@ -8,7 +8,7 @@ description: |
   change, migration). Dispatches the `architect` agent in fresh context,
   returns a tradeoff memo with recommendation, and optionally captures the
   decision as an ADR via ECC's architecture-decision-records skill. Not a
-  replacement for `/m-design-spec` — this is the pre-spec consult that
+  replacement for `/m-workflow:design-spec` — this is the pre-spec consult that
   settles architectural questions so the spec can assume them.
 allowed-tools:
   - Bash
@@ -22,7 +22,7 @@ allowed-tools:
 kind: workflow
 ---
 
-<!-- keep-long: 233 lines, single linear consult path with no mutually-exclusive sub-flows to extract. Anti-patterns + /office-hours-vs-/m-arch-review comparison are routing/boundary content; held inline by design. -->
+<!-- keep-long: 233 lines, single linear consult path with no mutually-exclusive sub-flows to extract. Anti-patterns + /office-hours-vs-/m-workflow:arch-review comparison are routing/boundary content; held inline by design. -->
 
 ## Step 0 — Load vocabulary
 
@@ -54,8 +54,8 @@ If not adopted: skip Read; envelope `discipline_mode: "none"`; omit `source_as_t
 # m-arch-review
 
 Pre-code architect consult. For when the question is "which approach?" —
-not "here's the contract, review it" (that's `/m-design-spec`) and not "here's
-the code, review it" (that's `/m-code-review batch`).
+not "here's the contract, review it" (that's `/m-workflow:design-spec`) and not "here's
+the code, review it" (that's `/m-workflow:code-review batch`).
 
 ## When to Invoke
 
@@ -75,8 +75,8 @@ Typical triggers:
 - Contract-level choice that will propagate through the design spec
 
 Skip when:
-- The direction is clear from exploration — go straight to `/m-design-spec`
-- The question is about code that already exists → that's `/m-code-review batch`
+- The direction is clear from exploration — go straight to `/m-workflow:design-spec`
+- The question is about code that already exists → that's `/m-workflow:code-review batch`
 - It's a tactical implementation choice, not architectural → resolve inline
 
 ## Inputs
@@ -148,7 +148,7 @@ If a decision was made (step 3 "accepts" or "picks"), invoke the ADR workflow
 documented in `adr-authoring.md`:
 
 - Call ECC's `architecture-decision-records` skill
-- Add `Triggered by: /m-arch-review` and `Related ADRs: ...` headers
+- Add `Triggered by: /m-workflow:arch-review` and `Related ADRs: ...` headers
 - Confirm filename and approve before write
 
 If the user deferred, skip this step and save the memo to a scratch location
@@ -159,7 +159,7 @@ If the user deferred, skip this step and save the memo to a scratch location
 If the decision unblocks a feature design:
 
 ```
-Next: /m-design-spec <feature-name>
+Next: /m-workflow:design-spec <feature-name>
   — reference ADR-NNNN in the Related section
   — the Architecture section can now assume <chosen approach>
 ```
@@ -182,9 +182,9 @@ decisions go elsewhere.
 
 | Command | Behavior |
 |---|---|
-| `/m-arch-review` | Interactive: asks for question, context, candidates |
-| `/m-arch-review "<question>"` | Skip the prompt; derive context from conversation |
-| `/m-arch-review --defer-adr` | Run the consult but skip ADR capture even if decision reached |
+| `/m-workflow:arch-review` | Interactive: asks for question, context, candidates |
+| `/m-workflow:arch-review "<question>"` | Skip the prompt; derive context from conversation |
+| `/m-workflow:arch-review --defer-adr` | Run the consult but skip ADR capture even if decision reached |
 
 ## Dependencies
 
@@ -204,7 +204,7 @@ explored alternatives, written to a design doc. Use `/office-hours` when:
 - You want structured problem framing before design, not just a tradeoff pick
 - The user-facing Q&A flow is preferred over architect-agent memo output
 
-Use `/m-arch-review` when:
+Use `/m-workflow:arch-review` when:
 
 - A specific architectural question needs settling (not a broad problem frame)
 - The tradeoff is between 2-3 known approaches
@@ -216,9 +216,9 @@ Both flows can produce an ADR as output.
 
 ## Anti-patterns
 
-- **Using `/m-arch-review` instead of `/m-design-spec`** — this skill does
+- **Using `/m-workflow:arch-review` instead of `/m-workflow:design-spec`** — this skill does
   not produce a contract. If the direction is clear, go straight to the spec.
-- **Using `/m-arch-review` on existing code without a pending change** —
+- **Using `/m-workflow:arch-review` on existing code without a pending change** —
   that's an audit, not a consult. Invoke the architect agent directly via
   `Agent` tool with an audit prompt.
 - **Running without context** — architect produces thin output if given only
@@ -229,7 +229,7 @@ Both flows can produce an ADR as output.
 ## Related
 
 - Upstream: exploration routing (Topic 2 in global CLAUDE.md)
-- Downstream: `/m-design-spec` for spec drafting; `/superpowers:writing-plans`
+- Downstream: `/m-workflow:design-spec` for spec drafting; `/superpowers:writing-plans`
   for implementation sequencing
-- Parallel (different stage): `/m-code-review batch` for post-code batch review
+- Parallel (different stage): `/m-workflow:code-review batch` for post-code batch review
 - ADR workflow: `adr-authoring.md` (this skill's directory)

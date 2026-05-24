@@ -1,6 +1,6 @@
 ---
 name: cross-provider-architect
-description: Pattern A composite skill — architecture critique using CC `architect` + Codex `codex-adversarial-reviewer` in parallel. CC validates the design; Codex pressure-tests it. Synthesis labels divergence. Auto-falls back to CC-only when Codex unavailable. Used by `/m-arch-review` and `/m-design-spec`.
+description: Pattern A composite skill — architecture critique using CC `architect` + Codex `codex-adversarial-reviewer` in parallel. CC validates the design; Codex pressure-tests it. Synthesis labels divergence. Auto-falls back to CC-only when Codex unavailable. Used by `/m-workflow:arch-review` and `/m-workflow:design-spec`.
 allowed-tools:
   - Bash
   - Read
@@ -71,7 +71,7 @@ Same as `m-cross-provider-reviewer` — Codex probe/dispatch fail = CC-only fall
 
 ## Cost note
 
-Pattern A — ~2× tokens. Reserved for highest-leverage gates: `/m-arch-review` and `/m-design-spec` (architect-review stage).
+Pattern A — ~2× tokens. Reserved for highest-leverage gates: `/m-workflow:arch-review` and `/m-workflow:design-spec` (architect-review stage).
 
 ## Dependencies
 
