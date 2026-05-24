@@ -81,7 +81,7 @@ When invoked with `batch` keyword, route to Pattern B — vendor-not-builder rev
      - `builder = codex` → reviewer = `everything-claude-code:code-reviewer`
 4. Dispatch the resolved reviewer:
    - `codex-reviewer` → `Agent(subagent_type: "m-workflow:codex-reviewer", description: "Codex batch review", prompt: { task: <full diff>, role: "batch-reviewer", task_dir: <optional> })`
-   - `everything-claude-code:code-reviewer` → corresponding Agent dispatch
+   - `everything-claude-code:code-reviewer` → corresponding Agent dispatch  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
 5. Single reviewer; no parallel dispatch in Pattern B. Output is the single reviewer's verdict.
 6. Surface findings; Critical / High block merge.
 
@@ -91,9 +91,13 @@ Per-batch volume is high enough that Pattern A's 2× cost is not justified. Cros
 
 ## Dependencies
 
+- `everything-claude-code:code-reviewer` + language/security/database reviewers (ECC, EXTERNAL) — Epic B vendors or makes optional.
+- `m-workflow:codex-reviewer` (plugin-local) — Pattern B cross-vendor reviewer when CC builds.
+
 Language-specific, security, and database reviewers require the
-`everything-claude-code` plugin (ECC). If not installed, the skill runs with
-the generic reviewer only and logs a note about the missing dependency.
+`everything-claude-code` plugin (ECC). CC-only fallback: if ECC is not
+installed, the skill runs with the generic Sonnet reviewer only and logs a note
+about the missing dependency.
 
 ## Process
 

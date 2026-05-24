@@ -38,12 +38,12 @@ codex --version >/dev/null 2>&1 && echo "codex_healthy=1" || echo "codex_healthy
 
 If `codex_healthy=1`, in ONE message issue BOTH:
 
-- `Agent(subagent_type: "everything-claude-code:code-reviewer", description: "CC review", prompt: <task envelope with system_prompt prefix>)`
+- `Agent(subagent_type: "everything-claude-code:code-reviewer", description: "CC review", prompt: <task envelope with system_prompt prefix>)`  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
 - `Agent(subagent_type: "m-workflow:codex-reviewer", description: "Codex review", prompt: <task envelope>)`
 
 Wait for both to return before synthesizing.
 
-If `codex_healthy=0`, call only `code-reviewer` and proceed to synthesis with `fallback_reason: "codex unavailable"`.
+If `codex_healthy=0`, call only `everything-claude-code:code-reviewer` and proceed to synthesis with `fallback_reason: "codex unavailable"`.
 
 ### 3. Synthesis (deterministic)
 
@@ -80,3 +80,9 @@ Skill body's final assistant text: the synthesized review.md content. The orches
 ## Cost note
 
 Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/m-design-review`), arch consult (`/m-arch-review`), design spec (`/m-design-spec`), or ad-hoc opt-in for high-risk diffs.
+
+## Dependencies
+
+- `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — CC review backend. Epic B vendors or makes optional.
+- `m-workflow:codex-reviewer` (plugin-local) — Codex review backend.
+- CC-only fallback: if ECC absent, run available provider(s) only + emit synthesis with a `fallback_reason` note; if BOTH absent → no synthesis, surfaced as failure. (Loud-degraded metadata deferred to E14.)

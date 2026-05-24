@@ -37,7 +37,7 @@ codex --version >/dev/null 2>&1 && echo "codex_healthy=1" || echo "codex_healthy
 
 If `codex_healthy=1`, in ONE message issue BOTH:
 
-- `Agent(subagent_type: "everything-claude-code:architect", description: "CC architect", prompt: <task envelope>, model: "sonnet")`
+- `Agent(subagent_type: "everything-claude-code:architect", description: "CC architect", prompt: <task envelope>, model: "sonnet")`  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
 - `Agent(subagent_type: "m-workflow:codex-adversarial-reviewer", description: "Codex adversarial critique", prompt: <task envelope>)`
 
 Wait for both to return before synthesizing.
@@ -72,3 +72,9 @@ Same as `m-cross-provider-reviewer` — Codex probe/dispatch fail = CC-only fall
 ## Cost note
 
 Pattern A — ~2× tokens. Reserved for highest-leverage gates: `/m-arch-review` and `/m-design-spec` (architect-review stage).
+
+## Dependencies
+
+- `everything-claude-code:architect` (ECC, EXTERNAL) — CC validation backend. Epic B vendors or makes optional.
+- `m-workflow:codex-adversarial-reviewer` (plugin-local) — Codex adversarial-critique backend.
+- CC-only fallback: if ECC absent, run available provider(s) only + emit synthesis with a `fallback_reason` note; if BOTH absent → no synthesis, surfaced as failure. (Loud-degraded metadata deferred to E14.)
