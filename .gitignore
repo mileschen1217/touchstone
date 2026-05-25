@@ -6,7 +6,7 @@ __pycache__/
 
 # Local project management — specs, plans, epics, ADRs in flight
 .swarm/
-.claude/m-workflow.yaml
 .claude/m-workflow.yaml.bak
+.claude/worktrees/
 CLAUDE.local.md
 ROADMAP.md
