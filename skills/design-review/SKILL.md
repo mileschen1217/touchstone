@@ -131,6 +131,15 @@ Quality gate (sums findings across reviewers):
 - **1 ≤ C+H < 5** → surface findings; block Build until Critical+High are resolved. Single-pass fix is sufficient; second pass optional.
 - **C+H = 0, only Medium / Low** → surface findings; allow Build to proceed at user's discretion.
 
+**Informed-consent checkpoint (orthogonal to the C+H gate):** if the composite's
+returned synthesis carries a ⚠️ DEGRADED or ⚠️ PARTIAL banner, present the banner
+text to the user VERBATIM and obtain explicit acknowledgement (an `AskUserQuestion`
+choice, or an explicit user "proceed") BEFORE allowing Build to proceed. This applies
+even when C+H == 0 — the banner is informational, not a hard block, but the workflow
+MUST NOT auto-advance past it without the human knowingly acknowledging. A clean
+review (no banner) does not trigger this checkpoint. The banner's meaning is defined
+in `skills/cross-provider-reviewer/references/provenance.md`.
+
 In all cases: do not auto-promote spec status; the user (or caller skill) decides when to proceed.
 
 ## Pattern semantics (self-contained)
