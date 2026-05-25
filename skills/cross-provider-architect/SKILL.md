@@ -54,12 +54,20 @@ The two outputs are intentionally different in tone. Synthesis must:
 - Cross-reference: when an adversarial finding contradicts a validated decision, flag explicitly
 - End with a unified verdict: approve | revise | block — choose the more conservative across both
 
-### 4. Write artifacts (same shape as m-workflow:cross-provider-reviewer)
+### 4. Compute provenance, prepend banners, write artifacts
 
+Same procedure as `m-workflow:cross-provider-reviewer` Step 4, per the sole canonical
+`skills/cross-provider-reviewer/references/provenance.md` (this composite reads the SAME
+reference — no copy here). `providers_expected` default `["cc","codex"]`; `builder_vendor`
+null (Pattern A). Extract `session_id` from `raw_codex.jsonl` per
+`skills/cross-provider-reviewer/references/provenance.md`. Compute degraded
+(Operations 1–4) and partial (Operation 5) banners; prepend to synthesis + review.md.
+
+Write artifacts (if `task_dir` provided):
 - `<task_dir>/raw_cc.md` — architect output
-- `<task_dir>/raw_codex.jsonl` — adversarial reviewer output
-- `<task_dir>/review.md` — synthesis
-- `<task_dir>/result.json` — schema v1
+- `<task_dir>/raw_codex.jsonl` — adversarial reviewer output (raw JSONL)
+- `<task_dir>/review.md` — synthesis (banner-prepended when degraded/partial)
+- `<task_dir>/review.result.json` — review-envelope/v1 (schema + rules SOLELY in `skills/cross-provider-reviewer/references/provenance.md`; derived fields never written)
 
 ### 5. Return synthesis to caller
 
@@ -67,7 +75,10 @@ Skill body's final assistant text: the synthesized review.md content.
 
 ## Failure semantics
 
-Same as `m-workflow:cross-provider-reviewer` — Codex probe/dispatch fail = CC-only fallback; both fail = `status: failed`; framework error = propagate.
+- Codex probe / dispatch fail → CC-only synthesis with `fallback_reason`; `providers_used = ["cc"]`; `status: ok`; DEGRADED banner (quantity+vendor incorrect).
+- Both reviewers fail → `status: failed`, both errors in `risks[]`, `providers_used = []`, `providers_expected` still recorded, no synthesis, NO banner.
+- Skill itself errors (framework) → propagate to caller.
+- The review-envelope is written as `review.result.json`; all correctness/banner rules are defined SOLELY in `skills/cross-provider-reviewer/references/provenance.md`.
 
 ## Cost note
 
