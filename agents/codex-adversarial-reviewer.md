@@ -40,7 +40,7 @@ Identical to `codex-reviewer`. See that agent's body for full procedure. Path C 
 
 Failure events: same defensive checks as `codex-reviewer` (auth.*failed, error / turn.failed, sandbox+violation; >5 malformed lines = partial). V0.6 mini-spike will provide verbatim event names.
 
-If `task_dir` is set, write `<task_dir>/raw_codex.jsonl` (full event stream) and `<task_dir>/result.json` (schema v1 envelope). Always return the critique on stdout.
+If `task_dir` is set, write `<task_dir>/raw_codex.jsonl` (full event stream) and `<task_dir>/review.result.json` (review-envelope/v1 (schema in skills/cross-provider-reviewer/references/provenance.md)). Always return the critique on stdout.
 
 ## Role system prompt
 

@@ -59,7 +59,7 @@ Where `$ROLE_PROMPT` is the role-system-prompt (see "Role system prompt" section
 codex --version >/dev/null 2>&1 || { echo "codex unavailable: command not found"; exit 0; }
 ```
 
-If probe fails: emit a `result.json` with `status: failed`, `fallback_reason: "codex unavailable: command not found"`, and exit 0. Do NOT throw — the composite expects this.
+If probe fails: emit a `review.result.json` with `status: failed`, `fallback_reason: "codex unavailable: command not found"`, and exit 0. Do NOT throw — the composite expects this.
 
 ## JSONL parsing
 
@@ -87,7 +87,7 @@ exit 0
 
 If `task_dir` is set, write:
 - `<task_dir>/raw_codex.jsonl` — full event stream
-- `<task_dir>/result.json` — schema v1 envelope (see spec § result.json schema)
+- `<task_dir>/review.result.json` — review-envelope/v1 (schema defined solely in skills/cross-provider-reviewer/references/provenance.md)
 
 Always return the review text on stdout for the composite skill body to consume.
 
