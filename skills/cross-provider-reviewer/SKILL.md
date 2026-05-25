@@ -68,8 +68,8 @@ only the ACTIONS; it restates none of those definitions.
    provenance.md. `builder_vendor` is null (Pattern A has no builder).
 2. Extract `session_id` from `<task_dir>/raw_codex.jsonl` per provenance.md.
 3. Determine degraded/partial and, if either holds, build and prepend the banner(s)
-   to the synthesis text AND to `review.md` (then a blank line, then the review body),
-   per provenance.md.
+   to the synthesis text AND to `review.md`, per provenance.md (which defines the
+   banner content and ordering).
 
 Write artifacts (if `task_dir` provided):
 - `<task_dir>/raw_cc.md` — CC reviewer output verbatim

@@ -56,11 +56,12 @@ The two outputs are intentionally different in tone. Synthesis must:
 
 ### 4. Compute provenance, prepend banners, write artifacts
 
-Same procedure as `m-workflow:cross-provider-reviewer` Step 4, per the sole canonical
-`skills/cross-provider-reviewer/references/provenance.md` (this composite reads the SAME
-reference — no copy here). `builder_vendor` is null (Pattern A). Record provenance,
-extract `session_id` from `raw_codex.jsonl`, and prepend the banner(s) if degraded/partial
-— all per that reference, which holds every field/operation/banner definition.
+All actions here follow the sole canonical
+`skills/cross-provider-reviewer/references/provenance.md` (this composite reads that SAME
+reference directly — no copy, no indirection through another skill). `builder_vendor` is
+null (Pattern A). Record provenance (`providers_expected`/`providers_used`), extract
+`session_id` from `raw_codex.jsonl`, and prepend the banner(s) if degraded/partial — all
+per that reference, which holds every field/operation/banner definition.
 
 Write artifacts (if `task_dir` provided):
 - `<task_dir>/raw_cc.md` — architect output
