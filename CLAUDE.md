@@ -12,17 +12,16 @@ A Claude Code plugin: skills + commands + agents under `.claude-plugin/`, `skill
 |---|---|---|
 | User-facing docs | `docs/` | Comparisons, design notes, anything for external readers |
 | Published ADRs | `docs/adr/` | Final decisions worth sharing |
-| Roadmap | `ROADMAP.md` (root) | Pure tracker — epic titles + GitHub issue links |
 | Plugin source | `skills/`, `agents/`, `commands/`, `.claude-plugin/` | The plugin itself |
 | Scripts | `scripts/` | Migration / audit / smoke helpers |
 
-In-flight work (specs, plans, epics, draft ADRs) is **local-only** — see `CLAUDE.local.md`. Promote to the public surfaces above when an artifact is stable and externally relevant.
+In-flight work (specs, plans, epics, draft ADRs) is **local-only** — see `CLAUDE.local.md`. Promote to the public surfaces above when an artifact is stable and externally relevant. `ROADMAP.md` is part of this local-only set — it is the machine-local epic tracker indexing `.swarm/epics/`, gitignored, not a public committed surface (see `CLAUDE.local.md § Local Doc Routing`).
 
 ## Issue Tracking — GitHub
 
 Shared work moves through GitHub Issues, not committed `.md` files.
 
-- **Epics** → Issue labeled `epic`. Body links to ROADMAP row.
+- **Epics** → Issue labeled `epic`. Body links to the local `ROADMAP.md` row (machine-local tracker; the Issue is the shared surface of record).
 - **Specs** → If the spec drove a non-trivial change, paste the Acceptance Criteria section or attach the final `.md` to the issue.
 - **Plans** → Inline as issue task list, or referenced from the epic.
 - **ADRs** → If the decision is final and externally interesting, promote to `docs/adr/` AND link from the relevant issue.
