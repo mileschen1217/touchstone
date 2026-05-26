@@ -48,17 +48,8 @@ Explore → /m-workflow:design-spec → /superpowers:writing-plans → Build (AT
 
 ## Step 0 — Load vocabulary
 
-Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`.
-
-**If yaml absent** (file not found):
-  Print one line: `ℹ️  No .claude/m-workflow.yaml — using default paths. Run /m-workflow:init to configure.`
-  Use hardcoded defaults for all path lookups in this invocation: `specs_dir=.swarm/specs`, `adr_dir=.swarm/docs/adr`, `epics_dir=.swarm/epics`, `plans_dir=.swarm/plans`, `archive_specs_dir=.swarm/archive/specs`.
-  Treat `adopted_disciplines` as empty. Do not refuse; continue to drafting. Skip the CONTEXT.md Read below; in dispatch envelope omit `source_as_truth_vocab` and set `discipline_mode: "none"`.
-
-**If yaml present:** check `adopted_disciplines`.
-
-If contains `source-as-truth`:
-  Read `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md § "Bridge content gate"` — load text into context.
+> Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md`
+> with the Read tool and follow it exactly.
 
 When dispatching to `m-workflow:cross-provider-architect` (Step N below), include in task envelope:
 
@@ -86,13 +77,7 @@ If `source-as-truth` is NOT adopted (yaml absent OR `adopted_disciplines` lacks 
 
 (Omit `source_as_truth_vocab` field entirely; do not pass empty string.)
 
-## Setup Mode
-
-Triggered when `.claude/design-spec.yaml` does not exist. Interactive specs-dir config flow + design decisions → [`references/setup-mode.md`](references/setup-mode.md).
-
 ## Draft Mode
-
-Triggered when `.claude/design-spec.yaml` exists.
 
 ### Step 0 — Foundation elicitation (Baseline — always runs)
 
@@ -224,8 +209,7 @@ Running this skill does **not** discharge `/m-workflow:design-review`. The Step-
 ## Usage
 
 ```
-/m-workflow:design-spec                          # interactive draft (config exists) or setup-then-draft
-/m-workflow:design-spec setup                    # force re-run setup (overwrites .claude/design-spec.yaml)
+/m-workflow:design-spec                          # interactive draft
 /m-workflow:design-spec <feature-name>           # skip name prompt
 /m-workflow:design-spec <feature-name> quick     # skip architect dispatch (draft only — fast iteration)
 /m-workflow:design-spec <feature-name> with codex   # force Codex-only architect (no parallel CC)
@@ -241,8 +225,7 @@ The `with <vendor>` modifier overrides the architect routing — the default Pat
 ### Argument parsing
 
 Parse left-to-right:
-1. If first token is `setup` → run Setup Mode and exit.
-2. Next non-keyword token (not `quick` / `with`) → `feature_name`.
+1. Next non-keyword token (not `quick` / `with`) → `feature_name`.
 3. If `quick` appears anywhere → `quick = true` (skip architect).
 4. If `with <vendor>` appears, set `force_architect = <vendor>`. Validate against {`codex`, `cc`}; fail loudly otherwise.
 
