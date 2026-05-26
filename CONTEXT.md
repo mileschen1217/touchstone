@@ -217,4 +217,4 @@ Transport is agnostic: the request rides result.json (`status: needs-scope-expan
 
 Constitution. A template lives co-located with its sole owning skill at `skills/<skill>/templates/` (a `templates/` dir even for a single file). The root `templates/` dir is reserved for templates shared by 2+ skills. Skills reference their templates by **plugin-relative path**, never an absolute `~/.claude/skills/m-*` path.
 
-> Known violation, deferred to Epic A (consolidation): `arch-discovery` and `design-spec` reference their own bundled assets (template / lenses / coverage-matrix / exemplar / adr-authoring) via absolute `~/.claude/skills/m-*` paths. Recorded here; the systematic fix is not in scope for `doc-and-role-cleanup`.
+`skills/_shared/` holds ONLY cross-skill instruction blocks referenced by 3+ skills under a single-home requirement (e.g. `step0-resolver.md`); single-skill assets stay co-located in `skills/<skill>/`.
