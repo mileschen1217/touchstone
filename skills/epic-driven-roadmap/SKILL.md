@@ -4,7 +4,7 @@ kind: workflow
 description: |
   Scaffold, maintain, and audit a project's epic-driven roadmap. Every project
   using this convention keeps a pure-tracker ROADMAP.md plus one tracker per
-  epic under .swarm/epics/<slug>/index.md. Invoke when: starting a new epic,
+  epic under .m-workflow/epics/<slug>/index.md. Invoke when: starting a new epic,
   closing an epic (retrospective + move to Completed), auditing status drift,
   or bootstrapping the convention in a new project. Concrete paths come from
   the project's CLAUDE.md § Doc Routing; this skill owns the shape, templates,
@@ -22,26 +22,16 @@ allowed-tools:
 
 ## Step 0 — Load vocabulary
 
-Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`.
+> Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md`
+> with the Read tool and follow it exactly.
 
-**If yaml absent** (file not found):
-  Print one line: `ℹ️  No .claude/m-workflow.yaml — using default paths. Run /m-workflow:init to configure.`
-  Use hardcoded defaults: `specs_dir=.swarm/specs`, `adr_dir=.swarm/docs/adr`, `epics_dir=.swarm/epics`, `plans_dir=.swarm/plans`, `archive_specs_dir=.swarm/archive/specs`.
-  Treat `adopted_disciplines` as empty. Do not refuse; continue. Skip CONTEXT.md Read.
+If `source-as-truth` is in `bundle.disciplines`, read 3 sections of
+`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` — § "Bridge content gate", § "Standing
+vs transient bridge", § "Four doc kinds" — which define the rules Stage 7
+doc reckoning applies. This skill does not dispatch to other skills, so no
+envelope handoff is needed.
 
-**If yaml present:** check `adopted_disciplines`.
-
-If contains `source-as-truth`:
-  Read 3 sections of `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md`:
-    - § "Bridge content gate"
-    - § "Standing vs transient bridge"
-    - § "Four doc kinds"
-
-  These define the rules Stage 7 doc reckoning applies (kill-on, kind: bridge|navigation|workflow|diagnostic, distill-or-archive criteria).
-
-This skill does not dispatch to other skills, so no envelope handoff is needed.
-
-If not adopted: skip Read; Stage 7 doc reckoning runs in default mode (mechanical mtime-based bridge audit only, no frontmatter kind: classification, no distill-or-archive recommendation).
+If `source-as-truth` is not adopted: Stage 7 doc reckoning runs in default mode (mechanical mtime-based bridge audit only, no frontmatter kind: classification, no distill-or-archive recommendation).
 
 Pure-tracker roadmap + per-epic tracker convention. CLAUDE.md routes here; this skill owns the rule and the templates.
 
@@ -50,9 +40,9 @@ Pure-tracker roadmap + per-epic tracker convention. CLAUDE.md routes here; this 
 - **Scaffold a new epic** — user starts work on a new initiative not yet tracked.
 - **Close an epic** — all phases done, needs retrospective + move to Completed table.
 - **Audit** — weekly or on demand: status drift between ROADMAP row and epic frontmatter, stale epics, orphans, scope overlap.
-- **Bootstrap** — new project adopts this convention (ROADMAP.md + `.swarm/epics/README.md` + first epic).
+- **Bootstrap** — new project adopts this convention (ROADMAP.md + `.m-workflow/epics/README.md` + first epic).
 
-Skip if: the project doesn't use this convention (no `ROADMAP.md` or `.swarm/epics/`).
+Skip if: the project doesn't use this convention (no `ROADMAP.md` or `.m-workflow/epics/`).
 
 ## The Rule
 
@@ -86,7 +76,7 @@ Concrete paths live in the project's CLAUDE.md § Doc Routing.
 
 Two distinct artifacts; do not conflate.
 
-- **Epic master plan (Q4a)** — sequences the epic's phases, locks cross-spec decisions (e.g. "primary gate is X, deprecate Y"), states effort + acceptance per phase, freezes scope so reactive expansion is rejected. Lives **with the epic**: `.swarm/epics/<slug>/<short-name>.md` (e.g. `v6-3-roadmap.md`, `roadmap.md`, or `master-plan.md`). The epic index links to it. One per epic — not per phase.
+- **Epic master plan (Q4a)** — sequences the epic's phases, locks cross-spec decisions (e.g. "primary gate is X, deprecate Y"), states effort + acceptance per phase, freezes scope so reactive expansion is rejected. Lives **with the epic**: `.m-workflow/epics/<slug>/<short-name>.md` (e.g. `v6-3-roadmap.md`, `roadmap.md`, or `master-plan.md`). The epic index links to it. One per epic — not per phase.
 - **Task plan (Q4b)** — per-spec implementation plan for a single design spec. Lives under `docs/superpowers/plans/` (or the project's plan path). One per spec.
 
 **When to write a master plan:** an epic that crosses 2+ design specs, locks methodology decisions that bind multiple specs, or needs effort sequencing across phases. Skinny epics (single spec, one PR) skip the master plan and go straight from epic index → spec → plan.
@@ -162,7 +152,7 @@ Two distinct artifacts; do not conflate.
       This is the highest-ROI step — it prevents a spec being written
       for the wrong scope.
 1. Pick a slug — lowercase, hyphen-separated, names the **deliverable surface** (e.g. `port-statistics-stacking`), not a phase number.
-2. Read the project's CLAUDE.md § Doc Routing to get the concrete `.swarm/epics/` path.
+2. Read the project's CLAUDE.md § Doc Routing to get the concrete `.m-workflow/epics/` path.
 3. Copy `templates/epic-index.md` to `<epics-dir>/<slug>/index.md`; fill in `slug`, `started` (today), `owner_teams`, aim into the `**Aim:**` headline, intention + out-of-scope into `## Foundation` (from step 0), and Phase 1.
 4. Add a row to `ROADMAP.md` § Active Epics: `| <slug> | <aim> | proposed | [index](<epics-dir>/<slug>/index.md) |`.
 5. When creating content docs (research, specs, plans, ADRs) for this epic, add frontmatter `epics: [<slug>]` so the backlink exists from day one. See `templates/content-doc.md`.
@@ -190,12 +180,12 @@ Each project fills in concrete paths for the Q-per-stage pipeline:
 
 | Q (stage) | Example concrete path |
 |---|---|
-| Why at all? (0) | `.swarm/vision.md`, `ROADMAP.md` scope block |
-| Why this epic? (1) | `.swarm/epics/<slug>/index.md` |
-| What might work? (2) | `.swarm/research/YYYY-MM-DD-<slug>.md` |
-| What contract? (3) | `.swarm/specs/YYYY-MM-DD-<slug>.md` |
-| How, in order — epic? (4a) | `.swarm/epics/<slug>/<name>-roadmap.md` (only when epic spans 2+ specs) |
-| How, in order — per-spec? (4b) | `.swarm/plans/YYYY-MM-DD-<slug>.md` |
+| Why at all? (0) | `.m-workflow/vision.md`, `ROADMAP.md` scope block |
+| Why this epic? (1) | `.m-workflow/epics/<slug>/index.md` |
+| What might work? (2) | `.m-workflow/research/YYYY-MM-DD-<slug>.md` |
+| What contract? (3) | `.m-workflow/specs/YYYY-MM-DD-<slug>.md` |
+| How, in order — epic? (4a) | `.m-workflow/epics/<slug>/<name>-roadmap.md` (only when epic spans 2+ specs) |
+| How, in order — per-spec? (4b) | `.m-workflow/plans/YYYY-MM-DD-<slug>.md` |
 | Did it work? (5) | Commits, MRs |
 | What did we learn? (6) | Retrospective on epic index |
 

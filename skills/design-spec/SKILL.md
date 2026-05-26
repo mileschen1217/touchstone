@@ -48,17 +48,12 @@ Explore → /m-workflow:design-spec → /superpowers:writing-plans → Build (AT
 
 ## Step 0 — Load vocabulary
 
-Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`.
+> Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md`
+> with the Read tool and follow it exactly.
 
-**If yaml absent** (file not found):
-  Print one line: `ℹ️  No .claude/m-workflow.yaml — using default paths. Run /m-workflow:init to configure.`
-  Use hardcoded defaults for all path lookups in this invocation: `specs_dir=.swarm/specs`, `adr_dir=.swarm/docs/adr`, `epics_dir=.swarm/epics`, `plans_dir=.swarm/plans`, `archive_specs_dir=.swarm/archive/specs`.
-  Treat `adopted_disciplines` as empty. Do not refuse; continue to drafting. Skip the CONTEXT.md Read below; in dispatch envelope omit `source_as_truth_vocab` and set `discipline_mode: "none"`.
-
-**If yaml present:** check `adopted_disciplines`.
-
-If contains `source-as-truth`:
-  Read `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md § "Bridge content gate"` — load text into context.
+If `source-as-truth` is in `bundle.disciplines`, also read
+`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Bridge content gate" and load the
+text into context for the envelope below.
 
 When dispatching to `m-workflow:cross-provider-architect` (Step N below), include in task envelope:
 
@@ -86,13 +81,7 @@ If `source-as-truth` is NOT adopted (yaml absent OR `adopted_disciplines` lacks 
 
 (Omit `source_as_truth_vocab` field entirely; do not pass empty string.)
 
-## Setup Mode
-
-Triggered when `.claude/design-spec.yaml` does not exist. Interactive specs-dir config flow + design decisions → [`references/setup-mode.md`](references/setup-mode.md).
-
 ## Draft Mode
-
-Triggered when `.claude/design-spec.yaml` exists.
 
 ### Step 0 — Foundation elicitation (Baseline — always runs)
 
@@ -224,8 +213,7 @@ Running this skill does **not** discharge `/m-workflow:design-review`. The Step-
 ## Usage
 
 ```
-/m-workflow:design-spec                          # interactive draft (config exists) or setup-then-draft
-/m-workflow:design-spec setup                    # force re-run setup (overwrites .claude/design-spec.yaml)
+/m-workflow:design-spec                          # interactive draft
 /m-workflow:design-spec <feature-name>           # skip name prompt
 /m-workflow:design-spec <feature-name> quick     # skip architect dispatch (draft only — fast iteration)
 /m-workflow:design-spec <feature-name> with codex   # force Codex-only architect (no parallel CC)
@@ -241,8 +229,7 @@ The `with <vendor>` modifier overrides the architect routing — the default Pat
 ### Argument parsing
 
 Parse left-to-right:
-1. If first token is `setup` → run Setup Mode and exit.
-2. Next non-keyword token (not `quick` / `with`) → `feature_name`.
+1. Next non-keyword token (not `quick` / `with`) → `feature_name`.
 3. If `quick` appears anywhere → `quick = true` (skip architect).
 4. If `with <vendor>` appears, set `force_architect = <vendor>`. Validate against {`codex`, `cc`}; fail loudly otherwise.
 
@@ -257,13 +244,13 @@ gate (see Boundary above) — keep it human-owned.
 
 ## Related
 
-- Template: `~/.claude/skills/m-workflow:design-spec/template.md` (bundled)
+- Template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md` (bundled)
 - Exploration routing (upstream): Topic 2 in global CLAUDE.md
 - Architecture consult (upstream, conditional): `/m-workflow:arch-review` — for
   resolving architectural questions before drafting the spec
 - ATDD chain (downstream): `ATDD — spec and test development` in global CLAUDE.md
 - design-review gate (downstream, distinct from Step-5 review): `/m-workflow:design-review` — see Boundary section
 - Plan generation (downstream): `/superpowers:writing-plans`
-- ADR workflow: `~/.claude/skills/m-workflow:arch-review/adr-authoring.md`
+- ADR workflow: `${CLAUDE_PLUGIN_ROOT}/skills/arch-review/adr-authoring.md`
 - Example spec matching the template:
   `docs/superpowers/specs/2026-04-16-m-extract-knowledge-design.md` (Obsidian repo)

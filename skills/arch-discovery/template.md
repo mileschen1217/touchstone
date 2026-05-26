@@ -48,7 +48,7 @@ status: Discovery (in progress)
 
 The completeness contract. Rows = features. Columns = lenses. Each cell cites the section that addresses it, or carries one of: `gap` (known missing) / `deferred (→ pointer)` / `N/A (rationale)`.
 
-Cell-state vocabulary, transitions, and sweep protocol live in `~/.claude/skills/m-workflow:arch-discovery/coverage-matrix.md`.
+Cell-state vocabulary, transitions, and sweep protocol live in `${CLAUDE_PLUGIN_ROOT}/skills/arch-discovery/coverage-matrix.md`.
 
 | Feature \\ Lens | L1 Func | L2 Own | L3 Inv | L4 State | L5 Info | L6 Cfg | L7 Data | L8 Ctrl | L9 Cap | L10 Cstr | L11 Force | L12 Fail | L13 Life | L14 Iface | L15 Dec | L16 OQ |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -207,7 +207,7 @@ One-line list. Each line cites a sibling ADR. Rationale, alternatives, and conse
 
 ## Appendix A. Lens definitions (in-doc copy)
 
-L1–L18 brief definitions for self-contained reading. Full reference lives in `~/.claude/skills/m-workflow:arch-discovery/lenses.md`. Update via that file and re-paste here.
+L1–L18 brief definitions for self-contained reading. Full reference lives in `${CLAUDE_PLUGIN_ROOT}/skills/arch-discovery/lenses.md`. Update via that file and re-paste here.
 
 ## Appendix B. Provenance
 
