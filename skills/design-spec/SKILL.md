@@ -240,13 +240,13 @@ gate (see Boundary above) — keep it human-owned.
 
 ## Related
 
-- Template: `~/.claude/skills/m-workflow:design-spec/template.md` (bundled)
+- Template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md` (bundled)
 - Exploration routing (upstream): Topic 2 in global CLAUDE.md
 - Architecture consult (upstream, conditional): `/m-workflow:arch-review` — for
   resolving architectural questions before drafting the spec
 - ATDD chain (downstream): `ATDD — spec and test development` in global CLAUDE.md
 - design-review gate (downstream, distinct from Step-5 review): `/m-workflow:design-review` — see Boundary section
 - Plan generation (downstream): `/superpowers:writing-plans`
-- ADR workflow: `~/.claude/skills/m-workflow:arch-review/adr-authoring.md`
+- ADR workflow: `${CLAUDE_PLUGIN_ROOT}/skills/arch-review/adr-authoring.md`
 - Example spec matching the template:
   `docs/superpowers/specs/2026-04-16-m-extract-knowledge-design.md` (Obsidian repo)
