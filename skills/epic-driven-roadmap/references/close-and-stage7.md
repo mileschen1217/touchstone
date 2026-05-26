@@ -19,7 +19,7 @@ Mechanical inventory of what this epic did to the doc graph. Lists facts; does n
 
 **Procedure**
 
-1. **Created docs** — enumerate `.md` files added in the git range under the project's doc paths (`.swarm/research/`, `.swarm/specs/`, `.swarm/plans/`, `.swarm/docs/`). For each:
+1. **Created docs** — enumerate `.md` files added in the git range under the project's doc paths (`.m-workflow/research/`, `.m-workflow/specs/`, `.m-workflow/plans/`, `.m-workflow/docs/`). For each:
    - Read frontmatter `kind:`.
    - If `kind: bridge`, read `kill-on:`. Missing `kill-on:` on a bridge doc → **finding** (advisory; cultural reminder, not gating per the `source-as-truth` discipline).
    - List as `created` with kind + kill-on.
@@ -37,9 +37,9 @@ Mechanical inventory of what this epic did to the doc graph. Lists facts; does n
 4. **Source-level deposit** — read the epic's design specs (if any) for their `## Source-level Deposit` section (per `m-design-spec` template). Record the lever each spec named, or "none" with the stated reason.
 
 5. **Built spec distill-or-archive (per the `source-as-truth` discipline, CONTEXT.md § Standing vs transient bridge)** — for each spec under this epic whose feature has landed, decide its post-landing path:
-   - **Pure transient** (all contracts now in source) → mark for move to `.swarm/archive/specs/`, frontmatter change to `kind: diagnostic`, `evidence-for: <commits / MR>`.
-   - **Standing-candidate sections present** (P3-pure cross-cutting invariants) → list which sections should distill to `.swarm/docs/architecture/<topic>.md` (carrying their own `kill-on:`); residual spec then archives.
-   - **Whole spec is cross-cutting** (rare) → copy whole spec to `.swarm/docs/architecture/`, retire original.
+   - **Pure transient** (all contracts now in source) → mark for move to `.m-workflow/archive/specs/`, frontmatter change to `kind: diagnostic`, `evidence-for: <commits / MR>`.
+   - **Standing-candidate sections present** (P3-pure cross-cutting invariants) → list which sections should distill to `.m-workflow/docs/architecture/<topic>.md` (carrying their own `kill-on:`); residual spec then archives.
+   - **Whole spec is cross-cutting** (rare) → copy whole spec to `.m-workflow/docs/architecture/`, retire original.
    This is a judgment call, not auto-executed. Stage 7 surfaces the candidates; the human (or author at next session) executes the move and frontmatter rewrite.
 
 **Output — append to epic `index.md`**

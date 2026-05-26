@@ -70,7 +70,7 @@ When rule 3 fires, the implementer emits a `scope_change_request` in result.json
 
 **Adjudication policy (orchestrator):** `reversible` + within project boundary → auto-approve, amend Scope, re-dispatch. `irreversible` or crosses an infra/trust boundary → escalate to human.
 
-**Ledger:** every request + decision appends one line to `.swarm/epics/<slug>/scope-changes.jsonl` (audit + epic-close retro):
+**Ledger:** every request + decision appends one line to `.m-workflow/epics/<slug>/scope-changes.jsonl` (audit + epic-close retro):
 
 ```
 {"ts","task_id","request":{…verbatim…},"decision":"approved|denied|escalated-to-human","decided_by":"orchestrator|human","decision_reason","scope_amendment","outcome":"redispatched|abandoned|<task_id>"}

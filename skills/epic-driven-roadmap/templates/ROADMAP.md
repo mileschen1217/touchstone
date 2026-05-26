@@ -8,7 +8,7 @@
 
 | Slug | Aim | Status | Epic |
 |---|---|---|---|
-| <slug> | <one-sentence aim> | proposed | [index](.swarm/epics/<slug>/index.md) |
+| <slug> | <one-sentence aim> | proposed | [index](.m-workflow/epics/<slug>/index.md) |
 
 ## Completed Epics
 
@@ -28,5 +28,5 @@
 
 ## Meta
 
-- Convention: `.swarm/epics/README.md`
+- Convention: `.m-workflow/epics/README.md`
 - Routing: `CLAUDE.md § Doc Routing`
