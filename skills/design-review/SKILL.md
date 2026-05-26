@@ -51,6 +51,11 @@ Out of scope — return "not in scope; this skill reviews specs / plans / ADRs /
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md`
 > with the Read tool and follow it exactly.
 
+If `source-as-truth` is in `bundle.disciplines`, also read
+`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Bridge content gate" AND
+§ "Standing vs transient bridge" and load both sections into context for
+the envelope below.
+
 When dispatching to `m-workflow:cross-provider-reviewer`, include in envelope:
 
 ```json
