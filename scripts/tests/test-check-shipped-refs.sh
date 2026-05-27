@@ -31,9 +31,10 @@ assert_case() {
   rm -rf "$dir"
 }
 
-# AC-1: a committed docs file referencing an untracked concrete workspace_root file is a leak
+# AC-1: a committed docs file referencing an untracked dated artifact is a leak,
+# reported with exact file:line: token (the ref is on line 2 of leak.md)
 t="$(new_repo)"; cp "$FIX/leak.md" "$t/docs/leak.md"; ( cd "$t" && git add docs/leak.md && git commit -qm x )
-assert_case "AC-1 untracked concrete ref flagged" 1 "$t" "docs/leak.md"
+assert_case "AC-1 untracked dated ref flagged with file:line" 1 "$t" "docs/leak.md:2: .m-workflow/specs/2026-05-22-foo.md"
 
 # AC-2: a <placeholder> reference is not a leak (clean tree => pass)
 t="$(new_repo)"; cp "$FIX/placeholder.md" "$t/docs/p.md"; ( cd "$t" && git add docs/p.md && git commit -qm x )
@@ -75,7 +76,18 @@ assert_case "AC-6 non-git dir exits 2" 2 "$t" "ERROR"
 # AC-5 fallback: no workspace_root key => default .m-workflow still flags the leak
 t="$(new_repo)"; printf '# no ws key\n' > "$t/.claude/m-workflow.yaml"
 cp "$FIX/leak.md" "$t/docs/leak.md"; ( cd "$t" && git add docs/leak.md .claude/m-workflow.yaml && git commit -qm x )
-assert_case "AC-5 absent workspace_root falls back to .m-workflow" 1 "$t" "docs/leak.md"
+assert_case "AC-5 absent workspace_root falls back to .m-workflow" 1 "$t" "docs/leak.md:2: .m-workflow/specs/2026-05-22-foo.md"
+
+# AC-5 configured: a NON-default workspace_root is honoured (leak under .myws/, not .m-workflow/)
+t="$(new_repo)"; printf 'workspace_root: .myws\n' > "$t/.claude/m-workflow.yaml"
+printf 'See .myws/specs/2026-05-22-foo.md here.\n' > "$t/docs/leak.md"
+( cd "$t" && git add docs/leak.md .claude/m-workflow.yaml && git commit -qm x )
+assert_case "AC-5 configured non-default workspace_root honoured" 1 "$t" "docs/leak.md:1: .myws/specs/2026-05-22-foo.md"
+
+# AC-7 (execution): a leak-bearing file OUTSIDE docs/+skills/ is not scanned
+t="$(new_repo)"; mkdir -p "$t/scripts"; cp "$FIX/leak.md" "$t/scripts/x.md"
+( cd "$t" && git add scripts/x.md && git commit -qm x )
+assert_case "AC-7 leak outside docs/skills not scanned" 0 "$t" "pass"
 
 # AC-10: the guard header states the best-effort / grounded / placeholder-convention contract
 if grep -qiF "best-effort floor" "$GUARD" && grep -qiF "certainly a leak" "$GUARD" \
@@ -90,6 +102,27 @@ if [ -d "$FIX" ] && case "$FIX" in */scripts/tests/shipped-ref-fixtures) true;; 
   pass=$((pass+1)); echo "ok   - AC-7 fixtures outside scan scope"
 else
   fail=$((fail+1)); echo "FAIL - AC-7 fixtures outside scan scope"
+fi
+
+# AC-8: the 18 fixtures are de-leaked in the REAL repo — exactly 18 carry the rewritten
+# provenance line, and zero .swarm dated refs remain under skills/ + docs/.
+n_rewritten="$( grep -rl 'Spec authority: intention-first epic' \
+  "$REPO_ROOT/skills/design-spec/tests/step0-fixtures/" \
+  "$REPO_ROOT/skills/epic-driven-roadmap/tests/step0-fixtures/" 2>/dev/null | wc -l | tr -d ' ' )"
+n_swarm="$( grep -rlE '\.swarm/specs/[0-9]{4}-[0-9]{2}-[0-9]{2}' \
+  "$REPO_ROOT/skills/" "$REPO_ROOT/docs/" 2>/dev/null | wc -l | tr -d ' ' )"
+if [ "$n_rewritten" -eq 18 ] && [ "$n_swarm" -eq 0 ]; then
+  pass=$((pass+1)); echo "ok   - AC-8 18 fixtures de-leaked, 0 .swarm dated refs"
+else
+  fail=$((fail+1)); echo "FAIL - AC-8 (rewritten=$n_rewritten want 18; swarm=$n_swarm want 0)"
+fi
+
+# AC-9: SKILL.md wires the guard (greppable call-site) AND the guard passes on the real tree
+if grep -qF "scripts/check-shipped-refs.sh" "$REPO_ROOT/skills/code-review/SKILL.md" \
+   && ( cd "$REPO_ROOT" && bash "$GUARD" >/dev/null 2>&1 ); then
+  pass=$((pass+1)); echo "ok   - AC-9 SKILL.md wired + guard clean on real tree"
+else
+  fail=$((fail+1)); echo "FAIL - AC-9 SKILL.md wiring or clean-tree run"
 fi
 
 echo "----"; echo "pass=$pass fail=$fail"

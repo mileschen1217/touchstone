@@ -19,8 +19,10 @@
 # drafts are never scanned. Exit: 0 pass | 1 leak(s) | 2 operational error.
 set -uo pipefail
 
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+top="$(git rev-parse --show-toplevel 2>/dev/null)" \
   || { echo "ERROR: not inside a git work tree (cannot judge tracked-state)" >&2; exit 2; }
+cd "$top" || { echo "ERROR: cannot cd to repo root: $top" >&2; exit 2; }
+# from here on, all paths are repo-root-relative regardless of the caller's cwd
 
 ws=".m-workflow"
 cfg=".claude/m-workflow.yaml"
