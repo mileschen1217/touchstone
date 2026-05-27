@@ -18,14 +18,21 @@ new_repo() {
   printf '%s' "$d"
 }
 
-# assert_case <name> <expected_exit> <repo_dir> [<expected_substring_in_output>]
+# assert_case <name> <expected_exit> <repo_dir> [<expected_output>] [<match_mode>]
+#   match_mode: "" (default) = substring (grep -qF); "exact" = full-output equality
 assert_case() {
-  local name="$1" want="$2" dir="$3" needle="${4:-}"
+  local name="$1" want="$2" dir="$3" needle="${4:-}" mode="${5:-}"
   local out rc
   out="$( cd "$dir" && bash "$GUARD" 2>&1 )"; rc=$?
   local ok=1
   [ "$rc" -eq "$want" ] || ok=0
-  [ -z "$needle" ] || { printf '%s' "$out" | grep -qF "$needle" || ok=0; }
+  if [ -n "$needle" ]; then
+    if [ "$mode" = "exact" ]; then
+      [ "$out" = "$needle" ] || ok=0
+    else
+      printf '%s' "$out" | grep -qF "$needle" || ok=0
+    fi
+  fi
   if [ "$ok" -eq 1 ]; then pass=$((pass+1)); echo "ok   - $name";
   else fail=$((fail+1)); echo "FAIL - $name (rc=$rc want=$want; out=<$out>)"; fi
   rm -rf "$dir"
@@ -34,7 +41,7 @@ assert_case() {
 # AC-1: a committed docs file referencing an untracked dated artifact is a leak,
 # reported with exact file:line: token (the ref is on line 2 of leak.md)
 t="$(new_repo)"; cp "$FIX/leak.md" "$t/docs/leak.md"; ( cd "$t" && git add docs/leak.md && git commit -qm x )
-assert_case "AC-1 untracked dated ref flagged with file:line" 1 "$t" "docs/leak.md:2: .m-workflow/specs/2026-05-22-foo.md"
+assert_case "AC-1 untracked dated ref flagged with file:line" 1 "$t" "docs/leak.md:2: .m-workflow/specs/2026-05-22-foo.md" "exact"
 
 # AC-2: a <placeholder> reference is not a leak (clean tree => pass)
 t="$(new_repo)"; cp "$FIX/placeholder.md" "$t/docs/p.md"; ( cd "$t" && git add docs/p.md && git commit -qm x )
@@ -76,13 +83,13 @@ assert_case "AC-6 non-git dir exits 2" 2 "$t" "ERROR"
 # AC-5 fallback: no workspace_root key => default .m-workflow still flags the leak
 t="$(new_repo)"; printf '# no ws key\n' > "$t/.claude/m-workflow.yaml"
 cp "$FIX/leak.md" "$t/docs/leak.md"; ( cd "$t" && git add docs/leak.md .claude/m-workflow.yaml && git commit -qm x )
-assert_case "AC-5 absent workspace_root falls back to .m-workflow" 1 "$t" "docs/leak.md:2: .m-workflow/specs/2026-05-22-foo.md"
+assert_case "AC-5 absent workspace_root falls back to .m-workflow" 1 "$t" "docs/leak.md:2: .m-workflow/specs/2026-05-22-foo.md" "exact"
 
 # AC-5 configured: a NON-default workspace_root is honoured (leak under .myws/, not .m-workflow/)
 t="$(new_repo)"; printf 'workspace_root: .myws\n' > "$t/.claude/m-workflow.yaml"
 printf 'See .myws/specs/2026-05-22-foo.md here.\n' > "$t/docs/leak.md"
 ( cd "$t" && git add docs/leak.md .claude/m-workflow.yaml && git commit -qm x )
-assert_case "AC-5 configured non-default workspace_root honoured" 1 "$t" "docs/leak.md:1: .myws/specs/2026-05-22-foo.md"
+assert_case "AC-5 configured non-default workspace_root honoured" 1 "$t" "docs/leak.md:1: .myws/specs/2026-05-22-foo.md" "exact"
 
 # AC-7 (execution): a leak-bearing file OUTSIDE docs/+skills/ is not scanned
 t="$(new_repo)"; mkdir -p "$t/scripts"; cp "$FIX/leak.md" "$t/scripts/x.md"
