@@ -31,6 +31,7 @@ Use `/triage` and `/to-issues` skills to move work from local drafts to GitHub.
 ## Build / Test
 
 - Lint shell: `shellcheck scripts/*.sh`
+- Lint shipped refs: `bash scripts/check-shipped-refs.sh`
 - Plugin reload after edits: `/reload-plugins`
 - Smoke test: install plugin in a clean repo, run `/m-workflow:init`, exercise stage skills.
 
