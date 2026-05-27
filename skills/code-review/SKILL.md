@@ -175,6 +175,15 @@ about the missing dependency.
 
 ## Process
 
+### Step 0: Shipped-ref guard (deterministic pre-check)
+
+Before dispatching reviewers, run `bash scripts/check-shipped-refs.sh` if it exists.
+It flags a committed `docs/`/`skills/` file referencing an untracked dated local-doc
+artifact (a clone-dangling leak). Exit 1 ⇒ fix the leak before commit. Exit 2 ⇒
+environment problem (not at repo root / no git) — resolve and re-run. Exit 0 ⇒ proceed.
+This is a best-effort floor; the reviewers' grounded-claims judgment remains the
+semantic catch.
+
 ### Step 1: Determine diff path
 
 1. If argument provided → use that path directly
