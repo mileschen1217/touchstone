@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # Clone-completeness guard (shipped-doc-hygiene P1). Flags a committed docs/ or
-# skills/ file that references an UNTRACKED concrete file under the local-doc
-# workspace_root — such a reference dangles in every clone.
+# skills/ file that references an UNTRACKED dated artifact under the local-doc
+# workspace_root (.../{specs,research,plans}/YYYY-MM-DD-...) — such a reference
+# dangles in every clone.
 #
-# Best-effort floor (NOT complete): a flag is certainly a leak GIVEN the placeholder
-# convention — concrete untracked refs into the workspace are leaks; illustrative
-# examples MUST use a <placeholder>. A matched literal example is a correctly-flagged
-# hygiene violation, not a false-positive. False-negatives are expected (odd path
-# forms, out-of-scope dirs) — patch on sight. The fresh-context reviewer's
-# grounded-claims lens is the semantic catch.
+# Best-effort floor (NOT complete). The predicate is deliberately narrow — only
+# DATED artifacts — so that a flag is certainly a leak: a dated file under
+# specs/research/plans is always a specific gitignored artifact, never a convention
+# file (e.g. .m-workflow/epics/README.md, .m-workflow/vision.md are concrete but
+# legit structural paths — NOT dated, so not flagged). False-negatives are expected
+# (a leak written as a named-but-undated ref, an odd path form, or outside the dated
+# dirs) — patch on sight. The fresh-context reviewer's grounded-claims lens is the
+# semantic catch for what this floor misses.
 #
 # Judge: git ls-files (untracked => not in clone). NOT git check-ignore (the legacy
 # .swarm paths are deleted/renamed, not gitignored — check-ignore would miss them).
@@ -39,7 +42,7 @@ while IFS= read -r f; do
       echo "$f:$lineno: $token"
       violations=$((violations+1))
     fi
-  done < <(grep -noE "${ws_re}/[^<*[:space:]]*\.[A-Za-z0-9]+" "$f")
+  done < <(grep -noE "${ws_re}/(specs|research|plans)/[0-9]{4}-[0-9]{2}-[0-9]{2}[^<*[:space:]]*" "$f")
 done < <(git ls-files -- docs skills)
 
 if [ "$violations" -eq 0 ]; then echo "pass"; exit 0; fi

@@ -43,14 +43,20 @@ assert_case "AC-2 placeholder not flagged" 0 "$t" "pass"
 t="$(new_repo)"; cp "$FIX/bare-dir.md" "$t/docs/b.md"; ( cd "$t" && git add docs/b.md && git commit -qm x )
 assert_case "AC-4 bare directory not flagged" 0 "$t" "pass"
 
-# AC-3: an in-scope ref whose target is tracked (force-added) is NOT flagged
+# AC-1 (dated-only precision): structural convention files (README.md, vision.md) are
+# concrete + untracked but NOT dated => NOT flagged. Regression for the build-time
+# false-positive that forced the dated-only narrowing.
+t="$(new_repo)"; cp "$FIX/convention.md" "$t/skills/c.md"; ( cd "$t" && git add skills/c.md && git commit -qm x )
+assert_case "convention files (non-dated) not flagged" 0 "$t" "pass"
+
+# AC-3: an in-scope (dated) ref whose target is tracked (force-added) is NOT flagged
 t="$(new_repo)"
 ( cd "$t" \
-  && mkdir -p .m-workflow/keep && printf 'x\n' > .m-workflow/keep/tracked.md \
-  && git add -f .m-workflow/keep/tracked.md \
-  && printf 'See .m-workflow/keep/tracked.md here.\n' > docs/r.md && git add docs/r.md \
+  && mkdir -p .m-workflow/specs && printf 'x\n' > .m-workflow/specs/2026-01-01-tracked.md \
+  && git add -f .m-workflow/specs/2026-01-01-tracked.md \
+  && printf 'See .m-workflow/specs/2026-01-01-tracked.md here.\n' > docs/r.md && git add docs/r.md \
   && git commit -qm x )
-assert_case "AC-3 tracked in-scope ref not flagged" 0 "$t" "pass"
+assert_case "AC-3 tracked dated in-scope ref not flagged" 0 "$t" "pass"
 
 # AC-11: an UNTRACKED draft under docs/ is not scanned (scan = git ls-files -- docs skills)
 t="$(new_repo)"
