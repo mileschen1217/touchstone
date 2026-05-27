@@ -9,14 +9,18 @@ date: 2026-05-27
 
 ## Status
 
-Accepted. Records the committed design decision for `testing-strategy` Phase 2
-(spec `.m-workflow/specs/2026-05-27-testing-strategy-phase2-design.md`). Phase 2
+Accepted. Records the committed design decision for the `testing-strategy` Phase 2
+design spec (an in-flight artifact kept local per this repo's local-only spec
+convention — the shipped change is the Phase 2 PR, not a path in the tree). Phase 2
 extends the Phase-1 evidence-honesty contract (ADR-0009) to evidence that crosses
 a live boundary.
 
 ## Triggered by
 
-`/m-workflow:design-spec` (`.m-workflow/specs/2026-05-27-testing-strategy-phase2-design.md`).
+Authored during the `/m-workflow:design-spec` run for Phase 2 (ADR genesis). This is
+NOT where the contract fires: the live-bearing demand is enforced at **design-review**
+(the live-bearing-IDs declaration check), **`code-review batch`** (the evidence-honesty
+criteria), and **epic-close reckoning** — see decision (4a).
 
 ## Related ADRs
 
@@ -107,11 +111,12 @@ vocabulary`, not restated here.)
 
 ## Related
 
-- `.m-workflow/specs/2026-05-27-testing-strategy-phase2-design.md` — the spec this
-  ADR records.
+- The `testing-strategy` Phase 2 design spec — the spec this ADR records (local
+  in-flight artifact, per the repo's local-only spec convention; not a tracked path).
 - `docs/adr/0009-evidence-honesty-gate.md` — the Phase-1 contract this extends.
 - `CONTEXT.md` § Verification vocabulary — canonical term definitions (this ADR
   points at it, does not restate).
 - `docs/evidence-honesty.md` — the philosophy doc (extended with the Phase-2
   live-bearing paragraph).
-- `.m-workflow/research/2026-05-26-testing-strategy-gap.md` — the three AOS live dims.
+- The testing-strategy gap research note (local) — the three AOS live dims that
+  motivate this contract.
