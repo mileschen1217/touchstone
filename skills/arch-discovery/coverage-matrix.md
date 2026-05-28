@@ -8,7 +8,7 @@ The §0 matrix is the operational completeness contract for a discovery doc. Row
 |---|---|---|
 | `unset` | Never visited. Default state at scaffold time. | `unset` |
 | `gap` | Visited; the lens question is real for this feature; nobody has answered it yet. | `gap` |
-| `investigating` | Sweep dispatched a helper (Explore / grep / `/m-workflow:arch-review` / Context7 / web). Awaiting result. | `investigating` |
+| `investigating` | Sweep dispatched a helper (Explore / grep / `/touchstone:arch-review` / Context7 / web). Awaiting result. | `investigating` |
 | `partial` | A section *touches* this (feature, lens) intersection but does not fully answer the lens question. Cite the partial-coverage section AND name what's still missing. | `partial (§X.Y; missing <what>)` |
 | `covered` | The lens question is fully answered in a specific section, and the cell points there. | `covered (§X.Y)` |
 | `deferred` | The question is real, but answering it is out of scope for this discovery. Pointer to where it will be resolved. | `deferred (→ <path or skill>)` |
@@ -48,12 +48,12 @@ A discovery is **matrix-complete** when every cell is in `covered`, `deferred`, 
 Status header transitions when matrix-complete:
 > `Status: Discovery (in progress)` → `Status: Discovery (matrix-complete)`
 
-After end-of-discovery audit (via `/m-workflow:design-review`) clears Critical/High:
+After end-of-discovery audit (via `/touchstone:design-review`) clears Critical/High:
 > `Status: Discovery (matrix-complete)` → `Status: Discovery (reviewed)`
 
 ## Sweep protocol
 
-Codified procedure for `/m-workflow:arch-discovery <slug> sweep`:
+Codified procedure for `/touchstone:arch-discovery <slug> sweep`:
 
 ```
 1. Read §0 matrix.

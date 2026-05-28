@@ -33,15 +33,15 @@ Skip when:
 - Single-feature change inside a settled architecture.
 - Spec writer can confidently state ownership/invariants from existing docs.
 - The project already has a discovery doc on a comparable feature.
-- The decision needed is binary "approach A vs B" → use `/m-workflow:arch-review`.
+- The decision needed is binary "approach A vs B" → use `/touchstone:arch-review`.
 
 ## Slot in the 6-stage workflow
 
 ```
 1.  Explore                              → research notes
-2.  /m-workflow:arch-review                       → ADRs (per-question decisions)
-2.5 /m-workflow:arch-discovery   ← THIS SKILL     → discovery doc + matrix
-3.  /m-workflow:design-spec                       → GWT contract (assumes 2.5's
+2.  /touchstone:arch-review                       → ADRs (per-question decisions)
+2.5 /touchstone:arch-discovery   ← THIS SKILL     → discovery doc + matrix
+3.  /touchstone:design-spec                       → GWT contract (assumes 2.5's
                                              system model)
 4.  /superpowers:writing-plans           → execution sequencing
 5.  Build (ATDD + TDD)
@@ -60,7 +60,7 @@ Triggered when the topic doesn't yet have a discovery doc.
 Source the output directory from `bundle.research` (the resolver's bundle). Interactive flow:
 1. Create `<bundle.research>/<topic>/` if missing.
 2. Copy template to `<bundle.research>/<topic>/YYYY-MM-DD-<slug>-discovery.md`.
-3. **Verify frontmatter contract** — the new doc MUST carry `type: discovery` in its frontmatter (the template provides it; do not strip it). This is a load-bearing cross-skill contract: `/m-workflow:design-review` recognizes discovery docs by `type: discovery` (or by path matching `**/research/**/*-discovery.md`, but the type field is authoritative). Without it, the end-of-discovery audit gate returns "out of scope" and the doc cannot be handed off to `/m-workflow:design-spec`. If your `bundle.research` does NOT match the path glob (e.g. you chose `.m-workflow/arch/` instead of `.m-workflow/research/`), the `type: discovery` frontmatter is the *only* signal `/m-workflow:design-review` will see — preserve it carefully.
+3. **Verify frontmatter contract** — the new doc MUST carry `type: discovery` in its frontmatter (the template provides it; do not strip it). This is a load-bearing cross-skill contract: `/touchstone:design-review` recognizes discovery docs by `type: discovery` (or by path matching `**/research/**/*-discovery.md`, but the type field is authoritative). Without it, the end-of-discovery audit gate returns "out of scope" and the doc cannot be handed off to `/touchstone:design-spec`. If your `bundle.research` does NOT match the path glob (e.g. you chose `.touchstone/arch/` instead of `.touchstone/research/`), the `type: discovery` frontmatter is the *only* signal `/touchstone:design-review` will see — preserve it carefully.
 4. Bootstrap §0 matrix: rows from user's initial feature list (if provided), full L1–L16 columns, all cells `unset`.
 5. Add frontmatter `epics: [<slug>]` if a matching epic index exists under the project's epic dir (per CLAUDE.md § Doc Routing). Adds alongside the mandatory `type: discovery` — does not replace it.
 6. **Show the author a worked exemplar before drafting.** This is the cheapest defense against the "bullets-only first draft" failure mode. Two paths:
@@ -98,7 +98,7 @@ Procedure (codified in `coverage-matrix.md`):
 2. For each cell whose state is `unset` or `gap`:
    - Present the (feature, lens) intersection
    - Ask: investigate now / defer with pointer / mark N/A with rationale / skip
-   - On `investigate now`: dispatch the right helper (Explore, grep, `/m-workflow:arch-review`, Context7, web), capture the finding into the appropriate section, update cell state to `covered (§X.Y)`.
+   - On `investigate now`: dispatch the right helper (Explore, grep, `/touchstone:arch-review`, Context7, web), capture the finding into the appropriate section, update cell state to `covered (§X.Y)`.
    - On `defer`: capture concrete pointer; update cell.
    - On `N/A`: capture one-sentence rationale; update cell.
 3. Iterate until matrix has no `unset` or `gap`.
@@ -108,17 +108,17 @@ Sweep converts reactive gap-filling into a deliberate observable process. Run ma
 
 ## End-of-discovery review
 
-External audit is **not** a mode of this skill — it lives in `/m-workflow:design-review`, which recognizes `type: discovery` (or path matches `**/research/**/*-discovery.md`) and applies a discovery-specific system prompt (audit ownership/invariants, platform-layer separation, E2E flows, lifecycle re-walk, failure coverage, matrix completeness, hidden open questions).
+External audit is **not** a mode of this skill — it lives in `/touchstone:design-review`, which recognizes `type: discovery` (or path matches `**/research/**/*-discovery.md`) and applies a discovery-specific system prompt (audit ownership/invariants, platform-layer separation, E2E flows, lifecycle re-walk, failure coverage, matrix completeness, hidden open questions).
 
-Sweep is the *internal* completeness mechanic (Discovery owns it). The external quality gate lives in `/m-workflow:design-review`. Different purposes, different cadence:
+Sweep is the *internal* completeness mechanic (Discovery owns it). The external quality gate lives in `/touchstone:design-review`. Different purposes, different cadence:
 
-| | Sweep (this skill) | `/m-workflow:design-review` |
+| | Sweep (this skill) | `/touchstone:design-review` |
 |---|---|---|
 | Purpose | Iterate matrix to completeness | Independent audit of assembled doc |
 | Driven by | Empty/gap cells in §0 | Outside critique |
-| Cadence | Frequent — every authoring session | Major checkpoint / pre-handoff to `/m-workflow:design-spec` |
+| Cadence | Frequent — every authoring session | Major checkpoint / pre-handoff to `/touchstone:design-spec` |
 
-Run `/m-workflow:design-review <discovery-doc-path>` once the matrix is complete. Critical/High findings block hand-off to `/m-workflow:design-spec`.
+Run `/touchstone:design-review <discovery-doc-path>` once the matrix is complete. Critical/High findings block hand-off to `/touchstone:design-spec`.
 
 ## Matrix Mode
 
@@ -127,13 +127,13 @@ Display-only. Renders the §0 matrix in a compact summary, color-coded by cell s
 ## Usage
 
 ```
-/m-workflow:arch-discovery setup                          # bootstrap config + first doc
-/m-workflow:arch-discovery <slug>                         # interactive scaffold or resume
-/m-workflow:arch-discovery <slug> sweep                   # iterate matrix gaps
-/m-workflow:arch-discovery <slug> matrix                  # display matrix only
+/touchstone:arch-discovery setup                          # bootstrap config + first doc
+/touchstone:arch-discovery <slug>                         # interactive scaffold or resume
+/touchstone:arch-discovery <slug> sweep                   # iterate matrix gaps
+/touchstone:arch-discovery <slug> matrix                  # display matrix only
 ```
 
-For end-of-discovery audit, hand off to: `/m-workflow:design-review <discovery-doc-path>`.
+For end-of-discovery audit, hand off to: `/touchstone:design-review <discovery-doc-path>`.
 
 ### Argument parsing
 
@@ -147,10 +147,10 @@ Parse left-to-right:
 
 | Skill | Relationship |
 |---|---|
-| `/m-workflow:arch-review` | Sub-tool — invoked by `sweep` when a cell is "settle between two approaches"; resulting ADR is cited from the discovery |
-| `/m-workflow:design-review` | Downstream gate — invoke for end-of-discovery audit when matrix is complete; recognizes `type: discovery` and applies discovery-specific system prompt |
-| `/m-workflow:design-spec` | Downstream — hand off after `/m-workflow:design-review` clears Critical/High; spec inherits §1 system model as `Status: assumed` |
-| `/m-workflow:epic-driven-roadmap` | Discovery doc gets `epics: [<slug>]` frontmatter; appears as Stage 2.5 artifact under epic index |
+| `/touchstone:arch-review` | Sub-tool — invoked by `sweep` when a cell is "settle between two approaches"; resulting ADR is cited from the discovery |
+| `/touchstone:design-review` | Downstream gate — invoke for end-of-discovery audit when matrix is complete; recognizes `type: discovery` and applies discovery-specific system prompt |
+| `/touchstone:design-spec` | Downstream — hand off after `/touchstone:design-review` clears Critical/High; spec inherits §1 system model as `Status: assumed` |
+| `/touchstone:epic-driven-roadmap` | Discovery doc gets `epics: [<slug>]` frontmatter; appears as Stage 2.5 artifact under epic index |
 
 ## Output
 
@@ -160,7 +160,7 @@ Parse left-to-right:
 
 ## Anti-patterns
 
-- **Using `m-arch-discovery` for a single-feature change** — overkill; go to `/m-workflow:design-spec`.
+- **Using `m-arch-discovery` for a single-feature change** — overkill; go to `/touchstone:design-spec`.
 - **Treating the matrix as a checkbox** — cells must cite specific sections, not "yes". Empty `covered` claims are gaps in disguise.
 - **Skipping §1 (system model)** — without explicit ownership and invariants, downstream sections have nothing to cite and you'll re-derive them in every spec.
 - **Conflating discovery with spec** — discovery describes; spec contracts. If you're writing GWT scenarios, you're past discovery.
@@ -174,6 +174,6 @@ Parse left-to-right:
 - Lens definitions: `${CLAUDE_PLUGIN_ROOT}/skills/arch-discovery/lenses.md`
 - Coverage-matrix protocol: `${CLAUDE_PLUGIN_ROOT}/skills/arch-discovery/coverage-matrix.md`
 - Upstream: Topic 2 exploration routing (`~/.claude/CLAUDE.md`)
-- Adjacent: `/m-workflow:arch-review` for per-question consults
-- Downstream: `/m-workflow:design-spec` for contract authoring
+- Adjacent: `/touchstone:arch-review` for per-question consults
+- Downstream: `/touchstone:design-spec` for contract authoring
 - Doc Routing convention: project's `CLAUDE.md § Doc Routing`

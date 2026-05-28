@@ -4,23 +4,23 @@ description: Audit an existing test suite for quality and coverage gaps — feed
 kind: workflow
 ---
 
-# /m-workflow:test-quality-audit
+# /touchstone:test-quality-audit
 
 Feedback-loop audit of the current project's test suite. Checks **what exists**, flags gaps and staleness, and recommends additions/removals. Does not write tests (use `/superpowers:test-driven-development` or the `tdd` agent for that).
 
 ## Usage
 
 ```
-/m-workflow:test-quality-audit                       # default: 30-day window, 80% branch threshold
-/m-workflow:test-quality-audit <days>                # custom window (e.g. `7`, `90`)
-/m-workflow:test-quality-audit --threshold=<N>       # override branch coverage threshold (percent)
-/m-workflow:test-quality-audit <days> --threshold=<N> # both — window AND threshold override
+/touchstone:test-quality-audit                       # default: 30-day window, 80% branch threshold
+/touchstone:test-quality-audit <days>                # custom window (e.g. `7`, `90`)
+/touchstone:test-quality-audit --threshold=<N>       # override branch coverage threshold (percent)
+/touchstone:test-quality-audit <days> --threshold=<N> # both — window AND threshold override
 ```
 
 Examples:
-- `/m-workflow:test-quality-audit 7` — last week's regression gaps only (post-sprint pass)
-- `/m-workflow:test-quality-audit 90 --threshold=70` — quarterly audit with a relaxed coverage gate (legacy module)
-- `/m-workflow:test-quality-audit --threshold=90` — strict coverage gate (release-candidate audit)
+- `/touchstone:test-quality-audit 7` — last week's regression gaps only (post-sprint pass)
+- `/touchstone:test-quality-audit 90 --threshold=70` — quarterly audit with a relaxed coverage gate (legacy module)
+- `/touchstone:test-quality-audit --threshold=90` — strict coverage gate (release-candidate audit)
 
 ### Argument parsing
 

@@ -1,5 +1,5 @@
-# written by /m-workflow:init (dogfood, migrated E15). Hand-editable.
+# written by /touchstone:init (dogfood, migrated E15). Hand-editable.
 # This file is committed — clones inherit the adoption.
 schema_version: 2
-workspace_root: .m-workflow
+workspace_root: .touchstone
 adopted_disciplines: [source-as-truth]

@@ -1,2 +1,2 @@
 # fixture: a schema/placeholder reference (must NOT be flagged)
-Epics live at .m-workflow/epics/<slug>/index.md by convention.
+Epics live at .touchstone/epics/<slug>/index.md by convention.

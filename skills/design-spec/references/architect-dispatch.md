@@ -3,17 +3,17 @@
 Resolve the dispatch target:
 - `force_architect = cc` → dispatch `everything-claude-code:architect` directly with `model: "sonnet"` (single agent, fresh context — model override supersedes the agent's `model: opus` frontmatter).
 - `force_architect = codex` → dispatch `codex-adversarial-reviewer` directly (single agent, fresh context).
-- Default (no override) → dispatch `m-workflow:cross-provider-architect` composite (Pattern A — dual parallel: CC `architect` validates + Codex `codex-adversarial-reviewer` pressure-tests; auto-falls back to CC-only if Codex unavailable):
+- Default (no override) → dispatch `touchstone:cross-provider-architect` composite (Pattern A — dual parallel: CC `architect` validates + Codex `codex-adversarial-reviewer` pressure-tests; auto-falls back to CC-only if Codex unavailable):
 
 ```
-Skill(skill: "m-workflow:cross-provider-architect", args: {
+Skill(skill: "touchstone:cross-provider-architect", args: {
   "task": "<the structural-review prompt below, with the spec path or spec text inlined>",
   "role": "architect",
   "task_dir": "<optional: absolute path>"
 })
 ```
 
-The dispatched skill (`m-workflow:cross-provider-architect`) owns its procedure end-to-end.
+The dispatched skill (`touchstone:cross-provider-architect`) owns its procedure end-to-end.
 
 Task envelope contents:
 

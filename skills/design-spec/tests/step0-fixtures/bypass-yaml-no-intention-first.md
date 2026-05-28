@@ -2,7 +2,7 @@
 # Harness contract: skills/<skill>/tests/step0-fixtures/ two-layer schema
 # Spec authority: intention-first epic § AC-7
 #
-# .claude/m-workflow.yaml is present but adopted_disciplines is empty
+# .claude/touchstone.yaml is present but adopted_disciplines is empty
 # (intention-first not listed); must NOT skip Step 0.
 # This fixture proves Step 0 is REACHED.
 
@@ -11,11 +11,11 @@ invocation: { skill: design-spec, args: "" }
 setup:
   design_spec_yaml: present   # DRAFT MODE precondition (NOT Setup Mode) —
                               # MUST be pinned: this fixture stresses
-                              # m-workflow.yaml's empty adopted_disciplines,
+                              # touchstone.yaml's empty adopted_disciplines,
                               # and without pinning design-spec.yaml present
                               # the agent may mis-route to Setup Mode
                               # (observed 3/5 in pass@5 when unpinned).
-  yaml: { state: present, adopted_disciplines: [] }   # m-workflow.yaml
+  yaml: { state: present, adopted_disciplines: [] }   # touchstone.yaml
 
 # ── Layer 1 (deterministic) ──────────────────────────────────────────────
 required-phrases:

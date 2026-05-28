@@ -48,7 +48,7 @@ Naturally chained with exploration (Topic 2 routing) on the input side and
 `/superpowers:writing-plans` on the output side:
 
 ```
-Explore → /m-workflow:design-spec → /superpowers:writing-plans → Build (ATDD+TDD)
+Explore → /touchstone:design-spec → /superpowers:writing-plans → Build (ATDD+TDD)
 ```
 
 ## Step 0 — Load vocabulary
@@ -60,7 +60,7 @@ If `source-as-truth` is in `bundle.disciplines`, also read
 `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Bridge content gate" and load the
 text into context for the envelope below.
 
-When dispatching to `m-workflow:cross-provider-architect` (Step N below), include in task envelope:
+When dispatching to `touchstone:cross-provider-architect` (Step N below), include in task envelope:
 
 ```json
 {
@@ -197,9 +197,9 @@ Dispatch-target resolution (`cc` / `codex` / default Pattern A composite) + the 
 
 ## Boundary — the Step-5 review is NOT the design-review gate
 
-The architect dispatch in Step 5 is an **author-time, one-shot, non-gating** critique that improves the draft. It is a different thing from `/m-workflow:design-review`, the Stage-0 **design-review gate** (the gate that runs before Build). Conflating the two is a recurring mistake — they overlap (both run a cross-provider review of the spec) but differ in cadence, enforcement, and what version they judge:
+The architect dispatch in Step 5 is an **author-time, one-shot, non-gating** critique that improves the draft. It is a different thing from `/touchstone:design-review`, the Stage-0 **design-review gate** (the gate that runs before Build). Conflating the two is a recurring mistake — they overlap (both run a cross-provider review of the spec) but differ in cadence, enforcement, and what version they judge:
 
-| | Step-5 review (this skill) | `/m-workflow:design-review` (the gate) |
+| | Step-5 review (this skill) | `/touchstone:design-review` (the gate) |
 |---|---|---|
 | Role | author-time critique, improve the draft | design-review gate, pass/fail before implementation |
 | Verdict | `approve\|revise\|block`, advisory — no enforced iterate-to-green | C+H tiered: C+H≥5 → mandatory 2nd pass, **blocks Build until C+H=0** |
@@ -209,20 +209,20 @@ The architect dispatch in Step 5 is an **author-time, one-shot, non-gating** cri
 The human-accept step sits **between** them:
 
 ```
-/m-workflow:design-spec            →   Status: Draft   →   human reads / edits / accepts ★   →   /m-workflow:design-review (blocking gate)
+/touchstone:design-spec            →   Status: Draft   →   human reads / edits / accepts ★   →   /touchstone:design-review (blocking gate)
 (draft + Step-5 critique)                          (lifecycle owned by the human)        (C+H gate, blocks Build)
 ```
 
-Running this skill does **not** discharge `/m-workflow:design-review`. The Step-5 critique only *satisfies* the gate when it was iterated to the gate's tiered standard (C+H=0) **and** the spec was not edited afterward; if the human edits the spec during review, re-run `/m-workflow:design-review` on the final version. Do not merge the two: the seam is exactly the human-in-the-loop accept step, and a merged action would gate the pre-edit draft, not the accepted artifact.
+Running this skill does **not** discharge `/touchstone:design-review`. The Step-5 critique only *satisfies* the gate when it was iterated to the gate's tiered standard (C+H=0) **and** the spec was not edited afterward; if the human edits the spec during review, re-run `/touchstone:design-review` on the final version. Do not merge the two: the seam is exactly the human-in-the-loop accept step, and a merged action would gate the pre-edit draft, not the accepted artifact.
 
 ## Usage
 
 ```
-/m-workflow:design-spec                          # interactive draft
-/m-workflow:design-spec <feature-name>           # skip name prompt
-/m-workflow:design-spec <feature-name> quick     # skip architect dispatch (draft only — fast iteration)
-/m-workflow:design-spec <feature-name> with codex   # force Codex-only architect (no parallel CC)
-/m-workflow:design-spec <feature-name> with cc      # force CC-only architect (no parallel Codex)
+/touchstone:design-spec                          # interactive draft
+/touchstone:design-spec <feature-name>           # skip name prompt
+/touchstone:design-spec <feature-name> quick     # skip architect dispatch (draft only — fast iteration)
+/touchstone:design-spec <feature-name> with codex   # force Codex-only architect (no parallel CC)
+/touchstone:design-spec <feature-name> with cc      # force CC-only architect (no parallel Codex)
 ```
 
 The `quick` modifier skips Step 5 (architect dispatch) entirely. Useful for early sketches where structural review is premature; the user is expected to re-run without `quick` once the spec stabilizes. `Status: Draft` still applies, and the file is still written to `<specs_dir>/`.
@@ -244,17 +244,17 @@ Specs are written as `Status: Draft`. Transitions to `Accepted` / `Superseded`
 are manual edits when the user approves or replaces a spec. The skill does not
 manage lifecycle — when a spec is ready to implement, the human changes the
 status and hands off to `/superpowers:writing-plans`. The `Draft → human accept`
-step is the seam between this skill's Step-5 critique and the `/m-workflow:design-review`
+step is the seam between this skill's Step-5 critique and the `/touchstone:design-review`
 gate (see Boundary above) — keep it human-owned.
 
 ## Related
 
 - Template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md` (bundled)
 - Exploration routing (upstream): Topic 2 in global CLAUDE.md
-- Architecture consult (upstream, conditional): `/m-workflow:arch-review` — for
+- Architecture consult (upstream, conditional): `/touchstone:arch-review` — for
   resolving architectural questions before drafting the spec
 - ATDD chain (downstream): `ATDD — spec and test development` in global CLAUDE.md
-- design-review gate (downstream, distinct from Step-5 review): `/m-workflow:design-review` — see Boundary section
+- design-review gate (downstream, distinct from Step-5 review): `/touchstone:design-review` — see Boundary section
 - Plan generation (downstream): `/superpowers:writing-plans`
 - ADR workflow: `${CLAUDE_PLUGIN_ROOT}/skills/arch-review/adr-authoring.md`
 - Example spec matching the template:

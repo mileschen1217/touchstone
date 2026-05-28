@@ -40,7 +40,7 @@ honesty mechanism. Two scaffolded backlog epics (`workflow-control-axis-audit` +
 `honesty-lens-and-rename`/E18) were merged into `workflow-suite-audit`; at the grill
 they collapsed into one lens (below).
 
-Separately, the package name `m-workflow` carries two problems: the `m-` is personal
+Separately, the package name `touchstone` carries two problems: the `m-` is personal
 (miles) and opaque, and "workflow" is generic — neither signals what the plugin is or
 invites adoption on a public repo.
 
@@ -72,7 +72,7 @@ and 1 (arch-review consent) routes to existing candidate E19.)
   broaden as new lenses appear (the very risk that would re-trigger a rename), and the
   identity is already captured in `CONTEXT.md § Honesty spine`.
 - An **adoption-driven** rename to a theme-neutral, durable name is **accepted**, and
-  executed **now rather than deferred**: the breaking blast radius (`m-workflow:*`
+  executed **now rather than deferred**: the breaking blast radius (`touchstone:*`
   namespace across every skill call, agent dispatch, marketplace entry, consuming
   `.claude/*.yaml`, global routing, docs) grows monotonically, and current external
   adoption is ≈ 0 — so the migration is cheapest now and only gets more expensive.
@@ -87,8 +87,8 @@ and 1 (arch-review consent) routes to existing candidate E19.)
 - The general control-system audit is not pursued; if a non-honesty FF/FB balance
   question ever arises, it would be a fresh epic, not this one.
 - **The rename migration is a separate epic** (to scaffold next): rename namespace
-  `m-workflow:*` → `touchstone:*`, marketplace/`plugin.json`, every skill/agent/command
-  cross-ref, consuming `.claude/m-workflow.yaml` → new name, global `~/.claude/CLAUDE.md`
+  `touchstone:*` → `touchstone:*`, marketplace/`plugin.json`, every skill/agent/command
+  cross-ref, consuming `.claude/touchstone.yaml` → new name, global `~/.claude/CLAUDE.md`
   routing, repo + docs. Breaking; near-irreversible once published — do it as one
   deliberate pass while adoption is ≈ 0.
 - The audit's 3 gaps: grill self-attestation + grounded-claims Mode-selectivity are
@@ -99,7 +99,7 @@ and 1 (arch-review consent) routes to existing candidate E19.)
 - **Defer rename to 0.2** — rejected: deferring does not reduce cost, it grows it (more
   references accrue); and there are no current external adopters whose expectations a
   major-version boundary would protect.
-- **Keep `m-workflow`** — rejected: opaque personal prefix + generic noun hurt adoption
+- **Keep `touchstone`** — rejected: opaque personal prefix + generic noun hurt adoption
   on a public repo.
 - **Honesty-thematic name** — rejected: theme-fragile (see D4).
 - **Keep control-axis as a second lens** — rejected at grill: it is the spine's internal

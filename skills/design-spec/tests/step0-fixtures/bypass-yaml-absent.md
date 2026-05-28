@@ -2,7 +2,7 @@
 # Harness contract: skills/<skill>/tests/step0-fixtures/ two-layer schema
 # Spec authority: intention-first epic § AC-7
 #
-# .claude/m-workflow.yaml is absent; must NOT skip Step 0.
+# .claude/touchstone.yaml is absent; must NOT skip Step 0.
 # This fixture proves Step 0 is REACHED.
 
 ```yaml

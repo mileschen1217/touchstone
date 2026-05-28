@@ -5,8 +5,8 @@ node_modules/
 __pycache__/
 
 # Local project management — specs, plans, epics, ADRs in flight
-.m-workflow/
-.claude/m-workflow.yaml.bak
+.touchstone/
+.claude/touchstone.yaml.bak
 .claude/worktrees/
 CLAUDE.local.md
 ROADMAP.md

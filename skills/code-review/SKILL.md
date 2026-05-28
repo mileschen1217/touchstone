@@ -12,7 +12,7 @@ user-invocable: true
 kind: workflow
 ---
 
-# /m-workflow:code-review — Code Review (Patterns C and B)
+# /touchstone:code-review — Code Review (Patterns C and B)
 
 <!-- keep-long: 243 lines, all main-path (mode routing + dispatch contract read every invocation). Progressive-disclosure extraction would force a per-call references load with zero token saving; held inline by design. -->
 
@@ -26,17 +26,17 @@ Dispatches:
 ## Usage
 
 ```
-/m-workflow:code-review                          # default: HEAD commit, Pattern C
-/m-workflow:code-review <commit-ish>             # named single commit, Pattern C
-/m-workflow:code-review batch                    # logical group (default range: <main>..HEAD), Pattern B
-/m-workflow:code-review batch <range>            # explicit logical group, Pattern B
+/touchstone:code-review                          # default: HEAD commit, Pattern C
+/touchstone:code-review <commit-ish>             # named single commit, Pattern C
+/touchstone:code-review batch                    # logical group (default range: <main>..HEAD), Pattern B
+/touchstone:code-review batch <range>            # explicit logical group, Pattern B
 
-/m-workflow:code-review with codex               # Pattern C; codex-reviewer replaces generic Sonnet
-/m-workflow:code-review with cc                  # Pattern C; explicit (no-op — Sonnet is the default)
-/m-workflow:code-review batch with cc            # Pattern B; force CC reviewer regardless of builder
-/m-workflow:code-review batch with codex         # Pattern B; force Codex reviewer regardless of builder
-/m-workflow:code-review solo                     # Pattern C; primary reviewer only — skip language/security/DB specialists
-/m-workflow:code-review solo with codex          # Pattern C; codex-reviewer alone, no specialists
+/touchstone:code-review with codex               # Pattern C; codex-reviewer replaces generic Sonnet
+/touchstone:code-review with cc                  # Pattern C; explicit (no-op — Sonnet is the default)
+/touchstone:code-review batch with cc            # Pattern B; force CC reviewer regardless of builder
+/touchstone:code-review batch with codex         # Pattern B; force Codex reviewer regardless of builder
+/touchstone:code-review solo                     # Pattern C; primary reviewer only — skip language/security/DB specialists
+/touchstone:code-review solo with codex          # Pattern C; codex-reviewer alone, no specialists
 ```
 
 The `batch` keyword is the explicit Pattern B trigger. Without it, even a multi-commit range invocation defaults to Pattern C applied per-commit.
@@ -63,10 +63,10 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
 ### Procedure
 
 1. Resolve the commit range:
-   - `/m-workflow:code-review batch <range>` → use `<range>`
-   - `/m-workflow:code-review batch` → default `$(git merge-base HEAD main)..HEAD` (or `master`; project CLAUDE.md may override)
+   - `/touchstone:code-review batch <range>` → use `<range>`
+   - `/touchstone:code-review batch` → default `$(git merge-base HEAD main)..HEAD` (or `master`; project CLAUDE.md may override)
 1b. Locate the governing spec deterministically (for the evidence-honesty criteria
-   in Step 4). **Which epic is "in scope":** resolve it from `m-workflow.yaml`
+   in Step 4). **Which epic is "in scope":** resolve it from `touchstone.yaml`
    `epics_dir` + the active epic (the epic whose branch/range is being reviewed), OR
    take it from the `epic` / `governing_specs` field the orchestrator passed in the
    reviewer envelope. If neither is resolvable from the diff context, take the skip
@@ -96,7 +96,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
      - `builder = cc` → reviewer = `codex-reviewer`
      - `builder = codex` → reviewer = `everything-claude-code:code-reviewer`
 4. Dispatch the resolved reviewer:
-   - `codex-reviewer` → `Agent(subagent_type: "m-workflow:codex-reviewer", description: "Codex batch review", prompt: { task: <full diff>, role: "batch-reviewer", task_dir: <optional> })`
+   - `codex-reviewer` → `Agent(subagent_type: "touchstone:codex-reviewer", description: "Codex batch review", prompt: { task: <full diff>, role: "batch-reviewer", task_dir: <optional> })`
    - `everything-claude-code:code-reviewer` → corresponding Agent dispatch  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
 
    When `governing_specs` is non-empty (from Step 1b), prepend the following
@@ -132,13 +132,13 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    > require cryptographic signing of artifacts (over-spec — a human is in the loop
    > at close).
 5. Single reviewer; no parallel dispatch in Pattern B.
-   **Normative fallback (M3):** if the swapped reviewer (e.g. `m-workflow:codex-reviewer`)
+   **Normative fallback (M3):** if the swapped reviewer (e.g. `touchstone:codex-reviewer`)
    returns `status: failed` / a `fallback_reason` (codex unavailable), fall back to the
    builder's OWN vendor (`everything-claude-code:code-reviewer` when builder=cc) and let
    it produce the verdict. If BOTH the swap target and the builder-vendor fallback fail →
    `status: failed`, `providers_used == []`, no banner.
    **No pre-probe (L2):** do not add a `codex --version` pre-probe here — rely on the
-   `m-workflow:codex-reviewer` agent's own `status: failed` / `fallback_reason` as the
+   `touchstone:codex-reviewer` agent's own `status: failed` / `fallback_reason` as the
    codex-availability signal.
 6. Write provenance + banners per `skills/cross-provider-reviewer/references/provenance.md`
    (sole canonical home — use the FULL plugin-relative path; a bare `references/provenance.md`
@@ -161,12 +161,12 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
 
 ### Why Pattern B not Pattern A here
 
-Per-batch volume is high enough that Pattern A's 2× cost is not justified. Cross-vendor diversity is preserved via the swap. High-leverage Pattern A is reserved for `/m-workflow:design-review` (Stage 0) and `/m-workflow:arch-review` / `/m-workflow:design-spec`.
+Per-batch volume is high enough that Pattern A's 2× cost is not justified. Cross-vendor diversity is preserved via the swap. High-leverage Pattern A is reserved for `/touchstone:design-review` (Stage 0) and `/touchstone:arch-review` / `/touchstone:design-spec`.
 
 ## Dependencies
 
 - `everything-claude-code:code-reviewer` + language/security/database reviewers (ECC, EXTERNAL) — Epic B vendors or makes optional.
-- `m-workflow:codex-reviewer` (plugin-local) — Pattern B cross-vendor reviewer when CC builds.
+- `touchstone:codex-reviewer` (plugin-local) — Pattern B cross-vendor reviewer when CC builds.
 
 Language-specific, security, and database reviewers require the
 `everything-claude-code` plugin (ECC). CC-only fallback: if ECC is not
@@ -267,7 +267,7 @@ Step 2 flagged the concern. Default prompts from those agents' definitions apply
 **If ECC is not installed**, log "ECC plugin not installed — language-specific
 reviewers skipped" and proceed with generic only.
 
-**For specific-file invocation** (`/m-workflow:code-review path/to/file`):
+**For specific-file invocation** (`/touchstone:code-review path/to/file`):
 
 Still detect language from the file extension. Dispatch generic reviewer with
 the specific-file prompt:
@@ -312,7 +312,7 @@ Mark which reviewer(s) found each issue for traceability.
 | 1 | ... | Critical | Sonnet + python-reviewer | Fixed: ... |
 | 2 | ... | High | security-reviewer | Fixed: ... |
 | 3 | ... | Low | python-reviewer | Fixed inline (trivial) |
-| 4 | ... | Medium | Sonnet | Deferred to /m-workflow:code-review batch |
+| 4 | ... | Medium | Sonnet | Deferred to /touchstone:code-review batch |
 
 Ready to commit: {yes/no}
 ```
@@ -327,6 +327,6 @@ Ready to commit: {yes/no}
 - **AI judgment, not regex**, for security/DB dispatch — prefer skipping in
   ambiguous cases to avoid agent-spawn noise
 - Fix only Critical/High by default. Low fixable inline if trivial.
-  Medium deferred to `/m-workflow:code-review batch`.
-- No re-review loop — scope is too small to justify (that's `/m-workflow:code-review batch`'s job)
+  Medium deferred to `/touchstone:code-review batch`.
+- No re-review loop — scope is too small to justify (that's `/touchstone:code-review batch`'s job)
 - Project CLAUDE.md may override the diff path

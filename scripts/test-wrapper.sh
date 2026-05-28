@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# m-workflow AC-6a probe: determine if Skill() auto-forward from a wrapper SKILL.md
+# touchstone AC-6a probe: determine if Skill() auto-forward from a wrapper SKILL.md
 # preserves user-provided arguments.
 #
 # This is a probe, NOT a gate. Always exits 0. Caller (Phase A wrapper deployment)
@@ -23,21 +23,21 @@ AC-6a probe — wrapper auto-forward feasibility test
 To run this test:
 
 1. Open a new Claude Code session (or /reload-plugins in current one).
-2. Confirm the m-workflow plugin (or a one-skill test plugin) is installed.
+2. Confirm the touchstone plugin (or a one-skill test plugin) is installed.
 3. Write a temporary wrapper SKILL.md at a known location (e.g.,
    ~/.claude/skills/wrapper-test/SKILL.md) with body:
 
    ---
    name: wrapper-test
-   description: Probe — forwards to /m-workflow:design-spec.
+   description: Probe — forwards to /touchstone:design-spec.
    kind: workflow
    ---
 
-   Invoke Skill(skill: "m-workflow:design-spec", args: { feature: "PROBE-VALUE" })
+   Invoke Skill(skill: "touchstone:design-spec", args: { feature: "PROBE-VALUE" })
 
 4. Run `/reload-plugins`.
 5. In a fresh session, invoke `/wrapper-test`.
-6. Observe: did /m-workflow:design-spec receive feature="PROBE-VALUE"?
+6. Observe: did /touchstone:design-spec receive feature="PROBE-VALUE"?
 
 Answer (y/n): does Skill() auto-forward preserve the arguments?
 PROMPT

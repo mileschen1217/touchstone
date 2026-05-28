@@ -1,6 +1,6 @@
-# m-workflow CONTEXT
+# touchstone CONTEXT
 
-The canonical vocabulary the m-workflow skill family operates in. SKILL.md bodies Read this file at Step 0 when source-as-truth discipline is adopted. Edit here only; no copies live in SKILL.md.
+The canonical vocabulary the touchstone skill family operates in. SKILL.md bodies Read this file at Step 0 when source-as-truth discipline is adopted. Edit here only; no copies live in SKILL.md.
 
 ## What this document is
 
@@ -10,13 +10,13 @@ Constitution + bridge content for the source-as-truth discipline. "Constitution"
 
 Constitution.
 
-Four structural roles for cross-cutting behavior in the m-workflow plugin, distinguished by **activation scope**:
+Four structural roles for cross-cutting behavior in the touchstone plugin, distinguished by **activation scope**:
 
 | Role | Activation scope | How turned on | Example |
 |---|---|---|---|
 | **Skill** | per-invocation | `Skill` tool call | `grill-with-docs` |
 | **Mode** | per-session | user toggle (e.g. `/<mode-name>`) | `caveman`, `grounded-claims` |
-| **Discipline** | per-project | `.claude/m-workflow.yaml` `adopted_disciplines:` | `source-as-truth` |
+| **Discipline** | per-project | `.claude/touchstone.yaml` `adopted_disciplines:` | `source-as-truth` |
 | **Baseline** | per-plugin | hard-coded into plugin | `intention-first` |
 
 The four are exhaustive and mutually exclusive — every cross-cutting rule fits exactly one role.
@@ -54,7 +54,7 @@ The live set of role-instances. Single source of truth — ADRs classify; this t
 
 | Instance | Role | Status | Authority |
 |---|---|---|---|
-| `source-as-truth` | Discipline | Adopted, shipped | this doc (rationale: local .m-workflow/docs/adr/0004-*) |
+| `source-as-truth` | Discipline | Adopted, shipped | this doc (rationale: local .touchstone/docs/adr/0004-*) |
 | `intention-first` | Baseline | Building (Epic D); legacy always-on 4Q exists | ADR-0003 |
 | `grounded-claims` | Mode | Shipped, plugin-local (`skills/grounded-claims`) | ADR-0002 |
 | `caveman` | Mode | External skill; not in plugin | global `~/.claude/skills/caveman` |

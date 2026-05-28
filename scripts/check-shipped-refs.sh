@@ -7,7 +7,7 @@
 # Best-effort floor (NOT complete). The predicate is deliberately narrow — only
 # DATED artifacts — so that a flag is certainly a leak: a dated file under
 # specs/research/plans is always a specific gitignored artifact, never a convention
-# file (e.g. .m-workflow/epics/README.md, .m-workflow/vision.md are concrete but
+# file (e.g. .touchstone/epics/README.md, .touchstone/vision.md are concrete but
 # legit structural paths — NOT dated, so not flagged). False-negatives are expected
 # (a leak written as a named-but-undated ref, an odd path form, or outside the dated
 # dirs) — patch on sight. The fresh-context reviewer's grounded-claims lens is the
@@ -24,8 +24,8 @@ top="$(git rev-parse --show-toplevel 2>/dev/null)" \
 cd "$top" || { echo "ERROR: cannot cd to repo root: $top" >&2; exit 2; }
 # from here on, all paths are repo-root-relative regardless of the caller's cwd
 
-ws=".m-workflow"
-cfg=".claude/m-workflow.yaml"
+ws=".touchstone"
+cfg=".claude/touchstone.yaml"
 if [ -f "$cfg" ]; then
   v="$(awk -F: '/^workspace_root:/{gsub(/[[:space:]]/,"",$2); print $2}' "$cfg")"
   [ -n "$v" ] && ws="$v"

@@ -20,7 +20,7 @@ bedrock this ADR itself encodes.
 
 ## Triggered by
 
-Authored during the `/m-workflow:design-spec` run for Phase 1 (ADR genesis; the spec
+Authored during the `/touchstone:design-spec` run for Phase 1 (ADR genesis; the spec
 is a local in-flight artifact, not a tracked path).
 
 ## Related ADRs

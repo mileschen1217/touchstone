@@ -1,6 +1,6 @@
 ---
 name: cross-provider-architect
-description: Pattern A composite skill — architecture critique using CC `architect` + Codex `codex-adversarial-reviewer` in parallel. CC validates the design; Codex pressure-tests it. Synthesis labels divergence. Auto-falls back to CC-only when Codex unavailable. Used by `/m-workflow:arch-review` and `/m-workflow:design-spec`.
+description: Pattern A composite skill — architecture critique using CC `architect` + Codex `codex-adversarial-reviewer` in parallel. CC validates the design; Codex pressure-tests it. Synthesis labels divergence. Auto-falls back to CC-only when Codex unavailable. Used by `/touchstone:arch-review` and `/touchstone:design-spec`.
 allowed-tools:
   - Bash
   - Read
@@ -10,9 +10,9 @@ user-invocable: true
 kind: workflow
 ---
 
-# /m-workflow:cross-provider-architect — Pattern A Composite Skill
+# /touchstone:cross-provider-architect — Pattern A Composite Skill
 
-Same skill-form Pattern A shape as `m-workflow:cross-provider-reviewer`, but pairs CC `architect` with Codex `codex-adversarial-reviewer`. The asymmetry is intentional: CC validates, Codex critiques — different roles within Pattern A.
+Same skill-form Pattern A shape as `touchstone:cross-provider-reviewer`, but pairs CC `architect` with Codex `codex-adversarial-reviewer`. The asymmetry is intentional: CC validates, Codex critiques — different roles within Pattern A.
 
 ## Inputs (JSON envelope as `args`)
 
@@ -27,7 +27,7 @@ Same skill-form Pattern A shape as `m-workflow:cross-provider-reviewer`, but pai
 
 ## Procedure
 
-### 1. Probe Codex (same as m-workflow:cross-provider-reviewer)
+### 1. Probe Codex (same as touchstone:cross-provider-reviewer)
 
 ```bash
 codex --version >/dev/null 2>&1 && echo "codex_healthy=1" || echo "codex_healthy=0"
@@ -38,7 +38,7 @@ codex --version >/dev/null 2>&1 && echo "codex_healthy=1" || echo "codex_healthy
 If `codex_healthy=1`, in ONE message issue BOTH:
 
 - `Agent(subagent_type: "everything-claude-code:architect", description: "CC architect", prompt: <task envelope>, model: "sonnet")`  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
-- `Agent(subagent_type: "m-workflow:codex-adversarial-reviewer", description: "Codex adversarial critique", prompt: <task envelope>)`
+- `Agent(subagent_type: "touchstone:codex-adversarial-reviewer", description: "Codex adversarial critique", prompt: <task envelope>)`
 
 Wait for both to return before synthesizing.
 
@@ -82,10 +82,10 @@ Skill body's final assistant text: the synthesized review.md content.
 
 ## Cost note
 
-Pattern A — ~2× tokens. Reserved for highest-leverage gates: `/m-workflow:arch-review` and `/m-workflow:design-spec` (architect-review stage).
+Pattern A — ~2× tokens. Reserved for highest-leverage gates: `/touchstone:arch-review` and `/touchstone:design-spec` (architect-review stage).
 
 ## Dependencies
 
 - `everything-claude-code:architect` (ECC, EXTERNAL) — CC validation backend. Epic B vendors or makes optional.
-- `m-workflow:codex-adversarial-reviewer` (plugin-local) — Codex adversarial-critique backend.
+- `touchstone:codex-adversarial-reviewer` (plugin-local) — Codex adversarial-critique backend.
 - CC-only fallback: if a provider is absent, run the available provider(s), write `review.result.json` with the resulting `providers_used` / `fallback_reason`, and prepend the DEGRADED banner per `skills/cross-provider-reviewer/references/provenance.md`; if BOTH absent → no synthesis, surfaced as failure (envelope still written per that reference).
