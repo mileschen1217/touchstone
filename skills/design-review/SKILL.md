@@ -1,7 +1,7 @@
 ---
 name: design-review
 kind: workflow
-description: Reviews authored design documents (spec, plan, ADR) before Build using Pattern A (dual parallel). Dispatches `m-workflow:cross-provider-reviewer` composite skill with a doc-review system prompt set via task envelope. Out of scope — research notes, READMEs, retros, daily notes. Renamed from `m-deep-review`; per-batch code review path moved to `/m-workflow:code-review batch`.
+description: Reviews authored design documents (spec, plan, ADR) before Build using Pattern A (dual parallel). Dispatches `touchstone:cross-provider-reviewer` composite skill with a doc-review system prompt set via task envelope. Out of scope — research notes, READMEs, retros, daily notes. Renamed from `m-deep-review`; per-batch code review path moved to `/touchstone:code-review batch`.
 allowed-tools:
   - Bash
   - Read
@@ -12,36 +12,36 @@ allowed-tools:
 user-invocable: true
 ---
 
-# /m-workflow:design-review — Design Document Review (Pattern A)
+# /touchstone:design-review — Design Document Review (Pattern A)
 
 Reviews captured design artifacts before Build. The Stage 0 gate of the Review Gate.
 
 ## When to Invoke
 
 Required when any of:
-- A spec is authored by `/m-workflow:design-spec` and ready for review
+- A spec is authored by `/touchstone:design-spec` and ready for review
 - A plan is authored by `/superpowers:writing-plans` and ready for review
 - An ADR is authored and introduces a new contract
-- A discovery doc authored by `/m-workflow:arch-discovery` is matrix-complete and ready for end-of-discovery audit
+- A discovery doc authored by `/touchstone:arch-discovery` is matrix-complete and ready for end-of-discovery audit
 
 Out of scope — return "not in scope; this skill reviews specs / plans / ADRs / discovery docs only" and exit:
 - Research notes, daily notes, MOCs, retros, READMEs, kb articles
 
-## Relationship to /m-workflow:design-spec (this is the gate; its Step-5 review is not)
+## Relationship to /touchstone:design-spec (this is the gate; its Step-5 review is not)
 
-`/m-workflow:design-spec` runs its own architect critique while drafting (its "Step-5 review"). That is **not** this gate — it is an author-time, advisory, skippable (`quick`) pass that judges the freshly-drafted spec. **This skill is the design-review gate**: C+H tiered (see §4), it blocks Build, and it judges the **final, human-accepted** artifact. The two are separated by the human accept step:
+`/touchstone:design-spec` runs its own architect critique while drafting (its "Step-5 review"). That is **not** this gate — it is an author-time, advisory, skippable (`quick`) pass that judges the freshly-drafted spec. **This skill is the design-review gate**: C+H tiered (see §4), it blocks Build, and it judges the **final, human-accepted** artifact. The two are separated by the human accept step:
 
 ```
-/m-workflow:design-spec  →  Status: Draft  →  human edits / accepts ★  →  /m-workflow:design-review (here)
+/touchstone:design-spec  →  Status: Draft  →  human edits / accepts ★  →  /touchstone:design-review (here)
 ```
 
-`/m-workflow:design-spec`'s Step-5 review only *discharges* this gate when it was iterated to this skill's tiered standard (C+H=0) **and** the spec was not edited afterward. If the spec changed during the human's review, run this skill on the final version — the earlier critique judged a different artifact. Do not treat "design-spec was run" as "the gate passed".
+`/touchstone:design-spec`'s Step-5 review only *discharges* this gate when it was iterated to this skill's tiered standard (C+H=0) **and** the spec was not edited afterward. If the spec changed during the human's review, run this skill on the final version — the earlier critique judged a different artifact. Do not treat "design-spec was run" as "the gate passed".
 
 ## Usage
 
 ```
-/m-workflow:design-review <path>            # one doc
-/m-workflow:design-review <glob>            # multiple docs in one pass
+/touchstone:design-review <path>            # one doc
+/touchstone:design-review <glob>            # multiple docs in one pass
 ```
 
 ## Procedure
@@ -56,7 +56,7 @@ If `source-as-truth` is in `bundle.disciplines`, also read
 § "Standing vs transient bridge" and load both sections into context for
 the envelope below.
 
-When dispatching to `m-workflow:cross-provider-reviewer`, include in envelope:
+When dispatching to `touchstone:cross-provider-reviewer`, include in envelope:
 
 ```json
 {
@@ -81,10 +81,10 @@ Read the target file(s). Check frontmatter `type:` field if present, or path:
 - `type: discovery` OR path matches `**/research/**/*-discovery.md` → in scope (use **discovery system prompt** below)
 - Anything else → out of scope; exit gracefully.
 
-### 2. Dispatch m-workflow:cross-provider-reviewer (Pattern A)
+### 2. Dispatch touchstone:cross-provider-reviewer (Pattern A)
 
 ```
-Skill(skill: "m-workflow:cross-provider-reviewer", args: {
+Skill(skill: "touchstone:cross-provider-reviewer", args: {
   "task": "<full text of the doc being reviewed>",
   "system_prompt": "<doc-review prompt below>",
   "role": "design-reviewer",
@@ -128,7 +128,7 @@ Skill(skill: "m-workflow:cross-provider-reviewer", args: {
 
 **For discovery doc (`type: discovery`):**
 
-> You are auditing an architecture discovery doc produced by `/m-workflow:arch-discovery`. Check:
+> You are auditing an architecture discovery doc produced by `/touchstone:arch-discovery`. Check:
 > 1. §1 ownership / invariants are concrete and falsifiable (not vague "should" statements).
 > 2. §2 platform layer cleanly separates capability / constraint / forced behavior.
 > 3. §4 flows are E2E (not stubbed mid-walk); cite §1 invariants and §2 platform behaviors at each step.
@@ -143,7 +143,7 @@ Skill(skill: "m-workflow:cross-provider-reviewer", args: {
 
 Quality gate (sums findings across reviewers):
 
-- **C+H ≥ 5** → mandatory second-pass review. After applying fixes inline, re-invoke `/m-workflow:design-review <path>`. Build is blocked until a subsequent run returns **C+H = 0** (or only Medium/Low remain). The caller MUST run the second pass; do not skip on user discretion.
+- **C+H ≥ 5** → mandatory second-pass review. After applying fixes inline, re-invoke `/touchstone:design-review <path>`. Build is blocked until a subsequent run returns **C+H = 0** (or only Medium/Low remain). The caller MUST run the second pass; do not skip on user discretion.
 - **1 ≤ C+H < 5** → surface findings; block Build until Critical+High are resolved. Single-pass fix is sufficient; second pass optional.
 - **C+H = 0, only Medium / Low** → surface findings; allow Build to proceed at user's discretion.
 
@@ -160,8 +160,8 @@ In all cases: do not auto-promote spec status; the user (or caller skill) decide
 
 ## Pattern semantics (self-contained)
 
-Pattern A composite — dispatches `m-workflow:cross-provider-reviewer`, which owns the procedure end-to-end (parallel CC + Codex review, divergence-labeled synthesis, fallback if Codex unavailable).
+Pattern A composite — dispatches `touchstone:cross-provider-reviewer`, which owns the procedure end-to-end (parallel CC + Codex review, divergence-labeled synthesis, fallback if Codex unavailable).
 
 ## Renamed from m-deep-review
 
-The previous `m-deep-review` covered both doc review AND per-batch code review. Per-batch code review now lives at `/m-workflow:code-review batch` (Pattern B). The old `m-deep-review` path returns "not found" (the skill registry no longer has that name).
+The previous `m-deep-review` covered both doc review AND per-batch code review. Per-batch code review now lives at `/touchstone:code-review batch` (Pattern B). The old `m-deep-review` path returns "not found" (the skill registry no longer has that name).

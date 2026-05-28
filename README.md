@@ -1,162 +1,84 @@
-# m-workflow
+# touchstone
 
-A Claude Code plugin that bundles 10 workflow-stage skills (design-spec, design-review, arch-review, arch-discovery, epic-driven-roadmap, code-review, test-quality-audit, cross-provider-reviewer, cross-provider-architect, init) and one opinionated discipline (`source-as-truth`) that the skills load at runtime.
+> A test of what is genuine. (試金石 — a stone used to test the authenticity of metal.)
 
-## Status
+A Claude Code plugin for **workflow discipline** — 11 stage skills + 5 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
 
-`experimental-MVP`. Used by the author on one project across ~30 sessions. Cross-project portability is unverified.
+## What it is
 
-## What it does
+Touchstone bundles a 6-stage workflow (Explore → Grill → Arch-Review → Design-Spec → Plan → Build → Review Gate) with mechanisms that hold every stage to the honesty spine. The plugin's spine is **`claim ≤ evidence`** — every artifact (spec, plan, commit, review) carries the evidence its claims rest on; missing evidence is marked `[假設]`/`[unverified]`, never papered over.
 
-After `/m-workflow:init`, each stage skill reads a per-project adopter config at `<project>/.claude/m-workflow.yaml` to learn paths (`specs_dir`, `adr_dir`, `epics_dir`, `plans_dir`, `archive_specs_dir`) and which disciplines are adopted. If `adopted_disciplines` contains `source-as-truth`, the supporting review-stage skills also load the bundled `CONTEXT.md` so the discipline's audit rules are present in the model's review context.
+The spine is carried *through* four roles (not enforced by a fifth):
 
-The skills cover stages 2–7 of an explore → grill → arch consult → spec → plan → build → review workflow. Stages 1 (explore), 1.5 (grill), and 5 (build) are out of scope; see [Companion skills](#companion-skills).
-
-## What it does *not* do
-
-- It does not enforce discipline at CI / commit time. All audits and `kill-on:` lifecycle gates are advisory, included in the model's prompt when a skill is invoked.
-- It does not synchronise discipline content across projects. The bundled `CONTEXT.md` lives in the plugin; project-local content (specs / ADRs / epics) lives in the project repo. There is no cross-project sync mechanism.
-- It does not replace `CLAUDE.md` or ADRs. It assumes both already exist and reads them at runtime.
-- It does not guarantee determinism. Skills are prompt templates; the host model decides the output. Two sessions on different models may produce different review depth or spec phrasing.
-
-## Known limitations
-
-Hard constraints, not preference mismatches:
-
-- **N=1 validation.** The discipline and skill set are exercised on one project. Failure modes when adopted in a different project (different language, monorepo, different conventions) are unknown.
-- **No enforcement layer.** P1/P2/P3 audits and `kill-on:` lifecycle are loaded as instructions into the model's prompt. Nothing fails the build if a bridge doc has no `kill-on:`, if `kill-on:` references a completed lever, or if prose duplicates source. Drift is *surfaced* by audits when the skill is invoked — not prevented.
-- **Voluntary lifecycle.** Bridge-doc retirement requires running `/m-workflow:epic-driven-roadmap` at epic close. If skipped, stale bridges accumulate without warning.
-- **No observability.** There is no drift score, no count of stale bridges, no audit-report artifact. A reader cannot tell from outside whether the discipline is being applied.
-- **No idempotence across sessions.** Re-running `/m-workflow:design-spec` on the same feature with the same input may produce different specs. Skills are prompt templates, not deterministic logic.
-- **No team governance.** Adopter config is project-level, not contributor-level. No mechanism for resolving disagreement between contributors on adopted disciplines.
-- **No exit story.** If a project adopts `source-as-truth` and later wants to drop it, the bridge `kill-on:` annotations remain in markdown without tooling to migrate or strip them.
-- **Dependency surface.** Requires `everything-claude-code` for core review agents. Optional Codex dispatch adds another dependency for parallel review. No version-compatibility matrix is published.
-- **No security model.** Plugin dispatches agents and runs bash. Prompt-injection from bridge docs, untrusted-repo risk, and third-party plugin behaviour are not addressed. Use in trusted contexts only — see [Install](#install) for warning.
-
-## The bundled discipline: source-as-truth
-
-`source-as-truth` is one workflow stance bundled with the plugin. Its three principles (loaded from `CONTEXT.md` into supporting stage skills' prompt context):
-
-| Principle | Rule |
-|---|---|
-| **P1 (non-duplication)** | If source encodes the claim, do not write prose. Delete duplicates or point at source. |
-| **P2 (falsifiable)** | Every doc claim must be checkable — test, probe, grep. Hedge words (*usually / typically / careful / should*) fail. |
-| **P3 (no single host)** | If it fits in a `///` on one symbol → put it there. If it fits in a `// BRIDGE` on one function → there. Only when it spans files / languages / negative space does it earn an `.md`. |
-
-Bridge `.md` docs carry a `kill-on:` field declaring the lever that should retire them. Retirement is voluntary, applied at epic-close audit.
-
-The stance is not novel — it blends established positions (code-first development, docs-as-code, executable specifications, ADR drift hygiene). What this plugin contributes is the operational mechanic: bridge-doc `kill-on:` lifecycle + skill-driven audit prompts + adopter-config opt-in. The contribution is the packaging, not the philosophy.
-
-## Scenarios where this might be relevant
-
-Each scenario names a situation, the mechanic the plugin provides, and the manual work the user still has to do. No claim is made about long-term outcomes — those depend on consistent invocation, model behaviour, and the team's follow-through.
-
-### Scenario 1 — Design specs that name their retirement levers
-
-Situation: drafting a design spec for a feature that will leave at least one bridge-grade `.md` in the repo.
-
-Mechanic: when `source-as-truth` is adopted, the spec template emitted by `/m-workflow:design-spec` includes a § "Source-level Deposit" block with required fields — the lever this feature advances, bridge docs created (each with a `kill-on:` value), bridge docs the feature retires.
-
-Manual work: the author fills the fields. Nothing blocks the spec if fields are empty; the prompt asks but does not refuse. To find all pending `kill-on:` entries later, the user runs `rg '^kill-on:' <specs_dir> <adr_dir>` — there is no built-in index command.
-
-### Scenario 2 — Triaging accumulated docs in a mature repo
-
-Situation: a long-lived repo with documentation scattered across wiki, READMEs, comments, and ADRs of varying age.
-
-Mechanic: source-as-truth defines a four-kind vocabulary (navigation / bridge / workflow / diagnostic) with a frontmatter `kind:` field per doc. `/m-workflow:epic-driven-roadmap` Stage 7 (doc reckoning) prompts the model, at epic close, to classify recent docs against the four kinds and flag candidates for archival or retirement.
-
-Manual work: someone reads the flagged candidates and decides. Cleanup edits, archival, and `kill-on:` updates are by hand. The plugin makes the failure mode "wiki abandoned, nobody reads" *visible*; it does not act on it.
-
-### Scenario 3 — Reducing the doc surface AI agents ingest in later sessions
-
-Situation: each new AI coding session reads `CLAUDE.md`, ADRs, and bridge docs to bootstrap context. Stale claims in those docs get ingested as truth.
-
-Mechanic: `/m-workflow:design-review` and `/m-workflow:code-review` include the P1/P2/P3 audit rules in the model's review context. Duplicative or unfalsifiable prose is flagged at authoring/review time. Bridge docs whose `kill-on:` levers have landed get surfaced at epic close.
-
-Manual work: the team decides whether to retire flagged docs, edit them, or override the audit. No measurement is provided; a reader cannot quantify the effect on the next session's context. The doc set agents read is whatever audit work the team has actually completed.
-
-## Pre-requisites
-
-### Required
-
-| Dependency | Provides | Note |
-|---|---|---|
-| Claude Code | Host runtime | Plugin host |
-| `everything-claude-code` plugin | `architect`, `code-reviewer` agents | Dispatched by `design-spec` / `arch-review` / `code-review` |
-
-```bash
-claude plugin marketplace add anthropics/everything-claude-code
-claude plugin install everything-claude-code --scope user
-```
-
-### Optional
-
-| Dependency | Provides | If absent |
-|---|---|---|
-| Codex CLI | `codex` agents | `cross-provider-*` falls back to CC-only; everything else works |
-
-### Companion skills
-
-For the full pipeline (explore → grill → arch → spec → plan → build → review), the upstream / downstream stages are external:
-
-| Companion | Provides | Stage |
-|---|---|---|
-| `superpowers` plugin | `writing-plans`, `subagent-driven-development`, `brainstorming` | Plan + build |
-| `/grill-with-docs` skill | Vocabulary sharpening before spec authoring | Stage 1.5 |
-
-m-workflow runs without companions; the handoffs from `design-spec` to plan / build just won't have an obvious next step.
+- **Skill** — drafting / authoring (`design-spec`, `arch-review`, `code-review`, ...)
+- **Mode** — narration discipline (`grounded-claims` — cite source, mark assumptions)
+- **Discipline** — domain stance (`source-as-truth` — code is authoritative; docs describe why)
+- **Baseline** — universal foundations (`intention-first` — name intent before mechanism)
 
 ## Install
 
-> ⚠️ **Trust boundary**: The plugin dispatches agents and runs bash. Stage skills read project docs into the model's prompt, so untrusted markdown can carry prompt-injection. Install in repos and contexts you trust.
+```bash
+git clone https://github.com/mileschen1217/touchstone ~/projects/touchstone
+claude plugin marketplace add ~/projects/touchstone
+claude plugin install touchstone@touchstone --scope user
+```
+
+⚠️ Plugin dispatches agents and runs bash; use in trusted contexts only.
+
+## Dependencies
+
+Touchstone delegates work to agents and skills that live in other plugins. Install these before running touchstone skills.
+
+**Required:**
 
 ```bash
-git clone https://github.com/mileschen1217/m-workflow ~/projects/m-workflow
-claude plugin marketplace add ~/projects/m-workflow
-claude plugin install m-workflow@m-workflow-dev --scope user
+# everything-claude-code — architect agent + language-specific reviewers
+claude plugin marketplace add https://github.com/your-org/everything-claude-code   # check upstream URL
+claude plugin install everything-claude-code@everything-claude-code --scope user
+
+# superpowers — writing-plans, using-git-worktrees, brainstorming, etc.
+claude plugin install superpowers@claude-plugins-official --scope user
 ```
 
-## Use
+**Optional (cross-vendor review path):**
 
-```
-/m-workflow:init
-# → writes <project>/.claude/m-workflow.yaml
-# → prompts: adopt source-as-truth? [Y/n]
-
-/m-workflow:design-spec my-feature
-# → drafts <specs_dir>/YYYY-MM-DD-my-feature-design.md
-# → dispatches everything-claude-code:architect for fresh-context review
+```bash
+# codex — cross-vendor agents (codex:rescue, codex-* reviewers/implementers)
+claude plugin install codex@openai-codex --scope user
 ```
 
-Without `<project>/.claude/m-workflow.yaml`: every stage skill runs in default mode, printing a one-line hint to run `/m-workflow:init`. Defaults: `specs_dir=.swarm/specs`, `adr_dir=.swarm/docs/adr`, `epics_dir=.swarm/epics`, `plans_dir=.swarm/plans`, `archive_specs_dir=.swarm/archive/specs`. Skills do not refuse to run.
+Without `everything-claude-code`, the language-specific code reviewers and the `architect` agent dispatched by `cross-provider-architect` are unavailable. Without `codex`, only single-vendor (Claude-only) review paths work — touchstone degrades gracefully but loses the parallel CC+Codex composite.
 
 ## Skills
 
-| Slash command | What it does |
-|---|---|
-| `/m-workflow:init` | Per-project setup. Writes yaml. Idempotent without `--reset`. |
-| `/m-workflow:design-spec <feature>` | Draft an ATDD+TDD-aligned spec. Routes through `architect` for fresh review. |
-| `/m-workflow:design-review <path>` | Composite review (CC + Codex parallel) of a spec / plan / ADR / discovery doc. Includes bridge-content audit rules when source-as-truth is adopted. |
-| `/m-workflow:arch-review` | Pre-spec architecture consult when 2+ viable approaches exist. |
-| `/m-workflow:arch-discovery` | E2E system discovery — invariants × layers × flows × failures matrix. |
-| `/m-workflow:epic-driven-roadmap` | Scaffold / close / audit epics. Includes Stage 7 doc reckoning when source-as-truth is adopted. |
-| `/m-workflow:code-review` | Per-commit or `batch` (per-feature) code review. |
-| `/m-workflow:test-quality-audit` | Audit test suite quality + coverage gaps. |
-| `/m-workflow:cross-provider-reviewer` | Composite primitive: parallel review across CC + Codex with divergence labelling. |
-| `/m-workflow:cross-provider-architect` | Composite primitive: parallel architect across CC + Codex. |
+- `touchstone:init` — Bootstrap project adoption with `.claude/touchstone.yaml`.
+- `touchstone:arch-discovery` — Architecture discovery matrix for new systems.
+- `touchstone:arch-review` — Pressure-test design tradeoffs before spec.
+- `touchstone:design-spec` — Author spec: Problem → Scope → AC (GWT) → Architecture → Interfaces.
+- `touchstone:design-review` — Gate spec/plan/ADR before Build (Pattern A).
+- `touchstone:code-review` — Per-commit + per-batch code review (Patterns C / B).
+- `touchstone:epic-driven-roadmap` — Pure-tracker ROADMAP + per-epic index convention.
+- `touchstone:grounded-claims` — Narration mode: cite source, mark `[假設]`.
+- `touchstone:test-quality-audit` — Audit test suite against quality heuristics.
+- `touchstone:cross-provider-architect` — Parallel CC + Codex architecture review.
+- `touchstone:cross-provider-reviewer` — Parallel CC + Codex code review composite.
 
-## When to consider this plugin
+## Agents
 
-- You are already on Claude Code, use it as a primary IDE/orchestrator, and want a prebuilt skill set covering spec / review / epic stages rather than authoring your own.
-- You're comfortable with advisory audits whose enforcement is at most "the model is told to check". CI / linter enforcement is not provided.
-- You're a solo developer or small team. No team-governance mechanism exists.
+- `touchstone:tdd` — Double-loop TDD agent (ATDD outer + unit-test inner).
+- `touchstone:codex-implementer` — Cross-vendor task execution via Codex CLI.
+- `touchstone:codex-tdd` — Cross-vendor TDD with Codex red-green-refactor.
+- `touchstone:codex-reviewer` — Read-only Codex code review (Pattern B).
+- `touchstone:codex-adversarial-reviewer` — Codex adversarial design critique.
 
-## When not to consider it
+## 6-stage workflow
 
-- You need deterministic enforcement (CI failures, commit hooks). This plugin does not provide that.
-- You need narrative-first artifacts for non-engineering stakeholders. `source-as-truth` assumes readers read source.
-- You are evaluating against `agent-os`, `claude-flow`, `BMAD`, or `superpowers` and want a head-to-head comparison. The author has not yet produced one. See `docs/comparisons.md` for first-pass research notes; treat them as drafts.
+The full workflow lives in your global `~/.claude/CLAUDE.md` (touchstone integrates as routing). See `docs/comparisons.md` for scope and `CONTEXT.md` for vocabulary.
+
+## Status
+
+`0.2.0`. Experimental. Used by the author on one project across ~30 sessions. Cross-project portability is unverified — see `docs/comparisons.md` for scope boundaries.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

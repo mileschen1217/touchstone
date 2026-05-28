@@ -1,20 +1,20 @@
 ---
 name: init
 description: |
-  One-time per-project setup for m-workflow plugin. Writes
-  ${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml with paths and adopted
+  One-time per-project setup for touchstone plugin. Writes
+  ${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml with paths and adopted
   disciplines. Idempotent without --reset. Trigger phrases: "set up
-  m-workflow", "init m-workflow", "/m-workflow:init".
+  touchstone", "init touchstone", "/touchstone:init".
 kind: workflow
 ---
 
-# m-workflow:init
+# touchstone:init
 
-Writes `.claude/m-workflow.yaml` in the current project, configuring paths and adopted disciplines for the m-workflow plugin's stage skills.
+Writes `.claude/touchstone.yaml` in the current project, configuring paths and adopted disciplines for the touchstone plugin's stage skills.
 
 ## Step 1 — Idempotence check
 
-Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`.
+Read `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml`.
 
 **If the file does not exist OR `--reset` was passed:** continue to Step 2.
 
@@ -26,13 +26,13 @@ Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`.
 
 2. Check whether the `adopted_disciplines` key is present. If missing, treat it as an empty list.
 
-3. The supported discipline today is `source-as-truth` (single-entry list; a registry-derived menu is deferred to E15). If `source-as-truth` is already in `adopted_disciplines`, print "Run /m-workflow:init --reset to overwrite." and exit 0.
+3. The supported discipline today is `source-as-truth` (single-entry list; a registry-derived menu is deferred to E15). If `source-as-truth` is already in `adopted_disciplines`, print "Run /touchstone:init --reset to overwrite." and exit 0.
 
 4. **If `source-as-truth` is NOT yet adopted**, show the incremental-add menu:
 
    ```
    Current config:
-     workspace_root:      .m-workflow (or the current value)
+     workspace_root:      .touchstone (or the current value)
      adopted_disciplines: [] (or the current list)
 
    Disciplines:
@@ -48,7 +48,7 @@ Read `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`.
 5. **Non-interactive context (no TTY):** if `source-as-truth` is not yet adopted and no `--adopt` flag was passed, print:
 
    ```
-   [m-workflow:init] Non-interactive: source-as-truth available but not adopted.
+   [touchstone:init] Non-interactive: source-as-truth available but not adopted.
    Re-run interactively or pass --adopt source-as-truth to add.
    ```
 
@@ -62,7 +62,7 @@ Prompt the user for the workspace root (or accept the matching flag if present):
 
 | Flag | Prompt | Default |
 |---|---|---|
-| `--workspace-root <path>` | Workspace root? | `.m-workflow` |
+| `--workspace-root <path>` | Workspace root? | `.touchstone` |
 
 Values are taken verbatim. **MVP sharp edge: path escape (`../../...`) is NOT rejected.** Production hardening (reject paths outside `${CLAUDE_PROJECT_DIR}`) is deferred.
 
@@ -90,37 +90,37 @@ If `mkdir` fails (permission, invalid path), print error naming the path, exit n
 
 ## Step 5 — Write yaml
 
-Write `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml`:
+Write `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml`:
 
 ```yaml
-# written by /m-workflow:init vX.Y.Z. Hand-editable.
+# written by /touchstone:init vX.Y.Z. Hand-editable.
 schema_version: 2
-workspace_root: <answer or .m-workflow>
+workspace_root: <answer or .touchstone>
 adopted_disciplines: [<comma-separated answers>]
 ```
 
-If overwriting (`--reset` mode), first copy the existing file to `${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml.bak`. Print "Preserved prior yaml at .bak".
+If overwriting (`--reset` mode), first copy the existing file to `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml.bak`. Print "Preserved prior yaml at .bak".
 
 ## Step 6 — Verification summary
 
 Print:
 
 ```
-✓ Wrote ${CLAUDE_PROJECT_DIR}/.claude/m-workflow.yaml
+✓ Wrote ${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml
   workspace_root:      <value>
   adopted_disciplines: [<values>]
 
-Next: try /m-workflow:design-spec <feature-name>
+Next: try /touchstone:design-spec <feature-name>
 ```
 
 ## Argument grammar
 
 ```
-/m-workflow:init                              # interactive (default)
-/m-workflow:init --adopt <discipline>         # repeatable
-/m-workflow:init --workspace-root <path>      # override workspace root (default .m-workflow)
-/m-workflow:init --reset                      # overwrite existing yaml
-/m-workflow:init --migrate                    # migrate schema-1 yaml to schema-2
+/touchstone:init                              # interactive (default)
+/touchstone:init --adopt <discipline>         # repeatable
+/touchstone:init --workspace-root <path>      # override workspace root (default .touchstone)
+/touchstone:init --reset                      # overwrite existing yaml
+/touchstone:init --migrate                    # migrate schema-1 yaml to schema-2
 ```
 
 ### `--migrate` behaviour

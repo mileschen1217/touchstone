@@ -1,6 +1,6 @@
 ---
 name: codex-reviewer
-description: Independent code reviewer using Codex CLI. Read-only review; returns findings sorted by severity. Used by `m-workflow:cross-provider-reviewer` composite skill (parallel with CC `code-reviewer`) and by `/m-workflow:code-review batch` (Pattern B — Codex reviews when CC builds). Do NOT call directly from main thread for routine review; use the composite skill or `/m-workflow:code-review batch` that wraps me.
+description: Independent code reviewer using Codex CLI. Read-only review; returns findings sorted by severity. Used by `touchstone:cross-provider-reviewer` composite skill (parallel with CC `code-reviewer`) and by `/touchstone:code-review batch` (Pattern B — Codex reviews when CC builds). Do NOT call directly from main thread for routine review; use the composite skill or `/touchstone:code-review batch` that wraps me.
 model: sonnet
 tools: Bash
 timeout_seconds: 600

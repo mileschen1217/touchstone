@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# m-workflow migration audit script.
+# touchstone migration audit script.
 # Modes:
 #   --namespace      Detect legacy m-* namespace references; classify into 4 classes.
 #   --magic-string   Detect residual `grep -l 'source-as-truth'` ADR-probe patterns.
@@ -42,9 +42,9 @@ case "$MODE" in
     # Wrapper file = SKILL.md whose frontmatter description contains "DEPRECATED" (these legitimately quote old commands).
     # For each hit:
     # (a) wrapper-legacy [PASS]: file is a wrapper
-    # (b) renamed [PASS]: file is not a wrapper AND line contains m-workflow:<n> (already updated form)
+    # (b) renamed [PASS]: file is not a wrapper AND line contains touchstone:<n> (already updated form)
     # (c) external [PASS, advisory]: file path outside scan scope (not expected from local scan, included for AC-9 parity)
-    # (d) stale [FAIL]: file is not a wrapper AND line does NOT contain m-workflow:<n>
+    # (d) stale [FAIL]: file is not a wrapper AND line does NOT contain touchstone:<n>
     >/tmp/audit_wrapper_legacy ; >/tmp/audit_renamed ; >/tmp/audit_external ; >/tmp/audit_stale
 
     while IFS= read -r hit; do
@@ -62,7 +62,7 @@ case "$MODE" in
 
       if [ "$is_wrapper" -eq 1 ]; then
         echo "$hit" >> /tmp/audit_wrapper_legacy
-      elif echo "$line_content" | grep -q "m-workflow:"; then
+      elif echo "$line_content" | grep -q "touchstone:"; then
         echo "$hit" >> /tmp/audit_renamed
       else
         echo "$hit" >> /tmp/audit_stale

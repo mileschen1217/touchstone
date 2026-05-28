@@ -17,7 +17,7 @@ a live boundary.
 
 ## Triggered by
 
-Authored during the `/m-workflow:design-spec` run for Phase 2 (ADR genesis). This is
+Authored during the `/touchstone:design-spec` run for Phase 2 (ADR genesis). This is
 NOT where the contract fires: the live-bearing demand is enforced at **design-review**
 (the live-bearing-IDs declaration check), **`code-review batch`** (the evidence-honesty
 criteria), and **epic-close reckoning** — see decision (4a).

@@ -58,7 +58,7 @@ after three pass@5 fixes (below).
 ### Defects found by pass@5 (fixed; pass@1 had missed them)
 
 1. **yaml-no-if fixture under-specified** — pass@5 2/5: 3 runs mis-routed to
-   Setup Mode because the fixture pinned only `m-workflow.yaml`, not
+   Setup Mode because the fixture pinned only `touchstone.yaml`, not
    `design-spec.yaml` (the Draft-vs-Setup trigger). Pinned the Draft-Mode
    precondition → 5/5. (commit b0edccc)
 2. **AC-3 regex over-broad** — Layer-2 5/5 but Layer-1 4/5: a correct

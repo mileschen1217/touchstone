@@ -8,7 +8,7 @@ description: |
   change, migration). Dispatches the `architect` agent in fresh context,
   returns a tradeoff memo with recommendation, and optionally captures the
   decision as an ADR via ECC's architecture-decision-records skill. Not a
-  replacement for `/m-workflow:design-spec` — this is the pre-spec consult that
+  replacement for `/touchstone:design-spec` — this is the pre-spec consult that
   settles architectural questions so the spec can assume them.
 allowed-tools:
   - Bash
@@ -22,7 +22,7 @@ allowed-tools:
 kind: workflow
 ---
 
-<!-- keep-long: 233 lines, single linear consult path with no mutually-exclusive sub-flows to extract. Anti-patterns + /office-hours-vs-/m-workflow:arch-review comparison are routing/boundary content; held inline by design. -->
+<!-- keep-long: 233 lines, single linear consult path with no mutually-exclusive sub-flows to extract. Anti-patterns + /office-hours-vs-/touchstone:arch-review comparison are routing/boundary content; held inline by design. -->
 
 ## Step 0 — Load vocabulary
 
@@ -34,7 +34,7 @@ If `source-as-truth` is in `bundle.disciplines`, also read
 § "Standing vs transient bridge" and include the loaded text verbatim in
 the envelope below.
 
-When dispatching to `m-workflow:cross-provider-architect`, set envelope:
+When dispatching to `touchstone:cross-provider-architect`, set envelope:
 ```json
 {
   "task": "<existing task text>",
@@ -50,8 +50,8 @@ If not adopted: skip Read; envelope `discipline_mode: "none"`; omit `source_as_t
 # m-arch-review
 
 Pre-code architect consult. For when the question is "which approach?" —
-not "here's the contract, review it" (that's `/m-workflow:design-spec`) and not "here's
-the code, review it" (that's `/m-workflow:code-review batch`).
+not "here's the contract, review it" (that's `/touchstone:design-spec`) and not "here's
+the code, review it" (that's `/touchstone:code-review batch`).
 
 ## When to Invoke
 
@@ -71,8 +71,8 @@ Typical triggers:
 - Contract-level choice that will propagate through the design spec
 
 Skip when:
-- The direction is clear from exploration — go straight to `/m-workflow:design-spec`
-- The question is about code that already exists → that's `/m-workflow:code-review batch`
+- The direction is clear from exploration — go straight to `/touchstone:design-spec`
+- The question is about code that already exists → that's `/touchstone:code-review batch`
 - It's a tactical implementation choice, not architectural → resolve inline
 
 ## Inputs
@@ -99,10 +99,10 @@ Produce a one-paragraph framing:
 - Constraints (performance, compat, team, time)
 - What "good" looks like (success criteria)
 
-### 2. Dispatch m-workflow:cross-provider-architect composite skill (Pattern A — fresh context)
+### 2. Dispatch touchstone:cross-provider-architect composite skill (Pattern A — fresh context)
 
 ```
-Skill(skill: "m-workflow:cross-provider-architect", args: {
+Skill(skill: "touchstone:cross-provider-architect", args: {
   "task": "<the framing + context refs + candidate approaches as a single text>",
   "role": "architect",
   "task_dir": "<optional>"
@@ -113,7 +113,7 @@ The composite skill orchestrates two backends in parallel:
 - `everything-claude-code:architect` — validates the design, produces tradeoff memo
 - `codex-adversarial-reviewer` — pressure-tests the proposal, surfaces failure modes
 
-Pattern A — dual parallel; auto-falls back to CC `architect` only if Codex unavailable. The dispatched skill (`m-workflow:cross-provider-architect`) owns its procedure end-to-end.
+Pattern A — dual parallel; auto-falls back to CC `architect` only if Codex unavailable. The dispatched skill (`touchstone:cross-provider-architect`) owns its procedure end-to-end.
 
 Compose the task envelope from:
 > Architecture consult. Read the framing and context references below.
@@ -144,7 +144,7 @@ If a decision was made (step 3 "accepts" or "picks"), invoke the ADR workflow
 documented in `adr-authoring.md`:
 
 - Call ECC's `architecture-decision-records` skill
-- Add `Triggered by: /m-workflow:arch-review` and `Related ADRs: ...` headers
+- Add `Triggered by: /touchstone:arch-review` and `Related ADRs: ...` headers
 - Confirm filename and approve before write
 
 If the user deferred, skip this step and save the memo to a scratch location
@@ -155,7 +155,7 @@ If the user deferred, skip this step and save the memo to a scratch location
 If the decision unblocks a feature design:
 
 ```
-Next: /m-workflow:design-spec <feature-name>
+Next: /touchstone:design-spec <feature-name>
   — reference ADR-NNNN in the Related section
   — the Architecture section can now assume <chosen approach>
 ```
@@ -178,13 +178,13 @@ decisions go elsewhere.
 
 | Command | Behavior |
 |---|---|
-| `/m-workflow:arch-review` | Interactive: asks for question, context, candidates |
-| `/m-workflow:arch-review "<question>"` | Skip the prompt; derive context from conversation |
-| `/m-workflow:arch-review --defer-adr` | Run the consult but skip ADR capture even if decision reached |
+| `/touchstone:arch-review` | Interactive: asks for question, context, candidates |
+| `/touchstone:arch-review "<question>"` | Skip the prompt; derive context from conversation |
+| `/touchstone:arch-review --defer-adr` | Run the consult but skip ADR capture even if decision reached |
 
 ## Dependencies
 
-- **`m-workflow:cross-provider-architect`** composite skill (required) — wraps `everything-claude-code:architect` (CC) + `codex-adversarial-reviewer` (Codex) in Pattern A
+- **`touchstone:cross-provider-architect`** composite skill (required) — wraps `everything-claude-code:architect` (CC) + `codex-adversarial-reviewer` (Codex) in Pattern A
 - **`codex-reviewer`** / **`codex-adversarial-reviewer`** backend agents (required by the composite when Codex is healthy)
 - **`everything-claude-code:architecture-decision-records`** (optional) —
   ADR capture at step 4. If not installed, fall back to manual ADR writing
@@ -200,7 +200,7 @@ explored alternatives, written to a design doc. Use `/office-hours` when:
 - You want structured problem framing before design, not just a tradeoff pick
 - The user-facing Q&A flow is preferred over architect-agent memo output
 
-Use `/m-workflow:arch-review` when:
+Use `/touchstone:arch-review` when:
 
 - A specific architectural question needs settling (not a broad problem frame)
 - The tradeoff is between 2-3 known approaches
@@ -212,9 +212,9 @@ Both flows can produce an ADR as output.
 
 ## Anti-patterns
 
-- **Using `/m-workflow:arch-review` instead of `/m-workflow:design-spec`** — this skill does
+- **Using `/touchstone:arch-review` instead of `/touchstone:design-spec`** — this skill does
   not produce a contract. If the direction is clear, go straight to the spec.
-- **Using `/m-workflow:arch-review` on existing code without a pending change** —
+- **Using `/touchstone:arch-review` on existing code without a pending change** —
   that's an audit, not a consult. Invoke the architect agent directly via
   `Agent` tool with an audit prompt.
 - **Running without context** — architect produces thin output if given only
@@ -225,7 +225,7 @@ Both flows can produce an ADR as output.
 ## Related
 
 - Upstream: exploration routing (Topic 2 in global CLAUDE.md)
-- Downstream: `/m-workflow:design-spec` for spec drafting; `/superpowers:writing-plans`
+- Downstream: `/touchstone:design-spec` for spec drafting; `/superpowers:writing-plans`
   for implementation sequencing
-- Parallel (different stage): `/m-workflow:code-review batch` for post-code batch review
+- Parallel (different stage): `/touchstone:code-review batch` for post-code batch review
 - ADR workflow: `adr-authoring.md` (this skill's directory)

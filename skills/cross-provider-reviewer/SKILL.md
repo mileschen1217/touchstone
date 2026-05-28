@@ -1,6 +1,6 @@
 ---
 name: cross-provider-reviewer
-description: Pattern A composite skill — reviews any artifact using CC `code-reviewer` + Codex `codex-reviewer` in parallel; synthesizes with explicit divergence labeling. Auto-falls back to CC-only when Codex unavailable. Used by `/m-workflow:design-review` (with doc-review `system_prompt` via envelope) and available for ad-hoc cross-provider review.
+description: Pattern A composite skill — reviews any artifact using CC `code-reviewer` + Codex `codex-reviewer` in parallel; synthesizes with explicit divergence labeling. Auto-falls back to CC-only when Codex unavailable. Used by `/touchstone:design-review` (with doc-review `system_prompt` via envelope) and available for ad-hoc cross-provider review.
 allowed-tools:
   - Bash
   - Read
@@ -10,7 +10,7 @@ user-invocable: true
 kind: workflow
 ---
 
-# /m-workflow:cross-provider-reviewer — Pattern A Composite Skill
+# /touchstone:cross-provider-reviewer — Pattern A Composite Skill
 
 Skill body executes in main-thread context where `Agent` tool is available. Orchestrates parallel CC + Codex review and synthesizes with divergence labeling.
 
@@ -41,7 +41,7 @@ If `codex_healthy=1`, in ONE message issue BOTH:
 - `Agent(subagent_type: "everything-claude-code:code-reviewer", description: "CC review", prompt: <task envelope with system_prompt prefix>, model: "sonnet")`  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
 
   The `model: "sonnet"` is explicit, not inherited from ECC's default — m-* family routes review through Sonnet by policy.
-- `Agent(subagent_type: "m-workflow:codex-reviewer", description: "Codex review", prompt: <task envelope>)`
+- `Agent(subagent_type: "touchstone:codex-reviewer", description: "Codex review", prompt: <task envelope>)`
 
 Wait for both to return before synthesizing.
 
@@ -94,10 +94,10 @@ Skill body's final assistant text: the synthesized review.md content. The orches
 
 ## Cost note
 
-Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/m-workflow:design-review`), arch consult (`/m-workflow:arch-review`), design spec (`/m-workflow:design-spec`), or ad-hoc opt-in for high-risk diffs.
+Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/touchstone:design-review`), arch consult (`/touchstone:arch-review`), design spec (`/touchstone:design-spec`), or ad-hoc opt-in for high-risk diffs.
 
 ## Dependencies
 
 - `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — CC review backend. Epic B vendors or makes optional.
-- `m-workflow:codex-reviewer` (plugin-local) — Codex review backend.
+- `touchstone:codex-reviewer` (plugin-local) — Codex review backend.
 - CC-only fallback: if a provider is absent, run the available provider(s), write `review.result.json` with the resulting `providers_used` / `fallback_reason`, and prepend the DEGRADED banner per `references/provenance.md`; if BOTH absent → no synthesis, surfaced as failure (envelope still written per provenance.md).

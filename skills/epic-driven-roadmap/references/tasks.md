@@ -3,7 +3,7 @@
 Tasks are finer-grained execution units within an epic phase. They produce L0 artifacts (`result.json`, optional `review.md`) per the multi-vendor dispatch convention.
 
 1. Pick a task-id — `T<NN>-<short-slug>`, lowercase, hyphen-separated. NN is sequence within the epic (T01, T02, ...).
-2. Resolve concrete path from project CLAUDE.md § Doc Routing — typically `.m-workflow/epics/<slug>/tasks/<task-id>/`.
+2. Resolve concrete path from project CLAUDE.md § Doc Routing — typically `.touchstone/epics/<slug>/tasks/<task-id>/`.
 3. Copy `templates/task-contract.md` to `<epics-dir>/<slug>/tasks/<task-id>/contract.md`. Fill in: `task_id`, `epic` slug, `role`, `runtime`, `created`.
 4. (optional) Copy `templates/task-result.json` to the same dir as `result.json` initialized with `status: pending`.
 5. Commit.

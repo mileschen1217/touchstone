@@ -1,6 +1,6 @@
 ---
 name: codex-adversarial-reviewer
-description: Pressure-tests design and architecture proposals using Codex CLI. Used by `m-workflow:cross-provider-architect` composite skill (parallel with CC `architect`) for `/m-workflow:arch-review` and `/m-workflow:design-spec`. Generates failure modes, edge cases, and "what could go wrong" critique. Do NOT call directly for routine review.
+description: Pressure-tests design and architecture proposals using Codex CLI. Used by `touchstone:cross-provider-architect` composite skill (parallel with CC `architect`) for `/touchstone:arch-review` and `/touchstone:design-spec`. Generates failure modes, edge cases, and "what could go wrong" critique. Do NOT call directly for routine review.
 model: sonnet
 tools: Bash
 timeout_seconds: 600

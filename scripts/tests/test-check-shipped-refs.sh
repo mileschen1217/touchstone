@@ -14,7 +14,7 @@ pass=0 fail=0
 new_repo() {
   local d; d="$(mktemp -d)"
   ( cd "$d" && git init -q && git config user.email t@t && git config user.name t \
-      && mkdir -p docs skills .claude && printf 'workspace_root: .m-workflow\n' > .claude/m-workflow.yaml )
+      && mkdir -p docs skills .claude && printf 'workspace_root: .touchstone\n' > .claude/touchstone.yaml )
   printf '%s' "$d"
 }
 
@@ -41,7 +41,7 @@ assert_case() {
 # AC-1: a committed docs file referencing an untracked dated artifact is a leak,
 # reported with exact file:line: token (the ref is on line 2 of leak.md)
 t="$(new_repo)"; cp "$FIX/leak.md" "$t/docs/leak.md"; ( cd "$t" && git add docs/leak.md && git commit -qm x )
-assert_case "AC-1 untracked dated ref flagged with file:line" 1 "$t" "docs/leak.md:2: .m-workflow/specs/2026-05-22-foo.md" "exact"
+assert_case "AC-1 untracked dated ref flagged with file:line" 1 "$t" "docs/leak.md:2: .touchstone/specs/2026-05-22-foo.md" "exact"
 
 # AC-2: a <placeholder> reference is not a leak (clean tree => pass)
 t="$(new_repo)"; cp "$FIX/placeholder.md" "$t/docs/p.md"; ( cd "$t" && git add docs/p.md && git commit -qm x )
@@ -60,9 +60,9 @@ assert_case "convention files (non-dated) not flagged" 0 "$t" "pass"
 # AC-3: an in-scope (dated) ref whose target is tracked (force-added) is NOT flagged
 t="$(new_repo)"
 ( cd "$t" \
-  && mkdir -p .m-workflow/specs && printf 'x\n' > .m-workflow/specs/2026-01-01-tracked.md \
-  && git add -f .m-workflow/specs/2026-01-01-tracked.md \
-  && printf 'See .m-workflow/specs/2026-01-01-tracked.md here.\n' > docs/r.md && git add docs/r.md \
+  && mkdir -p .touchstone/specs && printf 'x\n' > .touchstone/specs/2026-01-01-tracked.md \
+  && git add -f .touchstone/specs/2026-01-01-tracked.md \
+  && printf 'See .touchstone/specs/2026-01-01-tracked.md here.\n' > docs/r.md && git add docs/r.md \
   && git commit -qm x )
 assert_case "AC-3 tracked dated in-scope ref not flagged" 0 "$t" "pass"
 
@@ -80,15 +80,15 @@ assert_case "AC-6 clean tree exits 0 pass" 0 "$t" "pass"
 t="$(mktemp -d)"   # NO git init
 assert_case "AC-6 non-git dir exits 2" 2 "$t" "ERROR"
 
-# AC-5 fallback: no workspace_root key => default .m-workflow still flags the leak
-t="$(new_repo)"; printf '# no ws key\n' > "$t/.claude/m-workflow.yaml"
-cp "$FIX/leak.md" "$t/docs/leak.md"; ( cd "$t" && git add docs/leak.md .claude/m-workflow.yaml && git commit -qm x )
-assert_case "AC-5 absent workspace_root falls back to .m-workflow" 1 "$t" "docs/leak.md:2: .m-workflow/specs/2026-05-22-foo.md" "exact"
+# AC-5 fallback: no workspace_root key => default .touchstone still flags the leak
+t="$(new_repo)"; printf '# no ws key\n' > "$t/.claude/touchstone.yaml"
+cp "$FIX/leak.md" "$t/docs/leak.md"; ( cd "$t" && git add docs/leak.md .claude/touchstone.yaml && git commit -qm x )
+assert_case "AC-5 absent workspace_root falls back to .touchstone" 1 "$t" "docs/leak.md:2: .touchstone/specs/2026-05-22-foo.md" "exact"
 
-# AC-5 configured: a NON-default workspace_root is honoured (leak under .myws/, not .m-workflow/)
-t="$(new_repo)"; printf 'workspace_root: .myws\n' > "$t/.claude/m-workflow.yaml"
+# AC-5 configured: a NON-default workspace_root is honoured (leak under .myws/, not .touchstone/)
+t="$(new_repo)"; printf 'workspace_root: .myws\n' > "$t/.claude/touchstone.yaml"
 printf 'See .myws/specs/2026-05-22-foo.md here.\n' > "$t/docs/leak.md"
-( cd "$t" && git add docs/leak.md .claude/m-workflow.yaml && git commit -qm x )
+( cd "$t" && git add docs/leak.md .claude/touchstone.yaml && git commit -qm x )
 assert_case "AC-5 configured non-default workspace_root honoured" 1 "$t" "docs/leak.md:1: .myws/specs/2026-05-22-foo.md" "exact"
 
 # AC-7 (execution): a leak-bearing file OUTSIDE docs/+skills/ is not scanned
