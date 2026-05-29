@@ -104,6 +104,47 @@ class LocalMarkdownAdapter:
                         field=f"phases[{i}].sidecar.{k}", backend="local-markdown", reason=e.reason,
                     )
 
+        # Phases-table cell host can only carry `str` tag.
+        # list[str] / dict[str, str] are valid SidecarValue at the schema
+        # layer but cannot be expressed in a single table cell — refuse
+        # rather than coerce (AC-6 tag preservation).
+        for i, ph in enumerate(data.phases or []):
+            for k, v in (ph.sidecar or {}).items():
+                if isinstance(v, list):
+                    raise SidecarUnstorableError(
+                        field=f"phases[{i}].sidecar.{k}",
+                        backend="local-markdown",
+                        reason=(
+                            "list[str] cannot be expressed in a "
+                            "Phases-table cell — promote to epic-level "
+                            "sidecar (YAML frontmatter) or use a "
+                            "sidecar-only schema bump"
+                        ),
+                    )
+                if isinstance(v, dict):
+                    raise SidecarUnstorableError(
+                        field=f"phases[{i}].sidecar.{k}",
+                        backend="local-markdown",
+                        reason=(
+                            "dict[str, str] cannot be expressed in a "
+                            "Phases-table cell — promote to epic-level "
+                            "sidecar (YAML frontmatter) or use a "
+                            "sidecar-only schema bump"
+                        ),
+                    )
+                if isinstance(v, str) and "|" in v:
+                    raise SidecarUnstorableError(
+                        field=f"phases[{i}].sidecar.{k}",
+                        backend="local-markdown",
+                        reason=(
+                            "phase-sidecar str value contains a literal "
+                            "'|' which cannot be expressed in a "
+                            "Phases-table cell without breaking row "
+                            "delimitation — promote to epic-level sidecar "
+                            "(YAML frontmatter) or strip the pipe upstream"
+                        ),
+                    )
+
         # Conditional-required canonical rules (AC-4 on write). 'cancelled' is exempted.
         if data.status in ("active", "paused", "done") and data.started is None:
             raise SchemaValidationError(
@@ -172,12 +213,27 @@ class LocalMarkdownAdapter:
         parts.append("## Phases")
         parts.append("")
         if data.phases:
-            parts.append("| n | title | status | landed |")
-            parts.append("|---|---|---|---|")
+            # Collect union of phase sidecar keys (preserve first-seen order)
+            extra_cols: list[str] = []
+            seen: set[str] = set()
             for ph in data.phases:
-                parts.append(
-                    f"| {ph.n} | {ph.title} | {ph.status} | {ph.landed or ''} |"
-                )
+                for k in (ph.sidecar or {}):
+                    if k not in seen:
+                        seen.add(k); extra_cols.append(k)
+            header = ["n", "title", "status", "landed"] + extra_cols
+            parts.append("| " + " | ".join(header) + " |")
+            parts.append("|" + "|".join("---" for _ in header) + "|")
+            for ph in data.phases:
+                cells = [str(ph.n), ph.title, ph.status, ph.landed or ""]
+                for col in extra_cols:
+                    val = (ph.sidecar or {}).get(col, "")
+                    assert isinstance(val, str), (
+                        f"phases[].sidecar.{col} reached _serialise as "
+                        f"{type(val).__name__}; host-capability guard "
+                        f"in write() must have been bypassed"
+                    )
+                    cells.append(val)
+                parts.append("| " + " | ".join(cells) + " |")
         parts.append("")
         parts.append("## Retrospective")
         parts.append("")
