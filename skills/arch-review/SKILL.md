@@ -129,6 +129,18 @@ Compose the task envelope from:
 
 Fresh context — the composite skill orchestrates fresh subagent contexts; no drafting context bleeds through.
 
+### 2.5 Informed-consent checkpoint
+
+**Informed-consent checkpoint (orthogonal to the decision in Step 3):** if the composite's
+returned synthesis (`<task_dir>/review.md`) carries a ⚠️ DEGRADED or ⚠️ PARTIAL banner,
+present the banner text to the user VERBATIM and obtain explicit acknowledgement (an
+`AskUserQuestion` choice, or an explicit user "proceed") BEFORE presenting the memo in
+Step 3. The banner is informational, not a hard block, but the workflow MUST NOT
+auto-advance past it without the human knowingly acknowledging that the architect memo
+was produced by a single provider rather than the dual-parallel Pattern A pair. A clean
+synthesis (no banner) does not trigger this checkpoint. The banner's meaning is defined
+in `skills/cross-provider-reviewer/references/provenance.md`.
+
 ### 3. Review + decide
 
 Present the architect's memo to the user. The user:
