@@ -33,7 +33,7 @@ CANONICAL_FRONTMATTER_KEYS = {
     "schema_version", "slug", "status", "started", "landed",
 }
 SECTION_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
-AIM_RE = re.compile(r"^\*\*Aim:\*\*\s*(.+?)\s*$", re.MULTILINE)
+AIM_RE = re.compile(r"^\*\*Aim:\*\*[ \t]*(.*?)[ \t]*$", re.MULTILINE)
 BULLET_RE = re.compile(r"^-\s+(.+?)\s*$", re.MULTILINE)
 INTENTION_BULLET_RE = re.compile(r"^-\s+Intention:\s*(.+?)\s*$", re.MULTILINE)
 OOS_BULLET_RE = re.compile(r"^-\s+Out of scope:\s*(.+?)\s*$", re.MULTILINE)
@@ -104,10 +104,10 @@ class LocalMarkdownAdapter:
                         field=f"phases[{i}].sidecar.{k}", backend="local-markdown", reason=e.reason,
                     )
 
-        # Conditional-required canonical rules (AC-4 on write)
-        if data.status != "proposed" and data.started is None:
+        # Conditional-required canonical rules (AC-4 on write). 'cancelled' is exempted.
+        if data.status in ("active", "paused", "done") and data.started is None:
             raise SchemaValidationError(
-                field="started", slug=slug, reason="required when status != proposed",
+                field="started", slug=slug, reason=f"required when status == {data.status!r}",
             )
         if data.status == "done" and data.landed is None:
             raise SchemaValidationError(
@@ -259,11 +259,13 @@ class LocalMarkdownAdapter:
         oq = sections["Open Questions"]
         epic.open_questions = [m.group(1).strip() for m in BULLET_RE.finditer(oq)]
 
-        # conditional-required: started if status != proposed, landed if status == done
-        if epic.status != "proposed" and epic.started is None:
+        # conditional-required: started if status in {active, paused, done}; landed if status == done.
+        # 'cancelled' is a terminal status exempted — epics folded before work began legitimately
+        # have no started date.
+        if epic.status in ("active", "paused", "done") and epic.started is None:
             raise SchemaValidationError(
                 field="started", slug=slug, schema_version=epic.schema_version,
-                reason="required when status != proposed",
+                reason=f"required when status == {epic.status!r}",
             )
         if epic.status == "done" and epic.landed is None:
             raise SchemaValidationError(
@@ -290,8 +292,10 @@ class LocalMarkdownAdapter:
         return fm, body
 
     def _validate_frontmatter(self, fm: dict, slug: str) -> None:
+        # Legacy accommodation: pre-adapter epics lack schema_version. Default to
+        # version 1 and let write() stamp it explicitly on next save.
         if "schema_version" not in fm:
-            raise SchemaValidationError(field="schema_version", slug=slug, reason="missing")
+            fm["schema_version"] = SCHEMA_VERSION
         try:
             sv = int(fm["schema_version"])
         except (TypeError, ValueError):
