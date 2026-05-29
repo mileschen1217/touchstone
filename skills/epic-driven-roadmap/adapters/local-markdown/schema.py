@@ -114,3 +114,30 @@ def validate_sidecar_value(v) -> None:
                 raise SidecarUnstorableError(field="<sidecar>", reason=f"dict value not str: {type(val).__name__}")
         return
     raise SidecarUnstorableError(field="<sidecar>", reason=f"untagged type: {type(v).__name__}")
+
+
+# ---------- canonical dataclasses ----------
+
+@dataclass
+class PhaseData:
+    n: int = field(default=0, metadata={"consumer": "close procedure (phase enumeration)"})
+    title: str = field(default="", metadata={"consumer": "close procedure (phase enumeration)"})
+    status: str = field(default="proposed", metadata={"consumer": "close procedure (all phases done?)"})
+    landed: Optional[str] = field(default=None, metadata={"consumer": "Stage 7 ship gate (per-phase landed date)"})
+    sidecar: dict = field(default_factory=dict, metadata={"sidecar_rationale": "backend-specific per-phase decoration"})
+
+
+@dataclass
+class EpicData:
+    schema_version: int = field(default=SCHEMA_VERSION, metadata={"consumer": "adapter version negotiation (AC-7/7b)"})
+    slug: str = field(default="", metadata={"consumer": "adapter identity"})
+    status: str = field(default="proposed", metadata={"consumer": "Stage 7 ship gate; audit status-drift (carve-out)"})
+    started: Optional[str] = field(default=None, metadata={"consumer": "Stage 7 ship gate (range boundary); required if status != 'proposed'"})
+    landed: Optional[str] = field(default=None, metadata={"consumer": "Stage 7 ship gate; required if status == 'done'"})
+    aim: str = field(default="", metadata={"consumer": "Foundation elicitation gate (AC-10 reuse check)"})
+    intention: str = field(default="", metadata={"consumer": "Foundation elicitation gate"})
+    out_of_scope: list = field(default_factory=list, metadata={"consumer": "Foundation elicitation gate"})
+    phases: list = field(default_factory=list, metadata={"consumer": "close procedure; ROADMAP rollup (carve-out)"})
+    retrospective: list = field(default_factory=list, metadata={"consumer": "close procedure (append on close)"})
+    open_questions: list = field(default_factory=list, metadata={"consumer": "Foundation gate (sentinel injection); audit (carve-out)"})
+    sidecar: dict = field(default_factory=dict, metadata={"sidecar_rationale": "epic-level backend decoration (retro_scanned, pivots, retrospective_body_markdown)"})

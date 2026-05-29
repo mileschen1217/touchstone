@@ -52,3 +52,45 @@ def test_validate_sidecar_value_rejects_untagged():
     for bad in (1, 1.5, True, None, ["a", 1], {"k": 1}, {1: "v"}, ("a",)):
         with pytest.raises(S.SidecarUnstorableError):
             S.validate_sidecar_value(bad)
+
+
+import dataclasses
+
+
+def test_every_epicdata_field_has_consumer_or_sidecar_metadata():
+    """AC-2a — no field exists without consumer or sidecar_rationale."""
+    for f in dataclasses.fields(S.EpicData):
+        meta = f.metadata
+        has_consumer = "consumer" in meta and meta["consumer"]
+        has_sidecar = "sidecar_rationale" in meta and meta["sidecar_rationale"]
+        assert has_consumer ^ has_sidecar, (
+            f"EpicData.{f.name} must carry exactly one of consumer/sidecar_rationale; got {dict(meta)}"
+        )
+
+
+def test_every_phasedata_field_has_consumer_or_sidecar_metadata():
+    """AC-2a — same rule for PhaseData."""
+    for f in dataclasses.fields(S.PhaseData):
+        meta = f.metadata
+        has_consumer = "consumer" in meta and meta["consumer"]
+        has_sidecar = "sidecar_rationale" in meta and meta["sidecar_rationale"]
+        assert has_consumer ^ has_sidecar, (
+            f"PhaseData.{f.name} must carry exactly one of consumer/sidecar_rationale; got {dict(meta)}"
+        )
+
+
+def test_epicdata_default_construction():
+    e = S.EpicData()
+    assert e.schema_version == S.SCHEMA_VERSION
+    assert e.slug == ""
+    assert e.status == "proposed"
+    assert e.started is None
+    assert e.landed is None
+    assert e.phases == []
+    assert e.sidecar == {}
+
+
+def test_phasedata_construction():
+    p = S.PhaseData(n=1, title="Discovery", status="done", landed="2026-05-29")
+    assert p.n == 1
+    assert p.sidecar == {}
