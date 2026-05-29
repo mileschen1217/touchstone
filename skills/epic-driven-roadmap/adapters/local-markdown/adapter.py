@@ -248,6 +248,47 @@ class LocalMarkdownAdapter:
                     landed=landed_raw if landed_raw else None,
                 ))
 
+        # Phase sidecar — extra columns beyond (n, title, status, landed).
+        # Header-driven split: index each row's cells by column position.
+        if phases_section is not None and epic.phases:
+            # Find the header row (first table row in the section that starts with `|`)
+            header_match = None
+            for line in phases_section.splitlines():
+                if line.lstrip().startswith("|") and "n" in line.lower():
+                    header_match = line
+                    break
+            if header_match:
+                # Split header on `|`, strip, drop leading/trailing empties from
+                # the outer pipes.
+                cols = [c.strip() for c in header_match.split("|")]
+                cols = [c for c in cols if c != ""]
+                extra_cols = cols[4:]  # past n / title / status / landed
+                if extra_cols:
+                    # Build slug→PhaseData lookup by n.
+                    by_n = {ph.n: ph for ph in epic.phases}
+                    for line in phases_section.splitlines():
+                        s = line.strip()
+                        if not s.startswith("|"):
+                            continue
+                        # Skip header and separator (---|---|...)
+                        if "---" in s:
+                            continue
+                        cells = [c.strip() for c in s.split("|")]
+                        cells = [c for c in cells if c != ""]
+                        if not cells or not cells[0].isdigit():
+                            continue
+                        n = int(cells[0])
+                        ph = by_n.get(n)
+                        if ph is None:
+                            continue
+                        for i, col_name in enumerate(extra_cols):
+                            idx = 4 + i
+                            if idx >= len(cells):
+                                continue
+                            val = cells[idx]
+                            if val:
+                                ph.sidecar[col_name] = val
+
         # Retrospective bullets
         retro = sections.get("Retrospective")
         if retro is not None:
