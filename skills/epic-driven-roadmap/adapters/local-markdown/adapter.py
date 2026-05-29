@@ -73,9 +73,123 @@ class LocalMarkdownAdapter:
         text = path.read_text()
         return self._parse(text, slug=slug)
 
+    # ---------- write ----------
+
     def write(self, slug: str, data: EpicData) -> None:
-        # filled in Task 6
-        raise NotImplementedError
+        # Slug discipline (AC-10 mismatch)
+        if not slug:
+            raise SchemaValidationError(field="slug", reason="slug required")
+        if not data.slug:
+            raise SchemaValidationError(field="slug", slug=slug, reason="slug required")
+        if data.slug != slug:
+            raise SchemaValidationError(field="slug", slug=slug, reason="path/data mismatch")
+
+        # Stamp schema_version (AC-7b)
+        data.schema_version = SCHEMA_VERSION
+
+        # Validate sidecar tag shapes BEFORE touching disk (AC-4c)
+        for k, v in (data.sidecar or {}).items():
+            try:
+                validate_sidecar_value(v)
+            except SidecarUnstorableError as e:
+                raise SidecarUnstorableError(
+                    field=f"sidecar.{k}", backend="local-markdown", reason=e.reason,
+                )
+        for i, ph in enumerate(data.phases or []):
+            for k, v in (ph.sidecar or {}).items():
+                try:
+                    validate_sidecar_value(v)
+                except SidecarUnstorableError as e:
+                    raise SidecarUnstorableError(
+                        field=f"phases[{i}].sidecar.{k}", backend="local-markdown", reason=e.reason,
+                    )
+
+        # Conditional-required canonical rules (AC-4 on write)
+        if data.status != "proposed" and data.started is None:
+            raise SchemaValidationError(
+                field="started", slug=slug, reason="required when status != proposed",
+            )
+        if data.status == "done" and data.landed is None:
+            raise SchemaValidationError(
+                field="landed", slug=slug, reason="required when status == done",
+            )
+
+        target_dir = self.root / slug
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / "index.md"
+        tmp = target_dir / f"index.md.tmp.{os.getpid()}"
+
+        try:
+            try:
+                text = self._serialise(data)
+            except (CanonicalSerialisationError, SidecarUnstorableError):
+                self._cleanup_tmp(target_dir)
+                raise
+            tmp.write_text(text)
+            os.rename(tmp, target)
+        except (CanonicalSerialisationError, SidecarUnstorableError):
+            self._cleanup_tmp(target_dir)
+            raise
+        except Exception as e:
+            self._cleanup_tmp(target_dir)
+            raise AdapterInternalError(cause=f"{type(e).__name__}: {e}")
+
+    def _cleanup_tmp(self, target_dir: Path) -> None:
+        for stray in target_dir.glob("index.md.tmp.*"):
+            try:
+                stray.unlink()
+            except OSError:
+                pass
+
+    def _serialise(self, data: EpicData) -> str:
+        # frontmatter
+        fm = {
+            "schema_version": data.schema_version,
+            "slug": data.slug,
+            "status": data.status,
+            "started": data.started,
+            "landed": data.landed,
+        }
+        for k, v in (data.sidecar or {}).items():
+            # only str / list[str] / dict[str,str] reach here (validated upstream)
+            if k not in fm:
+                fm[k] = v
+        try:
+            fm_text = yaml.safe_dump(fm, sort_keys=False, default_flow_style=False).strip()
+        except yaml.YAMLError as e:
+            raise CanonicalSerialisationError(field="<frontmatter>", backend="local-markdown")
+
+        parts = ["---", fm_text, "---", ""]
+        parts.append(f"**Aim:** {data.aim}")
+        parts.append("")
+        parts.append("## Foundation")
+        parts.append("")
+        if data.intention:
+            parts.append(f"- Intention: {data.intention}")
+        for o in data.out_of_scope:
+            parts.append(f"- Out of scope: {o}")
+        parts.append("")
+        parts.append("## Phases")
+        parts.append("")
+        if data.phases:
+            parts.append("| n | title | status | landed |")
+            parts.append("|---|---|---|---|")
+            for ph in data.phases:
+                parts.append(
+                    f"| {ph.n} | {ph.title} | {ph.status} | {ph.landed or ''} |"
+                )
+        parts.append("")
+        parts.append("## Retrospective")
+        parts.append("")
+        for r in data.retrospective:
+            parts.append(f"- {r}")
+        parts.append("")
+        parts.append("## Open Questions")
+        parts.append("")
+        for q in data.open_questions:
+            parts.append(f"- {q}")
+        parts.append("")
+        return "\n".join(parts)
 
     # ---------- parse ----------
 
