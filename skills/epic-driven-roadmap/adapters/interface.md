@@ -56,6 +56,26 @@ Exit codes:
 Stderr carries `<ErrorClassName>: <message>` on every non-zero exit.
 Stdout is clean JSON on success.
 
+## Supported frontmatter subset (local-markdown backend)
+
+Schema is first-party. The on-disk format is a hand-rolled YAML subset; the
+parser IS the spec. Anything outside this subset raises `SchemaValidationError`
+loud — no silent accept.
+
+- **Scalar**: `key: value` where value is str, int, `null` / `~` / empty (→ None).
+- **String quoting**: bare, single-quoted, or double-quoted. Inline comments
+  (`key: value  # comment`) are stripped from unquoted scalars.
+- **List of str**: `key:` followed by `  - item` lines.
+- **Dict of str→str**: `key:` followed by `  k: v` lines.
+
+Rejected (raise `SchemaValidationError`):
+- Multiline block scalars (`|`, `>`)
+- Flow style (`[a, b]`, `{a: b}`)
+- Anchors / aliases (`&x`, `*x`)
+- Nested lists or nested dicts beyond one level
+
+Runtime dep: **stdlib only**. No PyYAML, no `uv`, no `pip install`.
+
 ## Python Protocol (Phase 2 reference)
 
 ```python
