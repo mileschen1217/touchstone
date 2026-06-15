@@ -63,9 +63,9 @@ sketches in the stub epic Phase 2 (require explicit `accepted_at:` field
 **Evidence:** of 11 new `.md` files created under the AOS Phase 3 epic
 range, **all 11** have frontmatter `kind:` absent:
 
-- `.touchstone/specs/2026-05-31-aos-lazy-backfill-design.md`
-- `.touchstone/plans/2026-06-01-aos-lazy-backfill.md`
-- `.touchstone/plans/2026-05-30-aos-scan-bookmark-phase-2.md`
+- `2026-05-31-aos-lazy-backfill-design.md` (local-only spec draft, source project)
+- `2026-06-01-aos-lazy-backfill.md` (local-only plan draft, source project)
+- `2026-05-30-aos-scan-bookmark-phase-2.md` (local-only plan draft, source project)
 - `docs/adr/0019-bounded-staleness-scan-under-load.md`
 - `docs/adr/0020-aos-engine-behavioral-metrics-instrument-at-event.md`
 - `docs/adr/0021-aos-lazy-backfill-via-sessionstart-breadcrumb.md`
