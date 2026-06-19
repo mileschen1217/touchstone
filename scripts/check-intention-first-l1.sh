@@ -36,7 +36,8 @@ expect_absent grep -REn \
   skills/epic-driven-roadmap/SKILL.md \
   skills/epic-driven-roadmap/templates/epic-index.md \
   skills/design-spec/SKILL.md \
-  skills/design-spec/template.md
+  skills/design-spec/template.md \
+  skills/_shared/foundation-gate.md
 
 # ── AC-7 — no internal skip-conditional inside the Step-0 regions ──────────
 # First assert each Step-0 heading exists exactly once — otherwise the awk

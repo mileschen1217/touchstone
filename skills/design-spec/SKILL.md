@@ -92,92 +92,37 @@ If `source-as-truth` is NOT adopted (yaml absent OR `adopted_disciplines` lacks 
 
 Before collecting design inputs or reading implementation source files,
 locate and read the parent epic index if one is in context, then run the
-elicitation gate.
+elicitation gate per
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/foundation-gate.md` — read it and
+follow it exactly (reuse check, from-scratch opener, sharpening, synthesise,
+confirm; all canonical emit strings live there). design-spec wraps that gate
+with parent-epic inheritance + a reframe exit. Note: a FRESH invocation whose
+parent epic already has a populated `## Foundation` takes branch a
+(inheritance), NOT a reuse hit — the gate's reuse check applies only within the
+same invocation.
 
-Reuse check FIRST (AC-10): if a foundation was already confirmed earlier in
-THIS SAME skill invocation, do NOT re-elicit. Emit this EXACT log line
-verbatim (fixed emit string — do not paraphrase, do not reword):
-"Foundation already confirmed this session — reusing"
-then reuse the confirmed foundation and skip to step g. Do NOT emit the
-from-scratch opener. Reuse is same-invocation only; a FRESH invocation
-whose parent epic already has a `## Foundation` takes branch a
-(inheritance), NOT reuse. Otherwise:
-
-a. If the parent epic index has a populated ## Foundation section:
-   Pre-fill the sharpening with the epic's foundation. Restate the
-   epic's intention / aim / out-of-scope, then ask with this EXACT phrase
-   verbatim (fixed emit string — do not paraphrase, do not substitute your
-   own questions):
+a. **Inherit** — if the parent epic index has a populated `## Foundation`:
+   pre-fill from it, restate the epic's intention / aim / out-of-scope, then
+   ask with this EXACT phrase verbatim (fixed emit string — do not paraphrase,
+   do not substitute your own questions):
    "Does this spec's scope differ? If so, sharpen each field for this phase."
-   Do NOT re-elicit from scratch and do NOT emit the from-scratch opener.
+   Do NOT run the shared gate's from-scratch opener.
 
-b. No populated `## Foundation` to inherit — two sub-cases, both run FULL
-   elicitation (no pre-fill, and never the inheritance prompt "Does this
-   spec's scope differ?"):
+b. **No inheritable `## Foundation`** — run the shared gate from its
+   from-scratch opener. Two sub-cases:
+   - b1. No parent epic at all: run the gate; do NOT emit the legacy note.
+   - b2. Parent epic uses the legacy `## Intention` format (not `## Foundation`):
+     FIRST emit this EXACT note: "Parent epic uses legacy Intention format —
+     consider updating it.", THEN run the gate. (The legacy note fires in b2
+     ONLY; it must be absent in b1.)
 
-   b1. No parent epic at all (`parent_epic.foundation: absent`):
-       Open with this EXACT phrase (fixed emit string):
-       "Please describe the intended work in your own words." Do NOT emit
-       the legacy note (there is no legacy epic to flag).
-
-   b2. Parent epic exists but uses the legacy `## Intention` format, not
-       `## Foundation` (`parent_epic.foundation: legacy-intention`):
-       FIRST emit this EXACT note:
-       "Parent epic uses legacy Intention format — consider updating it."
-       THEN open with the same EXACT phrase
-       "Please describe the intended work in your own words."
-
-   The substring "describe the intended work in your own words" is what
-   AC-7's bypass fixtures match (Step-0 reached) and what AC-4 forbids as
-   the from-scratch opener — keep it verbatim, do not paraphrase. The
-   legacy note fires in b2 ONLY (AC-14); it must be absent in b1.
-
-c. Engage in a SHORT sharpening exchange. Ask only questions in the
-   ALLOWED column of the boundary table (§ Interfaces — Step-0
-   question boundary). Stop once intention / aim / out-of-scope are
-   crisp. Do NOT slide into:
-   - Requirements or design exploration (→ brainstorming, Stage 1)
-   - Domain-vocabulary grilling (→ grill-with-docs, Stage 1.5)
-   - Any FORBIDDEN-column topic (architecture, files, dependencies,
-     tests, API shape, effort, rollout, or fix strategy)
-   If the user prods toward design, deflect with ONLY this generic phrase —
-   "that's a design decision for a later stage" — and return to the three
-   fields. Do NOT name or restate the specific design topic the user raised
-   (do not echo words like "endpoint", "migration path", "rollout", "which
-   package", etc.); naming it both engages the design and would trip the
-   AC-3 shallow-boundary check. Keep the deflection topic-free.
-
-d. Synthesise a draft foundation and present it using these EXACT field
-   labels (verbatim — AC-2 matches them case-sensitively): "Intention
-   (why):", "Aim:", "Out of scope:". Apply the SYNTHESISED-aim vague-token
-   rule: the synthesised aim must not contain a vague token {usually,
-   typically, should, elegant, complex, careful, better}; if it would,
-   re-prompt for an OBSERVABLE formulation — ask what the user would
-   observe or measure when done (targeted clarifying questions are fine;
-   "what would you observe when this is done?" is a good default). Do not
-   synthesise until the aim is observable. (AC-8.) Out-of-scope sentinel rule: if the user declines to
-   name any out-of-scope route after one re-prompt, record this EXACT
-   sentinel verbatim (fixed string — do not paraphrase) as the out-of-scope
-   value: "(no explicit boundary declared)" AND add a matching Risks/Open
-   Questions entry.
-
-e. Surface the draft to the user and ask, with this exact phrase:
-   "Please confirm or edit this foundation." Do not proceed to input
-   collection until confirmed. If the user insists on an aim that contains
-   a vague token, warn with this EXACT phrase verbatim (fixed emit string —
-   do not paraphrase, do not reword):
-   "(aim contains a vague token — accept anyway?)"
-   On accept, record the user's aim verbatim AND add this EXACT risk note
-   verbatim to Risks/Open Questions (do not paraphrase):
-   "(aim contains an unverifiable token — user-confirmed)"
-
-f. If the user reframes during sharpening (e.g. "this should be a
-   fixture, not a spec"), STOP. Do not draft a spec and do not write
-   any file under specs_dir. Report:
+f. **Reframe exit** — if the user reframes during sharpening (e.g. "this
+   should be a fixture, not a spec"), STOP. Do not draft a spec and do not
+   write any file under specs_dir. Report:
    "Scope reframed to [X] — a design spec is not needed. Exiting Draft Mode."
 
-g. Write the confirmed foundation into the spec under ## Foundation
-   (all three fields — the spec has no tracker headline).
+g. **Record** — write the confirmed foundation into the spec under
+   `## Foundation` (all three fields — the spec has no tracker headline).
 
 ### Draft inputs & workflow
 
