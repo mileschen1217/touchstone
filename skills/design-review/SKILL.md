@@ -35,7 +35,7 @@ Out of scope — return "not in scope; this skill reviews specs / plans / ADRs /
 /touchstone:design-spec  →  Status: Draft  →  human edits / accepts ★  →  /touchstone:design-review (here)
 ```
 
-`/touchstone:design-spec`'s Step-5 review only *discharges* this gate when it was iterated to this skill's tiered standard (C+H=0) **and** the spec was not edited afterward. If the spec changed during the human's review, run this skill on the final version — the earlier critique judged a different artifact. Do not treat "design-spec was run" as "the gate passed".
+`/touchstone:design-spec`'s Step-5 review **never discharges this gate** — they are different reviews with different criteria. Step-5 dispatches the **architect** composite (`cross-provider-architect`: CC `architect` + Codex adversarial) for a *structural, advisory* critique; this gate dispatches the **reviewer** composite (`cross-provider-reviewer`) with the **doc-review prompt** (Problem/Scope/AC/Interfaces + the Verification-Strategy / live-bearing declaration), C+H-tiered and Build-blocking. Step-5's `approve|revise|block` is **not** the gate's doc-review C+H currency, so a spec can pass the architect critique while its Verification-Strategy is never audited — claiming "gate passed" from a Step-5 verdict asserts a property a different check produced. Always run this gate on the **final, human-accepted** artifact; never treat "design-spec was run" as "the gate passed". (Rationale: ADR-0015.)
 
 ## Usage
 

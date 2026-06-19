@@ -197,11 +197,12 @@ Dispatch-target resolution (`cc` / `codex` / default Pattern A composite) + the 
 
 ## Boundary — the Step-5 review is NOT the design-review gate
 
-The architect dispatch in Step 5 is an **author-time, one-shot, non-gating** critique that improves the draft. It is a different thing from `/touchstone:design-review`, the Stage-0 **design-review gate** (the gate that runs before Build). Conflating the two is a recurring mistake — they overlap (both run a cross-provider review of the spec) but differ in cadence, enforcement, and what version they judge:
+The architect dispatch in Step 5 is an **author-time, one-shot, non-gating** critique that improves the draft. It is a different thing from `/touchstone:design-review`, the Stage-0 **design-review gate** (the gate that runs before Build). Conflating the two is a recurring mistake — they share only the *shape* (both are a Pattern-A cross-provider review of the spec) but differ in **criteria/backend** (architect/structural vs reviewer/doc-checklist), cadence, enforcement, and what version they judge:
 
 | | Step-5 review (this skill) | `/touchstone:design-review` (the gate) |
 |---|---|---|
 | Role | author-time critique, improve the draft | design-review gate, pass/fail before implementation |
+| Backend / criteria | `architect` composite — structural validate + adversarial | `reviewer` composite + doc-review prompt (Problem/Scope/AC/Interfaces + **Verification-Strategy**) |
 | Verdict | `approve\|revise\|block`, advisory — no enforced iterate-to-green | C+H tiered: C+H≥5 → mandatory 2nd pass, **blocks Build until C+H=0** |
 | Skippable | yes (`quick`) | no — not on user discretion at C+H≥5 |
 | Judges | the freshly-drafted version | the **final, human-accepted** version |
@@ -213,7 +214,7 @@ The human-accept step sits **between** them:
 (draft + Step-5 critique)                          (lifecycle owned by the human)        (C+H gate, blocks Build)
 ```
 
-Running this skill does **not** discharge `/touchstone:design-review`. The Step-5 critique only *satisfies* the gate when it was iterated to the gate's tiered standard (C+H=0) **and** the spec was not edited afterward; if the human edits the spec during review, re-run `/touchstone:design-review` on the final version. Do not merge the two: the seam is exactly the human-in-the-loop accept step, and a merged action would gate the pre-edit draft, not the accepted artifact.
+Running this skill **never** discharges `/touchstone:design-review` — they are different reviews. Step-5 is the **architect** composite (structural, advisory); the gate is the **reviewer** composite with the doc-review prompt (incl. the Verification-Strategy / live-bearing declaration), C+H-tiered and Build-blocking. Step-5's `approve|revise|block` is not the gate's doc-review C+H currency, so passing Step-5 leaves the gate's checklist (notably Verification-Strategy) unaudited. Always run `/touchstone:design-review` on the **final, human-accepted** artifact; the seam is the human-in-the-loop accept step. (Rationale: ADR-0015.)
 
 ## Usage
 
