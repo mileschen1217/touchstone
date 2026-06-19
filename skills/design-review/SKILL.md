@@ -1,7 +1,7 @@
 ---
 name: design-review
 kind: workflow
-description: Reviews authored design documents (spec, plan, ADR) before Build using Pattern A (dual parallel). Dispatches `touchstone:cross-provider-reviewer` composite skill with a doc-review system prompt set via task envelope. Out of scope — research notes, READMEs, retros, daily notes. Renamed from `m-deep-review`; per-batch code review path moved to `/touchstone:code-review batch`.
+description: Reviews authored design documents (spec, plan, ADR) before Build using Pattern A (dual parallel). Dispatches `touchstone:cross-provider-reviewer` composite skill with a doc-review system prompt set via task envelope. Out of scope — research notes, READMEs, retros, daily notes.
 allowed-tools:
   - Bash
   - Read
@@ -36,13 +36,6 @@ Out of scope — return "not in scope; this skill reviews specs / plans / ADRs /
 ```
 
 `/touchstone:design-spec`'s Step-5 review **never discharges this gate** — they are different reviews with different criteria. Step-5 dispatches the **architect** composite (`cross-provider-architect`: CC `architect` + Codex adversarial) for a *structural, advisory* critique; this gate dispatches the **reviewer** composite (`cross-provider-reviewer`) with the **doc-review prompt** (Problem/Scope/AC/Interfaces + the Verification-Strategy / live-bearing declaration), C+H-tiered and Build-blocking. Step-5's `approve|revise|block` is **not** the gate's doc-review C+H currency, so a spec can pass the architect critique while its Verification-Strategy is never audited — claiming "gate passed" from a Step-5 verdict asserts a property a different check produced. Always run this gate on the **final, human-accepted** artifact; never treat "design-spec was run" as "the gate passed". (Rationale: ADR-0015.)
-
-## Usage
-
-```
-/touchstone:design-review <path>            # one doc
-/touchstone:design-review <glob>            # multiple docs in one pass
-```
 
 ## Procedure
 
@@ -156,10 +149,6 @@ in `skills/cross-provider-reviewer/references/provenance.md`.
 
 In all cases: do not auto-promote spec status; the user (or caller skill) decides when to proceed.
 
-## Pattern semantics (self-contained)
+## Related
 
-Pattern A composite — dispatches `touchstone:cross-provider-reviewer`, which owns the procedure end-to-end (parallel CC + Codex review, divergence-labeled synthesis, fallback if Codex unavailable).
-
-## Renamed from m-deep-review
-
-The previous `m-deep-review` covered both doc review AND per-batch code review. Per-batch code review now lives at `/touchstone:code-review batch` (Pattern B). The old `m-deep-review` path returns "not found" (the skill registry no longer has that name).
+- Pattern + maintainer notes (invocation, history): `README.md`.
