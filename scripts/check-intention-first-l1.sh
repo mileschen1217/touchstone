@@ -102,5 +102,13 @@ expect_count 0 grep -cF 'Goal (observable)' "$S"
 expect_count 0 grep -cF 'In scope:' "$S"
 expect_count 0 grep -cF 'Non-goals:' "$S"
 
+# ── keep-long annotation honesty (ADR-0016 §5): annotated count must equal wc -l ──
+for f in skills/*/SKILL.md; do
+  ann="$(grep -m1 'keep-long:' "$f" 2>/dev/null | grep -oE 'keep-long: [0-9]+' | grep -oE '[0-9]+')"
+  [ -z "$ann" ] && continue
+  actual="$(wc -l < "$f" | tr -d '[:space:]')"
+  if [ "$ann" != "$actual" ]; then echo "FAIL keep-long count: $f annotates $ann lines, actual $actual"; fail=$((fail+1)); fi
+done
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN (Layer-1 structural checks pass)"; else echo "RED: $fail check(s) failed"; fi
 exit "$fail"

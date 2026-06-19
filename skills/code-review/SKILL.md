@@ -14,7 +14,7 @@ kind: workflow
 
 # /touchstone:code-review — Code Review (Patterns C and B)
 
-<!-- keep-long: 243 lines, all main-path (mode routing + dispatch contract read every invocation). Progressive-disclosure extraction would force a per-call references load with zero token saving; held inline by design. -->
+<!-- keep-long: 332 lines. main-path: mode routing + Pattern-B/C dispatch contract (read every invocation; extraction would force a per-call references load with no token saving). orientation-inline: "Why Pattern B not Pattern A here" + "Key Rules" summary — pending move to README per ADR-0016 (not yet provably-safe-moved). -->
 
 Parallel reviewers in separate contexts. Fast quality check before commit.
 

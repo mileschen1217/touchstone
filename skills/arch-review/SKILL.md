@@ -21,7 +21,7 @@ allowed-tools:
 kind: workflow
 ---
 
-<!-- keep-long: 233 lines, single linear consult path with no mutually-exclusive sub-flows to extract. Anti-patterns + /office-hours-vs-/touchstone:arch-review comparison are routing/boundary content; held inline by design. -->
+<!-- keep-long: 242 lines. main-path: the single linear consult workflow (5 steps, no mutually-exclusive sub-flows to extract). orientation-inline: Anti-patterns + the /office-hours-vs-/touchstone:arch-review comparison + Related — pending move to README per ADR-0016 (not yet provably-safe-moved). -->
 
 ## Step 0 — Load vocabulary
 
