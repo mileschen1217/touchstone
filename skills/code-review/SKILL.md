@@ -14,7 +14,7 @@ kind: workflow
 
 # /touchstone:code-review — Code Review (Patterns C and B)
 
-<!-- keep-long: 339 lines. main-path: mode routing + Pattern-B/C dispatch contract (read every invocation; extraction would force a per-call references load with no token saving). orientation-inline: "Why Pattern B not Pattern A here" + "Key Rules" summary — pending move to README per ADR-0016 (not yet provably-safe-moved). -->
+<!-- keep-long: 318 lines. main-path: mode routing + Pattern-B/C dispatch contract (read every invocation; extraction would force a per-call references load with no token saving). orientation-inline: none — the "why Pattern B" rationale, Dependencies, and Key-Rules summary were moved to README per ADR-0016 (1a). -->
 
 Parallel reviewers in separate contexts. Fast quality check before commit.
 
@@ -166,20 +166,6 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    as ready to proceed/commit. This is orthogonal to the C+H block — it applies even at
    C+H == 0. A clean (no-banner) review does NOT trigger this checkpoint.
 
-### Why Pattern B not Pattern A here
-
-Per-batch volume is high enough that Pattern A's 2× cost is not justified. Cross-vendor diversity is preserved via the swap. High-leverage Pattern A is reserved for `/touchstone:design-review` (Stage 0) and `/touchstone:arch-review` / `/touchstone:design-spec`.
-
-## Dependencies
-
-- `everything-claude-code:code-reviewer` + language/security/database reviewers (ECC, EXTERNAL) — Epic B vendors or makes optional.
-- `touchstone:codex-reviewer` (plugin-local) — Pattern B cross-vendor reviewer when CC builds.
-
-Language-specific, security, and database reviewers require the
-`everything-claude-code` plugin (ECC). CC-only fallback: if ECC is not
-installed, the skill runs with the generic Sonnet reviewer only and logs a note
-about the missing dependency.
-
 ## Process
 
 ### Step 0: Shipped-ref guard (deterministic pre-check)
@@ -235,8 +221,8 @@ in ambiguous cases.
 
 ### Step 3: Dispatch reviewers in parallel
 
-Launch all reviewers in a **single message** with multiple Agent tool calls, all
-with `run_in_background: true`.
+Never review inline — always spawn separate agents. Launch all reviewers in a
+**single message** with multiple Agent tool calls, all with `run_in_background: true`.
 
 **Primary reviewer:**
 - If `force_reviewer = codex` → dispatch `codex-reviewer` instead of the generic Sonnet reviewer below. Pass the diff in the same envelope shape used by Pattern B (`{ task: <diff>, role: "reviewer", task_dir: <optional> }`). Specialists (language / security / DB) still dispatch in parallel per below.
@@ -307,6 +293,9 @@ Mark which reviewer(s) found each issue for traceability.
    change), fix inline; otherwise note and defer. No ledger — don't track
    deferred Lows across commits.
 
+No re-review loop in Pattern C — the per-commit scope is too small to justify it
+(that is `/touchstone:code-review batch`'s job).
+
 ### Step 6: Report
 
 ```markdown
@@ -324,16 +313,6 @@ Mark which reviewer(s) found each issue for traceability.
 Ready to commit: {yes/no}
 ```
 
-## Key Rules
+## Related
 
-- **Always spawn separate agents** — never review inline
-- Generic reviewer model: **Sonnet**; language/security/DB reviewers use their
-  own definition defaults (Sonnet per ECC convention)
-- Dispatch all reviewers **in parallel** (single message, multiple Agent calls,
-  `run_in_background: true`)
-- **AI judgment, not regex**, for security/DB dispatch — prefer skipping in
-  ambiguous cases to avoid agent-spawn noise
-- Fix only Critical/High by default. Low fixable inline if trivial.
-  Medium deferred to `/touchstone:code-review batch`.
-- No re-review loop — scope is too small to justify (that's `/touchstone:code-review batch`'s job)
-- Project CLAUDE.md may override the diff path
+- Dependencies, the "why Pattern B not Pattern A" rationale, and a Key-Rules summary card: `README.md`.
