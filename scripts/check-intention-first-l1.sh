@@ -111,5 +111,19 @@ for f in skills/*/SKILL.md; do
   if [ "$ann" != "$actual" ]; then echo "FAIL keep-long count: $f annotates $ann lines, actual $actual"; fail=$((fail+1)); fi
 done
 
+# ── ADR-0016 §4 — Pattern-A composite drift assert ──────────────────────────
+# The two Pattern-A composites (cross-provider-reviewer / -architect) keep a
+# ~20-line shared scaffold by DESIGN (not extracted). Guard the ADR's two flip
+# triggers mechanically where we can:
+#  (a) 3rd composite appears  → dir count must stay 2 (else re-decide extraction)
+#  (b) probe drift            → the shared Codex-probe shape must appear exactly
+#                               once in EACH composite (total 2). Edit one and not
+#                               the other → count != 2 → FAIL.
+# The "shared section > ~50 lines" trigger stays a human judgment — not mechanized.
+expect_count 2 bash -c "ls -d skills/cross-provider-* 2>/dev/null | wc -l"
+expect_count 2 bash -c "grep -hF 'codex --version >/dev/null 2>&1 && echo' \
+  skills/cross-provider-reviewer/SKILL.md \
+  skills/cross-provider-architect/SKILL.md | wc -l"
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN (Layer-1 structural checks pass)"; else echo "RED: $fail check(s) failed"; fi
 exit "$fail"
