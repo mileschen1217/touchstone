@@ -14,7 +14,7 @@ kind: workflow
 
 # /touchstone:code-review — Code Review (Patterns C and B)
 
-<!-- keep-long: 332 lines. main-path: mode routing + Pattern-B/C dispatch contract (read every invocation; extraction would force a per-call references load with no token saving). orientation-inline: "Why Pattern B not Pattern A here" + "Key Rules" summary — pending move to README per ADR-0016 (not yet provably-safe-moved). -->
+<!-- keep-long: 339 lines. main-path: mode routing + Pattern-B/C dispatch contract (read every invocation; extraction would force a per-call references load with no token saving). orientation-inline: "Why Pattern B not Pattern A here" + "Key Rules" summary — pending move to README per ADR-0016 (not yet provably-safe-moved). -->
 
 Parallel reviewers in separate contexts. Fast quality check before commit.
 
@@ -99,19 +99,26 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    - `codex-reviewer` → `Agent(subagent_type: "touchstone:codex-reviewer", description: "Codex batch review", prompt: { task: <full diff>, role: "batch-reviewer", task_dir: <optional> })`
    - `everything-claude-code:code-reviewer` → corresponding Agent dispatch  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
 
-   When `governing_specs` is non-empty (from Step 1b), prepend the following
-   **evidence-honesty (coverage) criteria** to the reviewer's task prompt (these fire
-   ONLY here at `batch` / epic-close, where test source exists — never at
-   design-review, never in the per-language reviewers, never on arbitrary diffs):
+   When `governing_specs` is non-empty (from Step 1b), the reviewer applies the
+   **evidence-honesty (coverage) criteria** (these fire ONLY here at `batch` /
+   epic-close, where test source exists — never at design-review, never in the
+   per-language reviewers, never on arbitrary diffs). Build them in two parts:
+
+   **(a) Shared spine doctrine — load-and-inject (unconditional).** Read
+   `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Verification vocabulary" — the **live-bearing
+   predicate** + **AC-coverage-honesty principle** — and inject it verbatim into the
+   reviewer envelope: append it to the reviewer's task prompt AND carry it as
+   `evidence_honesty_vocab`. This is Baseline/spine, not a discipline — inject it
+   regardless of which disciplines are adopted (do NOT gate it on `source-as-truth`).
+
+   **(b) The `code-review batch` feedback delta** — prepend this, after the injected doctrine:
 
    > Read the governing spec's ACs and the test source. For each AC, judge whether a
    > test asserts that AC's Then-clause (AC coverage, semantic — not code-coverage %,
-   > not tool-measured). If an AC is claimed done but no test in source asserts it and
-   > it carries no `[unverified]` → report **silent false-green** (blocks the done
-   > claim). A test that mocks the very boundary a boundary-crossing AC claims does
-   > NOT discharge that claim (proxy, not coverage). Emit `[unverified: reason]` for
-   > any AC you cannot confirm — never pass by default. `[unverified]` is honest and
-   > allowed (informed-consent); surface findings, do not force passing.
+   > not tool-measured). A test that mocks the very boundary a boundary-crossing AC
+   > claims does NOT discharge that claim (proxy, not coverage). A **silent false-green**
+   > (per the injected principle — an AC done with neither an asserting test nor
+   > `[unverified]`) blocks the done claim.
    >
    > **Live-bearing ACs (an extra demand, Phase 2).** For each AC listed in the
    > governing spec's `Live-bearing AC IDs`: the evidence is a **live artifact** —

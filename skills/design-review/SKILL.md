@@ -72,6 +72,14 @@ If not adopted: skip Read; envelope `discipline_mode: "none"`; omit `source_as_t
 
 The Bridge content audit (P1/P2/P3 application) and Standing vs transient classification procedures stay in this skill — they are the actions; CONTEXT.md provides the vocabulary they reference.
 
+**Always (Baseline/spine — unconditional).** Independently of `source-as-truth`, read
+`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Verification vocabulary" — the **live-bearing
+predicate** + **AC-coverage-honesty principle** — and inject it into the reviewer
+envelope: append it to the doc-review `system_prompt` (§3 below) AND carry it as
+`evidence_honesty_vocab`. This is spine, not a discipline: it fires regardless of which
+disciplines are adopted (do NOT gate it on `source-as-truth`). Item 7 of the doc-review
+prompt applies this injected doctrine as its feedforward (declaration) stage.
+
 ### 1. Validate input scope
 
 Read the target file(s). Check frontmatter `type:` field if present, or path:
@@ -103,26 +111,16 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 > 4. Error Handling rows map to scenarios
 > 5. Invariants are cross-cutting rules
 > 6. Risks / Open Questions are not hidden
-> 7. Verification Strategy declaration (evidence-honesty gate, Stage 0 — no test
->    source exists yet, so this is a DECLARATION check, never a coverage read):
->    the spec has a non-empty `## Verification Strategy` section. **Predicate
->    (primary):** a **live-bearing** AC is one whose Given/When/Then asserts a
->    behaviour that **cannot be discharged offline** — it depends on an un-owned,
->    wired, deployed, real-scale, or otherwise non-offline-dischargeable boundary.
->    The TYPES that typically signal this — a network/API call, a DB or filesystem
->    write, device I/O, a real `Agent()`/sub-process dispatch, a deployed/wired
->    target — count as live-bearing ONLY when they satisfy that predicate (match on
->    behaviour, not wording; not a closed keyword list). **Ownership
->    counter-example:** invoking the project's OWN deterministic in-repo script/CLI,
->    or a test writing to its own temp fixture dir, is owned + offline +
->    deterministic → NOT live-bearing, even though it spawns a process or touches
->    the filesystem. (A non-deterministic in-repo script — e.g. one making a real
->    network call — is NOT exempt: apply the predicate.) Every live-bearing AC id
->    must appear in the section's `Live-bearing AC IDs`. If ambiguous, treat it as
->    live-bearing (default stricter).
->    Surface a missing/empty section or an omitted live-bearing AC as a finding.
->    Spec-internal judgment only — do NOT read test source or judge per-AC
->    coverage (those belong to code-review batch / epic-close).
+> 7. Verification Strategy declaration (evidence-honesty gate, Stage 0). This is the
+>    **feedforward / DECLARATION** application of the injected evidence-honesty doctrine
+>    (the **live-bearing predicate** + **AC-coverage-honesty principle**, loaded from
+>    CONTEXT.md § "Verification vocabulary" and injected per Step 0). No test source
+>    exists yet, so this is a DECLARATION check, never a coverage read: confirm the spec
+>    has a non-empty `## Verification Strategy` section, and that every live-bearing AC id
+>    (per the injected predicate) appears in its `Live-bearing AC IDs`. Surface a
+>    missing/empty section or an omitted live-bearing AC as a finding. Spec-internal
+>    judgment only — do NOT read test source or judge per-AC coverage (those belong to
+>    code-review batch / epic-close).
 >
 > Return findings sorted by severity (Critical, High, Medium, Low). Each finding cites the section and a concrete fix. End with verdict: approve | revise | block.
 
