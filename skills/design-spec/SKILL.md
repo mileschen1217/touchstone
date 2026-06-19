@@ -44,13 +44,6 @@ NO Verification Strategy section is authored — there is no lighter PR-one-line
 in Phase 1 (deferred to a later phase). The evidence-honesty contract attaches to
 full specs only.
 
-Naturally chained with exploration (Topic 2 routing) on the input side and
-`/superpowers:writing-plans` on the output side:
-
-```
-Explore → /touchstone:design-spec → /superpowers:writing-plans → Build (ATDD+TDD)
-```
-
 ## Step 0 — Load vocabulary
 
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md`
@@ -195,13 +188,6 @@ gate (see Boundary above) — keep it human-owned.
 
 ## Related
 
-- Template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md` (bundled)
-- Exploration routing (upstream): Topic 2 in global CLAUDE.md
-- Architecture consult (upstream, conditional): `/touchstone:arch-review` — for
-  resolving architectural questions before drafting the spec
-- ATDD chain (downstream): `ATDD — spec and test development` in global CLAUDE.md
-- design-review gate (downstream, distinct from Step-5 review): `/touchstone:design-review` — see Boundary section
-- Plan generation (downstream): `/superpowers:writing-plans`
-- ADR workflow: `${CLAUDE_PLUGIN_ROOT}/skills/arch-review/adr-authoring.md`
-- Example spec matching the template:
-  `docs/superpowers/specs/2026-04-16-m-extract-knowledge-design.md` (Obsidian repo)
+- Bundled template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md`.
+- design-review gate (downstream, distinct from the Step-5 critique): `/touchstone:design-review` — see the Boundary section.
+- Workflow chain, other upstream/downstream skills, ADR workflow, example spec: `README.md`.
