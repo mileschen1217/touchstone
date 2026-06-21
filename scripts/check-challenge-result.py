@@ -40,7 +40,8 @@ def main():
     for k in ("author_id", "challenger_id", "input_digest"):
         if not isinstance(data[k], str): fail(f"{k} must be a string (type)")
     if not isinstance(data["findings"], list): fail("findings must be a list (type)")
-    if not data["author_id"] or not data["challenger_id"]: fail("empty author_id/challenger_id")
+    if not data["author_id"] or not data["author_id"].strip(): fail("empty author_id/challenger_id")
+    if not data["challenger_id"] or not data["challenger_id"].strip(): fail("empty author_id/challenger_id")
     if data["author_id"] == data["challenger_id"]: fail("author_id == challenger_id (not independent)")
     rs = set(run_extract("reqs", spec).split())
     seen = set()
@@ -54,6 +55,7 @@ def main():
             fail("finding marker is not a canonical [NEEDS CLARIFICATION: <q>] string")
         if not isinstance(f["id"], str) or not isinstance(f["req"], str):
             fail("finding id/req must be strings (type)")
+        if not f["id"] or not f["id"].strip(): fail("finding id is empty or whitespace-only")
         if f["id"] in seen: fail(f"duplicate finding id {f['id']}")
         seen.add(f["id"])
         if f["req"] not in rs: fail(f"finding references {f['req']} not in spec requirement set")
