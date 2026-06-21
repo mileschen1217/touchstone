@@ -27,9 +27,9 @@ kind: workflow
 > with the Read tool and follow it exactly.
 
 If `source-as-truth` is in `bundle.disciplines`, also read
-`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Bridge content gate" AND
-§ "Standing vs transient bridge" and include the loaded text verbatim in
-the envelope below.
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` AND
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/standing-vs-transient-bridge.md`
+and include the loaded text verbatim in the envelope below.
 
 When dispatching to `touchstone:cross-provider-architect`, set envelope:
 ```json

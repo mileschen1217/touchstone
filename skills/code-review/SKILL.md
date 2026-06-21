@@ -105,11 +105,12 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    per-language reviewers, never on arbitrary diffs). Build them in two parts:
 
    **(a) Shared spine doctrine — load-and-inject (unconditional).** Read
-   `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Verification vocabulary" — the **live-bearing
-   predicate** + **AC-coverage-honesty principle** — and inject it verbatim into the
-   reviewer envelope: append it to the reviewer's task prompt AND carry it as
-   `evidence_honesty_vocab`. This is Baseline/spine, not a discipline — inject it
-   regardless of which disciplines are adopted (do NOT gate it on `source-as-truth`).
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/live-bearing-predicate.md` AND
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/ac-coverage-honesty-principle.md`
+   — and inject them verbatim into the reviewer envelope: append to the reviewer's task
+   prompt AND carry as `evidence_honesty_vocab`. This is Baseline/spine, not a
+   discipline — inject regardless of which disciplines are adopted (do NOT gate it on
+   `source-as-truth`).
 
    **(b) The `code-review batch` feedback delta** — prepend this, after the injected doctrine:
 

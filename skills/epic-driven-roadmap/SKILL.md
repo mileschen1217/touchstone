@@ -25,11 +25,12 @@ allowed-tools:
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md`
 > with the Read tool and follow it exactly.
 
-If `source-as-truth` is in `bundle.disciplines`, read 3 sections of
-`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` — § "Bridge content gate", § "Standing
-vs transient bridge", § "Four doc kinds" — which define the rules Stage 7
-doc reckoning applies. This skill does not dispatch to other skills, so no
-envelope handoff is needed.
+If `source-as-truth` is in `bundle.disciplines`, read
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` and
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/standing-vs-transient-bridge.md`,
+plus § "Four doc kinds" from `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` — which
+define the rules Stage 7 doc reckoning applies. This skill does not dispatch
+to other skills, so no envelope handoff is needed.
 
 If `source-as-truth` is not adopted: Stage 7 doc reckoning runs in default mode (mechanical mtime-based bridge audit only, no frontmatter kind: classification, no distill-or-archive recommendation).
 
