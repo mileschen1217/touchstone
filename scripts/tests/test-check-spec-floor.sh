@@ -31,4 +31,7 @@ assert dup-index    1 "AC-2"              dup-index.md
 assert dup-body     1 "AC-1"              dup-body.md
 assert noise        0 "pass"              noise.md
 
+assert req-happy   0 "pass"  req-happy.md
+assert req-zero-ac 1 "REQ-2" req-zero-ac.md
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
