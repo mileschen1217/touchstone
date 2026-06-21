@@ -82,7 +82,12 @@ if [ -n "$reqset" ]; then
   for a in $(printf '%s\n' "$scan" | sed -n 's/^IDXPAIR [^ ]* //p' | sort | uniq -d); do
     note "$a is a duplicated AC id in the index"
   done
-  # (pairwise / marker added in T5-T6)
+  # index <-> body (REQ,AC) set equality
+  idx="$(printf '%s\n' "$scan" | sed -n 's/^IDXPAIR //p' | sort -u)"
+  bod="$(printf '%s\n' "$scan" | sed -n 's/^AC //p' | awk '$1!="(none)"{print $1" "$2}' | sort -u)"
+  while read -r r c; do [ -n "$r" ] && note "(REQ,AC) pair $r/$c in index but not body"; done < <(comm -23 <(printf '%s\n' "$idx") <(printf '%s\n' "$bod"))
+  while read -r r c; do [ -n "$r" ] && note "(REQ,AC) pair $r/$c in body but not index"; done < <(comm -13 <(printf '%s\n' "$idx") <(printf '%s\n' "$bod"))
+  # (marker added in T6)
   if [ "$violations" -eq 0 ]; then echo "pass"; exit 0; fi
   echo "RED: $violations violation(s)"; exit 1
 fi

@@ -38,4 +38,6 @@ assert req-orphan 1 "AC-2"  req-orphan.md
 assert req-dup-id 1 "REQ-2" req-dup-id.md
 assert req-dup-ac 1 "AC-3"  req-dup-ac.md
 
+assert req-pair-mismatch 1 "AC-3" req-pair-mismatch.md
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
