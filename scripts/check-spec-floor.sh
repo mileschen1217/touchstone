@@ -49,14 +49,16 @@ if [ -n "$reqset" ]; then
     }
     /^### Requirement:[[:space:]]+REQ-[0-9]+/ {
       match($0,/REQ-[0-9]+/); cur=substr($0,RSTART,RLENGTH); print "REQHEAD " cur
-      if (/\[NEEDS CLARIFICATION:[^]]*\]/) print "MARKER"
-      if (/\[unverified:[[:space:]]*\]/) print "EMPTYUNV"
+      bare=$0; gsub(/`[^`]*`/,"",bare)
+      if (bare ~ /\[NEEDS CLARIFICATION:[^]]*\]/) print "MARKER"
+      if (bare ~ /\[unverified:[[:space:]]*\]/) print "EMPTYUNV"
       next
     }
     /^### / { cur="" }
     /^#### AC-[0-9]+/ { match($0,/AC-[0-9]+/); print "AC " (cur==""?"(none)":cur) " " substr($0,RSTART,RLENGTH) }
-    /\[NEEDS CLARIFICATION:[^]]*\]/ { print "MARKER" }
-    /\[unverified:[[:space:]]*\]/ { print "EMPTYUNV" }
+    { bare=$0; gsub(/`[^`]*`/,"",bare) }
+    bare ~ /\[NEEDS CLARIFICATION:[^]]*\]/ { print "MARKER" }
+    bare ~ /\[unverified:[[:space:]]*\]/ { print "EMPTYUNV" }
   ' "$spec")"
 
   # zero-AC requirement
@@ -87,7 +89,9 @@ if [ -n "$reqset" ]; then
   bod="$(printf '%s\n' "$scan" | sed -n 's/^AC //p' | awk '$1!="(none)"{print $1" "$2}' | sort -u)"
   while read -r r c; do [ -n "$r" ] && note "(REQ,AC) pair $r/$c in index but not body"; done < <(comm -23 <(printf '%s\n' "$idx") <(printf '%s\n' "$bod"))
   while read -r r c; do [ -n "$r" ] && note "(REQ,AC) pair $r/$c in body but not index"; done < <(comm -13 <(printf '%s\n' "$idx") <(printf '%s\n' "$bod"))
-  # (marker added in T6)
+  # unresolved [NEEDS CLARIFICATION] markers
+  mk="$(printf '%s\n' "$scan" | grep -c '^MARKER')"
+  [ "$mk" -gt 0 ] && note "$mk unresolved [NEEDS CLARIFICATION] clarification(s) in the AC section"
   if [ "$violations" -eq 0 ]; then echo "pass"; exit 0; fi
   echo "RED: $violations violation(s)"; exit 1
 fi

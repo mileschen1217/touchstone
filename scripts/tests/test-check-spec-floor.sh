@@ -40,4 +40,9 @@ assert req-dup-ac 1 "AC-3"  req-dup-ac.md
 
 assert req-pair-mismatch 1 "AC-3" req-pair-mismatch.md
 
+assert req-marker        1 "clarification" req-marker.md
+assert req-marker-on-req 1 "clarification" req-marker-on-req.md
+assert req-draft         0 "skipped: draft" req-draft.md
+assert req-legacy        0 "pass"           req-legacy.md
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
