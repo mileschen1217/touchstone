@@ -45,9 +45,9 @@ Out of scope — return "not in scope; this skill reviews specs / plans / ADRs /
 > with the Read tool and follow it exactly.
 
 If `source-as-truth` is in `bundle.disciplines`, also read
-`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Bridge content gate" AND
-§ "Standing vs transient bridge" and load both sections into context for
-the envelope below.
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` AND
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/standing-vs-transient-bridge.md`
+and load both into context for the envelope below.
 
 When dispatching to `touchstone:cross-provider-reviewer`, include in envelope:
 
@@ -63,15 +63,16 @@ When dispatching to `touchstone:cross-provider-reviewer`, include in envelope:
 
 If not adopted: skip Read; envelope `discipline_mode: "none"`; omit `source_as_truth_vocab`.
 
-The Bridge content audit (P1/P2/P3 application) and Standing vs transient classification procedures stay in this skill — they are the actions; CONTEXT.md provides the vocabulary they reference.
+The Bridge content audit (P1/P2/P3 application) and Standing vs transient classification procedures stay in this skill — they are the actions; the inject fragments provide the vocabulary they reference.
 
 **Always (Baseline/spine — unconditional).** Independently of `source-as-truth`, read
-`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Verification vocabulary" — the **live-bearing
-predicate** + **AC-coverage-honesty principle** — and inject it into the reviewer
-envelope: append it to the doc-review `system_prompt` (§3 below) AND carry it as
-`evidence_honesty_vocab`. This is spine, not a discipline: it fires regardless of which
-disciplines are adopted (do NOT gate it on `source-as-truth`). Item 7 of the doc-review
-prompt applies this injected doctrine as its feedforward (declaration) stage.
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/live-bearing-predicate.md` AND
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/ac-coverage-honesty-principle.md`
+and inject them into the reviewer envelope: append to the doc-review `system_prompt`
+(§3 below) AND carry as `evidence_honesty_vocab`. This is spine, not a discipline: it
+fires regardless of which disciplines are adopted (do NOT gate it on `source-as-truth`).
+Item 7 of the doc-review prompt applies this injected doctrine as its feedforward
+(declaration) stage.
 
 ### 1. Validate input scope
 
@@ -124,7 +125,8 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 > 7. Verification Strategy declaration (evidence-honesty gate, Stage 0). This is the
 >    **feedforward / DECLARATION** application of the injected evidence-honesty doctrine
 >    (the **live-bearing predicate** + **AC-coverage-honesty principle**, loaded from
->    CONTEXT.md § "Verification vocabulary" and injected per Step 0). No test source
+>    `skills/_shared/inject/live-bearing-predicate.md` + `skills/_shared/inject/ac-coverage-honesty-principle.md`
+>    and injected per Step 0). No test source
 >    exists yet, so this is a DECLARATION check, never a coverage read: confirm the spec
 >    has a non-empty `## Verification Strategy` section, and that every live-bearing AC id
 >    (per the injected predicate) appears in its `Live-bearing AC IDs`. Surface a

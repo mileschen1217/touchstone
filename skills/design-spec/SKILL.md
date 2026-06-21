@@ -50,7 +50,7 @@ full specs only.
 > with the Read tool and follow it exactly.
 
 If `source-as-truth` is in `bundle.disciplines`, also read
-`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Bridge content gate" and load the
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` and load the
 text into context for the envelope below.
 
 When dispatching to `touchstone:cross-provider-architect` (Step N below), include in task envelope:

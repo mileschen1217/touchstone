@@ -93,24 +93,11 @@ Constitution. Every doc is one of four kinds. Each has a lifecycle.
 
 ## Bridge content gate — three principles
 
-Enforceable-rule. `kill-on: lever-discipline-mechanisation`. Every bridge claim must pass all three. Failure = defect.
-
-- **P1 (non-duplication):** if source already encodes the claim (a type / function / test), the prose is duplicative. Delete or point at source. **Also rejects doc-as-workaround:** if prose explains why dead/duplicative source still exists, remove the source instead.
-- **P2 (falsifiable):** every claim concrete enough to write a test / run a probe / grep. Forbidden tokens (signal failure): *usually, typically, complex, careful, should, elegant* (as content, not meta).
-- **P3 (no single host):** if it fits in one symbol's `///` → rung 2; one function body's `// BRIDGE` → rung 3; **only** when no single host fits → rung 4 (`.md` bridge).
-
-Composition: P1 → P2 → P3, in order. Failing one is a defect, not "needs work".
+Enforceable-rule. `kill-on: lever-discipline-mechanisation`. Every bridge claim must pass **P1 (non-duplication)** / **P2 (falsifiable)** / **P3 (no single host)**, composed in that order; failing one is a defect, not "needs work". **Full rule + injectable text:** `skills/_shared/inject/bridge-content-gate.md` (single home — injected verbatim into cold reviewers by `design-spec` / `arch-review` / `design-review`).
 
 ## Standing vs transient bridge
 
-Constitution. Bridges have a second axis: scope span.
-
-| Layer | Path | Lifecycle | Cold-start reads? |
-|---|---|---|---|
-| Standing | architecture docs dir | Long-lived; `kill-on: <lever>` retires it | Yes — cross-feature invariants |
-| Transient | specs dir | Short-lived; retires when feature lands | No — epic-context only |
-
-Cold-start readers enter through standing bridges + navigation, never through specs.
+Constitution. Bridges have a second scope-span axis: **standing** (architecture docs dir, long-lived, `kill-on:` retires it, cold-start reads it) vs **transient** (specs dir, retires when the feature lands, epic-context only). Cold-start readers enter through standing bridges + navigation, never through specs. **Full table + injectable text:** `skills/_shared/inject/standing-vs-transient-bridge.md` (single home — injected by `arch-review` / `design-review`).
 
 ## Three layers of knowledge — complementarity rule
 
@@ -234,6 +221,8 @@ Constitution. A template lives co-located with its sole owning skill at `skills/
 
 `skills/_shared/` holds ONLY cross-skill instruction blocks referenced by 3+ skills under a single-home requirement (e.g. `step0-resolver.md`); single-skill assets stay co-located in `skills/<skill>/`.
 
+`skills/_shared/inject/` is a distinct sub-home for **injectable doctrine fragments** — standing doctrine that a cold-dispatched reviewer receives verbatim (the reviewer cannot see CONTEXT.md). Each fragment declares `injected-by: [skills]` (and `referenced-by:` for warm-orchestrator citers) so its blast radius is visible. CONTEXT.md keeps a one-line glossary definition + a pointer; the fragment is the single home of the full rule (see ADR-0017).
+
 ## Requirement-layer vocabulary
 
 The layers **above** the AC — the human "what" that ACs make checkable. Settled 2026-06-20/21 (skill-ceiling Phase 2 grill + a layering first-principles analysis). **3-layer model along the intension–extension axis, host-agnostic.** The three layers are three points on one continuum (intension → extension): **user-story → requirement → AC**. _Note_: a prior 2-layer framing was superseded by the layering drill.
@@ -272,9 +261,9 @@ Terms shipped by the `testing-strategy` epic (closed 2026-05-27). The evidence-h
 
 **provenance** (P2) — the out-of-band marks a live artifact must carry so the reviewer can authenticate it as a real, current run: ① which producer/invocation made it (re-runnable or identifiable) + ② freshness (tied to current code: commit/timestamp). Authentication burden scales with how fakeable the producer is (a hand-pasteable perf log demands ① + ② harder; a real `Agent()` transcript is largely self-attesting). The deterministic floor checks only that the artifact exists and is referenced by its AC — it never judges authenticity; that is the reviewer's. _Avoid_: a crypto-attestation / signing engine — over-engineering for a markdown plugin whose close has a human in the loop (cf. ADR-0009 over-spec guard).
 
-**live-bearing predicate** — operational classification; the shared text both `design-review` and `code-review batch` **load-and-inject** into their cold dispatched reviewer (the per-stage application is each skill's own delta). An AC is **live-bearing** ⟺ its Given/When/Then asserts a behaviour that **cannot be discharged offline** — it depends on an un-owned, wired, deployed, real-scale, or otherwise non-offline-dischargeable boundary. Classify by behaviour, not wording (not a closed keyword list): a network/API call, a DB/filesystem write, device I/O, a real `Agent()`/sub-process dispatch, or a deployed/wired target are common signals, but each counts ONLY when the predicate holds. **Ownership counter-example:** invoking the project's OWN deterministic in-repo script/CLI, or a test writing to its own temp fixture dir, is owned + offline + deterministic → NOT live-bearing (even though it spawns a process or touches the filesystem); a non-deterministic in-repo script (e.g. one making a real network call) is NOT exempt — apply the predicate. **If ambiguous, treat as live-bearing (default stricter).** _Avoid_: a closed keyword list — the predicate is behavioural; a fixed keyword set drifts.
+**live-bearing predicate** — an AC is **live-bearing** ⟺ its Given/When/Then asserts a behaviour that cannot be discharged offline (un-owned / wired / deployed / real-scale boundary); classify by behaviour, not a keyword list; if ambiguous, treat as live-bearing. **Full predicate + injectable text** (the verbatim text `design-review` and `code-review batch` load-and-inject into their cold reviewer): `skills/_shared/inject/live-bearing-predicate.md` (single home).
 
-**AC-coverage-honesty principle** — the shared spine rule injected alongside the predicate; Baseline/spine, so injected **unconditionally** (never gated on an adopted discipline). `claim ≤ evidence`: an AC may not be claimed done unless evidence asserts its Then-clause. Mark `[unverified: reason]` for any AC you cannot confirm — **never pass by default**; `[unverified]` is honest and allowed (informed-consent), so surface findings rather than force passing. An AC asserted done with neither asserting evidence nor `[unverified]` is a **silent false-green**. The two stage applications (feedforward declaration in `design-review`; feedback coverage in `code-review batch`) live in those skills' deltas, not here. _Avoid_: restating this principle as prose inside a skill — the skill load-and-injects this entry; a hardcoded copy is the drift surface this homing removes.
+**AC-coverage-honesty principle** — `claim ≤ evidence` for ACs: an AC may not be claimed done unless evidence asserts its Then-clause; mark `[unverified: reason]` otherwise (never pass by default); an AC done with neither is a silent false-green. Baseline/spine — injected **unconditionally**. **Full rule + injectable text:** `skills/_shared/inject/ac-coverage-honesty-principle.md` (single home — injected by `design-review` / `code-review batch`).
 
 ## Storage adapter vocabulary
 
