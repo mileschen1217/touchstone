@@ -35,21 +35,6 @@ Skip when:
 - The project already has a discovery doc on a comparable feature.
 - The decision needed is binary "approach A vs B" → use `/touchstone:arch-review`.
 
-## Slot in the 6-stage workflow
-
-```
-1.  Explore                              → research notes
-2.  /touchstone:arch-review                       → ADRs (per-question decisions)
-2.5 /touchstone:arch-discovery   ← THIS SKILL     → discovery doc + matrix
-3.  /touchstone:design-spec                       → GWT contract (assumes 2.5's
-                                             system model)
-4.  /superpowers:writing-plans           → execution sequencing
-5.  Build (ATDD + TDD)
-6.  Review Gate
-```
-
-Discovery is the system-definition layer. Specs (Stage 3) inherit its system model, ownership, and invariants as starting assumptions — they don't re-derive them.
-
 ## Setup Mode
 
 Triggered when the topic doesn't yet have a discovery doc.
@@ -143,37 +128,13 @@ Parse left-to-right:
 3. If `sweep` / `matrix` appears → run that mode.
 4. If no mode specified → Discovery Mode (scaffold or resume).
 
-## Integration with sibling skills
-
-| Skill | Relationship |
-|---|---|
-| `/touchstone:arch-review` | Sub-tool — invoked by `sweep` when a cell is "settle between two approaches"; resulting ADR is cited from the discovery |
-| `/touchstone:design-review` | Downstream gate — invoke for end-of-discovery audit when matrix is complete; recognizes `type: discovery` and applies discovery-specific system prompt |
-| `/touchstone:design-spec` | Downstream — hand off after `/touchstone:design-review` clears Critical/High; spec inherits §1 system model as `Status: assumed` |
-| `/touchstone:epic-driven-roadmap` | Discovery doc gets `epics: [<slug>]` frontmatter; appears as Stage 2.5 artifact under epic index |
-
 ## Output
 
 - `<discovery_dir>/<topic>/YYYY-MM-DD-<slug>-discovery.md` (the doc)
 - Status header lifecycle: `Discovery (in progress)` → `Discovery (matrix-complete)` → `Discovery (reviewed)`. Manual transitions on user approval; the skill does not auto-promote.
 - Sibling ADRs in project's ADR dir for any decisions surfaced during sweep.
 
-## Anti-patterns
-
-- **Using `m-arch-discovery` for a single-feature change** — overkill; go to `/touchstone:design-spec`.
-- **Treating the matrix as a checkbox** — cells must cite specific sections, not "yes". Empty `covered` claims are gaps in disguise.
-- **Skipping §1 (system model)** — without explicit ownership and invariants, downstream sections have nothing to cite and you'll re-derive them in every spec.
-- **Conflating discovery with spec** — discovery describes; spec contracts. If you're writing GWT scenarios, you're past discovery.
-- **Per-feature monolith fragments** — features cross-cut; do not give each feature its own §3.1.1 / §3.1.2 sub-tree. They appear across §3 / §4 / §5 / §6 in the spine.
-- **Running sweep without a starting matrix** — sweep iterates over cells; if §0 is empty, sweep has nothing to do. Use Setup or Discovery Mode first.
-- **Authoring sections without updating the matrix** — content drift. After every authoring session, walk the matrix and update cell states.
-
 ## Related
 
-- Template: `${CLAUDE_PLUGIN_ROOT}/skills/arch-discovery/template.md`
-- Lens definitions: `${CLAUDE_PLUGIN_ROOT}/skills/arch-discovery/lenses.md`
-- Coverage-matrix protocol: `${CLAUDE_PLUGIN_ROOT}/skills/arch-discovery/coverage-matrix.md`
-- Upstream: Topic 2 exploration routing (`~/.claude/CLAUDE.md`)
-- Adjacent: `/touchstone:arch-review` for per-question consults
-- Downstream: `/touchstone:design-spec` for contract authoring
-- Doc Routing convention: project's `CLAUDE.md § Doc Routing`
+- Bundled inputs (read by Discovery Mode): `template.md`, `lenses.md`, `coverage-matrix.md`.
+- Workflow slot, sibling-skill integration table, and authoring anti-patterns: `README.md`.

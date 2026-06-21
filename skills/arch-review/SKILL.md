@@ -21,8 +21,6 @@ allowed-tools:
 kind: workflow
 ---
 
-<!-- keep-long: 233 lines, single linear consult path with no mutually-exclusive sub-flows to extract. Anti-patterns + /office-hours-vs-/touchstone:arch-review comparison are routing/boundary content; held inline by design. -->
-
 ## Step 0 — Load vocabulary
 
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md`
@@ -48,9 +46,7 @@ If not adopted: skip Read; envelope `discipline_mode: "none"`; omit `source_as_t
 
 # m-arch-review
 
-Pre-code architect consult. For when the question is "which approach?" —
-not "here's the contract, review it" (that's `/touchstone:design-spec`) and not "here's
-the code, review it" (that's `/touchstone:code-review batch`).
+Pre-code architect consult — for "which approach?", before the spec.
 
 ## When to Invoke
 
@@ -151,6 +147,8 @@ Present the architect's memo to the user. The user:
 
 ### 4. Capture as ADR (conditional)
 
+Skip this step entirely if invoked with `--defer-adr` (run the consult, capture no ADR).
+
 If a decision was made (step 3 "accepts" or "picks"), invoke the ADR workflow
 documented in `adr-authoring.md`:
 
@@ -159,7 +157,10 @@ documented in `adr-authoring.md`:
 - Confirm filename and approve before write
 
 If the user deferred, skip this step and save the memo to a scratch location
-(e.g., project's working notes) for later.
+(e.g., project's working notes) for later. Do not write the memo to `docs/adr/`
+unless a decision was made — memos without a decision go to scratch, not the ADR
+dir. If ECC's `architecture-decision-records` skill is not installed, fall back to
+manual ADR writing per `adr-authoring.md`.
 
 ### 5. Hand off to design spec (optional)
 
@@ -171,72 +172,8 @@ Next: /touchstone:design-spec <feature-name>
   — the Architecture section can now assume <chosen approach>
 ```
 
-## Memo Persistence
-
-The architect's tradeoff memo is ephemeral by default (lives in the
-conversation). Options for persistence:
-
-- **ADR** — canonical form; the Alternatives Considered section captures the
-  memo essence
-- **Design spec Related section** — reference the ADR
-- **Project working notes** — if the decision was deferred, save the memo at
-  a project-defined location (no skill config for this; user-driven)
-
-Do not write the memo to `docs/adr/` unless a decision was made. Memos without
-decisions go elsewhere.
-
-## Invocation Summary
-
-| Command | Behavior |
-|---|---|
-| `/touchstone:arch-review` | Interactive: asks for question, context, candidates |
-| `/touchstone:arch-review "<question>"` | Skip the prompt; derive context from conversation |
-| `/touchstone:arch-review --defer-adr` | Run the consult but skip ADR capture even if decision reached |
-
-## Dependencies
-
-- **`touchstone:cross-provider-architect`** composite skill (required) — wraps `everything-claude-code:architect` (CC) + `codex-adversarial-reviewer` (Codex) in Pattern A
-- **`codex-reviewer`** / **`codex-adversarial-reviewer`** backend agents (required by the composite when Codex is healthy)
-- **`everything-claude-code:architecture-decision-records`** (optional) —
-  ADR capture at step 4. If not installed, fall back to manual ADR writing
-  per `adr-authoring.md`.
-
-## Alternative: gstack `/office-hours`
-
-If gstack is installed, `/office-hours` is a richer alternative — six forcing
-questions produce a structured problem statement, premise challenge, and
-explored alternatives, written to a design doc. Use `/office-hours` when:
-
-- The feature is large-scope (not just one decision)
-- You want structured problem framing before design, not just a tradeoff pick
-- The user-facing Q&A flow is preferred over architect-agent memo output
-
-Use `/touchstone:arch-review` when:
-
-- A specific architectural question needs settling (not a broad problem frame)
-- The tradeoff is between 2-3 known approaches
-- You want the architect agent's independent-context memo rather than
-  user-driven Q&A
-- gstack is not installed
-
-Both flows can produce an ADR as output.
-
-## Anti-patterns
-
-- **Using `/touchstone:arch-review` instead of `/touchstone:design-spec`** — this skill does
-  not produce a contract. If the direction is clear, go straight to the spec.
-- **Using `/touchstone:arch-review` on existing code without a pending change** —
-  that's an audit, not a consult. Invoke the architect agent directly via
-  `Agent` tool with an audit prompt.
-- **Running without context** — architect produces thin output if given only
-  the question. Provide exploration notes or code references.
-- **Capturing every consult as an ADR** — only ADR decisions, not
-  deliberations. A memo without a decision is not an ADR candidate.
-
 ## Related
 
-- Upstream: exploration routing (Topic 2 in global CLAUDE.md)
-- Downstream: `/touchstone:design-spec` for spec drafting; `/superpowers:writing-plans`
-  for implementation sequencing
-- Parallel (different stage): `/touchstone:code-review batch` for post-code batch review
-- ADR workflow: `adr-authoring.md` (this skill's directory)
+- Downstream: `/touchstone:design-spec` (spec drafting), `/superpowers:writing-plans` (sequencing).
+- ADR workflow: `adr-authoring.md` (this skill's directory).
+- Maintainer notes (invocation table, dependencies): `README.md`.

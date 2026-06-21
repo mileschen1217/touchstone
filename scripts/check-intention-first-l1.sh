@@ -36,7 +36,8 @@ expect_absent grep -REn \
   skills/epic-driven-roadmap/SKILL.md \
   skills/epic-driven-roadmap/templates/epic-index.md \
   skills/design-spec/SKILL.md \
-  skills/design-spec/template.md
+  skills/design-spec/template.md \
+  skills/_shared/foundation-gate.md
 
 # ── AC-7 — no internal skip-conditional inside the Step-0 regions ──────────
 # First assert each Step-0 heading exists exactly once — otherwise the awk
@@ -101,6 +102,28 @@ expect_count 0 grep -cwF 'Q4' "$S"
 expect_count 0 grep -cF 'Goal (observable)' "$S"
 expect_count 0 grep -cF 'In scope:' "$S"
 expect_count 0 grep -cF 'Non-goals:' "$S"
+
+# ── keep-long annotation honesty (ADR-0016 §5): annotated count must equal wc -l ──
+for f in skills/*/SKILL.md; do
+  ann="$(grep -m1 'keep-long:' "$f" 2>/dev/null | grep -oE 'keep-long: [0-9]+' | grep -oE '[0-9]+')"
+  [ -z "$ann" ] && continue
+  actual="$(wc -l < "$f" | tr -d '[:space:]')"
+  if [ "$ann" != "$actual" ]; then echo "FAIL keep-long count: $f annotates $ann lines, actual $actual"; fail=$((fail+1)); fi
+done
+
+# ── ADR-0016 §4 — Pattern-A composite drift assert ──────────────────────────
+# The two Pattern-A composites (cross-provider-reviewer / -architect) keep a
+# ~20-line shared scaffold by DESIGN (not extracted). Guard the ADR's two flip
+# triggers mechanically where we can:
+#  (a) 3rd composite appears  → dir count must stay 2 (else re-decide extraction)
+#  (b) probe drift            → the shared Codex-probe shape must appear exactly
+#                               once in EACH composite (total 2). Edit one and not
+#                               the other → count != 2 → FAIL.
+# The "shared section > ~50 lines" trigger stays a human judgment — not mechanized.
+expect_count 2 bash -c "ls -d skills/cross-provider-* 2>/dev/null | wc -l"
+expect_count 2 bash -c "grep -hF 'codex --version >/dev/null 2>&1 && echo' \
+  skills/cross-provider-reviewer/SKILL.md \
+  skills/cross-provider-architect/SKILL.md | wc -l"
 
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN (Layer-1 structural checks pass)"; else echo "RED: $fail check(s) failed"; fi
 exit "$fail"

@@ -30,6 +30,76 @@ if [ "$status" = "draft" ]; then echo "skipped: draft spec"; exit 0; fi
 violations=0
 note() { echo "VIOLATION: $*"; violations=$((violations+1)); }
 
+ex="$(dirname "$0")/spec-extract.sh"
+reqset="$(bash "$ex" reqs "$spec")"; extrc=$?
+if [ "$extrc" -ne 0 ]; then
+  echo "FAIL: spec-extract failed"
+  exit 1
+fi
+
+if [ -n "$reqset" ]; then
+  # ---- requirement-bearing path ----
+  scan="$(awk '
+    /^```/ { fence = !fence; next }
+    fence  { next }
+    /^## Acceptance Criteria[[:space:]]*$/ { inac=1; next }
+    inac && /^## / { inac=0 }
+    !inac  { next }
+    /^[[:space:]]*\|/ {
+      n=split($0,a,"|"); r=a[2]; c=a[3]
+      gsub(/^[[:space:]]+|[[:space:]]+$/,"",r); gsub(/^[[:space:]]+|[[:space:]]+$/,"",c)
+      if (r ~ /^REQ-[0-9]+$/ && c ~ /^AC-[0-9]+$/) print "IDXPAIR " r " " c
+      next
+    }
+    /^### Requirement:[[:space:]]+REQ-[0-9]+/ {
+      match($0,/REQ-[0-9]+/); cur=substr($0,RSTART,RLENGTH); print "REQHEAD " cur
+      bare=$0; gsub(/`+[^`]*`+/,"",bare)
+      if (bare ~ /\[NEEDS CLARIFICATION:[^]]*\]/) print "MARKER"
+      if (bare ~ /\[unverified:[[:space:]]*\]/) print "EMPTYUNV"
+      next
+    }
+    /^### / { cur="" }
+    /^#### AC-[0-9]+/ { match($0,/AC-[0-9]+/); print "AC " (cur==""?"(none)":cur) " " substr($0,RSTART,RLENGTH) }
+    { bare=$0; gsub(/`+[^`]*`+/,"",bare) }
+    bare ~ /\[NEEDS CLARIFICATION:[^]]*\]/ { print "MARKER" }
+    bare ~ /\[unverified:[[:space:]]*\]/ { print "EMPTYUNV" }
+  ' "$spec")"
+
+  # zero-AC requirement
+  for r in $reqset; do
+    printf '%s\n' "$scan" | grep -q "^AC $r " || note "$r requirement has no AC"
+  done
+  # empty [unverified:] reason (carry the existing legacy guarantee onto this path)
+  ec="$(printf '%s\n' "$scan" | grep -c '^EMPTYUNV')"
+  [ "$ec" -gt 0 ] && note "$ec empty [unverified] reason(s) in the AC section"
+  # orphan AC
+  for a in $(printf '%s\n' "$scan" | sed -n 's/^AC //p' | awk '$1=="(none)"{print $2}'); do
+    note "$a is an orphan AC (no in-scope parent requirement)"
+  done
+  # duplicate REQ id
+  for r in $(printf '%s\n' "$scan" | sed -n 's/^REQHEAD //p' | sort | uniq -d); do
+    note "$r is a duplicated requirement id"
+  done
+  # duplicate AC id in the body (by AC id alone, across parents)
+  for a in $(printf '%s\n' "$scan" | sed -n 's/^AC [^ ]* //p' | sort | uniq -d); do
+    note "$a is a duplicated AC id"
+  done
+  # duplicate AC id in the INDEX
+  for a in $(printf '%s\n' "$scan" | sed -n 's/^IDXPAIR [^ ]* //p' | sort | uniq -d); do
+    note "$a is a duplicated AC id in the index"
+  done
+  # index <-> body (REQ,AC) set equality
+  idx="$(printf '%s\n' "$scan" | sed -n 's/^IDXPAIR //p' | sort -u)"
+  bod="$(printf '%s\n' "$scan" | sed -n 's/^AC //p' | awk '$1!="(none)"{print $1" "$2}' | sort -u)"
+  while read -r r c; do [ -n "$r" ] && note "(REQ,AC) pair $r/$c in index but not body"; done < <(comm -23 <(printf '%s\n' "$idx") <(printf '%s\n' "$bod"))
+  while read -r r c; do [ -n "$r" ] && note "(REQ,AC) pair $r/$c in body but not index"; done < <(comm -13 <(printf '%s\n' "$idx") <(printf '%s\n' "$bod"))
+  # unresolved [NEEDS CLARIFICATION] markers
+  mk="$(printf '%s\n' "$scan" | grep -c '^MARKER')"
+  [ "$mk" -gt 0 ] && note "$mk unresolved [NEEDS CLARIFICATION] clarification(s) in the AC section"
+  if [ "$violations" -eq 0 ]; then echo "pass"; exit 0; fi
+  echo "RED: $violations violation(s)"; exit 1
+fi
+
 # Single stateful scan of the `## Acceptance Criteria` section, ignoring fenced
 # code blocks. Emits "INDEX <id>" for index-table rows and "BODY <id>" for
 # `### AC-N` headings. Section = from `## Acceptance Criteria` to the next `## `.

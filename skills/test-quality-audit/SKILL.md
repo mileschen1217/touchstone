@@ -6,7 +6,7 @@ kind: workflow
 
 # /touchstone:test-quality-audit
 
-Feedback-loop audit of the current project's test suite. Checks **what exists**, flags gaps and staleness, and recommends additions/removals. Does not write tests (use `/superpowers:test-driven-development` or the `tdd` agent for that).
+Feedback-loop audit of the current project's test suite. Checks **what exists**, flags gaps and staleness, and recommends additions/removals. **Report-only: does not write, modify, or auto-fix tests** — surfaces gaps for a human or follow-up agent (use `/superpowers:test-driven-development` or the `tdd` agent to write tests).
 
 ## Usage
 
@@ -16,11 +16,6 @@ Feedback-loop audit of the current project's test suite. Checks **what exists**,
 /touchstone:test-quality-audit --threshold=<N>       # override branch coverage threshold (percent)
 /touchstone:test-quality-audit <days> --threshold=<N> # both — window AND threshold override
 ```
-
-Examples:
-- `/touchstone:test-quality-audit 7` — last week's regression gaps only (post-sprint pass)
-- `/touchstone:test-quality-audit 90 --threshold=70` — quarterly audit with a relaxed coverage gate (legacy module)
-- `/touchstone:test-quality-audit --threshold=90` — strict coverage gate (release-candidate audit)
 
 ### Argument parsing
 
@@ -137,16 +132,6 @@ RECOMMENDATIONS
     - ...
 ```
 
-## What it does NOT do
+## Related
 
-- **Does not write new tests** — that's `/superpowers:test-driven-development`, the `tdd` agent, or language-specific `tdd-*` skills
-- **Does not re-run the full suite for proof** — use the project's regular test command for that
-- **Does not modify test files** — report-only; findings are for human or follow-up-agent decision
-- **Does not auto-fix** — surfaces gaps, doesn't silently change them
-
-## References
-
-- `/superpowers:test-driven-development` — for writing new tests after audit
-- `/superpowers:verification-before-completion` — for pre-commit verification
-- ECC language-specific testing skills: `python-testing`, `rust-testing`, `kotlin-testing`, `cpp-testing`, `golang-testing` — for per-language test craft
-- Config repo: `docs/adr/0011-*.md` — decision rationale for this skill
+- Scope boundary detail (what it does NOT do), downstream skills, and the decision-rationale ADR: `README.md`.

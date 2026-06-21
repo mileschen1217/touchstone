@@ -1,7 +1,7 @@
 ---
 name: design-review
 kind: workflow
-description: Reviews authored design documents (spec, plan, ADR) before Build using Pattern A (dual parallel). Dispatches `touchstone:cross-provider-reviewer` composite skill with a doc-review system prompt set via task envelope. Out of scope — research notes, READMEs, retros, daily notes. Renamed from `m-deep-review`; per-batch code review path moved to `/touchstone:code-review batch`.
+description: Reviews authored design documents (spec, plan, ADR) before Build using Pattern A (dual parallel). Dispatches `touchstone:cross-provider-reviewer` composite skill with a doc-review system prompt set via task envelope. Out of scope — research notes, READMEs, retros, daily notes.
 allowed-tools:
   - Bash
   - Read
@@ -35,14 +35,7 @@ Out of scope — return "not in scope; this skill reviews specs / plans / ADRs /
 /touchstone:design-spec  →  Status: Draft  →  human edits / accepts ★  →  /touchstone:design-review (here)
 ```
 
-`/touchstone:design-spec`'s Step-5 review only *discharges* this gate when it was iterated to this skill's tiered standard (C+H=0) **and** the spec was not edited afterward. If the spec changed during the human's review, run this skill on the final version — the earlier critique judged a different artifact. Do not treat "design-spec was run" as "the gate passed".
-
-## Usage
-
-```
-/touchstone:design-review <path>            # one doc
-/touchstone:design-review <glob>            # multiple docs in one pass
-```
+`/touchstone:design-spec`'s Step-5 review **never discharges this gate** — they are different reviews with different criteria. Step-5 dispatches the **architect** composite (`cross-provider-architect`: CC `architect` + Codex adversarial) for a *structural, advisory* critique; this gate dispatches the **reviewer** composite (`cross-provider-reviewer`) with the **doc-review prompt** (Problem/Scope/AC/Interfaces + the Verification-Strategy / live-bearing declaration), C+H-tiered and Build-blocking. Step-5's `approve|revise|block` is **not** the gate's doc-review C+H currency, so a spec can pass the architect critique while its Verification-Strategy is never audited — claiming "gate passed" from a Step-5 verdict asserts a property a different check produced. Always run this gate on the **final, human-accepted** artifact; never treat "design-spec was run" as "the gate passed". (Rationale: ADR-0015.)
 
 ## Procedure
 
@@ -72,6 +65,14 @@ If not adopted: skip Read; envelope `discipline_mode: "none"`; omit `source_as_t
 
 The Bridge content audit (P1/P2/P3 application) and Standing vs transient classification procedures stay in this skill — they are the actions; CONTEXT.md provides the vocabulary they reference.
 
+**Always (Baseline/spine — unconditional).** Independently of `source-as-truth`, read
+`${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` § "Verification vocabulary" — the **live-bearing
+predicate** + **AC-coverage-honesty principle** — and inject it into the reviewer
+envelope: append it to the doc-review `system_prompt` (§3 below) AND carry it as
+`evidence_honesty_vocab`. This is spine, not a discipline: it fires regardless of which
+disciplines are adopted (do NOT gate it on `source-as-truth`). Item 7 of the doc-review
+prompt applies this injected doctrine as its feedforward (declaration) stage.
+
 ### 1. Validate input scope
 
 Read the target file(s). Check frontmatter `type:` field if present, or path:
@@ -80,6 +81,23 @@ Read the target file(s). Check frontmatter `type:` field if present, or path:
 - `type: adr` OR path matches `**/adr/**` → in scope (use spec/plan/ADR system prompt)
 - `type: discovery` OR path matches `**/research/**/*-discovery.md` → in scope (use **discovery system prompt** below)
 - Anything else → out of scope; exit gracefully.
+
+### 1.5. Pre-check (specs only — deterministic structural + challenge-result gate)
+
+For `type: spec` targets (path matches `**/specs/**` or frontmatter `type: spec`), run the deterministic pre-check before dispatching reviewers if it exists:
+
+```bash
+bash scripts/design-review-precheck.sh <spec-path>
+```
+
+Run `bash scripts/design-review-precheck.sh <spec-path>` if it exists; if the script is absent, skip this step and proceed to Step 2 (degrade gracefully — do not hard-block when the script is not present in the consumer project).
+
+Interpret the result:
+
+- **Exit non-zero** (`BLOCK:` line in output) — surface the full BLOCK output verbatim to the user and **do not dispatch reviewers**. Build does not proceed until the human resolves the block (fixes the structural violation, runs the challenge-pass, resolves stale digests, etc.).
+- **Exit zero** (`PRE-CHECK OK → dispatch` or `PRE-CHECK skipped: draft`) — proceed to Step 2 below.
+
+For non-spec targets (`type: plan`, `type: adr`, `type: discovery`), skip this step and proceed directly to Step 2.
 
 ### 2. Dispatch touchstone:cross-provider-reviewer (Pattern A)
 
@@ -103,26 +121,16 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 > 4. Error Handling rows map to scenarios
 > 5. Invariants are cross-cutting rules
 > 6. Risks / Open Questions are not hidden
-> 7. Verification Strategy declaration (evidence-honesty gate, Stage 0 — no test
->    source exists yet, so this is a DECLARATION check, never a coverage read):
->    the spec has a non-empty `## Verification Strategy` section. **Predicate
->    (primary):** a **live-bearing** AC is one whose Given/When/Then asserts a
->    behaviour that **cannot be discharged offline** — it depends on an un-owned,
->    wired, deployed, real-scale, or otherwise non-offline-dischargeable boundary.
->    The TYPES that typically signal this — a network/API call, a DB or filesystem
->    write, device I/O, a real `Agent()`/sub-process dispatch, a deployed/wired
->    target — count as live-bearing ONLY when they satisfy that predicate (match on
->    behaviour, not wording; not a closed keyword list). **Ownership
->    counter-example:** invoking the project's OWN deterministic in-repo script/CLI,
->    or a test writing to its own temp fixture dir, is owned + offline +
->    deterministic → NOT live-bearing, even though it spawns a process or touches
->    the filesystem. (A non-deterministic in-repo script — e.g. one making a real
->    network call — is NOT exempt: apply the predicate.) Every live-bearing AC id
->    must appear in the section's `Live-bearing AC IDs`. If ambiguous, treat it as
->    live-bearing (default stricter).
->    Surface a missing/empty section or an omitted live-bearing AC as a finding.
->    Spec-internal judgment only — do NOT read test source or judge per-AC
->    coverage (those belong to code-review batch / epic-close).
+> 7. Verification Strategy declaration (evidence-honesty gate, Stage 0). This is the
+>    **feedforward / DECLARATION** application of the injected evidence-honesty doctrine
+>    (the **live-bearing predicate** + **AC-coverage-honesty principle**, loaded from
+>    CONTEXT.md § "Verification vocabulary" and injected per Step 0). No test source
+>    exists yet, so this is a DECLARATION check, never a coverage read: confirm the spec
+>    has a non-empty `## Verification Strategy` section, and that every live-bearing AC id
+>    (per the injected predicate) appears in its `Live-bearing AC IDs`. Surface a
+>    missing/empty section or an omitted live-bearing AC as a finding. Spec-internal
+>    judgment only — do NOT read test source or judge per-AC coverage (those belong to
+>    code-review batch / epic-close).
 >
 > Return findings sorted by severity (Critical, High, Medium, Low). Each finding cites the section and a concrete fix. End with verdict: approve | revise | block.
 
@@ -158,10 +166,6 @@ in `skills/cross-provider-reviewer/references/provenance.md`.
 
 In all cases: do not auto-promote spec status; the user (or caller skill) decides when to proceed.
 
-## Pattern semantics (self-contained)
+## Related
 
-Pattern A composite — dispatches `touchstone:cross-provider-reviewer`, which owns the procedure end-to-end (parallel CC + Codex review, divergence-labeled synthesis, fallback if Codex unavailable).
-
-## Renamed from m-deep-review
-
-The previous `m-deep-review` covered both doc review AND per-batch code review. Per-batch code review now lives at `/touchstone:code-review batch` (Pattern B). The old `m-deep-review` path returns "not found" (the skill registry no longer has that name).
+- Pattern + maintainer notes (invocation, history): `README.md`.

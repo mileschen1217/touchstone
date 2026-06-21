@@ -31,4 +31,20 @@ assert dup-index    1 "AC-2"              dup-index.md
 assert dup-body     1 "AC-1"              dup-body.md
 assert noise        0 "pass"              noise.md
 
+assert req-happy   0 "pass"  req-happy.md
+assert req-zero-ac 1 "REQ-2" req-zero-ac.md
+
+assert req-orphan 1 "AC-2"  req-orphan.md
+assert req-dup-id 1 "REQ-2" req-dup-id.md
+assert req-dup-ac 1 "AC-3"  req-dup-ac.md
+
+assert req-pair-mismatch 1 "AC-3" req-pair-mismatch.md
+
+assert req-marker        1 "clarification" req-marker.md
+assert req-marker-on-req 1 "clarification" req-marker-on-req.md
+assert req-draft         0 "skipped: draft" req-draft.md
+assert req-legacy        0 "pass"           req-legacy.md
+
+assert req-self-trip     0 "pass"           req-self-trip.md
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
