@@ -40,4 +40,11 @@ chkF() { local out rc; out="$(python3 "$val" "$spec" "$tmp/$2" 2>&1)"; rc=$?
 chkF 0 fresh-valid.json "ok"          fresh-valid
 chkF 1 stale.json       "stale"       stale
 chkF 1 equal-ids.json   "independent" equal-ids
+
+# AC-10: uniqueness and empty finding id cases
+write dup-finding-id.json '{"schema_version":1,"author_id":"A","challenger_id":"B","input_digest":"x","findings":[{"id":"F-1","marker":"[NEEDS CLARIFICATION: q]","req":"REQ-1"},{"id":"F-1","marker":"[NEEDS CLARIFICATION: r]","req":"REQ-1"}]}'
+write empty-finding-id.json '{"schema_version":1,"author_id":"A","challenger_id":"B","input_digest":"x","findings":[{"id":"","marker":"[NEEDS CLARIFICATION: q]","req":"REQ-1"}]}'
+chk 1 dup-finding-id.json  "duplicate"  dup-finding-id
+chk 1 empty-finding-id.json "empty"     empty-finding-id
+
 [ "$fail" -eq 0 ] && { echo ALL GREEN; exit 0; } || { echo "RED: $fail"; exit 1; }
