@@ -66,7 +66,23 @@ if [ -n "$reqset" ]; then
   # empty [unverified:] reason (carry the existing legacy guarantee onto this path)
   ec="$(printf '%s\n' "$scan" | grep -c '^EMPTYUNV')"
   [ "$ec" -gt 0 ] && note "$ec empty [unverified] reason(s) in the AC section"
-  # (orphan / dup-REQ / dup-AC / pairwise / marker added in T4-T6)
+  # orphan AC
+  for a in $(printf '%s\n' "$scan" | sed -n 's/^AC //p' | awk '$1=="(none)"{print $2}'); do
+    note "$a is an orphan AC (no in-scope parent requirement)"
+  done
+  # duplicate REQ id
+  for r in $(printf '%s\n' "$scan" | sed -n 's/^REQHEAD //p' | sort | uniq -d); do
+    note "$r is a duplicated requirement id"
+  done
+  # duplicate AC id in the body (by AC id alone, across parents)
+  for a in $(printf '%s\n' "$scan" | sed -n 's/^AC [^ ]* //p' | sort | uniq -d); do
+    note "$a is a duplicated AC id"
+  done
+  # duplicate AC id in the INDEX
+  for a in $(printf '%s\n' "$scan" | sed -n 's/^IDXPAIR [^ ]* //p' | sort | uniq -d); do
+    note "$a is a duplicated AC id in the index"
+  done
+  # (pairwise / marker added in T5-T6)
   if [ "$violations" -eq 0 ]; then echo "pass"; exit 0; fi
   echo "RED: $violations violation(s)"; exit 1
 fi
