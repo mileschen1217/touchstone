@@ -45,4 +45,6 @@ assert req-marker-on-req 1 "clarification" req-marker-on-req.md
 assert req-draft         0 "skipped: draft" req-draft.md
 assert req-legacy        0 "pass"           req-legacy.md
 
+assert req-self-trip     0 "pass"           req-self-trip.md
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi

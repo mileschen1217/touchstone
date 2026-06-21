@@ -31,7 +31,11 @@ violations=0
 note() { echo "VIOLATION: $*"; violations=$((violations+1)); }
 
 ex="$(dirname "$0")/spec-extract.sh"
-reqset="$(bash "$ex" reqs "$spec")"
+reqset="$(bash "$ex" reqs "$spec")"; extrc=$?
+if [ "$extrc" -ne 0 ]; then
+  echo "FAIL: spec-extract failed"
+  exit 1
+fi
 
 if [ -n "$reqset" ]; then
   # ---- requirement-bearing path ----
@@ -49,14 +53,14 @@ if [ -n "$reqset" ]; then
     }
     /^### Requirement:[[:space:]]+REQ-[0-9]+/ {
       match($0,/REQ-[0-9]+/); cur=substr($0,RSTART,RLENGTH); print "REQHEAD " cur
-      bare=$0; gsub(/`[^`]*`/,"",bare)
+      bare=$0; gsub(/`+[^`]*`+/,"",bare)
       if (bare ~ /\[NEEDS CLARIFICATION:[^]]*\]/) print "MARKER"
       if (bare ~ /\[unverified:[[:space:]]*\]/) print "EMPTYUNV"
       next
     }
     /^### / { cur="" }
     /^#### AC-[0-9]+/ { match($0,/AC-[0-9]+/); print "AC " (cur==""?"(none)":cur) " " substr($0,RSTART,RLENGTH) }
-    { bare=$0; gsub(/`[^`]*`/,"",bare) }
+    { bare=$0; gsub(/`+[^`]*`+/,"",bare) }
     bare ~ /\[NEEDS CLARIFICATION:[^]]*\]/ { print "MARKER" }
     bare ~ /\[unverified:[[:space:]]*\]/ { print "EMPTYUNV" }
   ' "$spec")"
