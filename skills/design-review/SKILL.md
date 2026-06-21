@@ -82,6 +82,21 @@ Read the target file(s). Check frontmatter `type:` field if present, or path:
 - `type: discovery` OR path matches `**/research/**/*-discovery.md` → in scope (use **discovery system prompt** below)
 - Anything else → out of scope; exit gracefully.
 
+### 1.5. Pre-check (specs only — deterministic structural + challenge-result gate)
+
+For `type: spec` targets (path matches `**/specs/**` or frontmatter `type: spec`), run the deterministic pre-check before dispatching reviewers:
+
+```bash
+bash scripts/design-review-precheck.sh <spec-path>
+```
+
+Interpret the result:
+
+- **Exit non-zero** (`BLOCK:` line in output) — surface the full BLOCK output verbatim to the user and **do not dispatch reviewers**. Build does not proceed until the human resolves the block (fixes the structural violation, runs the challenge-pass, resolves stale digests, etc.).
+- **Exit zero** (`PRE-CHECK OK → dispatch` or `PRE-CHECK skipped: draft`) — proceed to Step 2 below.
+
+For non-spec targets (`type: plan`, `type: adr`, `type: discovery`), skip this step and proceed directly to Step 2.
+
 ### 2. Dispatch touchstone:cross-provider-reviewer (Pattern A)
 
 ```
