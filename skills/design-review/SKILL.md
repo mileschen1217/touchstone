@@ -84,11 +84,13 @@ Read the target file(s). Check frontmatter `type:` field if present, or path:
 
 ### 1.5. Pre-check (specs only — deterministic structural + challenge-result gate)
 
-For `type: spec` targets (path matches `**/specs/**` or frontmatter `type: spec`), run the deterministic pre-check before dispatching reviewers:
+For `type: spec` targets (path matches `**/specs/**` or frontmatter `type: spec`), run the deterministic pre-check before dispatching reviewers if it exists:
 
 ```bash
 bash scripts/design-review-precheck.sh <spec-path>
 ```
+
+Run `bash scripts/design-review-precheck.sh <spec-path>` if it exists; if the script is absent, skip this step and proceed to Step 2 (degrade gracefully — do not hard-block when the script is not present in the consumer project).
 
 Interpret the result:
 
