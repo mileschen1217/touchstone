@@ -69,17 +69,21 @@ Given/When/Then scenarios — the **outer ATDD loop's contract**. Cover happy pa
 
 The verification layer/mechanism never appears in an AC's Name or Given-When-Then — coverage is derived and `[unverified]` is the only authored marker (no implementation leakage into the contract).
 
-Every AC carries a stable `AC-N` id (1-based, assigned at draft, never reused within a spec) and appears both in the index table and as a `### AC-N` block. **No stored AC→test mapping and no per-AC red/green state is kept** — coverage is DERIVED each review pass by the reviewer reading test source (see `docs/adr/0009-evidence-honesty-gate.md`, decision 2c). The ONLY authored per-AC marker is an inline `[unverified: <reason>]` line under an AC's Given/When/Then, with a mandatory non-empty reason; a live-bearing AC (one listed in Verification Strategy) may NOT carry it.
+Every AC carries a stable `AC-N` id (1-based, assigned at draft, never reused within a spec) and appears both in the index table and as a `#### AC-N` block nested under its parent `### Requirement: REQ-N`. **No stored AC→test mapping and no per-AC red/green state is kept** — coverage is DERIVED each review pass by the reviewer reading test source (see `docs/adr/0009-evidence-honesty-gate.md`, decision 2c). The ONLY authored per-AC marker is an inline `[unverified: <reason>]` line under an AC's Given/When/Then, with a mandatory non-empty reason; a live-bearing AC (one listed in Verification Strategy) may NOT carry it.
+
+Each requirement is authored as a `### Requirement: REQ-N — <EARS SHALL statement>` heading. The SHALL text adds rule-altitude precision over its parent story (anti-redundancy: a requirement that merely rewords its story is a restatement — apply the Subtraction / SHALL-pass-fail / New-constraint / Quantifier tests from `references/methodology.md`). An unresolved `[NEEDS CLARIFICATION: <q>]` marker on any requirement or AC line blocks the design-review gate — resolve it before the gate runs.
 
 ### Index
 
-| AC | Name |
-|---|---|
-| AC-1 | <short-name> |
+| Req | AC | Name |
+|---|---|---|
+| REQ-1 | AC-1 | <short-name> |
 
 ---
 
-### AC-1 — <full-name>
+### Requirement: REQ-1 — the <system> SHALL <response> [EARS template — replace this text]
+
+#### AC-1 — <full-name>
 
 ```
 Given <context>
