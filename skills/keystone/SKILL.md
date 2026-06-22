@@ -29,8 +29,8 @@ The invariant is the comparator — not a checklist. Judgment-comparator: adviso
 A structural fork with durability stakes: 2+ viable approaches where the choice
 constrains future deliveries across code, docs, or suite structure.
 
-**NOT a trigger:** multi-actor / pre-spec system-model alignment (the former
-`arch-discovery` trigger) — see ADR-0018 for the revisit path if that need resurfaces.
+**NOT a trigger:** multi-actor / pre-spec system-model alignment (a deprecated
+construct) — see ADR-0018 for the revisit path if that need resurfaces.
 
 Skip when: direction is clear → go to `/touchstone:design-spec`; tactical
 implementation choice → resolve inline.
