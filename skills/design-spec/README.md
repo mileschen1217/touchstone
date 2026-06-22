@@ -15,13 +15,13 @@ Naturally chained with exploration (Topic 2 routing) on the input side and
 ## Upstream / downstream
 
 - Exploration routing (upstream): Topic 2 in global `CLAUDE.md`.
-- Architecture consult (upstream, conditional): `/touchstone:arch-review` — resolve
-  architectural questions before drafting the spec.
+- Architecture consult (upstream, conditional): `/touchstone:keystone` — resolve
+  structural-commitment questions before drafting the spec.
 - ATDD chain (downstream): "ATDD — spec and test development" in global `CLAUDE.md`.
 - Plan generation (downstream): `/superpowers:writing-plans`.
 - design-review gate (downstream, distinct from the Step-5 critique): `/touchstone:design-review`
   — the distinction is load-bearing and stays in `SKILL.md`'s Boundary section.
-- ADR workflow: `${CLAUDE_PLUGIN_ROOT}/skills/arch-review/adr-authoring.md`.
+- ADR workflow: `${CLAUDE_PLUGIN_ROOT}/skills/keystone/adr-authoring.md`.
 
 ## Example
 

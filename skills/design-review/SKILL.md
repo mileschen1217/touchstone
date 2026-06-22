@@ -22,9 +22,7 @@ Required when any of:
 - A spec is authored by `/touchstone:design-spec` and ready for review
 - A plan is authored by `/superpowers:writing-plans` and ready for review
 - An ADR is authored and introduces a new contract
-- A discovery doc authored by `/touchstone:arch-discovery` is matrix-complete and ready for end-of-discovery audit
-
-Out of scope — return "not in scope; this skill reviews specs / plans / ADRs / discovery docs only" and exit:
+Out of scope — return "not in scope; this skill reviews specs / plans / ADRs only" and exit:
 - Research notes, daily notes, MOCs, retros, READMEs, kb articles
 
 ## Relationship to /touchstone:design-spec (this is the gate; its Step-5 review is not)
@@ -80,7 +78,6 @@ Read the target file(s). Check frontmatter `type:` field if present, or path:
 - `type: spec` OR path matches `**/specs/**` → in scope (use spec/plan/ADR system prompt)
 - `type: plan` OR path matches `**/plans/**` → in scope (use spec/plan/ADR system prompt)
 - `type: adr` OR path matches `**/adr/**` → in scope (use spec/plan/ADR system prompt)
-- `type: discovery` OR path matches `**/research/**/*-discovery.md` → in scope (use **discovery system prompt** below)
 - Anything else → out of scope; exit gracefully.
 
 ### 1.5. Pre-check (specs only — deterministic structural + challenge-result gate)
@@ -98,7 +95,7 @@ Interpret the result:
 - **Exit non-zero** (`BLOCK:` line in output) — surface the full BLOCK output verbatim to the user and **do not dispatch reviewers**. Build does not proceed until the human resolves the block (fixes the structural violation, runs the challenge-pass, resolves stale digests, etc.).
 - **Exit zero** (`PRE-CHECK OK → dispatch` or `PRE-CHECK skipped: draft`) — proceed to Step 2 below.
 
-For non-spec targets (`type: plan`, `type: adr`, `type: discovery`), skip this step and proceed directly to Step 2.
+For non-spec targets (`type: plan`, `type: adr`), skip this step and proceed directly to Step 2.
 
 ### 2. Dispatch touchstone:cross-provider-reviewer (Pattern A)
 
@@ -135,19 +132,6 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 >    code-review batch / epic-close).
 >
 > Return findings sorted by severity (Critical, High, Medium, Low). Each finding cites the section and a concrete fix. End with verdict: approve | revise | block.
-
-**For discovery doc (`type: discovery`):**
-
-> You are auditing an architecture discovery doc produced by `/touchstone:arch-discovery`. Check:
-> 1. §1 ownership / invariants are concrete and falsifiable (not vague "should" statements).
-> 2. §2 platform layer cleanly separates capability / constraint / forced behavior.
-> 3. §4 flows are E2E (not stubbed mid-walk); cite §1 invariants and §2 platform behaviors at each step.
-> 4. §5 lifecycle re-walks §1/§3/§4 at every phase (not a parallel state machine).
-> 5. §6 failures cover per-component / per-link / per-role.
-> 6. §0 matrix has no `unset` or unjustified `N/A`; every `covered` cell cites a specific section.
-> 7. Open questions are not hidden in prose — surfaced in §8.
->
-> Return findings sorted by severity (Critical, High, Medium, Low). Each finding cites the section/cell and a concrete fix. End with verdict: approve | revise | block.
 
 ### 4. Apply findings
 

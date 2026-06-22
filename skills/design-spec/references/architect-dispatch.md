@@ -42,4 +42,4 @@ auto-advance past it without the human knowingly acknowledging that the structur
 critique was produced by a single provider rather than the dual-parallel Pattern A pair.
 A clean synthesis (no banner) does not trigger this checkpoint. The banner's meaning
 is defined in `skills/cross-provider-reviewer/references/provenance.md`. (This mirrors
-`design-review/SKILL.md:150-157` and `arch-review/SKILL.md § 2.5`.)
+`design-review/SKILL.md:150-157` and `keystone/SKILL.md § 2.5`.)

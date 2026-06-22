@@ -65,7 +65,7 @@ not have both arms. The defect is a claim that exceeds its evidence and is close
 no mechanism anywhere (this stage or downstream). A one-armed or armless stage is
 sound when it makes sense (no unclosed claim). (Phase 1 applied this: ~11 threaded,
 7 one-armed-but-sound, 3 gaps — of which 2 are accepted honest-by-design residuals
-and 1 (arch-review consent) routes to existing candidate E19.)
+and 1 (arch-review (now keystone) consent) routes to existing candidate E19.)
 
 **D4 — Rename to `touchstone`, executed now.**
 - A **honesty-thematic** name (e.g. `honesty-workflow`) is **rejected** — a theme may
@@ -92,7 +92,7 @@ and 1 (arch-review consent) routes to existing candidate E19.)
   routing, repo + docs. Breaking; near-irreversible once published — do it as one
   deliberate pass while adoption is ≈ 0.
 - The audit's 3 gaps: grill self-attestation + grounded-claims Mode-selectivity are
-  accepted honest-by-design residuals; arch-review consent → E19.
+  accepted honest-by-design residuals; arch-review (now keystone) consent → E19.
 
 ## Alternatives considered
 
