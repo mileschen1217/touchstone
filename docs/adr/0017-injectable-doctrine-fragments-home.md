@@ -17,9 +17,9 @@ Four doctrine fragments are injected verbatim into cold-dispatched reviewers and
 architects that cannot read CONTEXT.md directly:
 
 - **Bridge content gate — three principles** — the P1/P2/P3 rule for bridge content;
-  injected by `design-spec`, `arch-review`, and `design-review`.
+  injected by `design-spec`, `arch-review (now keystone)`, and `design-review`.
 - **Standing vs transient bridge** — the scope-span axis (standing architecture docs vs
-  transient specs); injected by `arch-review` and `design-review`.
+  transient specs); injected by `arch-review (now keystone)` and `design-review`.
 - **live-bearing predicate** — the operational classification of ACs that require a live
   artifact; injected by `design-review` and `code-review` (its `batch` path).
 - **AC-coverage-honesty principle** — the `claim ≤ evidence` spine rule for ACs; injected
