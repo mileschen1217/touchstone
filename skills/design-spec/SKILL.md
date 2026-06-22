@@ -94,6 +94,16 @@ parent epic already has a populated `## Foundation` takes branch a
 (inheritance), NOT a reuse hit — the gate's reuse check applies only within the
 same invocation.
 
+**Foundation-source precedence (evaluate in order; first match wins).** If a PRD
+path/content is supplied to Step 0 → take the **PRD branch** below and do NOT also
+run branch a/b as the foundation source (the PRD is top precedence; a parent-epic
+`## Foundation`, if also present, supplies ONLY phase framing). If no PRD is
+supplied → fall through to branch a (parent Foundation), then b (from-scratch), as today.
+
+**PRD branch (when a PRD is present).** Its `why` seeds `Foundation.Intention`; its
+user-stories seed this spec's `## User Stories` section (US-N ids preserved). See
+`references/draft-workflow.md` § PRD inheritance for the full precedence + scope-differ handling.
+
 a. **Inherit** — if the parent epic index has a populated `## Foundation`:
    pre-fill from it, restate the epic's intention / aim / out-of-scope, then
    ask with this EXACT phrase verbatim (fixed emit string — do not paraphrase,

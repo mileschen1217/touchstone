@@ -72,4 +72,15 @@ if awk '
 if awk '/^### Requirement:/{r=NR} /^traces-to:/{t=NR} END{ exit !(r>0 && t>0 && r<t) }' "$root/skills/design-spec/template.md"; then
   echo "ok template-traces-in-req"; else echo "FAIL template-traces-in-req"; fail=$((fail+1)); fi
 
+# live branch in SKILL.md
+chk "skill-prd-branch"        "skills/design-spec/SKILL.md" "PRD"
+# detail body in draft-workflow.md — per-clause, PRD-specific (each falsifiable before the edit)
+chk "dw-prd-precedence"       "skills/design-spec/references/draft-workflow.md" "PRD > parent|PRD over parent"
+chk "dw-prd-present-signal"   "skills/design-spec/references/draft-workflow.md" "supplied to Step 0|PRD is .?present"
+chk "dw-prd-why-intention"    "skills/design-spec/references/draft-workflow.md" "why.*Foundation\\.Intention|Foundation\\.Intention"
+chk "dw-prd-stories-mirror"   "skills/design-spec/references/draft-workflow.md" "## User Stories|user-stories"
+chk "dw-prd-us-preserved"     "skills/design-spec/references/draft-workflow.md" "US-N"
+chk "dw-prd-parent-framing"   "skills/design-spec/references/draft-workflow.md" "phase framing|parent supplies"
+chk "dw-prd-scope-differ"     "skills/design-spec/references/draft-workflow.md" "scope differ|Does this spec.?s scope differ"
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
