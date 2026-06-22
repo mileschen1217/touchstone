@@ -47,4 +47,29 @@ assert req-legacy        0 "pass"           req-legacy.md
 
 assert req-self-trip     0 "pass"           req-self-trip.md
 
+assert story-happy        0 "pass"                    story-happy.md
+assert story-dropped      1 "US-2"                     story-dropped.md
+assert story-dangling     1 "US-9"                     story-dangling.md
+assert story-zerotrace    1 "REQ-2"                    story-zerotrace.md
+assert story-zerotrace-e  1 "REQ-2"                    story-zerotrace-empty.md
+assert story-multitoken   0 "pass"                     story-multitoken.md
+assert story-multiline    0 "pass"                     story-multiline.md
+assert story-empty        1 "User Stories"             story-empty.md
+assert story-dup          1 "duplicated"               story-dup.md
+assert story-fenced-head  0 "pass"                     story-fenced-heading.md
+assert story-fence        0 "pass"                     story-fence.md
+assert story-draft        0 "skipped: draft"           story-draft.md
+assert story-legacy-trace 0 "pass"                     story-legacy-trace.md
+assert story-no-req       1 "untraced story"           story-no-req.md
+
+# AC-12: stories extractor non-zero -> checker fails closed (not treated as empty set)
+tmp="$(mktemp -d)"
+cp "$here/../check-spec-floor.sh" "$tmp/"
+printf '#!/usr/bin/env bash\ncase "$1" in reqs) echo REQ-1;; stories) exit 1;; *) exit 2;; esac\n' > "$tmp/spec-extract.sh"
+chmod +x "$tmp/spec-extract.sh"
+cp "$fix/story-happy.md" "$tmp/s.md"
+out="$(bash "$tmp/check-spec-floor.sh" "$tmp/s.md" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qF "stories failed"; then echo "ok story-extract-fail-closed"; else echo "FAIL story-extract-fail-closed: rc=$rc out=$out"; fail=$((fail+1)); fi
+rm -rf "$tmp"
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
