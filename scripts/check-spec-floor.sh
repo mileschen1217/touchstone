@@ -51,7 +51,7 @@ if [ "$has_us" = "yes" ]; then
     /^```/ { fence=!fence; next } fence { next }
     /^## User Stories[[:space:]]*$/ { inus=1; next }
     inus && /^## / { inus=0 } !inus { next }
-    /^[[:space:]]*-[[:space:]]+US-[0-9]+([^[:alnum:]]|$)/ { match($0,/US-[0-9]+/); print substr($0,RSTART,RLENGTH) }
+    /^[[:space:]]*-[[:space:]]+US-[0-9]+([^[:alnum:]_]|$)/ { match($0,/US-[0-9]+/); print substr($0,RSTART,RLENGTH) }
   ' "$spec")"
 
   if [ -z "$storyset" ]; then note "## User Stories present but holds zero parseable US-N entries"; fi

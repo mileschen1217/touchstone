@@ -7,6 +7,7 @@ status: accepted
 - US-1 — As a dev, I want X, so that Y
 - US-2 — As a dev, I want Z, so that W
 - US-1abc — malformed, must be excluded
+- US-4_x — underscore suffix (word char), must be excluded
 - See US-9 (prose, not an entry — excluded)
 
 ```

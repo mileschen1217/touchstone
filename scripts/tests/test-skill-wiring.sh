@@ -83,27 +83,47 @@ chk "dw-prd-us-preserved"     "skills/design-spec/references/draft-workflow.md" 
 chk "dw-prd-parent-framing"   "skills/design-spec/references/draft-workflow.md" "phase framing|parent supplies"
 chk "dw-prd-scope-differ"     "skills/design-spec/references/draft-workflow.md" "scope differ|Does this spec.?s scope differ"
 
-# AC-13 — chains the four in order
+# chains the four sub-skills in invocation order
 chk "crucible-brainstorm"  "skills/crucible/SKILL.md" "superpowers:brainstorming"
 chk "crucible-grill"       "skills/crucible/SKILL.md" "grill-with-docs"
 chk "crucible-to-prd"      "skills/crucible/SKILL.md" "to-prd"
 chk "crucible-design-spec" "skills/crucible/SKILL.md" "touchstone:design-spec"
-if awk '/superpowers:brainstorming/{b=NR} /grill-with-docs/{g=NR} /to-prd/{p=NR} /touchstone:design-spec/{d=NR} END{exit !(b&&g&&p&&d && b<g && g<p && p<d)}' "$root/skills/crucible/SKILL.md"; then
+# Order check scoped to the `## What it chains` section (the numbered invocation list),
+# FIRST-match per token — excludes the frontmatter description and trailing explanatory
+# mentions, so neither a reordered list NOR a stray later mention can fool it.
+if awk '
+  /^## What it chains/{inchain=1; next}
+  inchain && /^## /{exit}
+  !inchain{next}
+  /superpowers:brainstorming/&&!b{b=NR}
+  /grill-with-docs/&&!g{g=NR}
+  /to-prd/&&!p{p=NR}
+  /touchstone:design-spec/&&!d{d=NR}
+  END{exit !(b&&g&&p&&d && b<g && g<p && p<d)}
+' "$root/skills/crucible/SKILL.md"; then
   echo "ok crucible-chain-order"; else echo "FAIL crucible-chain-order"; fail=$((fail+1)); fi
-# AC-14 — assigns each user-story a unique US-N id
+# documents the US-N id assignment
 chk "crucible-us-assign"   "skills/crucible/SKILL.md" "assign each user-story a unique .?US-N|unique US-N id"
-# AC-19 — inline grill discharges the pre-spec grill gate
+# states the inline grill discharges the pre-spec grill gate
 chk "crucible-grill-disch" "skills/crucible/SKILL.md" "discharge.*grill gate|grill gate.*discharge"
-# AC-18 — mid-chain Step-5 Critical/High halts + surfaces to clear
-chk "crucible-midchain-halt" "skills/crucible/SKILL.md" "Critical or High|Critical/High"
+# mid-chain Step-5 Critical/High halts + surfaces to clear, no Open-Questions fold, no auto-advance, then human accept
+chk "crucible-midchain-halt"  "skills/crucible/SKILL.md" "Critical or High|Critical/High"
 chk "crucible-midchain-clear" "skills/crucible/SKILL.md" "halt.*surface|surface.*clear|clear .?resolve or dismiss"
-# AC-17 — terminates at human accept, names the build phase, no auto gate/build
+chk "crucible-no-oq-fold"     "skills/crucible/SKILL.md" "fold it into Open Questions|silently fold.*Open Questions"
+chk "crucible-no-advance"     "skills/crucible/SKILL.md" "auto-advance"
+chk "crucible-then-accept"    "skills/crucible/SKILL.md" "terminal human-accept"
+# terminates at human accept, names the build phase, no auto gate/build
 chk "crucible-human-accept" "skills/crucible/SKILL.md" "human accept"
 chk "crucible-names-build"  "skills/crucible/SKILL.md" "build phase|/build"
 chk "crucible-no-auto"      "skills/crucible/SKILL.md" "NOT auto-invoke"
-# AC-17 negative — body must NOT INVOKE the design-review gate
+# negative — body must NOT INVOKE the design-review gate NOR a writing-plans step.
+# (A naming-only mention of /build as "the next stage" is allowed per spec OQ-5 — a negative
+#  grep cannot distinguish naming from invoking; design-review + writing-plans tokens are absent
+#  entirely, which IS grep-checkable.)
 if grep -qE "/touchstone:design-review" "$root/skills/crucible/SKILL.md"; then
   echo "FAIL crucible-no-design-review-token"; fail=$((fail+1)); else echo "ok crucible-no-design-review-token"; fi
+if grep -qE "superpowers:writing-plans|/superpowers:writing-plans" "$root/skills/crucible/SKILL.md"; then
+  echo "FAIL crucible-no-writing-plans-token"; fail=$((fail+1)); else echo "ok crucible-no-writing-plans-token"; fi
 # quality bar — <=200 lines
 lc="$(wc -l < "$root/skills/crucible/SKILL.md")"
 [ "$lc" -le 200 ] && echo "ok crucible-line-count ($lc)" || { echo "FAIL crucible-line-count: $lc > 200"; fail=$((fail+1)); }

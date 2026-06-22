@@ -48,12 +48,13 @@ assert req-legacy        0 "pass"           req-legacy.md
 assert req-self-trip     0 "pass"           req-self-trip.md
 
 assert story-happy        0 "pass"                    story-happy.md
-assert story-dropped      1 "US-2"                     story-dropped.md
-assert story-dangling     1 "US-9"                     story-dangling.md
-assert story-zerotrace    1 "REQ-2"                    story-zerotrace.md
-assert story-zerotrace-e  1 "REQ-2"                    story-zerotrace-empty.md
+assert story-dropped      1 "US-2 has no requirement"     story-dropped.md
+assert story-dangling     1 "US-9 dangling traces-to"      story-dangling.md
+assert story-zerotrace    1 "REQ-2 untraced requirement"   story-zerotrace.md
+assert story-zerotrace-e  1 "REQ-2 untraced requirement"   story-zerotrace-empty.md
 assert story-multitoken   0 "pass"                     story-multitoken.md
 assert story-multiline    0 "pass"                     story-multiline.md
+assert story-sep-variants 0 "pass"                     story-sep-variants.md
 assert story-empty        1 "User Stories"             story-empty.md
 assert story-dup          1 "duplicated"               story-dup.md
 assert story-fenced-head  0 "pass"                     story-fenced-heading.md
@@ -62,7 +63,7 @@ assert story-draft        0 "skipped: draft"           story-draft.md
 assert story-legacy-trace 0 "pass"                     story-legacy-trace.md
 assert story-no-req       1 "untraced story"           story-no-req.md
 
-# AC-12: stories extractor non-zero -> checker fails closed (not treated as empty set)
+# stories extractor non-zero -> checker fails closed (not treated as empty set)
 tmp="$(mktemp -d)"
 cp "$here/../check-spec-floor.sh" "$tmp/"
 printf '#!/usr/bin/env bash\ncase "$1" in reqs) echo REQ-1;; stories) exit 1;; *) exit 2;; esac\n' > "$tmp/spec-extract.sh"
