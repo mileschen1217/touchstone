@@ -4,7 +4,7 @@
 # section only (heading → next non-fenced `## `), fence-aware.
 set -uo pipefail
 cmd="${1:-}"; spec="${2:-}"
-{ [ -n "$cmd" ] && [ -f "$spec" ]; } || { echo "usage: spec-extract.sh <reqs|digest> <spec>" >&2; exit 2; }
+{ [ -n "$cmd" ] && [ -f "$spec" ]; } || { echo "usage: spec-extract.sh <reqs|stories|digest> <spec>" >&2; exit 2; }
 
 reqs() {
   awk '
@@ -14,6 +14,17 @@ reqs() {
     inac && /^## / { inac=0 }
     !inac  { next }
     /^### Requirement:[[:space:]]+REQ-[0-9]+/ { match($0,/REQ-[0-9]+/); print substr($0,RSTART,RLENGTH) }
+  ' "$spec" | sort -u
+}
+
+stories() {
+  awk '
+    /^```/ { fence = !fence; next }
+    fence  { next }
+    /^## User Stories[[:space:]]*$/ { inus=1; next }
+    inus && /^## / { inus=0 }
+    !inus  { next }
+    /^[[:space:]]*-[[:space:]]+US-[0-9]+([^[:alnum:]]|$)/ { match($0,/US-[0-9]+/); print substr($0,RSTART,RLENGTH) }
   ' "$spec" | sort -u
 }
 
@@ -31,7 +42,8 @@ digest() {
 }
 
 case "$cmd" in
-  reqs)   reqs ;;
-  digest) digest ;;
-  *)      echo "unknown subcommand: $cmd" >&2; exit 2 ;;
+  reqs)    reqs ;;
+  stories) stories ;;
+  digest)  digest ;;
+  *)       echo "unknown subcommand: $cmd" >&2; exit 2 ;;
 esac
