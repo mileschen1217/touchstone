@@ -25,4 +25,8 @@ d4="$(bash "$ex" digest "$fix/req-fenced-hash.md")"
 # golden pin: a FROZEN fixture's digest must equal the recorded literal (catches algorithm drift)
 GOLD="$(bash "$ex" digest "$fix/digest-golden.md")"
 [ "$GOLD" = "$(cat "$fix/digest-golden.sha")" ] && echo "ok digest-golden" || { echo "FAIL golden drift: $GOLD"; fail=$((fail+1)); }
+sout="$(bash "$ex" stories "$fix/story-extract.md")"
+if [ "$sout" != "$(printf 'US-1\nUS-2')" ]; then echo "FAIL stories: [$sout]"; fail=$((fail+1)); else echo "ok stories"; fi
+sus="$(bash "$ex" stories "$fix/story-extract.md")"
+[ "$sus" = "$sout" ] && echo "ok stories-deterministic" || { echo "FAIL stories non-deterministic"; fail=$((fail+1)); }
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail"; exit 1; fi

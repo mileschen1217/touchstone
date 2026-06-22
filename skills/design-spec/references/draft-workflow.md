@@ -1,5 +1,14 @@
 # Draft inputs & workflow
 
+## PRD inheritance (Step-0 foundation source)
+
+Precedence: **PRD > parent-epic `## Foundation` > from-scratch opener**.
+
+- A PRD is "present" when its path/content is **supplied to Step 0** (crucible passes it down the chain; a standalone design-spec with no PRD argument takes the parent-Foundation or from-scratch branch).
+- PRD present: its `why` seeds `Foundation.Intention`; its user-stories seed the spec's `## User Stories` section, mirrored with their `US-N` ids (a one-time snapshot, authoritative for the spec's lifecycle thereafter).
+- Both PRD and parent-epic Foundation present: the PRD supplies why + stories; the **parent supplies phase framing** (its scope / out-of-scope bounding this phase).
+- The standing **"Does this spec's scope differ?"** sharpening runs in the inheritance branch whenever a PRD is present (with OR without a parent) — surfacing any PRD/parent conflict, or the bare scope-differ question against the PRD, for human resolution rather than a silent merge.
+
 ## Inputs to collect
 
 If not provided in the invocation:

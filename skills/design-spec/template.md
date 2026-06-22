@@ -63,6 +63,12 @@ What hurts today? Concrete, scoped, falsifiable. State the user or system pain w
 > sharpening is confirmed with the user during drafting — it is not
 > silently inherited.
 
+## User Stories
+
+> The story layer (top of the contract spine). One entry per user-story; the full narrative lives in the PRD. Every requirement below must `traces-to:` ≥1 of these.
+
+- US-1 — As a/an <actor>, I want <capability>, so that <outcome>
+
 ## Acceptance Criteria
 
 Given/When/Then scenarios — the **outer ATDD loop's contract**. Cover happy path, error paths, boundary values. Non-negotiable: every error path and boundary named here must correspond to at least one acceptance test scenario.
@@ -82,6 +88,8 @@ Each requirement is authored as a `### Requirement: REQ-N — <EARS SHALL statem
 ---
 
 ### Requirement: REQ-1 — the <system> SHALL <response> [EARS template — replace this text]
+
+traces-to: US-1
 
 #### AC-1 — <full-name>
 

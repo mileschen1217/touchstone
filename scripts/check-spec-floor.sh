@@ -37,6 +37,43 @@ if [ "$extrc" -ne 0 ]; then
   exit 1
 fi
 
+# ---- story→requirement trace (structure-triggered; runs in BOTH branches) ----
+# Hoisted ABOVE the requirement/legacy split so a stories-but-no-requirement spec
+# still gets dropped-story violations; accumulates into the shared $violations,
+# which each branch's final "violations==0 ? pass : RED" decision reads.
+# Trigger is FENCE-AWARE (a fenced `## User Stories` example must NOT fire it).
+has_us="$(awk '/^```/{f=!f;next} f{next} /^## User Stories[[:space:]]*$/{print "yes"; exit}' "$spec")"
+if [ "$has_us" = "yes" ]; then
+  storyset="$(bash "$ex" stories "$spec")"; strc=$?
+  if [ "$strc" -ne 0 ]; then echo "FAIL: spec-extract stories failed"; exit 1; fi
+
+  rawstories="$(awk '
+    /^```/ { fence=!fence; next } fence { next }
+    /^## User Stories[[:space:]]*$/ { inus=1; next }
+    inus && /^## / { inus=0 } !inus { next }
+    /^[[:space:]]*-[[:space:]]+US-[0-9]+([^[:alnum:]_]|$)/ { match($0,/US-[0-9]+/); print substr($0,RSTART,RLENGTH) }
+  ' "$spec")"
+
+  if [ -z "$storyset" ]; then note "## User Stories present but holds zero parseable US-N entries"; fi
+  for u in $(printf '%s\n' "$rawstories" | sort | uniq -d); do note "$u is a duplicated user-story id"; done
+
+  tracedpairs="$(awk '
+    /^```/ { fence=!fence; next } fence { next }
+    /^## Acceptance Criteria[[:space:]]*$/ { inac=1; next }
+    inac && /^## / { inac=0 } !inac { next }
+    /^### Requirement:[[:space:]]+REQ-[0-9]+/ { match($0,/REQ-[0-9]+/); cur=substr($0,RSTART,RLENGTH); next }
+    /^traces-to:/ && cur!="" {
+      line=$0
+      while (match(line,/US-[0-9]+/)) { print cur " " substr(line,RSTART,RLENGTH); line=substr(line,RSTART+RLENGTH) }
+    }
+  ' "$spec")"
+  tracedset="$(printf '%s\n' "$tracedpairs" | awk 'NF{print $2}' | sort -u)"
+
+  for u in $storyset; do printf '%s\n' "$tracedset" | grep -qx "$u" || note "$u has no requirement (untraced story)"; done
+  for u in $tracedset; do [ -n "$u" ] && { printf '%s\n' "$storyset" | grep -qx "$u" || note "$u dangling traces-to (no such user-story)"; }; done
+  for r in $reqset; do printf '%s\n' "$tracedpairs" | grep -q "^$r " || note "$r untraced requirement (no traces-to)"; done
+fi
+
 if [ -n "$reqset" ]; then
   # ---- requirement-bearing path ----
   scan="$(awk '
