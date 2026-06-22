@@ -6,7 +6,7 @@ Orientation for maintainers. The executable procedure lives in `SKILL.md`.
 
 Per-batch volume is high enough that Pattern A's 2× cost is not justified. Cross-vendor
 diversity is preserved via the builder→reviewer swap. High-leverage Pattern A is reserved
-for `/touchstone:design-review` (Stage 0), `/touchstone:arch-review`, and
+for `/touchstone:design-review` (Stage 0), `/touchstone:keystone`, and
 `/touchstone:design-spec`.
 
 ## Dependencies

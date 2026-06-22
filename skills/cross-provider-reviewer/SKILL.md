@@ -94,7 +94,7 @@ Skill body's final assistant text: the synthesized review.md content. The orches
 
 ## Cost note
 
-Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/touchstone:design-review`), arch consult (`/touchstone:arch-review`), design spec (`/touchstone:design-spec`), or ad-hoc opt-in for high-risk diffs.
+Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/touchstone:design-review`), structural commitment (`/touchstone:keystone`), design spec (`/touchstone:design-spec`), or ad-hoc opt-in for high-risk diffs.
 
 ## Dependencies
 
