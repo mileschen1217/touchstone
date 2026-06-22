@@ -108,4 +108,25 @@ if grep -qE "/touchstone:design-review" "$root/skills/crucible/SKILL.md"; then
 lc="$(wc -l < "$root/skills/crucible/SKILL.md")"
 [ "$lc" -le 200 ] && echo "ok crucible-line-count ($lc)" || { echo "FAIL crucible-line-count: $lc > 200"; fail=$((fail+1)); }
 
+# crucible is registered by its skill directory (skills are auto-discovered from skills/;
+# the manifests carry no per-skill list — the other 11 skills aren't listed either).
+[ -f "$root/skills/crucible/SKILL.md" ] && echo "ok crucible-skill-registered" || { echo "FAIL crucible-skill-registered: skills/crucible/SKILL.md missing"; fail=$((fail+1)); }
+# versions parse and match across both manifests
+if python3 - "$root" <<'PY'
+import json,sys
+root=sys.argv[1]
+a=json.load(open(f"{root}/.claude-plugin/plugin.json")).get("version")
+b=json.load(open(f"{root}/.claude-plugin/marketplace.json"))
+# marketplace may nest version under a plugin entry; accept either top-level or any plugin entry
+def has(v,o):
+    if isinstance(o,dict):
+        if o.get("version")==v: return True
+        return any(has(v,x) for x in o.values())
+    if isinstance(o,list):
+        return any(has(v,x) for x in o)
+    return False
+sys.exit(0 if (a and has(a,b)) else 1)
+PY
+then echo "ok manifest-version-consistent"; else echo "FAIL manifest-version-consistent"; fail=$((fail+1)); fi
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
