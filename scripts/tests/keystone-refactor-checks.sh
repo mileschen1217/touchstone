@@ -75,6 +75,8 @@ DR=skills/design-review/SKILL.md
 if [ -f "$DR" ]; then
   neg=$(grep -nE 'type:[[:space:]]*discovery|\*-discovery\.md|discovery system prompt|For discovery doc|/touchstone:arch-discovery' "$DR")
   [ -z "$neg" ] || err "AC-7 residual discovery token in design-review: $neg"
+  nin=$(grep -c '→ in scope' "$DR")
+  [ "$nin" -eq 3 ] || err "AC-7 expected exactly 3 in-scope lines, got $nin (guards a path-only 4th rule sneaking a kind past the type-token extraction)"
   kinds=$(grep '→ in scope' "$DR" | grep -oE 'type: [a-z]+' | sed 's/type: //' | sort -u | tr '\n' ',')
   [ "$kinds" = "adr,plan,spec," ] || err "AC-7 scope-in kinds != {spec,plan,adr}: '$kinds'"
   pc=$(grep -c 'You are reviewing an authored design document' "$DR")

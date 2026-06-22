@@ -9,7 +9,8 @@ holds usage reference and dependency context the running agent does not need.
 |---|---|
 | `/touchstone:keystone` | Interactive: asks for question, context, candidates |
 | `/touchstone:keystone "<question>"` | Skip the prompt; derive context from conversation |
-| `/touchstone:keystone --defer-adr` | Run the consult but skip ADR capture even if a decision is reached |
+
+(No `--defer-adr` option: once a decision is reached the durable ADR is normative — see `SKILL.md` and the binding rule below. ADR capture is skipped only when NO decision was made.)
 
 ## Dependencies
 
