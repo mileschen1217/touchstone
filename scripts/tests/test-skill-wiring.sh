@@ -83,4 +83,29 @@ chk "dw-prd-us-preserved"     "skills/design-spec/references/draft-workflow.md" 
 chk "dw-prd-parent-framing"   "skills/design-spec/references/draft-workflow.md" "phase framing|parent supplies"
 chk "dw-prd-scope-differ"     "skills/design-spec/references/draft-workflow.md" "scope differ|Does this spec.?s scope differ"
 
+# AC-13 — chains the four in order
+chk "crucible-brainstorm"  "skills/crucible/SKILL.md" "superpowers:brainstorming"
+chk "crucible-grill"       "skills/crucible/SKILL.md" "grill-with-docs"
+chk "crucible-to-prd"      "skills/crucible/SKILL.md" "to-prd"
+chk "crucible-design-spec" "skills/crucible/SKILL.md" "touchstone:design-spec"
+if awk '/superpowers:brainstorming/{b=NR} /grill-with-docs/{g=NR} /to-prd/{p=NR} /touchstone:design-spec/{d=NR} END{exit !(b&&g&&p&&d && b<g && g<p && p<d)}' "$root/skills/crucible/SKILL.md"; then
+  echo "ok crucible-chain-order"; else echo "FAIL crucible-chain-order"; fail=$((fail+1)); fi
+# AC-14 — assigns each user-story a unique US-N id
+chk "crucible-us-assign"   "skills/crucible/SKILL.md" "assign each user-story a unique .?US-N|unique US-N id"
+# AC-19 — inline grill discharges the pre-spec grill gate
+chk "crucible-grill-disch" "skills/crucible/SKILL.md" "discharge.*grill gate|grill gate.*discharge"
+# AC-18 — mid-chain Step-5 Critical/High halts + surfaces to clear
+chk "crucible-midchain-halt" "skills/crucible/SKILL.md" "Critical or High|Critical/High"
+chk "crucible-midchain-clear" "skills/crucible/SKILL.md" "halt.*surface|surface.*clear|clear .?resolve or dismiss"
+# AC-17 — terminates at human accept, names the build phase, no auto gate/build
+chk "crucible-human-accept" "skills/crucible/SKILL.md" "human accept"
+chk "crucible-names-build"  "skills/crucible/SKILL.md" "build phase|/build"
+chk "crucible-no-auto"      "skills/crucible/SKILL.md" "NOT auto-invoke"
+# AC-17 negative — body must NOT INVOKE the design-review gate
+if grep -qE "/touchstone:design-review" "$root/skills/crucible/SKILL.md"; then
+  echo "FAIL crucible-no-design-review-token"; fail=$((fail+1)); else echo "ok crucible-no-design-review-token"; fi
+# quality bar — <=200 lines
+lc="$(wc -l < "$root/skills/crucible/SKILL.md")"
+[ "$lc" -le 200 ] && echo "ok crucible-line-count ($lc)" || { echo "FAIL crucible-line-count: $lc > 200"; fail=$((fail+1)); }
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
