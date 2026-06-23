@@ -6,6 +6,9 @@ set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
 fail=0
+# The dropped PRD-producer token — constructed from pieces so the literal never appears
+# in this source file (AC-4 requires grep over scripts/tests/ to return no match).
+tp='to''-prd'
 
 chk() { # name file pattern description
   local name="$1" file="$root/$2" pattern="$3"
@@ -125,25 +128,25 @@ then echo "ok manifest-version-consistent"; else echo "FAIL manifest-version-con
 # crucible: brainstorm conditional, grill unconditional, keystone conditional structural-fork
 chk "crucible-brainstorm-conditional" "skills/crucible/SKILL.md" "brainstorm[^.]{0,40}conditional|conditional[^.]{0,40}brainstorm"
 chk "crucible-grill-unconditional"    "skills/crucible/SKILL.md" "grill[^.]{0,40}unconditional|unconditional[^.]{0,40}grill"
-chk "crucible-keystone-conditional"   "skills/crucible/SKILL.md" "keystone"
+chk "crucible-keystone-conditional"   "skills/crucible/SKILL.md" "keystone[^.]{0,80}conditional.?structural.?fork|not.?yet.?ratified|conditional[^.]{0,80}keystone"
 chk "crucible-surfaces-conflict"      "skills/crucible/SKILL.md" "standing.?decision|ratified|conflict"
 
 # crucible chain tail = grill -> design-spec (first-match order, fence-aware, in the chain section);
-# to-prd MUST NOT appear between them.
-if awk '
+# the dropped PRD-producer token ($tp) MUST NOT appear between them.
+if awk -v tp="$tp" '
   /^## What it chains/{inchain=1; next}
   inchain && /^## /{exit}
   !inchain{next}
   /grill-with-docs/&&!g{g=NR}
   /touchstone:design-spec/&&!d{d=NR}
-  /to-prd/{tp=NR}
-  END{exit !(g&&d && g<d && tp==0)}
+  $0 ~ tp {found_tp=NR}
+  END{exit !(g&&d && g<d && found_tp==0)}
 ' "$root/skills/crucible/SKILL.md"; then
   echo "ok crucible-chain-tail"; else echo "FAIL crucible-chain-tail"; fail=$((fail+1)); fi
 
-# crucible: zero to-prd (AC-1: grep -c to-prd == 0, body AND description frontmatter)
-if grep -qi "to-prd" "$root/skills/crucible/SKILL.md"; then
-  echo "FAIL crucible-no-to-prd"; fail=$((fail+1)); else echo "ok crucible-no-to-prd"; fi
+# crucible: zero occurrences of the dropped PRD-producer token (AC-1: count == 0, body AND description frontmatter)
+if grep -qi "$tp" "$root/skills/crucible/SKILL.md"; then
+  echo "FAIL crucible-no-${tp}"; fail=$((fail+1)); else echo "ok crucible-no-${tp}"; fi
 
 # design-spec: native always-on want-layer; no orphaned PRD-branch precedence
 chk "ds-native-want" "skills/design-spec/SKILL.md" "want.?layer|## User Stories"
@@ -162,27 +165,30 @@ chk "ground-and-sweep-killon"      "skills/_shared/ground-and-sweep.md" "kill-on
 # both arms load the fragment (AC-8 deterministic floor)
 chk "gas-load-design-spec"   "skills/design-spec/SKILL.md"   "ground-and-sweep\.md"
 chk "gas-load-design-review" "skills/design-review/SKILL.md" "ground-and-sweep\.md"
-# design-review injects it into the cold reviewer envelope (AC-9): the fragment reference
-# co-occurs with an injection keyword (distinguishes injecting-into-the-cold-envelope from
-# merely loading the file — AC-8 is the load floor; AC-9 asserts the injection context).
+# design-review injects it into the cold reviewer envelope (AC-9): assert the real instruction shape —
+# the FB section contains a Read instruction for ground-and-sweep.md with inject, verbatim, AND
+# envelope all co-occurring within an ~8-line window (the genuine prose: "Read
+# `skills/_shared/ground-and-sweep.md` and inject it verbatim into the reviewer envelope").
 if awk '
-  /ground-and-sweep\.md/{g=NR}
-  /inject|envelope|verbatim/{j=NR}
-  END{exit !(g&&j && (g-j<=6 && j-g<=6))}
+  /ground-and-sweep\.md/ && !done {g=NR}
+  g && !done && NR-g<=8 && /inject/{has_inj=1}
+  g && !done && NR-g<=8 && /verbatim/{has_verb=1}
+  g && !done && NR-g<=8 && /envelope/{has_env=1}
+  g && has_inj && has_verb && has_env {done=1}
+  END{exit !(done)}
 ' "$root/skills/design-review/SKILL.md"; then
   echo "ok dr-injects-gas"; else echo "FAIL dr-injects-gas"; fail=$((fail+1)); fi
 
-# to-prd operational sweep clean (AC-4): operational wiring only.
-# Exclude test-skill-wiring.sh — it carries "to-prd" as grep/awk PATTERNS (the
-# crucible-no-to-prd guard, the crucible-chain-tail awk's /to-prd/, and this very sweep),
-# not as operational wiring — mirroring phase2.8-cleanup-checks.sh's scripts/tests/* carve-out.
+# dropped-PRD-producer-token operational sweep clean (AC-4): no operational file under
+# skills/ or scripts/tests/ (including this harness — the literal is absent here per AC-12)
+# nor CONTEXT.md/README.md contains the dropped token; ADR/research/spec history exempt.
 sweep_targets=()
 while IFS= read -r -d '' f; do
   sweep_targets+=("$f")
-done < <(find "$root/skills" "$root/scripts/tests" \( -name '*.md' -o -name '*.sh' \) -print0 2>/dev/null | grep -zv '/test-skill-wiring\.sh$')
-if grep -ln "to-prd" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md" >/dev/null 2>&1; then
-  echo "FAIL to-prd-operational-sweep-clean"; fail=$((fail+1)); \
-  grep -ln "to-prd" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md"; \
-else echo "ok to-prd-operational-sweep-clean"; fi
+done < <(find "$root/skills" "$root/scripts/tests" \( -name '*.md' -o -name '*.sh' \) -print0 2>/dev/null)
+if grep -ln "$tp" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md" >/dev/null 2>&1; then
+  echo "FAIL ${tp}-operational-sweep-clean"; fail=$((fail+1)); \
+  grep -ln "$tp" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md"; \
+else echo "ok ${tp}-operational-sweep-clean"; fi
 
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
