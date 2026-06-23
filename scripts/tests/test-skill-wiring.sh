@@ -72,38 +72,9 @@ if awk '
 if awk '/^### Requirement:/{r=NR} /^traces-to:/{t=NR} END{ exit !(r>0 && t>0 && r<t) }' "$root/skills/design-spec/template.md"; then
   echo "ok template-traces-in-req"; else echo "FAIL template-traces-in-req"; fail=$((fail+1)); fi
 
-# live branch in SKILL.md
-chk "skill-prd-branch"        "skills/design-spec/SKILL.md" "PRD"
-# detail body in draft-workflow.md — per-clause, PRD-specific (each falsifiable before the edit)
-chk "dw-prd-precedence"       "skills/design-spec/references/draft-workflow.md" "PRD > parent|PRD over parent"
-chk "dw-prd-present-signal"   "skills/design-spec/references/draft-workflow.md" "supplied to Step 0|PRD is .?present"
-chk "dw-prd-why-intention"    "skills/design-spec/references/draft-workflow.md" "why.*Foundation\\.Intention|Foundation\\.Intention"
-chk "dw-prd-stories-mirror"   "skills/design-spec/references/draft-workflow.md" "## User Stories|user-stories"
-chk "dw-prd-us-preserved"     "skills/design-spec/references/draft-workflow.md" "US-N"
-chk "dw-prd-parent-framing"   "skills/design-spec/references/draft-workflow.md" "phase framing|parent supplies"
-chk "dw-prd-scope-differ"     "skills/design-spec/references/draft-workflow.md" "scope differ|Does this spec.?s scope differ"
-
-# chains the four sub-skills in invocation order
-chk "crucible-brainstorm"  "skills/crucible/SKILL.md" "superpowers:brainstorming"
+# chains core sub-skills
 chk "crucible-grill"       "skills/crucible/SKILL.md" "grill-with-docs"
-chk "crucible-to-prd"      "skills/crucible/SKILL.md" "to-prd"
 chk "crucible-design-spec" "skills/crucible/SKILL.md" "touchstone:design-spec"
-# Order check scoped to the `## What it chains` section (the numbered invocation list),
-# FIRST-match per token — excludes the frontmatter description and trailing explanatory
-# mentions, so neither a reordered list NOR a stray later mention can fool it.
-if awk '
-  /^## What it chains/{inchain=1; next}
-  inchain && /^## /{exit}
-  !inchain{next}
-  /superpowers:brainstorming/&&!b{b=NR}
-  /grill-with-docs/&&!g{g=NR}
-  /to-prd/&&!p{p=NR}
-  /touchstone:design-spec/&&!d{d=NR}
-  END{exit !(b&&g&&p&&d && b<g && g<p && p<d)}
-' "$root/skills/crucible/SKILL.md"; then
-  echo "ok crucible-chain-order"; else echo "FAIL crucible-chain-order"; fail=$((fail+1)); fi
-# documents the US-N id assignment
-chk "crucible-us-assign"   "skills/crucible/SKILL.md" "assign each user-story a unique .?US-N|unique US-N id"
 # states the inline grill discharges the pre-spec grill gate
 chk "crucible-grill-disch" "skills/crucible/SKILL.md" "discharge.*grill gate|grill gate.*discharge"
 # mid-chain Step-5 Critical/High halts + surfaces to clear, no Open-Questions fold, no auto-advance, then human accept
@@ -148,5 +119,56 @@ def has(v,o):
 sys.exit(0 if (a and has(a,b)) else 1)
 PY
 then echo "ok manifest-version-consistent"; else echo "FAIL manifest-version-consistent"; fail=$((fail+1)); fi
+
+# --- NEW MODEL (Phase 2.9): non-greenfield crucible, native want-layer, both-arms ground-and-sweep ---
+
+# crucible: brainstorm conditional, grill unconditional, keystone conditional structural-fork
+chk "crucible-brainstorm-conditional" "skills/crucible/SKILL.md" "brainstorm[^.]{0,40}conditional|conditional[^.]{0,40}brainstorm"
+chk "crucible-grill-unconditional"    "skills/crucible/SKILL.md" "grill[^.]{0,40}unconditional|unconditional[^.]{0,40}grill"
+chk "crucible-keystone-conditional"   "skills/crucible/SKILL.md" "keystone"
+chk "crucible-surfaces-conflict"      "skills/crucible/SKILL.md" "standing.?decision|ratified|conflict"
+
+# crucible chain tail = grill -> design-spec (first-match order, fence-aware, in the chain section);
+# to-prd MUST NOT appear between them.
+if awk '
+  /^## What it chains/{inchain=1; next}
+  inchain && /^## /{exit}
+  !inchain{next}
+  /grill-with-docs/&&!g{g=NR}
+  /touchstone:design-spec/&&!d{d=NR}
+  /to-prd/{tp=NR}
+  END{exit !(g&&d && g<d && tp==0)}
+' "$root/skills/crucible/SKILL.md"; then
+  echo "ok crucible-chain-tail"; else echo "FAIL crucible-chain-tail"; fail=$((fail+1)); fi
+
+# crucible: zero to-prd (AC-1: grep -c to-prd == 0, body AND description frontmatter)
+if grep -qi "to-prd" "$root/skills/crucible/SKILL.md"; then
+  echo "FAIL crucible-no-to-prd"; fail=$((fail+1)); else echo "ok crucible-no-to-prd"; fi
+
+# design-spec: native always-on want-layer; no orphaned PRD-branch precedence
+chk "ds-native-want" "skills/design-spec/SKILL.md" "want.?layer|## User Stories"
+if grep -nE "PRD branch|PRD inheritance|PRD > parent|PRD over parent" \
+   "$root/skills/design-spec/SKILL.md" "$root/skills/design-spec/references/draft-workflow.md" >/dev/null 2>&1; then
+  echo "FAIL ds-no-prd-branch"; fail=$((fail+1)); else echo "ok ds-no-prd-branch"; fi
+
+# ground-and-sweep fragment: content (both tests + root + scope rule) + bridge frontmatter
+chk "ground-and-sweep-content"     "skills/_shared/ground-and-sweep.md" "ground.?before.?assert"
+chk "ground-and-sweep-content-2"   "skills/_shared/ground-and-sweep.md" "sweep.?to.?dry|saturation"
+chk "ground-and-sweep-root"        "skills/_shared/ground-and-sweep.md" "intension.?extension"
+chk "ground-and-sweep-scope-rule"  "skills/_shared/ground-and-sweep.md" "superset|full subject|true.?subject"
+chk "ground-and-sweep-frontmatter" "skills/_shared/ground-and-sweep.md" "kind: bridge"
+chk "ground-and-sweep-killon"      "skills/_shared/ground-and-sweep.md" "kill-on: lever-discipline-mechanisation"
+
+# both arms load the fragment (AC-8 deterministic floor)
+chk "gas-load-design-spec"   "skills/design-spec/SKILL.md"   "ground-and-sweep\.md"
+chk "gas-load-design-review" "skills/design-review/SKILL.md" "ground-and-sweep\.md"
+# design-review injects it into the cold reviewer envelope (AC-9)
+chk "dr-injects-gas" "skills/design-review/SKILL.md" "ground-and-sweep\.md"
+
+# to-prd operational sweep clean (AC-4): skills/, scripts/tests/, CONTEXT.md, README.md
+if grep -rln "to-prd" "$root/skills" "$root/scripts/tests" "$root/CONTEXT.md" "$root/README.md" >/dev/null 2>&1; then
+  echo "FAIL to-prd-operational-sweep-clean"; fail=$((fail+1)); \
+  grep -rln "to-prd" "$root/skills" "$root/scripts/tests" "$root/CONTEXT.md" "$root/README.md"; \
+else echo "ok to-prd-operational-sweep-clean"; fi
 
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi

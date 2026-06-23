@@ -29,12 +29,16 @@ while IFS= read -r -d '' f; do
 done < <(git ls-files -z)
 [ -z "$dangle" ] || err "[ac3-no-dangling] section pointer still in:$dangle"
 
-# --- [ac5-suite-size]: each skill (except design-spec) <=200 body lines OR well-formed keep-long ---
+# --- [ac5-suite-size]: each skill <=200 body lines OR well-formed keep-long;
+#     EXCEPT design-spec + design-review which are HARD <=200 (keep-long forbidden, Phase 2.9 REQ-5) ---
+HARDCAP=" skills/design-spec/SKILL.md skills/design-review/SKILL.md "
 for f in skills/*/SKILL.md; do
-  case "$f" in skills/design-spec/SKILL.md) continue;; esac
   [ -f "$f" ] || continue
   b=$(bodylines "$f")
-  if [ "$b" -gt 200 ]; then
+  if [[ "$HARDCAP" == *" $f "* ]]; then
+    [ "$b" -le 200 ] || err "[ac5-suite-size] $f body=$b > 200 (HARD cap; keep-long forbidden for this skill)"
+    grep -Eq 'keep-long:[[:space:]]*[0-9]+' "$f" && err "[ac5-suite-size] $f carries keep-long: — forbidden for design-spec/design-review (REQ-5 no escape hatch)"
+  elif [ "$b" -gt 200 ]; then
     grep -Eq 'keep-long:[[:space:]]*[0-9]+([^[:alnum:]]|$)' "$f" \
       || err "[ac5-suite-size] $f body=$b > 200 and no well-formed keep-long: <n> annotation"
   fi
