@@ -152,6 +152,22 @@ in `skills/cross-provider-reviewer/references/provenance.md`.
 
 In all cases: do not auto-promote spec status; the user (or caller skill) decides when to proceed.
 
+## Ground-and-Sweep (FB arm — review / feedback path only)
+
+**Injection scope:** this block fires on the review / FB path only (INV-NO-SILENT-PATH).
+It does NOT apply to the design-spec FF arm or any other path.
+
+Read `skills/_shared/ground-and-sweep.md` and inject it verbatim into the reviewer
+envelope (append to `system_prompt`, alongside `live-bearing-predicate.md`) so the cold
+reviewer applies sweep-to-dry over the AC's true subject.
+
+**FB wrapper (per-arm delta — applies the shared core; does NOT recopy its tests or root):**
+- Each emitted finding must be grounded in concrete repo facts: file path, line number,
+  field value, or AC-id. A generic assertion ("the code has issues") fails ground-before-assert.
+- Sweep the AC's **true subject**, not just the delivery diff. When the true subject set
+  exceeds the diff, the reviewer must cover the full set before claiming saturation.
+- Saturation = a full pass surfaces nothing new. Stop at saturation, never at first-hit.
+
 ## Related
 
 - Pattern + maintainer notes (invocation, history): `README.md`.
