@@ -162,13 +162,27 @@ chk "ground-and-sweep-killon"      "skills/_shared/ground-and-sweep.md" "kill-on
 # both arms load the fragment (AC-8 deterministic floor)
 chk "gas-load-design-spec"   "skills/design-spec/SKILL.md"   "ground-and-sweep\.md"
 chk "gas-load-design-review" "skills/design-review/SKILL.md" "ground-and-sweep\.md"
-# design-review injects it into the cold reviewer envelope (AC-9)
-chk "dr-injects-gas" "skills/design-review/SKILL.md" "ground-and-sweep\.md"
+# design-review injects it into the cold reviewer envelope (AC-9): the fragment reference
+# co-occurs with an injection keyword (distinguishes injecting-into-the-cold-envelope from
+# merely loading the file — AC-8 is the load floor; AC-9 asserts the injection context).
+if awk '
+  /ground-and-sweep\.md/{g=NR}
+  /inject|envelope|verbatim/{j=NR}
+  END{exit !(g&&j && (g-j<=6 && j-g<=6))}
+' "$root/skills/design-review/SKILL.md"; then
+  echo "ok dr-injects-gas"; else echo "FAIL dr-injects-gas"; fail=$((fail+1)); fi
 
-# to-prd operational sweep clean (AC-4): skills/, scripts/tests/, CONTEXT.md, README.md
-if grep -rln "to-prd" "$root/skills" "$root/scripts/tests" "$root/CONTEXT.md" "$root/README.md" >/dev/null 2>&1; then
+# to-prd operational sweep clean (AC-4): operational wiring only.
+# Exclude test-skill-wiring.sh — it carries "to-prd" as grep/awk PATTERNS (the
+# crucible-no-to-prd guard, the crucible-chain-tail awk's /to-prd/, and this very sweep),
+# not as operational wiring — mirroring phase2.8-cleanup-checks.sh's scripts/tests/* carve-out.
+sweep_targets=()
+while IFS= read -r -d '' f; do
+  sweep_targets+=("$f")
+done < <(find "$root/skills" "$root/scripts/tests" \( -name '*.md' -o -name '*.sh' \) -print0 2>/dev/null | grep -zv '/test-skill-wiring\.sh$')
+if grep -ln "to-prd" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md" >/dev/null 2>&1; then
   echo "FAIL to-prd-operational-sweep-clean"; fail=$((fail+1)); \
-  grep -rln "to-prd" "$root/skills" "$root/scripts/tests" "$root/CONTEXT.md" "$root/README.md"; \
+  grep -ln "to-prd" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md"; \
 else echo "ok to-prd-operational-sweep-clean"; fi
 
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
