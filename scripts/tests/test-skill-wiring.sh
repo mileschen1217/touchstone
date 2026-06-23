@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Grep-based regression test for markdown skill wiring.
-# Backs AC-9/11/12/14 prose — asserts the wiring is present in the skill sources.
+# Asserts the front-end skill wiring is present in the skill sources.
 # Exit 0 = ALL GREEN; non-zero = RED.
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
 fail=0
 # The dropped PRD-producer token — constructed from pieces so the literal never appears
-# in this source file (AC-4 requires grep over scripts/tests/ to return no match).
+# in this source file (the operational sweep greps scripts/tests/ and must return no match).
 tp='to''-prd'
 
 chk() { # name file pattern description
@@ -153,7 +153,7 @@ if awk -v tp="$tp" '
 ' "$root/skills/crucible/SKILL.md"; then
   echo "ok crucible-chain-tail"; else echo "FAIL crucible-chain-tail"; fail=$((fail+1)); fi
 
-# crucible: zero occurrences of the dropped PRD-producer token (AC-1: count == 0, body AND description frontmatter)
+# crucible: zero occurrences of the dropped PRD-producer token (count == 0, body AND description frontmatter)
 if grep -qi "$tp" "$root/skills/crucible/SKILL.md"; then
   echo "FAIL crucible-no-${tp}"; fail=$((fail+1)); else echo "ok crucible-no-${tp}"; fi
 
@@ -171,10 +171,10 @@ chk "ground-and-sweep-scope-rule"  "skills/_shared/ground-and-sweep.md" "superse
 chk "ground-and-sweep-frontmatter" "skills/_shared/ground-and-sweep.md" "kind: bridge"
 chk "ground-and-sweep-killon"      "skills/_shared/ground-and-sweep.md" "kill-on: lever-discipline-mechanisation"
 
-# both arms load the fragment (AC-8 deterministic floor)
+# both arms load the fragment (deterministic floor)
 chk "gas-load-design-spec"   "skills/design-spec/SKILL.md"   "ground-and-sweep\.md"
 chk "gas-load-design-review" "skills/design-review/SKILL.md" "ground-and-sweep\.md"
-# design-review injects it into the cold reviewer envelope (AC-9): assert the real instruction shape —
+# design-review injects it into the cold reviewer envelope: assert the real instruction shape —
 # the FB section contains a Read instruction for ground-and-sweep.md with inject, verbatim, AND
 # envelope all co-occurring within an ~8-line window (the genuine prose: "Read
 # `skills/_shared/ground-and-sweep.md` and inject it verbatim into the reviewer envelope").
@@ -202,8 +202,8 @@ if awk '
 ' "$root/skills/design-review/SKILL.md"; then
   echo "ok dr-injects-gas"; else echo "FAIL dr-injects-gas"; fail=$((fail+1)); fi
 
-# dropped-PRD-producer-token operational sweep clean (AC-4): no operational file under
-# skills/ or scripts/tests/ (including this harness — the literal is absent here per AC-12)
+# dropped-PRD-producer-token operational sweep clean: no operational file under
+# skills/ or scripts/tests/ (including this harness — the literal is absent here)
 # nor CONTEXT.md/README.md contains the dropped token; ADR/research/spec history exempt.
 sweep_targets=()
 while IFS= read -r -d '' f; do
