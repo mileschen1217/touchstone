@@ -70,7 +70,7 @@ and inject them into the reviewer envelope: append to the doc-review `system_pro
 (§3 below) AND carry as `evidence_honesty_vocab`. This is spine, not a discipline: it
 fires regardless of which disciplines are adopted (do NOT gate it on `source-as-truth`).
 Item 7 of the doc-review prompt applies this injected doctrine as its feedforward
-(declaration) stage.
+(declaration) stage. Also inject `ground-and-sweep.md` per the FB arm section below.
 
 ### 1. Validate input scope
 
@@ -158,15 +158,17 @@ In all cases: do not auto-promote spec status; the user (or caller skill) decide
 It does NOT apply to the design-spec FF arm or any other path.
 
 Read `skills/_shared/ground-and-sweep.md` and inject it verbatim into the reviewer
-envelope (append to `system_prompt`, alongside `live-bearing-predicate.md`) so the cold
-reviewer applies sweep-to-dry over the AC's true subject.
+envelope (append to `system_prompt`, alongside the injected `live-bearing-predicate.md` content)
+so the cold reviewer applies sweep-to-dry over the AC's true subject. The injected fragment
+carries the shared saturation definition and scope-resolution rule — do not restate them here.
 
-**FB wrapper (per-arm delta — applies the shared core; does NOT recopy its tests or root):**
-- Each emitted finding must be grounded in concrete repo facts: file path, line number,
-  field value, or AC-id. A generic assertion ("the code has issues") fails ground-before-assert.
-- Sweep the AC's **true subject**, not just the delivery diff. When the true subject set
-  exceeds the diff, the reviewer must cover the full set before claiming saturation.
-- Saturation = a full pass surfaces nothing new. Stop at saturation, never at first-hit.
+**FB wrapper (per-arm delta only):**
+- **FB unit identity:** each *emitted finding* (not each AC) must be grounded in concrete
+  repo facts: file path, line number, field value, or AC-id. A generic assertion
+  ("the code has issues") fails ground-before-assert.
+- **FB saturation delta:** saturation on the FB arm = a full review pass over the AC's
+  true subject surfaces nothing new. The verbatim-injected `ground-and-sweep.md` defines
+  the shared saturation criterion and scope-resolution rule; apply them here.
 
 ## Related
 
