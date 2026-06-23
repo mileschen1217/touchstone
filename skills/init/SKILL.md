@@ -12,6 +12,18 @@ kind: workflow
 
 Writes `.claude/touchstone.yaml` in the current project, configuring paths and adopted disciplines for the touchstone plugin's stage skills.
 
+## Argument grammar
+
+```
+/touchstone:init                              # interactive (default)
+/touchstone:init --adopt <discipline>         # repeatable
+/touchstone:init --workspace-root <path>      # override workspace root (default .touchstone)
+/touchstone:init --reset                      # overwrite existing yaml (prior copied to .bak)
+/touchstone:init --migrate                    # migrate schema-1 yaml to schema-2
+```
+
+`--adopt` is repeatable (one per discipline). Each flag's behaviour is detailed in the step that consumes it (`--reset` Step 1, `--migrate` Step 1, `--workspace-root` Step 2, `--adopt` Step 3).
+
 ## Step 1 — Idempotence check
 
 Read `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml` and determine the action from this table:

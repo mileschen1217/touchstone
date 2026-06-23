@@ -181,4 +181,4 @@ Ready to commit: {yes/no}
 
 ## Related
 
-- Dependencies, the "why Pattern B not Pattern A" rationale, and a Key-Rules summary card: `README.md`.
+- Dependencies and the "why Pattern B not Pattern A" rationale: `README.md`.
