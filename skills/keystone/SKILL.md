@@ -20,9 +20,10 @@ kind: workflow
 
 Pillar-2 structural-commitment: decide + record a structural fork before a spec.
 
-**Invariant target:** `CONTEXT.md § Design+review control axis` — arch invariant.
-Gloss: minimize expected complexity (P×cost-weighted); YAGNI-on-cost bounds it.
-The invariant is the comparator — not a checklist. Judgment-comparator: advisory only.
+**Invariant target — arch invariant:** **minimize expected complexity** (change-cost +
+cognitive load; P×cost-weighted; YAGNI-on-cost bounds it — constrain ⟺ expected-benefit > cost).
+The invariant is the comparator, not a checklist. Judgment-comparator: advisory only.
+Full L1/L2/L3 substrate-neutral evaluation rubric: `references/arch-rubric.md`.
 
 ## When to invoke
 
@@ -76,4 +77,4 @@ and a review owner per recorded bet. Write to `docs/adr/` only when a decision i
 
 Decision recorded → `/touchstone:design-spec` (reference the ADR in Related).
 
-**Related:** `adr-authoring.md` · `CONTEXT.md § Design+review control axis`
+**Related:** `adr-authoring.md` · `references/arch-rubric.md` · `ADR-0018` (two-pillar derivation)

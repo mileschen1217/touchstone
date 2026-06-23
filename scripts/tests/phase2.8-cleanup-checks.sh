@@ -13,7 +13,7 @@ bodylines() { # $1 = SKILL.md path; prints body line count (frontmatter excluded
 
 # --- [ac1-context-deleted]: CONTEXT.md § Design+review control axis fully gone (ALL 5 tokens) ---
 for tok in 'Design+review control axis' 'Pillar 1' 'Pillar 2' 'comparator type' 'minimize expected complexity'; do
-  n=$(grep -Fc "$tok" CONTEXT.md 2>/dev/null || echo 0)
+  n=$(grep -Fc "$tok" CONTEXT.md); n=${n:-0}
   [ "$n" -eq 0 ] || err "[ac1-context-deleted] CONTEXT.md still has '$tok' ($n)"
 done
 
@@ -44,7 +44,7 @@ done
 if grep -rqF 'minimize expected complexity' skills/keystone/ 2>/dev/null; then :; else
   err "[ac8-keystone-selfcontained] keystone dir missing the arch invariant 'minimize expected complexity'"
 fi
-kp=$(grep -Fc 'Design+review control axis' skills/keystone/SKILL.md 2>/dev/null || echo 0)
+kp=$(grep -Fc 'Design+review control axis' skills/keystone/SKILL.md); kp=${kp:-0}
 [ "$kp" -eq 0 ] || err "[ac8-keystone-selfcontained] keystone/SKILL.md still points to CONTEXT § control axis ($kp)"
 
 [ "$fail" = 0 ] && echo "phase2.8-cleanup-checks: PASS"
