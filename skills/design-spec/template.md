@@ -65,7 +65,7 @@ What hurts today? Concrete, scoped, falsifiable. State the user or system pain w
 
 ## User Stories
 
-> The story layer (top of the contract spine). One entry per user-story; the full narrative lives in the PRD. Every requirement below must `traces-to:` ≥1 of these.
+> The story layer (top of the contract spine). One entry per user-story; the want-layer narrative lives in THIS spec (the canonical want-home), not in a PRD. Every requirement below must `traces-to:` ≥1 of these.
 
 - US-1 — As a/an <actor>, I want <capability>, so that <outcome>
 
@@ -155,9 +155,18 @@ Table: each row is a specific failure mode, its trigger, and the recovery behavi
 
 ## Invariants
 
-Cross-cutting correctness rules that must hold across every code path. Good invariants become property tests or assertion sweeps. Examples:
-- "No operation modifies source files if the write phase fails."
-- "Every successful run produces exactly one report."
+Cross-cutting correctness rules that must hold across every code path. Good invariants become property tests or assertion sweeps.
+
+**Source taxonomy — every invariant SHALL name its provenance:**
+1. **Governing ADRs / inherited standing decisions** — cite the ADR or decision slug.
+2. **Cross-cutting rules derived from the requirement set** — name the requirement(s) that necessitate it.
+3. **Carried findings / prior-phase constraints** — cite the source spec, phase, or finding id.
+
+An invariant without a named provenance is an ungrounded assertion — the taxonomy prevents invariant-invention with no traceable source.
+
+Examples:
+- "No operation modifies source files if the write phase fails." [source: REQ-3 + ADR-0009]
+- "Every successful run produces exactly one report." [source: REQ-1]
 
 ## Risks / Open Questions
 
