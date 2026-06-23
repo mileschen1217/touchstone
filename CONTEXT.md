@@ -273,7 +273,7 @@ Terms shipped by the `testing-strategy` epic (closed 2026-05-27). The evidence-h
 
 **AC-coverage-honesty principle** — `claim ≤ evidence` for ACs: an AC may not be claimed done unless evidence asserts its Then-clause; mark `[unverified: reason]` otherwise (never pass by default); an AC done with neither is a silent false-green. Baseline/spine — injected **unconditionally**. **Full rule + injectable text:** `skills/_shared/inject/ac-coverage-honesty-principle.md` (single home — injected by `design-review` / `code-review batch`).
 
-**ground-and-sweep doctrine** — dual-use fragment: read warm by `design-spec` (FF arm) and cold-injected by `design-review` (FB arm). Two orthogonal per-unit tests: **ground-before-assert** (every unit names concrete repo facts — file, line, value, or AC-id; generic placeholders fail) + **sweep-to-dry** (stop only at saturation, never first-hit). Root: intension–extension floor — a requirement's intension does not finitely enumerate its extension; saturation is the only honest stopping criterion. Single home: `skills/_shared/ground-and-sweep.md` (dual-use carve-out — see § Template co-location and ADR-0017).
+**ground-and-sweep doctrine** — two orthogonal per-unit tests (ground-before-assert + sweep-to-dry) applied on both the FF (design-spec) and FB (design-review) arms. **Single home:** `skills/_shared/ground-and-sweep.md` (dual-use carve-out — see § Template co-location and ADR-0017).
 
 ## Storage adapter vocabulary
 
