@@ -128,7 +128,16 @@ then echo "ok manifest-version-consistent"; else echo "FAIL manifest-version-con
 # crucible: brainstorm conditional, grill unconditional, keystone conditional structural-fork
 chk "crucible-brainstorm-conditional" "skills/crucible/SKILL.md" "brainstorm[^.]{0,40}conditional|conditional[^.]{0,40}brainstorm"
 chk "crucible-grill-unconditional"    "skills/crucible/SKILL.md" "grill[^.]{0,40}unconditional|unconditional[^.]{0,40}grill"
-chk "crucible-keystone-conditional"   "skills/crucible/SKILL.md" "keystone[^.]{0,80}conditional.?structural.?fork|not.?yet.?ratified|conditional[^.]{0,80}keystone"
+# crucible-keystone-conditional: require keystone + conditional + fork-token ALL within a ±3-line window.
+# A single stray "not-yet-ratified" without conditionality/keystone will FAIL.
+if awk '
+  /keystone/{k=NR}
+  /conditional/{c=NR}
+  /structural.?fork|not.?yet.?ratified/{f=NR}
+  k && c && f && (k-c<=3 && c-k<=3) && (k-f<=3 && f-k<=3) && (c-f<=3 && f-c<=3) {found=1}
+  END{exit !found}
+' "$root/skills/crucible/SKILL.md"; then
+  echo "ok crucible-keystone-conditional"; else echo "FAIL crucible-keystone-conditional"; fail=$((fail+1)); fi
 chk "crucible-surfaces-conflict"      "skills/crucible/SKILL.md" "standing.?decision|ratified|conflict"
 
 # crucible chain tail = grill -> design-spec (first-match order, fence-aware, in the chain section);
@@ -169,13 +178,27 @@ chk "gas-load-design-review" "skills/design-review/SKILL.md" "ground-and-sweep\.
 # the FB section contains a Read instruction for ground-and-sweep.md with inject, verbatim, AND
 # envelope all co-occurring within an ~8-line window (the genuine prose: "Read
 # `skills/_shared/ground-and-sweep.md` and inject it verbatim into the reviewer envelope").
+# dr-injects-gas: on EACH ground-and-sweep.md line, RESET window state and start fresh.
+# Requires Read + inject + verbatim + envelope ALL in the same window (≤3 lines after anchor).
+# found=1 freezes on first complete window; a later incomplete window cannot un-set it.
+# Missing ANY of the four tokens in every window ⟹ found stays 0 ⟹ FAIL.
 if awk '
-  /ground-and-sweep\.md/ && !done {g=NR}
-  g && !done && NR-g<=8 && /inject/{has_inj=1}
-  g && !done && NR-g<=8 && /verbatim/{has_verb=1}
-  g && !done && NR-g<=8 && /envelope/{has_env=1}
-  g && has_inj && has_verb && has_env {done=1}
-  END{exit !(done)}
+  /ground-and-sweep\.md/ {
+    g=NR; has_read=0; has_inj=0; has_verb=0; has_env=0
+    if (/Read/) has_read=1
+    if (/inject/) has_inj=1
+    if (/verbatim/) has_verb=1
+    if (/envelope/) has_env=1
+    next
+  }
+  g && !found && NR-g<=3 {
+    if (/Read/) has_read=1
+    if (/inject/) has_inj=1
+    if (/verbatim/) has_verb=1
+    if (/envelope/) has_env=1
+    if (has_read && has_inj && has_verb && has_env) found=1
+  }
+  END{exit !found}
 ' "$root/skills/design-review/SKILL.md"; then
   echo "ok dr-injects-gas"; else echo "FAIL dr-injects-gas"; fail=$((fail+1)); fi
 
