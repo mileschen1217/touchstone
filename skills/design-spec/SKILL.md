@@ -94,7 +94,12 @@ parent epic already has a populated `## Foundation` takes branch a
 (inheritance), NOT a reuse hit — the gate's reuse check applies only within the
 same invocation.
 
-**Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section: `## Foundation` Intention carries the why; `## User Stories` carries US-N entries; `## Foundation` out-of-scope carries the boundary. Want vocabulary, conventions (As-a/so-that template, Spec-Kit WHAT/WHY-not-HOW, INVEST), and terminology live in `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate. Detailed authoring guidance: `references/draft-workflow.md § Want-layer authoring`.
+**Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section, in three existing sections:
+- `## Foundation` Intention carries the why.
+- `## User Stories` carries US-N entries.
+- `## Foundation` out-of-scope carries the boundary.
+
+Want vocabulary, conventions (As-a/so-that template, Spec-Kit WHAT/WHY-not-HOW, INVEST), and terminology live in `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate. Detailed authoring guidance: `references/draft-workflow.md § Want-layer authoring`.
 
 **FF ground-and-sweep arm.** Before generating Acceptance Criteria, load the shared doctrine:
 > Read `skills/_shared/ground-and-sweep.md`
