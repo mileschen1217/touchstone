@@ -89,6 +89,16 @@ This ADR reverses the earlier implicit assumption — established when source-as
 shipped — that CONTEXT.md sections ARE the inject home. That assumption was never
 explicit; this ADR makes the new home explicit.
 
+## Addendum (2026-06-24, dual-use carve-out — `ground-and-sweep.md`)
+
+Cold-ONLY doctrine fragments default to `skills/_shared/inject/`. A **warm-read +
+cold-injected dual-use fragment** — one that is read warm by an orchestrator skill AND
+injected verbatim into a cold reviewer, with both consumers declared in `referenced-by:`
++ `injected-by:` frontmatter — may live in `skills/_shared/` and be injected from
+there. It is not required to relocate to `skills/_shared/inject/`. `ground-and-sweep.md`
+is the first instance of this carve-out; its dual `referenced-by: [design-spec]` +
+`injected-by: [design-review]` frontmatter makes both consumers visible.
+
 ## Related ADRs
 
 - ADR-0016 (skill-suite structure convention) — establishes `skills/_shared/` as the

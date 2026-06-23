@@ -1,13 +1,14 @@
 # Draft inputs & workflow
 
-## PRD inheritance (Step-0 foundation source)
+## Want-layer authoring
 
-Precedence: **PRD > parent-epic `## Foundation` > from-scratch opener**.
+The spec is the canonical want-home — no separate PRD section. Author the want-layer in three existing sections:
 
-- A PRD is "present" when its path/content is **supplied to Step 0** (crucible passes it down the chain; a standalone design-spec with no PRD argument takes the parent-Foundation or from-scratch branch).
-- PRD present: its `why` seeds `Foundation.Intention`; its user-stories seed the spec's `## User Stories` section, mirrored with their `US-N` ids (a one-time snapshot, authoritative for the spec's lifecycle thereafter).
-- Both PRD and parent-epic Foundation present: the PRD supplies why + stories; the **parent supplies phase framing** (its scope / out-of-scope bounding this phase).
-- The standing **"Does this spec's scope differ?"** sharpening runs in the inheritance branch whenever a PRD is present (with OR without a parent) — surfacing any PRD/parent conflict, or the bare scope-differ question against the PRD, for human resolution rather than a silent merge.
+- **Why** → `## Foundation` Intention field.
+- **US-N entries** → `## User Stories` section. Use the As-a/so-that template. Apply Spec-Kit WHAT/WHY-not-HOW and INVEST. Vocabulary and terminology: `CONTEXT.md § Requirement-layer vocabulary` (single home — do not restate here).
+- **Boundary** → `## Foundation` out-of-scope bullets.
+
+Every requirement below must `traces-to:` ≥1 US-N. US-N ids are stable for the spec's lifecycle.
 
 ## Inputs to collect
 
@@ -104,6 +105,8 @@ breaks that reflow and makes specs hard to read on modern monitors.
    After writing the record, place the surfaced `[NEEDS CLARIFICATION: <q>]` markers inline into the spec (on the relevant requirement or AC line) for the human to resolve before the design-review gate runs.
 
    **Skip this step entirely if `quick = true`** — write the draft and stop after step 4.
+
+5a. **Internal coverage audit (remove-and-orphan).** After the challenge-pass, for each US-N in `## User Stories`: check whether EVERY requirement that `traces-to:` it ALSO traces to ≥1 other want. If yes — removing this US-N would orphan no requirement — surface it as a **demote-to-invariant candidate** for human judgment: "US-N traces-to coverage is fully covered by other wants — consider demoting to an Invariant." Do NOT auto-demote; this is a judgment call, not a deterministic action (the mechanizable floor — untraced/dangling US-N — is already caught by `check-spec-floor.sh`). If no candidate is found, emit: "Coverage audit: no demote-to-invariant candidates." Do not silently proceed without this message.
 
 6. **Dispatch** the architect (see below). **Skip this step entirely if `quick = true`.**
 7. **Apply** architect feedback. For high-signal feedback, integrate directly.

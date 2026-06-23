@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Grep-based regression test for markdown skill wiring.
-# Backs AC-9/11/12/14 prose — asserts the wiring is present in the skill sources.
+# Asserts the front-end skill wiring is present in the skill sources.
 # Exit 0 = ALL GREEN; non-zero = RED.
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
 fail=0
+# The dropped PRD-producer token — constructed from pieces so the literal never appears
+# in this source file (the operational sweep greps scripts/tests/ and must return no match).
+tp='to''-prd'
 
 chk() { # name file pattern description
   local name="$1" file="$root/$2" pattern="$3"
@@ -72,38 +75,9 @@ if awk '
 if awk '/^### Requirement:/{r=NR} /^traces-to:/{t=NR} END{ exit !(r>0 && t>0 && r<t) }' "$root/skills/design-spec/template.md"; then
   echo "ok template-traces-in-req"; else echo "FAIL template-traces-in-req"; fail=$((fail+1)); fi
 
-# live branch in SKILL.md
-chk "skill-prd-branch"        "skills/design-spec/SKILL.md" "PRD"
-# detail body in draft-workflow.md — per-clause, PRD-specific (each falsifiable before the edit)
-chk "dw-prd-precedence"       "skills/design-spec/references/draft-workflow.md" "PRD > parent|PRD over parent"
-chk "dw-prd-present-signal"   "skills/design-spec/references/draft-workflow.md" "supplied to Step 0|PRD is .?present"
-chk "dw-prd-why-intention"    "skills/design-spec/references/draft-workflow.md" "why.*Foundation\\.Intention|Foundation\\.Intention"
-chk "dw-prd-stories-mirror"   "skills/design-spec/references/draft-workflow.md" "## User Stories|user-stories"
-chk "dw-prd-us-preserved"     "skills/design-spec/references/draft-workflow.md" "US-N"
-chk "dw-prd-parent-framing"   "skills/design-spec/references/draft-workflow.md" "phase framing|parent supplies"
-chk "dw-prd-scope-differ"     "skills/design-spec/references/draft-workflow.md" "scope differ|Does this spec.?s scope differ"
-
-# chains the four sub-skills in invocation order
-chk "crucible-brainstorm"  "skills/crucible/SKILL.md" "superpowers:brainstorming"
+# chains core sub-skills
 chk "crucible-grill"       "skills/crucible/SKILL.md" "grill-with-docs"
-chk "crucible-to-prd"      "skills/crucible/SKILL.md" "to-prd"
 chk "crucible-design-spec" "skills/crucible/SKILL.md" "touchstone:design-spec"
-# Order check scoped to the `## What it chains` section (the numbered invocation list),
-# FIRST-match per token — excludes the frontmatter description and trailing explanatory
-# mentions, so neither a reordered list NOR a stray later mention can fool it.
-if awk '
-  /^## What it chains/{inchain=1; next}
-  inchain && /^## /{exit}
-  !inchain{next}
-  /superpowers:brainstorming/&&!b{b=NR}
-  /grill-with-docs/&&!g{g=NR}
-  /to-prd/&&!p{p=NR}
-  /touchstone:design-spec/&&!d{d=NR}
-  END{exit !(b&&g&&p&&d && b<g && g<p && p<d)}
-' "$root/skills/crucible/SKILL.md"; then
-  echo "ok crucible-chain-order"; else echo "FAIL crucible-chain-order"; fail=$((fail+1)); fi
-# documents the US-N id assignment
-chk "crucible-us-assign"   "skills/crucible/SKILL.md" "assign each user-story a unique .?US-N|unique US-N id"
 # states the inline grill discharges the pre-spec grill gate
 chk "crucible-grill-disch" "skills/crucible/SKILL.md" "discharge.*grill gate|grill gate.*discharge"
 # mid-chain Step-5 Critical/High halts + surfaces to clear, no Open-Questions fold, no auto-advance, then human accept
@@ -148,5 +122,96 @@ def has(v,o):
 sys.exit(0 if (a and has(a,b)) else 1)
 PY
 then echo "ok manifest-version-consistent"; else echo "FAIL manifest-version-consistent"; fail=$((fail+1)); fi
+
+# --- NEW MODEL (Phase 2.9): non-greenfield crucible, native want-layer, both-arms ground-and-sweep ---
+
+# crucible: brainstorm conditional, grill unconditional, keystone conditional structural-fork
+chk "crucible-brainstorm-conditional" "skills/crucible/SKILL.md" "brainstorm[^.]{0,40}conditional|conditional[^.]{0,40}brainstorm"
+chk "crucible-grill-unconditional"    "skills/crucible/SKILL.md" "grill[^.]{0,40}unconditional|unconditional[^.]{0,40}grill"
+# crucible-keystone-conditional: require keystone + conditional + fork-token ALL within a ±3-line window.
+# A single stray "not-yet-ratified" without conditionality/keystone will FAIL.
+if awk '
+  /keystone/{k=NR}
+  /conditional/{c=NR}
+  /structural.?fork|not.?yet.?ratified/{f=NR}
+  k && c && f && (k-c<=3 && c-k<=3) && (k-f<=3 && f-k<=3) && (c-f<=3 && f-c<=3) {found=1}
+  END{exit !found}
+' "$root/skills/crucible/SKILL.md"; then
+  echo "ok crucible-keystone-conditional"; else echo "FAIL crucible-keystone-conditional"; fail=$((fail+1)); fi
+chk "crucible-surfaces-conflict"      "skills/crucible/SKILL.md" "standing.?decision|ratified|conflict"
+
+# crucible chain tail = grill -> design-spec (first-match order, fence-aware, in the chain section);
+# the dropped PRD-producer token ($tp) MUST NOT appear between them.
+if awk -v tp="$tp" '
+  /^## What it chains/{inchain=1; next}
+  inchain && /^## /{exit}
+  !inchain{next}
+  /grill-with-docs/&&!g{g=NR}
+  /touchstone:design-spec/&&!d{d=NR}
+  $0 ~ tp {found_tp=NR}
+  END{exit !(g&&d && g<d && found_tp==0)}
+' "$root/skills/crucible/SKILL.md"; then
+  echo "ok crucible-chain-tail"; else echo "FAIL crucible-chain-tail"; fail=$((fail+1)); fi
+
+# crucible: zero occurrences of the dropped PRD-producer token (count == 0, body AND description frontmatter)
+if grep -qi "$tp" "$root/skills/crucible/SKILL.md"; then
+  echo "FAIL crucible-no-${tp}"; fail=$((fail+1)); else echo "ok crucible-no-${tp}"; fi
+
+# design-spec: native always-on want-layer; no orphaned PRD-branch precedence
+chk "ds-native-want" "skills/design-spec/SKILL.md" "want.?layer|## User Stories"
+if grep -nE "PRD branch|PRD inheritance|PRD > parent|PRD over parent" \
+   "$root/skills/design-spec/SKILL.md" "$root/skills/design-spec/references/draft-workflow.md" >/dev/null 2>&1; then
+  echo "FAIL ds-no-prd-branch"; fail=$((fail+1)); else echo "ok ds-no-prd-branch"; fi
+
+# ground-and-sweep fragment: content (both tests + root + scope rule) + bridge frontmatter
+chk "ground-and-sweep-content"     "skills/_shared/ground-and-sweep.md" "ground.?before.?assert"
+chk "ground-and-sweep-content-2"   "skills/_shared/ground-and-sweep.md" "sweep.?to.?dry|saturation"
+chk "ground-and-sweep-root"        "skills/_shared/ground-and-sweep.md" "intension.?extension"
+chk "ground-and-sweep-scope-rule"  "skills/_shared/ground-and-sweep.md" "superset|full subject|true.?subject"
+chk "ground-and-sweep-frontmatter" "skills/_shared/ground-and-sweep.md" "kind: bridge"
+chk "ground-and-sweep-killon"      "skills/_shared/ground-and-sweep.md" "kill-on: lever-discipline-mechanisation"
+
+# both arms load the fragment (deterministic floor)
+chk "gas-load-design-spec"   "skills/design-spec/SKILL.md"   "ground-and-sweep\.md"
+chk "gas-load-design-review" "skills/design-review/SKILL.md" "ground-and-sweep\.md"
+# design-review injects it into the cold reviewer envelope: assert the real instruction shape —
+# the FB section contains a Read instruction for ground-and-sweep.md with inject, verbatim, AND
+# envelope all co-occurring within an ~8-line window (the genuine prose: "Read
+# `skills/_shared/ground-and-sweep.md` and inject it verbatim into the reviewer envelope").
+# dr-injects-gas: on EACH ground-and-sweep.md line, RESET window state and start fresh.
+# Requires Read + inject + verbatim + envelope ALL in the same window (≤3 lines after anchor).
+# found=1 freezes on first complete window; a later incomplete window cannot un-set it.
+# Missing ANY of the four tokens in every window ⟹ found stays 0 ⟹ FAIL.
+if awk '
+  /ground-and-sweep\.md/ {
+    g=NR; has_read=0; has_inj=0; has_verb=0; has_env=0
+    if (/Read/) has_read=1
+    if (/inject/) has_inj=1
+    if (/verbatim/) has_verb=1
+    if (/envelope/) has_env=1
+    next
+  }
+  g && !found && NR-g<=3 {
+    if (/Read/) has_read=1
+    if (/inject/) has_inj=1
+    if (/verbatim/) has_verb=1
+    if (/envelope/) has_env=1
+    if (has_read && has_inj && has_verb && has_env) found=1
+  }
+  END{exit !found}
+' "$root/skills/design-review/SKILL.md"; then
+  echo "ok dr-injects-gas"; else echo "FAIL dr-injects-gas"; fail=$((fail+1)); fi
+
+# dropped-PRD-producer-token operational sweep clean: no operational file under
+# skills/ or scripts/tests/ (including this harness — the literal is absent here)
+# nor CONTEXT.md/README.md contains the dropped token; ADR/research/spec history exempt.
+sweep_targets=()
+while IFS= read -r -d '' f; do
+  sweep_targets+=("$f")
+done < <(find "$root/skills" "$root/scripts/tests" \( -name '*.md' -o -name '*.sh' \) -print0 2>/dev/null)
+if grep -ln "$tp" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md" >/dev/null 2>&1; then
+  echo "FAIL ${tp}-operational-sweep-clean"; fail=$((fail+1)); \
+  grep -ln "$tp" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md"; \
+else echo "ok ${tp}-operational-sweep-clean"; fi
 
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi

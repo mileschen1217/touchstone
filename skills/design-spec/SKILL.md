@@ -94,15 +94,17 @@ parent epic already has a populated `## Foundation` takes branch a
 (inheritance), NOT a reuse hit — the gate's reuse check applies only within the
 same invocation.
 
-**Foundation-source precedence (evaluate in order; first match wins).** If a PRD
-path/content is supplied to Step 0 → take the **PRD branch** below and do NOT also
-run branch a/b as the foundation source (the PRD is top precedence; a parent-epic
-`## Foundation`, if also present, supplies ONLY phase framing). If no PRD is
-supplied → fall through to branch a (parent Foundation), then b (from-scratch), as today.
+**Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section, in three existing sections:
+- `## Foundation` Intention carries the why.
+- `## User Stories` carries US-N entries.
+- `## Foundation` out-of-scope carries the boundary.
 
-**PRD branch (when a PRD is present).** Its `why` seeds `Foundation.Intention`; its
-user-stories seed this spec's `## User Stories` section (US-N ids preserved). See
-`references/draft-workflow.md` § PRD inheritance for the full precedence + scope-differ handling.
+Want vocabulary, conventions (As-a/so-that template, Spec-Kit WHAT/WHY-not-HOW, INVEST), and terminology live in `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate. Detailed authoring guidance: `references/draft-workflow.md § Want-layer authoring`.
+
+**FF ground-and-sweep arm.** Before generating Acceptance Criteria, load the shared doctrine:
+> Read `skills/_shared/ground-and-sweep.md`
+
+FF application delta (AC generation): `requirement × current-repo-state` — ground each AC in concrete repo facts (file path, line number, value); sweep the AC's true subject set to saturation, not first-hit. Per-arm unit identity and saturation criterion live in that file; do not recopy here.
 
 a. **Inherit** — if the parent epic index has a populated `## Foundation`:
    pre-fill from it, restate the epic's intention / aim / out-of-scope, then
