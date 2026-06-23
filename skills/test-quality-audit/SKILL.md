@@ -27,19 +27,9 @@ Parse left-to-right:
 
 Defaults — used when an argument is omitted:
 - `days = 30` (the regression-window default referenced throughout the body)
-- `threshold = 80` (the branch-coverage default in §8 Coverage policy and §1 Coverage gaps)
+- `threshold = 80` (the branch-coverage default in §7 Coverage policy and §1 Coverage gaps)
 
 Project CLAUDE.md may declare different defaults; project values override skill defaults, and CLI args override both.
-
-## Invocation signals
-
-Invoke when any of these is true:
-- Bug was fixed but no regression test was added
-- Flaky test count exceeds 5 (or the project's budget)
-- Branch coverage dropped below 80% (or the project's threshold)
-- A major refactor just landed — audit for stale patches / broken coverage
-- Before a phase milestone or release
-- Periodic sanity pass on a long-lived codebase
 
 ## What the audit checks
 
@@ -58,6 +48,7 @@ Invoke when any of these is true:
 - Skipped tests with no tracking issue or TODO reference
 - Tests that no longer exercise meaningful paths (code under test was refactored; test wasn't updated)
 - Mocks referencing APIs that no longer exist
+- Tests of trivial getters/setters, simple delegation, framework internals, or private methods tested directly instead of through public API — flag for removal
 
 ### 4. Assertion quality
 Scan for anti-patterns:
@@ -76,14 +67,16 @@ Scan for anti-patterns:
 - Test files where >50% of lines are mock setup (over-mocking or wrong test level)
 - Mocks of internal helpers / pure functions (should mock at boundary only)
 
-### 7. What NOT to test (flag for removal)
-- Trivial getters/setters, simple delegation
-- Framework internals
-- Private methods tested directly instead of through public API
-
-### 8. Coverage policy
+### 7. Coverage policy
 - Branch coverage threshold (default 80%, configurable per project)
 - If below: identify files causing the drop; propose minimum tests to restore
+
+## Scope — what this skill does NOT do
+
+- **Does not write new tests** — that's `/superpowers:test-driven-development`, the `tdd` agent, or language-specific `tdd-*` skills.
+- **Does not re-run the full suite for proof** — use the project's regular test command for that.
+- **Does not modify test files** — report-only; findings are for a human or follow-up agent.
+- **Does not auto-fix** — surfaces gaps, doesn't silently change them.
 
 ## How to run
 
@@ -134,4 +127,7 @@ RECOMMENDATIONS
 
 ## Related
 
-- Scope boundary detail (what it does NOT do), downstream skills, and the decision-rationale ADR: `README.md`.
+- `/superpowers:test-driven-development` — write new tests after the audit.
+- `/superpowers:verification-before-completion` — pre-commit verification.
+- ECC language-specific testing skills: `python-testing`, `rust-testing`, `kotlin-testing`, `cpp-testing`, `golang-testing` — per-language test craft.
+- Decision-rationale ADR: `README.md`.

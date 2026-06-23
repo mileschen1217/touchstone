@@ -9,7 +9,7 @@ description: Activates sentence-level epistemic discipline. Causal/factual claim
 
 ### Rule 1 — Citation existence
 
-Every causal or factual claim about code behavior must include an inline citation from this session's recorded SoT checks (grep / read / probe). `[假設]` prefix is the only downgrade, reserved for genuinely expensive checks (multi-step on-device probe, no source access).
+Every causal or factual claim about code behavior must include an inline citation from this session's recorded SoT checks (grep / read / probe). `[假設]` prefix is the only downgrade. It is permitted ONLY when the verification command is known but cannot be run in this session (e.g. requires live hardware, a running service, or credentials unavailable here) — name the command. It is NOT a general hedge for an uncertain claim; if the command can be run, run it and cite the result.
 
 ### Rule 2 — Citation sufficiency
 
@@ -54,7 +54,7 @@ The cite proves one literal at one file location. It does **not** prove the syst
 
 ## Subagent dispatch
 
-When dispatching a subagent for an investigation / debug / source-trace task (e.g. via the Agent tool), **prepend this entire SKILL.md content to the dispatch prompt**. CLAUDE.md alone is too cold for fresh subagents (validated: 3-5 violations per dispatch on baseline → 0-1 with this content injected at prompt start).
+Prepend this SKILL.md to every investigation / debug / source-trace subagent dispatch — CLAUDE.md alone yields 3-5 violations per dispatch; injecting this content at prompt start reduces that to 0-1.
 
 ## Composes with
 

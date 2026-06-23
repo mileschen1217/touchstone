@@ -31,7 +31,7 @@ named `arch-review`. That name has two mis-fits:
 
 1. **"arch" hard-binds to software architecture.** The construct's invariant (minimize
    expected complexity, probability × cost weighted, bounded by YAGNI — see
-   `CONTEXT.md § Design+review control axis`) mentions no artifact type. Its forces apply
+   ADR-0018 § Decision for the two-pillar derivation) mentions no artifact type. Its forces apply
    to code, documentation structure, skill-suite organization, and any other persistent
    artifact that faces change-over-time. In this project's own dogfood history, the
    construct's primary use has been deciding the structure of the skill suite itself — a

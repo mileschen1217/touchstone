@@ -36,12 +36,22 @@ PY
   [ "$name_ok" = OK ] || err "[keystone-dir] frontmatter name is not exactly one key == keystone"
 fi
 
-# --- [skill-size]: body lines >=30, whole-file <=80 ---
+# --- [skill-size]: body lines 30..200 (uniform bar; the prior whole-file <=80 ratchet was
+#     dropped in Phase 2.8 — body-line measure, parity with the suite-wide bar) ---
 if [ -f skills/keystone/SKILL.md ]; then
-  whole=$(wc -l < skills/keystone/SKILL.md)
   body=$(awk 'NR==1&&/^---$/{f=1;next} f&&/^---$/{f=0;b=1;next} b{c++} END{print c+0}' skills/keystone/SKILL.md)
-  [ "$whole" -le 80 ] || err "[skill-size] whole-file $whole > 80"
-  [ "$body"  -ge 30 ] || err "[skill-size] body $body < 30"
+  [ "$body" -le 200 ] || err "[skill-size] body $body > 200"
+  [ "$body" -ge 30 ]  || err "[skill-size] body $body < 30"
+fi
+
+# --- [keystone-selfcontained]: arch rubric reference exists; body points to it, not CONTEXT ---
+[ -f skills/keystone/references/arch-rubric.md ] \
+  || err "[keystone-selfcontained] skills/keystone/references/arch-rubric.md missing"
+if [ -f skills/keystone/SKILL.md ]; then
+  grep -Fq 'references/arch-rubric.md' skills/keystone/SKILL.md \
+    || err "[keystone-selfcontained] SKILL.md body does not point to references/arch-rubric.md"
+  grep -Fq 'Design+review control axis' skills/keystone/SKILL.md \
+    && err "[keystone-selfcontained] SKILL.md still carries the old CONTEXT § control-axis pointer"
 fi
 
 # --- [no-discovery-dir]: arch-discovery dir gone ---
@@ -86,7 +96,7 @@ if [ -f "$DR" ]; then
 fi
 
 # --- [adr-resolver]: exactly 4 arch-review in docs/adr (excl 0018/0019); each same-line (now keystone) ---
-adr_lines=$(grep -rn 'arch-review' docs/adr/ | grep -vE '/001[89]-')
+adr_lines=$(grep -rn 'arch-review' docs/adr/ | grep -vE '/00(1[89]|20)-')
 cnt=$(printf '%s\n' "$adr_lines" | grep -c . )
 [ "$cnt" -eq 4 ] || err "[adr-resolver] expected exactly 4 non-exempt arch-review lines, got $cnt"
 miss=$(printf '%s\n' "$adr_lines" | grep -v '(now keystone)')
@@ -113,7 +123,7 @@ grep -qE 'bash[[:space:]]+scripts/tests/run-all\.sh' CLAUDE.md \
 
 # --- [adr-deposits]: standing ADRs present (exactly one per prefix), Accepted + kill-on in
 #                     FRONTMATTER (not body), self-contained ---
-for pref in 0018 0019; do
+for pref in 0018 0019 0020; do
   # shellcheck disable=SC2086
   set -- docs/adr/${pref}-*.md
   if [ ! -e "$1" ]; then err "[adr-deposits] docs/adr/${pref}-*.md missing"; continue; fi
