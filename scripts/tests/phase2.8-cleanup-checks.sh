@@ -35,15 +35,15 @@ for f in skills/*/SKILL.md; do
   [ -f "$f" ] || continue
   b=$(bodylines "$f")
   if [ "$b" -gt 200 ]; then
-    grep -Eq 'keep-long:[[:space:]]*[0-9]+' "$f" \
-      || err "[ac5-suite-size] $f body=$b > 200 and no well-formed keep-long: annotation"
+    grep -Eq 'keep-long:[[:space:]]*[0-9]+([^[:alnum:]]|$)' "$f" \
+      || err "[ac5-suite-size] $f body=$b > 200 and no well-formed keep-long: <n> annotation"
   fi
 done
 
-# --- [ac8-keystone-selfcontained]: invariant lives in keystone dir; SKILL.md has no CONTEXT pointer ---
-if grep -rqF 'minimize expected complexity' skills/keystone/ 2>/dev/null; then :; else
-  err "[ac8-keystone-selfcontained] keystone dir missing the arch invariant 'minimize expected complexity'"
-fi
+# --- [ac8-keystone-selfcontained]: invariant in the SKILL.md BODY (REQ-3, not only references/);
+#     SKILL.md has no CONTEXT pointer ---
+grep -Fq 'minimize expected complexity' skills/keystone/SKILL.md \
+  || err "[ac8-keystone-selfcontained] keystone SKILL.md BODY missing the arch invariant 'minimize expected complexity'"
 kp=$(grep -Fc 'Design+review control axis' skills/keystone/SKILL.md); kp=${kp:-0}
 [ "$kp" -eq 0 ] || err "[ac8-keystone-selfcontained] keystone/SKILL.md still points to CONTEXT § control axis ($kp)"
 
