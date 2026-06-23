@@ -19,12 +19,3 @@ Language-specific, security, and database reviewers require the `everything-clau
 plugin (ECC). CC-only fallback (enforced inline in `SKILL.md` Step 3): if ECC is not installed,
 the skill runs with the generic Sonnet reviewer only and logs a note about the missing dependency.
 
-## Key-rules summary (all enforced inline in the procedure)
-
-- Always spawn separate agents — never review inline (Step 3).
-- Generic reviewer model: Sonnet; language/security/DB reviewers use their own defaults.
-- Dispatch all reviewers in parallel (single message, multiple Agent calls, `run_in_background: true`).
-- AI judgment, not regex, for security/DB dispatch — prefer skipping in ambiguous cases.
-- Fix only Critical/High by default; Low fixable inline if trivial; Medium deferred to batch (Step 5).
-- No re-review loop in Pattern C (Step 5).
-- Project CLAUDE.md may override the diff path (Step 1).

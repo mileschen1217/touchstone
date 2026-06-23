@@ -57,21 +57,19 @@ Trackers may **not** contain: design prose, rationale, research findings, archit
 
 ## Question-per-stage pipeline
 
-Maps to the 6-stage workflow in `~/.claude/CLAUDE.md`:
+Maps to the 6-stage workflow in `~/.claude/CLAUDE.md`. Concrete paths come from the project's CLAUDE.md § Doc Routing; projects may adjust paths — the convention is the shape, not the directory names.
 
-| Q (stage) | Home (abstract) |
-|---|---|
-| Why at all? (0) | Project vision / scope |
-| Why this epic? (1) | Epic tracker index |
-| What might work? (2) | Research note |
-| What contract? (3, GWT) | Design spec |
-| How, in order — epic-level? (4a) | **Epic master plan** (lives with the epic) |
-| How, in order — per-spec? (4b) | Implementation plan (one per design spec) |
-| Did it work? (5) | Commits, MRs |
-| What did we learn? (6) | Retrospective on epic index |
-| Did docs catch up? (7) | Doc Reckoning block on epic index (see "Close an epic") |
-
-Concrete paths live in the project's CLAUDE.md § Doc Routing.
+| Q (stage) | Home (abstract) | Example concrete path |
+|---|---|---|
+| Why at all? (0) | Project vision / scope | `.touchstone/vision.md`, `ROADMAP.md` scope block |
+| Why this epic? (1) | Epic tracker index | `.touchstone/epics/<slug>/index.md` | <!-- phase-2-carve-out -->
+| What might work? (2) | Research note | `.touchstone/research/YYYY-MM-DD-<slug>.md` |
+| What contract? (3, GWT) | Design spec | `.touchstone/specs/YYYY-MM-DD-<slug>.md` |
+| How, in order — epic-level? (4a) | **Epic master plan** (lives with the epic) | `.touchstone/epics/<slug>/<name>-roadmap.md` (only when epic spans 2+ specs) | <!-- phase-2-carve-out -->
+| How, in order — per-spec? (4b) | Implementation plan (one per design spec) | `.touchstone/plans/YYYY-MM-DD-<slug>.md` |
+| Did it work? (5) | Commits, MRs | Commits, MRs |
+| What did we learn? (6) | Retrospective on epic index | Retrospective on epic index |
+| Did docs catch up? (7) | Doc Reckoning block on epic index (see "Close an epic") | Doc Reckoning block on epic index |
 
 ### Master plan vs. task plan
 
@@ -132,23 +130,6 @@ Bidirectional doc-graph integrity — epic-level, link-health, and task-level ch
 ### Bootstrap a new project
 
 Four-step convention bootstrap → [`references/bootstrap.md`](references/bootstrap.md).
-
-## Path schema (project CLAUDE.md § Doc Routing)
-
-Each project fills in concrete paths for the Q-per-stage pipeline:
-
-| Q (stage) | Example concrete path |
-|---|---|
-| Why at all? (0) | `.touchstone/vision.md`, `ROADMAP.md` scope block |
-| Why this epic? (1) | `.touchstone/epics/<slug>/index.md` | <!-- phase-2-carve-out -->
-| What might work? (2) | `.touchstone/research/YYYY-MM-DD-<slug>.md` |
-| What contract? (3) | `.touchstone/specs/YYYY-MM-DD-<slug>.md` |
-| How, in order — epic? (4a) | `.touchstone/epics/<slug>/<name>-roadmap.md` (only when epic spans 2+ specs) | <!-- phase-2-carve-out -->
-| How, in order — per-spec? (4b) | `.touchstone/plans/YYYY-MM-DD-<slug>.md` |
-| Did it work? (5) | Commits, MRs |
-| What did we learn? (6) | Retrospective on epic index |
-
-Projects may adjust paths; the convention is the shape, not the directory names.
 
 ## Templates
 

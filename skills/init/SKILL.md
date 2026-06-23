@@ -14,47 +14,20 @@ Writes `.claude/touchstone.yaml` in the current project, configuring paths and a
 
 ## Step 1 — Idempotence check
 
-Read `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml`.
+Read `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml` and determine the action from this table:
 
-**If the file does not exist OR `--reset` was passed:** continue to Step 2.
+| File state | `--reset`? | Action |
+|---|---|---|
+| Missing | either | Proceed to Step 2. |
+| Exists, malformed YAML | either | Print error (file name + parse-error line). Exit non-zero. Do NOT silently overwrite. |
+| Exists, parseable; `--reset` passed | yes | Copy existing file to `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml.bak`; print "Preserved prior yaml at .bak". Proceed to Step 2. |
+| Exists, parseable; `source-as-truth` already adopted | no | Print current config. Print "Run /touchstone:init --reset to overwrite." Exit 0. |
+| Exists, parseable; `source-as-truth` not yet adopted; TTY present | no | Print current config. Show incremental-add menu (see `references/init-ui.md`). Accept answer or `--adopt source-as-truth` flag. Merge into `adopted_disciplines` without touching paths. Write updated yaml (Step 5 write logic, paths unchanged). Print verification summary (Step 6). Exit 0. |
+| Exists, parseable; `source-as-truth` not yet adopted; no TTY | no | Print non-interactive message (see `references/init-ui.md`). Exit 0. |
 
-**If the file exists and is unparseable (malformed YAML):** print an error naming the file and the parse error line; do NOT silently overwrite; exit non-zero.
+Note: `adopted_disciplines` key missing is treated as an empty list.
 
-**If the file exists, is parseable, and `--reset` was NOT passed:**
-
-1. Print the current config (paths + adopted disciplines).
-
-2. Check whether the `adopted_disciplines` key is present. If missing, treat it as an empty list.
-
-3. The supported discipline today is `source-as-truth` (single-entry list; a registry-derived menu is deferred to E15). If `source-as-truth` is already in `adopted_disciplines`, print "Run /touchstone:init --reset to overwrite." and exit 0.
-
-4. **If `source-as-truth` is NOT yet adopted**, show the incremental-add menu:
-
-   ```
-   Current config:
-     workspace_root:      .touchstone (or the current value)
-     adopted_disciplines: [] (or the current list)
-
-   Disciplines:
-     ○ source-as-truth — enables Bridge content audit + kill-on lifecycle + standing-vs-transient classification in stage skills that support it.
-
-   Adopt source-as-truth? [Y/n]
-   ```
-
-   (Print each adopted discipline with a `✓` prefix and each not-yet-adopted one with `○`. Today only `source-as-truth` exists, so the menu shows exactly one line.)
-
-   Accept the answer (or the `--adopt source-as-truth` flag). Merge the selection into `adopted_disciplines` **without touching paths**. Then write the updated yaml (Step 5 write logic, paths unchanged) and print the verification summary (Step 6).
-
-5. **Non-interactive context (no TTY):** if `source-as-truth` is not yet adopted and no `--adopt` flag was passed, print:
-
-   ```
-   [touchstone:init] Non-interactive: source-as-truth available but not adopted.
-   Re-run interactively or pass --adopt source-as-truth to add.
-   ```
-
-   Then exit 0 (not an error; the existing config is valid).
-
-**`--reset` semantics (full overwrite) are unchanged** — passing `--reset` skips all of the above and proceeds to Step 2.
+`--migrate` flag: read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md` with the Read tool and follow it exactly. The resolver's §3 migration steps handle reading old schema-1 keys, deriving `workspace_root`, writing new schema-2 yaml, and printing a diff summary. Do not duplicate that logic here.
 
 ## Step 2 — Collect paths
 
@@ -94,7 +67,7 @@ Write `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml`:
 
 ```yaml
 # written by /touchstone:init vX.Y.Z. Hand-editable.
-schema_version: 2
+schema_version: 2  # current schema; legacy schema 1 is handled by --migrate
 workspace_root: <answer or .touchstone>
 adopted_disciplines: [<comma-separated answers>]
 ```
@@ -104,8 +77,6 @@ Recognised optional keys:
 - `epic_storage: <name>` (optional) — selects the storage adapter for
   `epic-driven-roadmap`. Defaults to `local-markdown`. Unknown values raise
   `AdapterNotFoundError` (exit 8) at Step 0.
-
-If overwriting (`--reset` mode), first copy the existing file to `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml.bak`. Print "Preserved prior yaml at .bak".
 
 ## Step 6 — Verification summary
 
@@ -118,22 +89,3 @@ Print:
 
 Next: try /touchstone:design-spec <feature-name>
 ```
-
-## Argument grammar
-
-```
-/touchstone:init                              # interactive (default)
-/touchstone:init --adopt <discipline>         # repeatable
-/touchstone:init --workspace-root <path>      # override workspace root (default .touchstone)
-/touchstone:init --reset                      # overwrite existing yaml
-/touchstone:init --migrate                    # migrate schema-1 yaml to schema-2
-```
-
-### `--migrate` behaviour
-
-When `--migrate` is passed:
-
-Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md`
-with the Read tool and follow it exactly.
-
-The resolver's §3 migration steps handle reading the old schema-1 keys, deriving `workspace_root`, writing the new schema-2 yaml, and printing a diff summary. Do not duplicate that logic here.
