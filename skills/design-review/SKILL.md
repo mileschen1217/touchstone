@@ -123,7 +123,7 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 >    **feedforward / DECLARATION** application of the injected evidence-honesty doctrine
 >    (the **live-bearing predicate** + **AC-coverage-honesty principle**, loaded from
 >    `skills/_shared/inject/live-bearing-predicate.md` + `skills/_shared/inject/ac-coverage-honesty-principle.md`
->    and injected per Step 0). No test source
+>    and injected in the Load-vocabulary phase). No test source
 >    exists yet, so this is a DECLARATION check, never a coverage read: confirm the spec
 >    has a non-empty `## Verification Strategy` section, and that every live-bearing AC id
 >    (per the injected predicate) appears in its `Live-bearing AC IDs`. Surface a
