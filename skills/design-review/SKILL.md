@@ -70,7 +70,7 @@ and inject them into the reviewer envelope: append to the doc-review `system_pro
 (§3 below) AND carry as `evidence_honesty_vocab`. This is spine, not a discipline: it
 fires regardless of which disciplines are adopted (do NOT gate it on `source-as-truth`).
 Item 7 of the doc-review prompt applies this injected doctrine as its feedforward
-(declaration) stage. Also inject `ground-and-sweep.md` per the FB arm section below.
+(declaration) stage. Also inject `ground-and-sweep.md` per the feedback arm section below.
 
 ### 1. Validate input scope
 
@@ -152,21 +152,21 @@ in `skills/cross-provider-reviewer/references/provenance.md`.
 
 In all cases: do not auto-promote spec status; the user (or caller skill) decides when to proceed.
 
-## Ground-and-Sweep (FB arm — review / feedback path only)
+## Ground-and-Sweep (feedback arm — review / feedback path only)
 
-**Injection scope:** this block fires on the review / FB path only (INV-NO-SILENT-PATH).
-It does NOT apply to the design-spec FF arm or any other path.
+**Injection scope:** this block fires on the review / feedback path only (INV-NO-SILENT-PATH).
+It does NOT apply to the design-spec feedforward arm or any other path.
 
 Read `skills/_shared/ground-and-sweep.md` and inject it verbatim into the reviewer
 envelope (append to `system_prompt`, alongside the injected `live-bearing-predicate.md` content)
 so the cold reviewer applies sweep-to-dry over the AC's true subject. The injected fragment
 carries the shared saturation definition and scope-resolution rule — do not restate them here.
 
-**FB wrapper (per-arm delta only):**
-- **FB unit identity:** each *emitted finding* (not each AC) must be grounded in concrete
+**feedback wrapper (per-arm delta only):**
+- **feedback unit identity:** each *emitted finding* (not each AC) must be grounded in concrete
   repo facts: file path, line number, field value, or AC-id. A generic assertion
   ("the code has issues") fails ground-before-assert.
-- **FB saturation delta:** saturation on the FB arm = a full review pass over the AC's
+- **feedback saturation delta:** saturation on the feedback arm = a full review pass over the AC's
   true subject surfaces nothing new. The verbatim-injected `ground-and-sweep.md` defines
   the shared saturation criterion and scope-resolution rule; apply them here.
 

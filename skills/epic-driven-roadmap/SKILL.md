@@ -18,7 +18,7 @@ allowed-tools:
   - Glob
 ---
 
-# m-epic-driven-roadmap
+# touchstone:epic-driven-roadmap
 
 ## Step 0 — Load vocabulary
 

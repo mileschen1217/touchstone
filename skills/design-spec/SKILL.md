@@ -20,7 +20,7 @@ allowed-tools:
   - Skill
 ---
 
-# m-design-spec
+# touchstone:design-spec
 
 Produce an ATDD + TDD double-loop-aligned design spec for a feature, review it
 in fresh context via the `architect` agent, and write the final draft to the
@@ -101,10 +101,10 @@ same invocation.
 
 Want vocabulary, conventions (As-a/so-that template, Spec-Kit WHAT/WHY-not-HOW, INVEST), and terminology live in `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate. Detailed authoring guidance: `references/draft-workflow.md § Want-layer authoring`.
 
-**FF ground-and-sweep arm.** Before generating Acceptance Criteria, load the shared doctrine:
+**feedforward ground-and-sweep arm.** Before generating Acceptance Criteria, load the shared doctrine:
 > Read `skills/_shared/ground-and-sweep.md`
 
-FF application delta (AC generation): `requirement × current-repo-state` — ground each AC in concrete repo facts (file path, line number, value); sweep the AC's true subject set to saturation, not first-hit. Per-arm unit identity and saturation criterion live in that file; do not recopy here.
+feedforward application delta (AC generation): `requirement × current-repo-state` — ground each AC in concrete repo facts (file path, line number, value); sweep the AC's true subject set to saturation, not first-hit. Per-arm unit identity and saturation criterion live in that file; do not recopy here.
 
 a. **Inherit** — if the parent epic index has a populated `## Foundation`:
    pre-fill from it, restate the epic's intention / aim / out-of-scope, then
