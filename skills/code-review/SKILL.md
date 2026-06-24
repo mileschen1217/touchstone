@@ -1,7 +1,7 @@
 ---
 name: code-review
 description: |
-  Code review with caller-declared mode. Default: per-commit (Pattern C — generic Sonnet reviewer in parallel with language/security/database specialists, all in fresh context). `batch` mode: logical commit group (Pattern B — vendor-not-builder reviews; default = Codex reviews when CC builds). Mode is explicit via `batch` keyword; no commit-count heuristic. Renamed from `m-patch-review`.
+  Code review with caller-declared mode. Default: per-commit (Pattern C — generic Sonnet reviewer in parallel with security/database specialists when warranted, all in fresh context). `batch` mode: logical commit group (Pattern B — vendor-not-builder reviews; default = Codex reviews when CC builds). Mode is explicit via `batch` keyword; no commit-count heuristic. Renamed from `m-patch-review`.
 allowed-tools:
   - Bash
   - Read
@@ -19,9 +19,8 @@ kind: workflow
 Parallel reviewers in separate contexts. Fast quality check before commit.
 
 Dispatches:
-- **Always:** generic Sonnet reviewer (primary)
-- **Conditional:** language-specific reviewer(s) based on changed-file languages
-- **Conditional (AI-judged):** `security-reviewer` if the diff touches security-sensitive code; `database-reviewer` if the diff touches DB/SQL/schema
+- **Always:** generic Sonnet reviewer (primary) — carries language-appropriate scrutiny inferred from the diff
+- **Conditional (AI-judged):** `security-reviewer` if the diff alters an untrusted-source → dangerous-sink path; `database-reviewer` if the diff touches persistence structure (schema / migration / data contract)
 
 ## Usage
 
@@ -35,7 +34,7 @@ Dispatches:
 /touchstone:code-review with cc                  # Pattern C; explicit (no-op — Sonnet is the default)
 /touchstone:code-review batch with cc            # Pattern B; force CC reviewer regardless of builder
 /touchstone:code-review batch with codex         # Pattern B; force Codex reviewer regardless of builder
-/touchstone:code-review solo                     # Pattern C; primary reviewer only — skip language/security/DB specialists
+/touchstone:code-review solo                     # Pattern C; primary reviewer only — skip security/DB specialists
 /touchstone:code-review solo with codex          # Pattern C; codex-reviewer alone, no specialists
 ```
 
@@ -43,7 +42,7 @@ The `batch` keyword is the explicit per-batch (Pattern B) trigger. Without it, e
 
 The `with <vendor>` modifier overrides reviewer routing. See parse details in `## Argument parsing` below.
 
-The `solo` modifier disables the parallel specialist fan-out (language reviewer, security-reviewer, database-reviewer). Useful when the diff is small / single-purpose and specialists would be noise.
+The `solo` modifier disables the parallel specialist fan-out (security-reviewer, database-reviewer). Useful when the diff is small / single-purpose and specialists would be noise.
 
 ## Argument parsing
 
@@ -76,41 +75,26 @@ semantic catch.
 2. If project CLAUDE.md defines a diff path → use it (e.g., `dl/` for buildroot)
 3. Default: `git diff HEAD`
 
-**If `solo = true`,** skip Step 2 entirely — go straight to Step 3 with the primary reviewer alone (Sonnet, or codex-reviewer if `force_reviewer = codex`). No language reviewer, no security/DB specialists.
+**If `solo = true`,** skip Step 2 entirely — go straight to Step 3 with the primary reviewer alone (Sonnet, or codex-reviewer if `force_reviewer = codex`). No security/DB specialists.
 
-### Step 2: Detect languages + domain concerns
+### Step 2: Detect domain concerns
 
-Inspect changed file paths from `git diff --name-only HEAD -- {path}`.
+Read the diff briefly. Dispatch a specialist only if the diff *meaningfully*
+touches the domain — not just mentions a keyword.
 
-**Language mapping** (primary file extension → reviewer agent):
-- `.py` → `everything-claude-code:python-reviewer`
-- `.rs` → `everything-claude-code:rust-reviewer`
-- `.go` → `everything-claude-code:go-reviewer`
-- `.ts`, `.tsx`, `.js`, `.jsx` → `everything-claude-code:typescript-reviewer`
-- `.java` → `everything-claude-code:java-reviewer`
-- `.kt`, `.kts` → `everything-claude-code:kotlin-reviewer`
-- `.cpp`, `.cc`, `.cxx`, `.hpp`, `.h`, `.c` → `everything-claude-code:cpp-reviewer`
-- `.dart` → `everything-claude-code:flutter-reviewer`
-- Other → skip language reviewer
+**security-reviewer** — fires on a **data-flow** condition: the diff alters an
+`untrusted-source → dangerous-sink` path. Judge by data provenance (does
+adversary-controlled input reach this code?) and sink danger (does the code drive
+a harmful capability?). An internal interface is a security boundary only at a
+trust-level transition. Signals like JWT, CORS, and SSRF are examples of
+untrusted-source/dangerous-sink pairings, not the trigger rule. False positives
+waste agents — prefer skipping in ambiguous cases.
 
-If multiple languages detected, dispatch one reviewer per distinct language.
-Skip languages with <10 lines changed (noise threshold).
-
-**Domain-concern judgment (AI, not regex):**
-
-Read the diff briefly. Dispatch the specialist only if the diff *meaningfully*
-touches the domain — not just mentions a keyword:
-
-- `security-reviewer` — new/changed auth flows, session handling, password/token
-  handling, crypto primitives, input validation at trust boundaries,
-  subprocess/exec calls on user input, JWT, CORS, SSRF surface, secret handling.
-- `database-reviewer` — new/changed SQL queries, migration files, schema
-  definitions, ORM models/relations, transaction boundaries, prepared-statement
-  patterns, index definitions.
-
-Variable names that *contain* "user" or "auth" but operate on trusted internal
-data do NOT warrant dispatch. False positives here waste agents; prefer skipping
-in ambiguous cases.
+**database-reviewer** — fires on a **structural** condition: the diff touches
+persistence operations, schema definitions, migration files, or data contracts
+(ORM models / transaction boundaries / index definitions). Pure application-layer
+changes that reference DB entities without altering persistence structure do NOT
+warrant dispatch.
 
 ### Step 3: Dispatch reviewers in parallel
 
@@ -118,23 +102,19 @@ Never review inline — always spawn separate agents. Launch all reviewers in a
 **single message** with multiple Agent tool calls, all with `run_in_background: true`.
 
 **Primary reviewer:**
-- If `force_reviewer = codex` → dispatch `codex-reviewer` instead of the generic Sonnet reviewer below. Pass the diff in the same envelope shape used by Pattern B (`{ task: <diff>, role: "reviewer", task_dir: <optional> }`). Specialists (language / security / DB) still dispatch in parallel per below.
-- Otherwise (default, or `force_reviewer = cc`) → generic Sonnet reviewer (`model: "sonnet"`), dispatched with the `generic-diff` prompt from `references/reviewer-prompts.md`.
-
-**Language reviewer(s):** dispatch one per detected language. Each gets the `language-reviewer` prompt from `references/reviewer-prompts.md`.
+- If `force_reviewer = codex` → dispatch `codex-reviewer` instead of the generic Sonnet reviewer below. Pass the diff in the same envelope shape used by Pattern B (`{ task: <diff>, role: "reviewer", task_dir: <optional> }`). Specialists (security / DB) still dispatch in parallel per below.
+- Otherwise (default, or `force_reviewer = cc`) → generic Sonnet reviewer (`model: "sonnet"`), dispatched with the `generic-diff` prompt from `references/reviewer-prompts.md`. The generic reviewer applies language-appropriate scrutiny inferred from the diff's languages (idioms, type safety, performance, language-specific security) — no enumerated language list; this covers shell, markdown, and any other language in the diff.
 
 **security-reviewer / database-reviewer:** dispatched only when AI judgment in
-Step 2 flagged the concern. Default prompts from those agents' definitions apply.
-
-**If ECC is not installed**, log "ECC plugin not installed — language-specific
-reviewers skipped" and proceed with generic only.
+Step 2 flagged the concern. Use the prompts from `references/reviewer-prompts.md`
+(`security-reviewer` and `database-reviewer` sections) which are invariant-based
+and self-generate from the domain invariant, not from fixed checklists.
 
 **For specific-file invocation** (`/touchstone:code-review path/to/file`):
 
-Still detect language from the file extension. Dispatch generic reviewer with
-the `specific-file` prompt from `references/reviewer-prompts.md`.
-Also dispatch the matching language reviewer if ECC is available. Skip domain
-reviewers unless the file clearly falls in the security/DB domain.
+Dispatch generic reviewer with the `specific-file` prompt from
+`references/reviewer-prompts.md`. Skip domain reviewers unless the file clearly
+falls in the security/DB domain per Step 2's conditions.
 
 ### Step 4: Aggregate findings
 
@@ -158,13 +138,13 @@ No re-review loop in per-commit mode (Pattern C) — the per-commit scope is too
 ```markdown
 ## Patch Review: {target}
 
-**Reviewers dispatched:** generic Sonnet, {language}-reviewer{, security-reviewer}{, database-reviewer}
+**Reviewers dispatched:** generic Sonnet{, security-reviewer}{, database-reviewer}
 
 | # | Issue | Severity | Source | Action |
 |---|---|---|---|---|
-| 1 | ... | Critical | Sonnet + python-reviewer | Fixed: ... |
+| 1 | ... | Critical | Sonnet | Fixed: ... |
 | 2 | ... | High | security-reviewer | Fixed: ... |
-| 3 | ... | Low | python-reviewer | Fixed inline (trivial) |
+| 3 | ... | Low | Sonnet | Fixed inline (trivial) |
 | 4 | ... | Medium | Sonnet | Deferred to /touchstone:code-review batch |
 
 Ready to commit: {yes/no}
