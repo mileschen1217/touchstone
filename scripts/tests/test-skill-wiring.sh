@@ -123,7 +123,7 @@ sys.exit(0 if (a and has(a,b)) else 1)
 PY
 then echo "ok manifest-version-consistent"; else echo "FAIL manifest-version-consistent"; fail=$((fail+1)); fi
 
-# --- NEW MODEL (Phase 2.9): non-greenfield crucible, native want-layer, both-arms ground-and-sweep ---
+# --- NEW MODEL (Phase 2.9): standing-decision-aware crucible, native want-layer, both-arms ground-and-sweep ---
 
 # crucible: brainstorm conditional, grill unconditional, keystone conditional structural-fork
 chk "crucible-brainstorm-conditional" "skills/crucible/SKILL.md" "brainstorm[^.]{0,40}conditional|conditional[^.]{0,40}brainstorm"

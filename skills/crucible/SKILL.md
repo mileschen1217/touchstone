@@ -30,9 +30,9 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 
 5. **`/touchstone:design-spec`** — chain tail. Authors the requirement → AC contract. Its Load-vocabulary / Foundation-elicitation phase elicits intention / aim / out-of-scope from context; US-N assignment and story→requirement trace are design-spec's responsibility, not crucible's.
 
-## Standing-decision conflict (non-greenfield)
+## Standing-decision conflict
 
-On a non-greenfield change whose alignment touches a ratified ADR or standing decision, **surface the conflict for human resolution** — do not assume greenfield. Two dispositions:
+When a change's alignment touches a ratified ADR or standing decision, **surface the conflict for human resolution** — do not assume a clear slate where a prior decision can be silently overwritten. Two dispositions:
 
 - **True structural fork** (≥2 viable paths remain after the conflict): route to keystone (the structural-fork step) before design-spec.
 - **Decisively-resolved conflict** (the ratified decision still stands; no viable alternative remains): proceed noting the conflict inline (F-1 disposition). Do NOT silently proceed past a standing decision without naming it.
