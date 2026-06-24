@@ -7,9 +7,20 @@ description: Front-end contract orchestrator — chains brainstorming (condition
 
 Forges raw intent into a precise, accepted contract in ONE invocation. Chains existing skills; the human accepts once at the end (human accept); hands the accepted contract to the build phase. Auto-invokes neither the build-phase gate nor the build.
 
+**Applicability boundary:** crucible is the front-end for work whose contract is authorable after light exploration; explore-dominant work does not run through crucible's single chain.
+
+## Step 1 — Explore-dominant precondition gate (run before the chain)
+
+Is this work explore-dominant?
+
+- **Light-exploration** (design-spec's own source-reading suffices — e.g. a new feature or targeted change where the existing system is already understood) → proceed with the chain.
+- **Explore-dominant** (an audit / refactor / heavy reckoning with the existing system — where the shape of the work itself depends on discovering what is actually there) → **STOP**: run the exploration as its own phase first, then feed its findings into the contract. Crucible's chain has no slot for an open-ended audit. Do not silently grill→design-spec on unexplored ground.
+
+This check is orthogonal to story recognition. A story can be fully recognized (≥1 US-N aligned) while the system remains unexplored — recognized intent does not imply system explored.
+
 ## What it chains (in order)
 
-1. **`superpowers:brainstorming`** — conditional. Skip-signal: story already recognized ⟺ ≥1 US-N already supplied or aligned in context (parent epic or prior alignment) → skip brainstorm; otherwise run it to surface user-stories before grilling.
+1. **`superpowers:brainstorming`** — conditional. Skip-signal: story already recognized ⟺ ≥1 US-N already supplied or aligned in context (parent epic or prior alignment) → skip brainstorm (intent recognition cleared); otherwise run it to surface user-stories before grilling. Note: this skip-signal clears intent recognition only — it does not clear the Step 1 system-explored check, which is a separate precondition.
 
 2. **`grill-with-docs`** — unconditional. Sharpens vocabulary against CONTEXT.md / ADRs. This inline run **discharges the CLAUDE.md mandatory pre-spec grill gate** — no separate standalone grill is required when authoring via crucible.
 
