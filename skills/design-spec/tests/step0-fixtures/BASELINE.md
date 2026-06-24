@@ -95,7 +95,7 @@ conformance pass predicted away. All fixed by making casually-framed
 fixed-emit strings emphatic ("emit this EXACT … verbatim, do not paraphrase")
 and inlining them where only referenced:
 
-1. **Reuse log** paraphrased ("Skipping the Foundation-elicitation phase…") instead of the verbatim
+1. **Reuse log** paraphrased ("Skipping Step 0…" — the phase's pre-rename name, as the agent actually emitted it) instead of the verbatim
    "Foundation already confirmed this session — reusing". (commit 196d7e5)
 2. **AC-8b warning + risk note**: design-spec only *referenced* the override
    path — never inlined the strings, so a design-spec agent couldn't emit

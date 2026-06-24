@@ -38,7 +38,7 @@ Dispatches:
 /touchstone:code-review solo with codex          # Pattern C; codex-reviewer alone, no specialists
 ```
 
-The `batch` keyword is the explicit per-batch (Pattern B) trigger. Without it, even a multi-commit range invocation defaults to per-commit (Pattern C) applied per-commit.
+The `batch` keyword is the explicit per-batch (Pattern B) trigger. Without it, even a multi-commit range invocation defaults to Pattern C applied per-commit.
 
 The `with <vendor>` modifier overrides reviewer routing. See parse details in `## Argument parsing` below.
 
