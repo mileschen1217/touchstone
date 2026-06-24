@@ -163,10 +163,10 @@ so the cold reviewer applies sweep-to-dry over the AC's true subject. The inject
 carries the shared saturation definition and scope-resolution rule — do not restate them here.
 
 **feedback wrapper (per-arm delta only):**
-- **feedback unit identity:** each *emitted finding* (not each AC) must be grounded in concrete
+- **feedback unit identity:** when **reviewing**, each *emitted finding* (not each AC) is the unit; it must be grounded in concrete
   repo facts: file path, line number, field value, or AC-id. A generic assertion
   ("the code has issues") fails ground-before-assert.
-- **feedback saturation delta:** saturation on the feedback arm = a full review pass over the AC's
+- **feedback saturation delta:** when **reviewing**, saturation = a full review pass over the AC's
   true subject surfaces nothing new. The verbatim-injected `ground-and-sweep.md` defines
   the shared saturation criterion and scope-resolution rule; apply them here.
 
