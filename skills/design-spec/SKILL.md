@@ -6,8 +6,8 @@ description: |
   document at the project's configured specs directory. Invoke when the change
   is cross-cutting or risky enough that the spec's cost is repaid by catching
   scope/AC errors before build; skip when it is contained enough that the contract
-  costs more than it saves. Heuristic: 3+ files across 2+ modules, or a new
-  contract (API / CLI / IPC / skill). On first invocation in a project, runs
+  costs more than it saves. Heuristic: the change spans multiple modules, or
+  introduces a new contract (API / CLI / IPC / skill). On first invocation in a project, runs
   setup to record the specs directory. Always dispatches the `architect` agent
   for fresh-context review of the draft.
 allowed-tools:
@@ -33,8 +33,8 @@ Author a design spec when the change is cross-cutting or risky enough that the
 contract's cost is repaid by catching scope/AC errors before build. Skip when
 it is contained enough that the contract costs more than it saves.
 
-Derived heuristic: 3+ files across 2+ modules, or a new contract (public API,
-CLI command, IPC message format, Claude Code skill, or agent).
+Derived heuristic: the change spans multiple modules, or introduces a new contract
+(public API, CLI command, IPC message format, Claude Code skill, or agent).
 
 The user may always explicitly request a design spec — that overrides the heuristic.
 

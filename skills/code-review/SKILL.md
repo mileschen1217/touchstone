@@ -105,10 +105,15 @@ Never review inline — always spawn separate agents. Launch all reviewers in a
 - If `force_reviewer = codex` → dispatch `codex-reviewer` instead of the generic Sonnet reviewer below. Pass the diff in the same envelope shape used by Pattern B (`{ task: <diff>, role: "reviewer", task_dir: <optional> }`). Specialists (security / DB) still dispatch in parallel per below.
 - Otherwise (default, or `force_reviewer = cc`) → generic Sonnet reviewer (`model: "sonnet"`), dispatched with the `generic-diff` prompt from `references/reviewer-prompts.md`. The generic reviewer applies language-appropriate scrutiny inferred from the diff's languages (idioms, type safety, performance, language-specific security) — no enumerated language list; this covers shell, markdown, and any other language in the diff.
 
-**security-reviewer / database-reviewer:** dispatched only when AI judgment in
-Step 2 flagged the concern. Use the prompts from `references/reviewer-prompts.md`
-(`security-reviewer` and `database-reviewer` sections) which are invariant-based
-and self-generate from the domain invariant, not from fixed checklists.
+> _Why a generic Sonnet agent here, not the dedicated `everything-claude-code:code-reviewer` (which `batch` mode does use):_ per-commit is the hot path. Keeping it on a generic Sonnet agent + touchstone's own `generic-diff` prompt avoids a hard dependency on the everything-claude-code plugin and keeps the per-commit review philosophy under touchstone's control. The dedicated cross-vendor agents (`codex-reviewer` / `everything-claude-code:code-reviewer`) come in at `batch` (Pattern B), where vendor independence carries the most weight.
+
+**security / database review:** dispatched only when AI judgment in Step 2 flagged the
+concern. Dispatch a **generic Sonnet agent** (`model: "sonnet"`) carrying the
+`security-reviewer` / `database-reviewer` invariant prompt from
+`references/reviewer-prompts.md` — touchstone's own invariant-based prompts that
+self-generate the specific checks from the domain invariant. These are **not** the ECC
+`everything-claude-code:security-reviewer` / `database-reviewer` agents: we deliberately
+do not depend on their fixed checklists, for self-containment.
 
 **For specific-file invocation** (`/touchstone:code-review path/to/file`):
 
