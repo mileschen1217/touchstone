@@ -146,24 +146,17 @@ Dispatch-target resolution (`cc` / `codex` / default Pattern A composite) + the 
 
 ## Boundary — the architect critique is NOT the design-review gate
 
-The architect dispatch (see Architect dispatch above) is an **author-time, one-shot, non-gating** critique that improves the draft. It is a different thing from `/touchstone:design-review`, the Stage-0 **design-review gate** (the gate that runs before Build). Conflating the two is a recurring mistake — they share only the *shape* (both are a Pattern-A cross-provider review of the spec) but differ in **criteria/backend** (architect/structural vs reviewer/doc-checklist), cadence, enforcement, and what version they judge:
+**The architect critique never discharges the `/touchstone:design-review` gate — different reviews, different criteria (rationale: ADR-0015).**
 
-| | Architect critique (this skill) | `/touchstone:design-review` (the gate) |
-|---|---|---|
-| Role | author-time critique, improve the draft | design-review gate, pass/fail before implementation |
-| Backend / criteria | `architect` composite — structural validate + adversarial | `reviewer` composite + doc-review prompt (Problem/Scope/AC/Interfaces + **Verification-Strategy**) |
-| Verdict | `approve\|revise\|block`, advisory — no enforced iterate-to-green | C+H tiered: C+H≥5 → mandatory 2nd pass, **blocks Build until C+H=0** |
-| Skippable | yes (`quick`) | no — not on user discretion at C+H≥5 |
-| Judges | the freshly-drafted version | the **final, human-accepted** version |
+The architect critique is an author-time adversarial pressure-test that improves the draft before human-accept. It dispatches the `architect` composite (structural validate + adversarial), is advisory (`approve|revise|block`), and is skippable (`quick`). Its verdict is not the gate's doc-review C+H currency — passing it leaves the gate's Verification-Strategy check unaudited.
 
-The human-accept step sits **between** them:
+The human-accept step sits between them:
 
 ```
-/touchstone:design-spec              →   Status: Draft   →   human reads / edits / accepts ★   →   /touchstone:design-review (blocking gate)
-(draft + architect critique)                           (lifecycle owned by the human)        (C+H gate, blocks Build)
+/touchstone:design-spec (architect critique)  →  Status: Draft  →  human reads/edits/accepts ★  →  /touchstone:design-review (gate)
 ```
 
-Running this skill **never** discharges `/touchstone:design-review` — they are different reviews. The architect critique is the **architect** composite (structural, advisory); the gate is the **reviewer** composite with the doc-review prompt (incl. the Verification-Strategy / live-bearing declaration), C+H-tiered and Build-blocking. The architect critique's `approve|revise|block` is not the gate's doc-review C+H currency, so passing the architect critique leaves the gate's checklist (notably Verification-Strategy) unaudited. Always run `/touchstone:design-review` on the **final, human-accepted** artifact; the seam is the human-in-the-loop accept step. (Rationale: ADR-0015.)
+Always run `/touchstone:design-review` on the **final, human-accepted** artifact; never treat "design-spec was run" as "the gate passed".
 
 ## Usage
 

@@ -35,11 +35,11 @@ On a non-greenfield change whose alignment touches a ratified ADR or standing de
 - **True structural fork** (≥2 viable paths remain after the conflict): route to keystone (step 3) before design-spec.
 - **Decisively-resolved conflict** (the ratified decision still stands; no viable alternative remains): proceed noting the conflict inline (F-1 disposition). Do NOT silently proceed past a standing decision without naming it.
 
-## Mid-chain halt (design-spec Step-5 critique)
+## Mid-chain halt (design-spec architect critique)
 
-- If the chained `/touchstone:design-spec` Step-5 critique returns a **Critical or High** finding, **halt and surface** it to the human to clear (resolve or dismiss) before continuing.
+- If the chained `/touchstone:design-spec` architect critique returns a **Critical or High** finding, **halt and surface** it to the human to clear (resolve or dismiss) before continuing.
 - Do NOT silently fold it into Open Questions; do NOT auto-advance.
-- After the human clears it, proceed to the terminal human-accept step. design-spec's Step-5 was the chain's last design-spec step — crucible does not re-loop the chain; any post-clear edit is re-judged downstream.
+- After the human clears it, proceed to the terminal human-accept step. design-spec's architect critique was the chain's last design-spec step — crucible does not re-loop the chain; any post-clear edit is re-judged downstream.
 
 ## Terminal step — human accept
 

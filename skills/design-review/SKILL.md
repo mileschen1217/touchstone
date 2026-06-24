@@ -25,15 +25,11 @@ Required when any of:
 Out of scope — return "not in scope; this skill reviews specs / plans / ADRs only" and exit:
 - Anything that is not a contract-bearing design document (spec / plan / ADR) (e.g. a research note)
 
-## Relationship to /touchstone:design-spec (this is the gate; its Step-5 review is not)
+## Relationship to /touchstone:design-spec (this is the gate; its architect critique is not)
 
-`/touchstone:design-spec` runs its own architect critique while drafting (its "Step-5 review"). That is **not** this gate — it is an author-time, advisory, skippable (`quick`) pass that judges the freshly-drafted spec. **This skill is the design-review gate**: C+H tiered (see "Apply findings"), it blocks Build, and it judges the **final, human-accepted** artifact. The two are separated by the human accept step:
+**design-spec's architect critique is not this gate — this is the C+H Build-blocking gate on the human-accepted artifact (rationale: ADR-0015).**
 
-```
-/touchstone:design-spec  →  Status: Draft  →  human edits / accepts ★  →  /touchstone:design-review (here)
-```
-
-`/touchstone:design-spec`'s Step-5 review **never discharges this gate** — they are different reviews with different criteria. Step-5 dispatches the **architect** composite (`cross-provider-architect`: CC `architect` + Codex adversarial) for a *structural, advisory* critique; this gate dispatches the **reviewer** composite (`cross-provider-reviewer`) with the **doc-review prompt** (Problem/Scope/AC/Interfaces + the Verification-Strategy / live-bearing declaration), C+H-tiered and Build-blocking. Step-5's `approve|revise|block` is **not** the gate's doc-review C+H currency, so a spec can pass the architect critique while its Verification-Strategy is never audited — claiming "gate passed" from a Step-5 verdict asserts a property a different check produced. Always run this gate on the **final, human-accepted** artifact; never treat "design-spec was run" as "the gate passed". (Rationale: ADR-0015.)
+This skill is the Stage-0 design-review gate: it reviews the **final, human-accepted** artifact, dispatches the `reviewer` composite with the doc-review prompt (Problem/Scope/AC/Interfaces + Verification-Strategy / live-bearing declaration), and is C+H-tiered and Build-blocking. design-spec's architect critique is author-time and advisory — its verdict is not this gate's doc-review C+H currency. Never treat "design-spec was run" as "this gate passed".
 
 ## Procedure
 
