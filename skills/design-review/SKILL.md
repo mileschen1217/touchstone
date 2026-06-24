@@ -1,7 +1,7 @@
 ---
 name: design-review
 kind: workflow
-description: Reviews authored design documents (spec, plan, ADR) before Build using Pattern A (dual parallel). Dispatches `touchstone:cross-provider-reviewer` composite skill with a doc-review system prompt set via task envelope. Out of scope — research notes, READMEs, retros, daily notes.
+description: Reviews authored design documents (spec, plan, ADR) before Build using dual cross-provider review (Pattern A). Dispatches `touchstone:cross-provider-reviewer` composite skill with a doc-review system prompt set via task envelope. Out of scope — anything that is not a contract-bearing design document (spec / plan / ADR).
 allowed-tools:
   - Bash
   - Read
@@ -12,7 +12,7 @@ allowed-tools:
 user-invocable: true
 ---
 
-# /touchstone:design-review — Design Document Review (Pattern A)
+# /touchstone:design-review — Design Document Review
 
 Reviews captured design artifacts before Build. The Stage 0 gate of the Review Gate.
 
@@ -23,11 +23,11 @@ Required when any of:
 - A plan is authored by `/superpowers:writing-plans` and ready for review
 - An ADR is authored and introduces a new contract
 Out of scope — return "not in scope; this skill reviews specs / plans / ADRs only" and exit:
-- Research notes, daily notes, MOCs, retros, READMEs, kb articles
+- Anything that is not a contract-bearing design document (spec / plan / ADR) (e.g. a research note)
 
 ## Relationship to /touchstone:design-spec (this is the gate; its Step-5 review is not)
 
-`/touchstone:design-spec` runs its own architect critique while drafting (its "Step-5 review"). That is **not** this gate — it is an author-time, advisory, skippable (`quick`) pass that judges the freshly-drafted spec. **This skill is the design-review gate**: C+H tiered (see §4), it blocks Build, and it judges the **final, human-accepted** artifact. The two are separated by the human accept step:
+`/touchstone:design-spec` runs its own architect critique while drafting (its "Step-5 review"). That is **not** this gate — it is an author-time, advisory, skippable (`quick`) pass that judges the freshly-drafted spec. **This skill is the design-review gate**: C+H tiered (see "Apply findings"), it blocks Build, and it judges the **final, human-accepted** artifact. The two are separated by the human accept step:
 
 ```
 /touchstone:design-spec  →  Status: Draft  →  human edits / accepts ★  →  /touchstone:design-review (here)
@@ -37,7 +37,7 @@ Out of scope — return "not in scope; this skill reviews specs / plans / ADRs o
 
 ## Procedure
 
-### 0. Load vocabulary
+### Load vocabulary
 
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`
 > with the Read tool and follow it exactly.
@@ -67,12 +67,12 @@ The Bridge content audit (P1/P2/P3 application) and Standing vs transient classi
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/live-bearing-predicate.md` AND
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/ac-coverage-honesty-principle.md`
 and inject them into the reviewer envelope: append to the doc-review `system_prompt`
-(§3 below) AND carry as `evidence_honesty_vocab`. This is spine, not a discipline: it
+("Doc-review prompt" below) AND carry as `evidence_honesty_vocab`. This is spine, not a discipline: it
 fires regardless of which disciplines are adopted (do NOT gate it on `source-as-truth`).
 Item 7 of the doc-review prompt applies this injected doctrine as its feedforward
 (declaration) stage. Also inject `ground-and-sweep.md` per the feedback arm section below.
 
-### 1. Validate input scope
+### Validate input scope
 
 Read the target file(s). Check frontmatter `type:` field if present, or path:
 - `type: spec` OR path matches `**/specs/**` → in scope (use spec/plan/ADR system prompt)
@@ -80,7 +80,7 @@ Read the target file(s). Check frontmatter `type:` field if present, or path:
 - `type: adr` OR path matches `**/adr/**` → in scope (use spec/plan/ADR system prompt)
 - Anything else → out of scope; exit gracefully.
 
-### 1.5. Pre-check (specs only — deterministic structural + challenge-result gate)
+### Pre-check (specs only — deterministic structural + challenge-result gate)
 
 For `type: spec` targets (path matches `**/specs/**` or frontmatter `type: spec`), run the deterministic pre-check before dispatching reviewers if it exists:
 
@@ -88,16 +88,16 @@ For `type: spec` targets (path matches `**/specs/**` or frontmatter `type: spec`
 bash scripts/design-review-precheck.sh <spec-path>
 ```
 
-Run `bash scripts/design-review-precheck.sh <spec-path>` if it exists; if the script is absent, skip this step and proceed to Step 2 (degrade gracefully — do not hard-block when the script is not present in the consumer project).
+Run `bash scripts/design-review-precheck.sh <spec-path>` if it exists; if the script is absent, skip this step and proceed to "Dispatch the reviewer" (degrade gracefully — do not hard-block when the script is not present in the consumer project).
 
 Interpret the result:
 
 - **Exit non-zero** (`BLOCK:` line in output) — surface the full BLOCK output verbatim to the user and **do not dispatch reviewers**. Build does not proceed until the human resolves the block (fixes the structural violation, runs the challenge-pass, resolves stale digests, etc.).
-- **Exit zero** (`PRE-CHECK OK → dispatch` or `PRE-CHECK skipped: draft`) — proceed to Step 2 below.
+- **Exit zero** (`PRE-CHECK OK → dispatch` or `PRE-CHECK skipped: draft`) — proceed to "Dispatch the reviewer" below.
 
-For non-spec targets (`type: plan`, `type: adr`), skip this step and proceed directly to Step 2.
+For non-spec targets (`type: plan`, `type: adr`), skip this step and proceed directly to "Dispatch the reviewer".
 
-### 2. Dispatch touchstone:cross-provider-reviewer (Pattern A)
+### Dispatch the reviewer
 
 ```
 Skill(skill: "touchstone:cross-provider-reviewer", args: {
@@ -108,7 +108,7 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 })
 ```
 
-### 3. Doc-review system prompt
+### Doc-review prompt
 
 **For spec / plan / ADR:**
 
@@ -133,7 +133,7 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 >
 > Return findings sorted by severity (Critical, High, Medium, Low). Each finding cites the section and a concrete fix. End with verdict: approve | revise | block.
 
-### 4. Apply findings
+### Apply findings
 
 Quality gate (sums findings across reviewers):
 
