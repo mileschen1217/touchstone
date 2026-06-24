@@ -35,3 +35,16 @@ Report findings as a numbered list, each tagged [Critical], [High], [Medium], or
 If no issues found, report "No issues found."
 Keep it concise.
 ```
+
+## language-reviewer prompt
+
+For each language-specific reviewer dispatched from Step 3 (`{language}` = detected language, `{diff path}` = diff target):
+
+```
+Review the changes in {diff path} for {language}-specific issues — idioms,
+type safety, best practices, performance gotchas, and language-specific
+security patterns beyond generic checks.
+
+Report findings as a numbered list tagged [Critical], [High], [Medium], or [Low].
+Keep it concise.
+```

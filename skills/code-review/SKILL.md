@@ -39,18 +39,18 @@ Dispatches:
 /touchstone:code-review solo with codex          # Pattern C; codex-reviewer alone, no specialists
 ```
 
-The `batch` keyword is the explicit Pattern B trigger. Without it, even a multi-commit range invocation defaults to Pattern C applied per-commit.
+The `batch` keyword is the explicit per-batch (Pattern B) trigger. Without it, even a multi-commit range invocation defaults to per-commit (Pattern C) applied per-commit.
 
-The `with <vendor>` modifier overrides reviewer routing. Recognized vendors: `codex`, `cc`. The modifier is parsed after `batch` (if present) and after the commit-ish/range. Unrecognized values fail loudly: "unknown vendor in `with` modifier — expected `codex` or `cc`".
+The `with <vendor>` modifier overrides reviewer routing. See parse details in `## Argument parsing` below.
 
-The `solo` modifier disables the parallel specialist fan-out (language reviewer, security-reviewer, database-reviewer). Useful when the diff is small / single-purpose and specialists would be noise. Pattern B already implies solo (single reviewer); `solo` on Pattern B is a no-op.
+The `solo` modifier disables the parallel specialist fan-out (language reviewer, security-reviewer, database-reviewer). Useful when the diff is small / single-purpose and specialists would be noise.
 
 ## Argument parsing
 
 Parse the args string left-to-right:
 1. If first token is `batch` → `mode = batch`, advance.
 2. Next token, if not `with` / `solo`, is treated as commit-ish (Pattern C) or range (Pattern B).
-3. If `solo` appears anywhere → `solo = true` (disables specialist fan-out).
+3. If `solo` appears anywhere → `solo = true` (disables specialist fan-out). Pattern B already implies solo (single reviewer); `solo` on Pattern B is a no-op.
 4. If `with <vendor>` appears, set `force_reviewer = <vendor>`. Validate against {`codex`, `cc`}; fail loudly otherwise.
 
 ## Batch Mode (Pattern B)
@@ -121,16 +121,7 @@ Never review inline — always spawn separate agents. Launch all reviewers in a
 - If `force_reviewer = codex` → dispatch `codex-reviewer` instead of the generic Sonnet reviewer below. Pass the diff in the same envelope shape used by Pattern B (`{ task: <diff>, role: "reviewer", task_dir: <optional> }`). Specialists (language / security / DB) still dispatch in parallel per below.
 - Otherwise (default, or `force_reviewer = cc`) → generic Sonnet reviewer (`model: "sonnet"`), dispatched with the `generic-diff` prompt from `references/reviewer-prompts.md`.
 
-**Language reviewer(s):** dispatch one per detected language. Each gets:
-
-```
-Review the changes in {diff path} for {language}-specific issues — idioms,
-type safety, best practices, performance gotchas, and language-specific
-security patterns beyond generic checks.
-
-Report findings as a numbered list tagged [Critical], [High], [Medium], or [Low].
-Keep it concise.
-```
+**Language reviewer(s):** dispatch one per detected language. Each gets the `language-reviewer` prompt from `references/reviewer-prompts.md`.
 
 **security-reviewer / database-reviewer:** dispatched only when AI judgment in
 Step 2 flagged the concern. Default prompts from those agents' definitions apply.
@@ -159,7 +150,7 @@ Mark which reviewer(s) found each issue for traceability.
    change), fix inline; otherwise note and defer. No ledger — don't track
    deferred Lows across commits.
 
-No re-review loop in Pattern C — the per-commit scope is too small to justify it
+No re-review loop in per-commit mode (Pattern C) — the per-commit scope is too small to justify it
 (that is `/touchstone:code-review batch`'s job).
 
 ### Step 6: Report
