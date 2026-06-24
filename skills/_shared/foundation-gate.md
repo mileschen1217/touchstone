@@ -1,7 +1,7 @@
 # Foundation-elicitation gate (shared)
 
 The Baseline 3-field elicitation (intention / aim / out-of-scope), shared by `design-spec`
-(Draft Mode Step 0) and `epic-driven-roadmap` (Scaffold step 0). Run it before any expensive
+(the Foundation-elicitation phase) and `epic-driven-roadmap` (Scaffold opening). Run it before any expensive
 drafting/scaffolding — it catches wrong-scope work while it is still cheap. Each caller wraps
 this gate with its own inheritance handling and records the confirmed foundation in its own
 target (see **Caller contract** at the end).
@@ -18,13 +18,13 @@ it never spans separate invocations.
 
 Open with this EXACT phrase (fixed emit string): "Please describe the intended work in your own
 words." The substring "describe the intended work in your own words" is what the bypass fixtures
-match (Step-0 reached) and what the from-scratch-opener check forbids elsewhere — keep it
+match (Foundation-elicitation phase reached) and what the from-scratch-opener check forbids elsewhere — keep it
 verbatim, do not paraphrase. No fixed follow-up questions — let the user give context freely.
 
 ## 2. Sharpening exchange
 
 Engage in a SHORT sharpening exchange. Ask only questions in the ALLOWED column of the caller's
-Step-0 question-boundary table. Stop once intention / aim / out-of-scope are crisp. Never ask a
+question-boundary table. Stop once intention / aim / out-of-scope are crisp. Never ask a
 FORBIDDEN-column question (architecture, files, dependencies, tests, API shape, effort, rollout,
 or fix strategy) — those are design-phase decisions. Do NOT slide into requirements/design
 exploration (→ brainstorming) or domain-vocabulary grilling (→ grill-with-docs). If the user

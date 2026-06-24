@@ -1,6 +1,6 @@
-# Step-0 fixtures — skill baseline (2026-05-23)
+# Foundation-elicitation fixtures — skill baseline (2026-05-23)
 
-Baseline of the 18 intention-first Step-0 fixtures. **Two verification modes
+Baseline of the 18 intention-first Foundation-elicitation-phase fixtures. **Two verification modes
 were used** (faithful replay is the gold standard; static is a dry-run).
 
 ## Modes
@@ -34,8 +34,8 @@ permissions` is blocked, so only the orchestrator can do faithful replay.
 | scope-reframe | PASS (stop message, no spec written) |
 | legacy-epic | PASS (legacy note + opener, no inheritance prompt) |
 | same-session-reuse-spec | PASS (inheritance, not reuse) |
-| bypass-quick / with-vendor / unknown-arg / yaml-absent / yaml-no-intention-first | PASS (Step 0 reached, opener verbatim) |
-| bypass-invalid-vendor | PASS (loud error verbatim, no spec, Step 0 not reached) |
+| bypass-quick / with-vendor / unknown-arg / yaml-absent / yaml-no-intention-first | PASS (Foundation-elicitation phase reached, opener verbatim) |
+| bypass-invalid-vendor | PASS (loud error verbatim, no spec, Foundation-elicitation phase not reached) |
 
 ## pass@5 (2026-05-23) — all 18 fixtures, orchestrator-driven, sonnet under-test + sonnet judge
 
@@ -95,7 +95,7 @@ conformance pass predicted away. All fixed by making casually-framed
 fixed-emit strings emphatic ("emit this EXACT … verbatim, do not paraphrase")
 and inlining them where only referenced:
 
-1. **Reuse log** paraphrased ("Skipping Step 0 …") instead of the verbatim
+1. **Reuse log** paraphrased ("Skipping the Foundation-elicitation phase…") instead of the verbatim
    "Foundation already confirmed this session — reusing". (commit 196d7e5)
 2. **AC-8b warning + risk note**: design-spec only *referenced* the override
    path — never inlined the strings, so a design-spec agent couldn't emit
@@ -109,7 +109,7 @@ and inlining them where only referenced:
 
 The general lesson: an exact-emit string is only reliably emitted verbatim
 when the skill frames it emphatically as a fixed emit; casual framing
-("warn 'X'", "ask: 'X'") gets paraphrased. All Step-0 fixed-emits now use
+("warn 'X'", "ask: 'X'") gets paraphrased. All Foundation-elicitation-phase fixed-emits now use
 the emphatic pattern.
 
 ## Mechanism validated

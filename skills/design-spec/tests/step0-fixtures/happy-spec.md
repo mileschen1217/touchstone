@@ -11,7 +11,7 @@ required-phrases:
   - "Intention (why):"
   - "Aim:"
   - "Out of scope:"
-  - "Please confirm or edit this foundation."   # exact Step-0 confirm
+  - "Please confirm or edit this foundation."   # exact Foundation-elicitation confirm
 
 forbidden-substrings:
   - "Parent epic uses legacy Intention format"  # b1 (no parent epic): the
