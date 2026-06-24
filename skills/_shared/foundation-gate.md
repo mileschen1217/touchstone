@@ -35,16 +35,9 @@ and trips the shallow-boundary check.
 
 ## 3. Synthesise the draft
 
-Present using these EXACT field labels (verbatim — the fixtures match them case-sensitively):
-"Intention (why):", "Aim:", "Out of scope:". The SYNTHESISED aim must not contain a vague token
-{usually, typically, should, elegant, complex, careful, better}; if it would, do NOT carry it
-into the draft — re-prompt for an OBSERVABLE formulation (ask what the user would observe or
-measure when done; "what would you observe when this is done?" is a good default). Do not
-synthesise until the aim is observable. Out-of-scope sentinel: if the user declines to name any
-out-of-scope route after one re-prompt ("can you name one thing this work will NOT touch, even if
-related?"), record this EXACT sentinel verbatim (fixed string — do not paraphrase, this literal
-only): "(no explicit boundary declared)" — this is the one allowed placeholder, no other — AND add
-a matching entry to the caller's Risks / Open Questions section.
+- **Field labels:** Present using these EXACT field labels (verbatim — the fixtures match them case-sensitively): "Intention (why):", "Aim:", "Out of scope:".
+- **Vague-token check:** The SYNTHESISED aim must not contain a vague token {usually, typically, should, elegant, complex, careful, better}; if it would, do NOT carry it into the draft — re-prompt for an OBSERVABLE formulation (ask what the user would observe or measure when done; "what would you observe when this is done?" is a good default). Do not synthesise until the aim is observable.
+- **Out-of-scope sentinel:** if the user declines to name any out-of-scope route after one re-prompt ("can you name one thing this work will NOT touch, even if related?"), record this EXACT sentinel verbatim (fixed string — do not paraphrase, this literal only): "(no explicit boundary declared)" — this is the one allowed placeholder, no other — AND add a matching entry to the caller's Risks / Open Questions section.
 
 ## 4. Confirm
 

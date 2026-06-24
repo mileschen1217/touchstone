@@ -7,7 +7,7 @@ kill-on: lever-discipline-mechanisation
 
 # Bridge content gate — three principles
 
-Enforceable-rule. `kill-on: lever-discipline-mechanisation`. Every bridge claim must pass all three. Failure = defect.
+Enforceable-rule. Every bridge claim must pass all three. Failure = defect.
 
 - **P1 (non-duplication):** if source already encodes the claim (a type / function / test), the prose is duplicative. Delete or point at source. **Also rejects doc-as-workaround:** if prose explains why dead/duplicative source still exists, remove the source instead.
 - **P2 (falsifiable):** every claim concrete enough to write a test / run a probe / grep. Forbidden tokens (signal failure): *usually, typically, complex, careful, should, elegant* (as content, not meta).
