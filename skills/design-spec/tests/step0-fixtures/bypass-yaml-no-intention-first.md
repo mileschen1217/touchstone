@@ -1,10 +1,10 @@
-# Fixture: bypass-yaml-no-intention-first — AC-7 (Baseline always-on: Step 0 reached when yaml present but adopted_disciplines empty)
+# Fixture: bypass-yaml-no-intention-first — AC-7 (Baseline always-on: Foundation-elicitation phase reached when yaml present but adopted_disciplines empty)
 # Harness contract: skills/<skill>/tests/step0-fixtures/ two-layer schema
 # Spec authority: intention-first epic § AC-7
 #
 # .claude/touchstone.yaml is present but adopted_disciplines is empty
-# (intention-first not listed); must NOT skip Step 0.
-# This fixture proves Step 0 is REACHED.
+# (intention-first not listed); must NOT skip the Foundation-elicitation phase.
+# This fixture proves it is REACHED.
 
 ```yaml
 invocation: { skill: design-spec, args: "" }
@@ -19,7 +19,7 @@ setup:
 
 # ── Layer 1 (deterministic) ──────────────────────────────────────────────
 required-phrases:
-  - "Please describe the intended work in your own words."   # full exact emit (Step 0 reached)
+  - "Please describe the intended work in your own words."   # full exact emit (Foundation-elicitation phase reached)
 
 forbidden-substrings:
   # Setup-Mode mis-route guard: the specs-dir question must NOT appear

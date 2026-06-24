@@ -15,7 +15,7 @@ kill-on: <epic-slug>
 
 ## Foundation
 
-> Set at Draft Mode Step 0 via elicitation. Full phase version, all three
+> Set at the Draft Mode Foundation-elicitation phase via elicitation. Full phase version, all three
 > fields — self-contained; must not require reading the parent epic to
 > interpret. If a parent epic exists, its foundation is the starting point;
 > sharpen to this phase's specifics. The spec has no tracker headline, so
@@ -58,7 +58,7 @@ What hurts today? Concrete, scoped, falsifiable. State the user or system pain w
 **Touched files/modules:**
 - <file or module path>
 
-> Foundation.aim above is a provisional direction set at Step 0. The
+> Foundation.aim above is a provisional direction set at the Foundation-elicitation phase. The
 > acceptance criteria below sharpen it into a testable form; that
 > sharpening is confirmed with the user during drafting — it is not
 > silently inherited.

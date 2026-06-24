@@ -39,7 +39,7 @@ Read `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml` and determine the action fr
 
 Note: `adopted_disciplines` key missing is treated as an empty list.
 
-`--migrate` flag: read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/step0-resolver.md` with the Read tool and follow it exactly. The resolver's §3 migration steps handle reading old schema-1 keys, deriving `workspace_root`, writing new schema-2 yaml, and printing a diff summary. Do not duplicate that logic here.
+`--migrate` flag: read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md` with the Read tool and follow it exactly. The config resolver's §3 migration steps handle reading old schema-1 keys, deriving `workspace_root`, writing new schema-2 yaml, and printing a diff summary. Do not duplicate that logic here.
 
 ## Step 2 — Collect paths
 

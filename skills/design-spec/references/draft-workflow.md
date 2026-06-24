@@ -34,17 +34,17 @@ If not provided in the invocation:
    mandatory for a full spec (the skip-spec path is exempt — see SKILL.md Skip when).
 
 When drafting ## Acceptance Criteria:
-- Treat Foundation.aim as a provisional DIRECTION (set shallow at Step 0,
-  before any design / feasibility work), not a settled target.
-- Derive testable, observable acceptance criteria from it. Where Step 0
-  fixed a placeholder value (e.g. a latency or recall threshold), this is
+- Treat Foundation.aim as a provisional DIRECTION (set shallow at the
+  Foundation-elicitation phase, before any design / feasibility work), not a settled target.
+- Derive testable, observable acceptance criteria from it. Where the
+  Foundation-elicitation phase fixed a placeholder value (e.g. a latency or recall threshold), this is
   the stage to pressure-test and adjust that value against what the design
   can actually achieve.
 - Surface the result with this exact phrase:
   "Sharpened the Foundation aim into testable acceptance criteria — confirm or edit."
   Present the sharpened aim / criteria and wait for confirmation before
   finalising the AC section.
-- The sharpened aim must stay traceable to the Step-0 direction. If the
+- The sharpened aim must stay traceable to the Foundation-elicitation direction. If the
   design work reveals the original direction was wrong, that is a scope
   signal — surface it, do not quietly substitute a new goal.
 - Every AC must appear in the `### Index` table with a stable `AC-N` id and

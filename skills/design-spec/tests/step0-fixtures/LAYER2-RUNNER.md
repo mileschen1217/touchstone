@@ -1,6 +1,6 @@
-# Step-0 fixture replay runner — PENDING (Phase D, OQ-1 deferred)
+# Foundation-elicitation fixture replay runner — PENDING (Phase D, OQ-1 deferred)
 
-The 18 Step-0 fixtures in `skills/*/tests/step0-fixtures/` are authored and
+The 18 Foundation-elicitation-phase fixtures in `skills/*/tests/step0-fixtures/` are authored and
 ready, but no replay runner is wired yet. This file records the pending
 decision and the execution contract for whoever wires it.
 

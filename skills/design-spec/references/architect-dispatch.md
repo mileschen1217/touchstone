@@ -34,8 +34,8 @@ Use fresh context — the composite skill orchestrates fresh subagent contexts; 
 **Informed-consent checkpoint (orthogonal to the advisory verdict):** if the composite's
 returned synthesis (`<task_dir>/review.md`) carries a ⚠️ DEGRADED or ⚠️ PARTIAL banner,
 present the banner text to the user VERBATIM and obtain explicit acknowledgement (an
-`AskUserQuestion` choice, or an explicit user "proceed") BEFORE folding the Step-5
-critique back into the draft or writing the spec's final Output. The Step-5 review is
+`AskUserQuestion` choice, or an explicit user "proceed") BEFORE folding the architect
+critique back into the draft or writing the spec's final Output. The architect critique is
 advisory and non-gating (see `SKILL.md § Boundary`), but the consent checkpoint applies
 regardless — the banner is informational, not a hard block, but the workflow MUST NOT
 auto-advance past it without the human knowingly acknowledging that the structural

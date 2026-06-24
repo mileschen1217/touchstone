@@ -56,8 +56,9 @@ previously read `CONTEXT.md § "X"` now read
 shared instruction blocks:
 
 - `skills/_shared/` — procedure or instruction blocks referenced by 3+ warm skills
-  (e.g. `step0-resolver.md`, `foundation-gate.md`). Consumed by the warm orchestrator
-  that runs the skill.
+  (e.g. `config-resolver.md`, `foundation-gate.md`). Consumed by the warm orchestrator
+  that runs the skill. (superseded by ADR-0020 pt1 amendment 2026-06-24: the rule is
+  no-single-host; ≥2 is the derived floor — `3+` was a mis-applied rule-of-three.)
 - `skills/_shared/inject/` — doctrine fragments consumed verbatim by COLD agents
   (reviewers, architects) that have no CONTEXT.md access. A fragment is a complete,
   self-contained unit; a warm skill loads it and forwards it in the agent envelope.

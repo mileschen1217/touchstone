@@ -111,3 +111,27 @@ and should near-scaffold-duplicate skills merge?
   only by keystone) is a candidate to fold INTO that skill, deleting the CONTEXT section.
 - Pruning still requires the human oracle (pt 3) — no "looks cleaner" cut without a reviewer
   confirming the skill still steers.
+
+## Amendment (2026-06-24)
+
+**Reframing pt 1 as the no-single-host principle.**
+
+The pt 1 decision text above names `≥2 real consumers` as *the* rule (the "consumer-count
+test"). That framing inverts the direction of causation. The governing rule is:
+
+> **No-single-host principle:** a fragment lives in a shared home ⟺ no single skill can
+> be its authoritative owner — i.e., the fragment expresses genuinely cross-cutting
+> doctrine that ≥2 skills depend on as ONE fact, where divergence would be a bug.
+
+`≥2` is the **derived floor** — a cheap mechanical guard that falls out of the principle
+(1 consumer ⇒ that consumer IS the authoritative host ⇒ never shared), NOT the rule
+itself. Elevating the count to the primary rule produces a mis-applied rule-of-three:
+setting the bar at 3+ (as ADR-0017's `skills/_shared/` line did) or leaving it at 2
+both mislead, because the count is a necessary-but-not-sufficient condition. The
+sufficient condition is **no-single-host**: the fragment would be wrong (divergent
+if locally forked) under any hosting arrangement other than shared.
+
+**Practical consequence:** when evaluating whether to extract a fragment, ask first
+"is there a single skill that should own this?" — if yes, locality wins regardless of
+consumer count. Ask "would forking this fragment create a bug?" — if yes, extract.
+`≥2` surfaces the candidates; no-single-host makes the call.

@@ -80,7 +80,7 @@ chk "crucible-grill"       "skills/crucible/SKILL.md" "grill-with-docs"
 chk "crucible-design-spec" "skills/crucible/SKILL.md" "touchstone:design-spec"
 # states the inline grill discharges the pre-spec grill gate
 chk "crucible-grill-disch" "skills/crucible/SKILL.md" "discharge.*grill gate|grill gate.*discharge"
-# mid-chain Step-5 Critical/High halts + surfaces to clear, no Open-Questions fold, no auto-advance, then human accept
+# mid-chain architect-critique Critical/High halts + surfaces to clear, no Open-Questions fold, no auto-advance, then human accept
 chk "crucible-midchain-halt"  "skills/crucible/SKILL.md" "Critical or High|Critical/High"
 chk "crucible-midchain-clear" "skills/crucible/SKILL.md" "halt.*surface|surface.*clear|clear .?resolve or dismiss"
 chk "crucible-no-oq-fold"     "skills/crucible/SKILL.md" "fold it into Open Questions|silently fold.*Open Questions"
@@ -123,7 +123,7 @@ sys.exit(0 if (a and has(a,b)) else 1)
 PY
 then echo "ok manifest-version-consistent"; else echo "FAIL manifest-version-consistent"; fail=$((fail+1)); fi
 
-# --- NEW MODEL (Phase 2.9): non-greenfield crucible, native want-layer, both-arms ground-and-sweep ---
+# --- NEW MODEL (Phase 2.9): standing-decision-aware crucible, native want-layer, both-arms ground-and-sweep ---
 
 # crucible: brainstorm conditional, grill unconditional, keystone conditional structural-fork
 chk "crucible-brainstorm-conditional" "skills/crucible/SKILL.md" "brainstorm[^.]{0,40}conditional|conditional[^.]{0,40}brainstorm"
