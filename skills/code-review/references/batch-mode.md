@@ -46,8 +46,8 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
 
    When `governing_specs` is non-empty (from Step 1b), the reviewer applies the
    **evidence-honesty (coverage) criteria** (these fire ONLY here at `batch` /
-   epic-close, where test source exists — never at design-review, never in the
-   per-language reviewers, never on arbitrary diffs). Build them in two parts:
+   epic-close, where test source exists — never at design-review, never on
+   arbitrary diffs). Build them in two parts:
 
    **(a) Shared spine doctrine — load-and-inject (unconditional).** Read
    `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/live-bearing-predicate.md` AND
