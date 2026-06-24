@@ -1,7 +1,8 @@
-# Step-0 Resolver (shared, single home)
+# Config Resolver (shared, single home)
 
-Canonical Step-0 for every touchstone reader skill. Callers invoke
-it with the pinned phrase; they do NOT inline its logic.
+Reads `touchstone.yaml`, derives the path bundle, and detects legacy
+workspace state. Callers invoke it with the pinned phrase; they do NOT
+inline its logic.
 
 ## 1. Read config
 

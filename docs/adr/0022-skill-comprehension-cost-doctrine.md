@@ -45,7 +45,9 @@ inject fragments, CONTEXT.md entries):
    `keystone`) is acceptable if and only if its `description:` frontmatter carries the
    full meaning — a cold reader who sees only the name and its frontmatter understands
    what the skill does. A positional or internal name (`step0-resolver` names a position,
-   not a purpose) is not acceptable — rename to the function it performs.
+   not a purpose) is not acceptable — rename to the function it performs. (Canonical
+   worked example: `step0-resolver` → renamed to `config-resolver`, names a
+   position → names its function.)
 
 2. **Abbreviations expanded.** Write `feedforward` and `feedback`, never `FF` or `FB`,
    everywhere including CONTEXT.md. The same rule applies to any other abbreviation that
@@ -78,8 +80,9 @@ inject fragments, CONTEXT.md entries):
 - CONTEXT.md abbreviation entries (`FF`/`FB`, etc.) are candidates for replacement in
   the next content pass. The authoritative forms live in the consuming skills; CONTEXT.md
   tracks only the expanded canonical term.
-- Positional shared-step names in `skills/_shared/` (e.g. `step0-resolver.md`) are
-  candidates for rename to function-descriptive names in the next naming pass.
+- Positional shared-step names in `skills/_shared/` are renamed to function-descriptive
+  names. Canonical worked example: `step0-resolver.md` → `config-resolver.md`
+  (names a position → names its function; completed in Phase 2.10).
 - Cold-inject fragments in `skills/_shared/inject/` must be audited for unexpanded
   abbreviations and undefined terms; each failure is a comprehension-cost bug, not a
   style note.
