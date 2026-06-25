@@ -22,8 +22,9 @@ Navigation pointer for this skill directory.
 The local markdown index (`.touchstone/epics/<slug>/index.md`) is the single
 source of truth for epic work-content. Shared trackers (GitHub Issues, GitLab,
 Jira, Linear) are **downstream projections** of that index — one-way renders
-of the shared subset (aim, phases-as-checklist, status, back-link) produced at
-need by the agent.
+of the shared subset (aim, phases-as-checklist, status, back-link to the repo)
+produced at need by the agent. The back-link points to the repo (a clone-stable
+public URL), not the local index path (which is machine-local and gitignored).
 
 To project an epic to a tracker: render the index's shared subset onto a card
 using `gh issue create` (for GitHub) or a community render skill. No renderer
