@@ -1,6 +1,0 @@
-{
-  "error": {
-    "class": "StructuralHostMissingError",
-    "attrs": {"field": "open_questions"}
-  }
-}
