@@ -1,7 +1,8 @@
 ---
 kind: workflow
 adr_id: 0012
-status: Proposed
+status: Superseded
+superseded-by: 0024
 date: 2026-05-29
 ---
 
@@ -9,9 +10,11 @@ date: 2026-05-29
 
 ## Status
 
-Proposed. Decided during Stage 1.5 grill-with-docs for Phase 2 of the
-`portability-and-storage-adapters` epic. Implementation lands when Phase 2
-design-spec ships its first conforming adapter (local-markdown reference impl).
+**Superseded by ADR-0024 (2026-06-25).** The adapter was implemented but never
+gained a second backend or an external consumer; ADR-0024 removes it in favour
+of one-way projection (the agent is the universal shim). The decision below is
+retained for history. — Originally: Proposed, decided during Stage 1.5
+grill-with-docs for Phase 2 of the `portability-and-storage-adapters` epic.
 
 ## Triggered by
 
