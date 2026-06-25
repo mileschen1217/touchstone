@@ -79,8 +79,10 @@ fi
 # ---------------------------------------------------------------------------
 # 2. Check for duplicate frontmatter keys
 # ---------------------------------------------------------------------------
-# Extract key names from frontmatter (lines like "key: value")
-dup_keys=$(echo "$frontmatter" | grep -E '^[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*:' \
+# Extract key names from frontmatter — require proper YAML "key: value" syntax
+# (key followed by optional spaces then ": " with whitespace/EOL after the colon).
+# "key:value" (no space) is a plain scalar in YAML, not a mapping — ignore it.
+dup_keys=$(echo "$frontmatter" | grep -E '^[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*:([[:space:]]|$)' \
     | sed 's/[[:space:]]*:.*//' \
     | sort | uniq -d)
 if [[ -n "$dup_keys" ]]; then
@@ -92,9 +94,12 @@ fi
 # ---------------------------------------------------------------------------
 # 3. Required frontmatter keys: slug, status, started, landed
 # ---------------------------------------------------------------------------
+# Require proper YAML key: value syntax — the colon must be followed by
+# whitespace or EOL. "key:value" (no space after colon) is a plain scalar
+# in YAML, not a mapping entry, so it must not match.
 _get_fm_value() {
     local k="$1"
-    echo "$frontmatter" | grep -E "^${k}[[:space:]]*:" \
+    echo "$frontmatter" | grep -E "^${k}[[:space:]]*:([[:space:]]|$)" \
         | sed "s/^${k}[[:space:]]*:[[:space:]]*//" \
         | tr -d '\r' \
         | head -1
@@ -128,8 +133,8 @@ fi
 # ---------------------------------------------------------------------------
 # 5. landed present and YYYY-MM-DD with calendar-shaped values (A4)
 # ---------------------------------------------------------------------------
-# Check if landed key exists at all (even if empty)
-landed_line=$(echo "$frontmatter" | grep -E "^landed[[:space:]]*:" | head -1 || true)
+# Check if landed key exists at all (even if empty) — require proper YAML syntax
+landed_line=$(echo "$frontmatter" | grep -E "^landed[[:space:]]*:([[:space:]]|$)" | head -1 || true)
 if [[ -z "$landed_line" ]]; then
     fail "Missing required frontmatter key: landed"
 elif [[ -z "$landed_val" ]]; then

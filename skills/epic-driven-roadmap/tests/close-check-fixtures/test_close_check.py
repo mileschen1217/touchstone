@@ -142,3 +142,9 @@ def test_fail_phases_in_frontmatter():
     """C1: a Phases table embedded inside the frontmatter block must not satisfy
     the body Phases requirement — the check scopes its scan to the body only."""
     _assert_fail("fail_phases_in_frontmatter.md", "Phases")
+
+
+def test_fail_status_no_space():
+    """No-space false-green: status:done (no space after colon) is a YAML plain
+    scalar, not a mapping entry — the check must treat status as missing."""
+    _assert_fail("fail_status_no_space.md", "status")
