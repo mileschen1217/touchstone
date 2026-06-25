@@ -214,7 +214,7 @@ if grep -ln "$tp" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md" >/d
   grep -ln "$tp" "${sweep_targets[@]}" "$root/CONTEXT.md" "$root/README.md"; \
 else echo "ok ${tp}-operational-sweep-clean"; fi
 
-# --- Task 6 (2.12): test-evidence lens + governance invariant folded into code-review ---
+# --- test-evidence lens (ADR-0025) + governance invariant folded into code-review ---
 
 # (a) test-evidence core question — "would this test go red" / witness-the-behaviour phrasing
 chk "cr-test-evidence-core-question" \
@@ -246,5 +246,10 @@ fi
 chk "cr-test-evidence-in-generic-diff" \
   "skills/code-review/references/reviewer-prompts.md" \
   "touches test files|test.evidence"
+
+# (e) batch path carries a reference to the test-evidence lens (ADR-0025: applies to per-commit AND batch)
+chk "cr-batch-carries-test-evidence-ref" \
+  "skills/code-review/references/batch-mode.md" \
+  "test.evidence|reviewer-prompts.*generic-diff|generic-diff.*reviewer-prompts"
 
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi

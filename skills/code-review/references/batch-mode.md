@@ -84,6 +84,13 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    > Do NOT
    > require cryptographic signing of artifacts (over-spec — a human is in the loop
    > at close).
+   **Test-evidence lens (ADR-0025 — applies to per-commit AND batch).** If the
+   batch diff touches test files, the reviewer must additionally apply the
+   test-evidence lens defined in
+   `skills/code-review/references/reviewer-prompts.md` § generic-diff prompt
+   (single canonical home — do NOT duplicate the text here). The lens asks of
+   each test: if the named behaviour silently broke, would this test go red?
+
 5. Single reviewer; no parallel dispatch in Pattern B.
    **Normative fallback (M3):** if the swapped reviewer (e.g. `touchstone:codex-reviewer`)
    returns `status: failed` / a `fallback_reason` (codex unavailable), fall back to the
