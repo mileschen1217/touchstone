@@ -191,3 +191,36 @@ def test_fail_landed_feb29_nonleap():
 def test_fail_started_apr31():
     """started: 2026-04-31 is impossible — April has 30 days — must fail."""
     _assert_fail("fail_started_apr31.md", "started")
+
+
+# ---------------------------------------------------------------------------
+# Phases table separator validation
+# ---------------------------------------------------------------------------
+
+def test_fail_no_separator():
+    """Phases table with no separator row immediately after the header must fail."""
+    _assert_fail("fail_no_separator.md", "separator")
+
+
+def test_fail_separator_width():
+    """Phases table separator with fewer columns than the header must fail."""
+    _assert_fail("fail_separator_width.md", "separator")
+
+
+# ---------------------------------------------------------------------------
+# Empty / placeholder required-key values
+# ---------------------------------------------------------------------------
+
+def test_fail_slug_empty_quoted():
+    """slug: \"\" (empty quoted string) must fail."""
+    _assert_fail("fail_slug_empty_quoted.md", "slug")
+
+
+def test_fail_slug_comment():
+    """slug: # TODO (comment-only placeholder) must fail."""
+    _assert_fail("fail_slug_comment.md", "slug")
+
+
+def test_fail_slug_null():
+    """slug: null (YAML null literal) must fail."""
+    _assert_fail("fail_slug_null.md", "slug")

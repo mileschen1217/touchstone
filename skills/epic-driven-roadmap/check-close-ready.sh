@@ -9,16 +9,24 @@
 #   - >= 1 phase row with numeric first column (A2)
 #   - every phase row Status cell == done (column located by header label, not index)
 #   - in-table non-| rows fail loud, not silently skipped (A2)
+#   - Phases table has a valid separator row immediately after the header (correct width)
 #   - epic frontmatter status EQUALS 'done' (not just in-enum — A1)
-#   - epic frontmatter started is present
-#   - epic frontmatter landed is present, valid YYYY-MM-DD, and calendar-shaped (A4)
-#   - required frontmatter keys (slug/status/started) present and not duplicated
+#   - epic frontmatter started is present, YYYY-MM-DD, real calendar date
+#   - epic frontmatter landed is present, valid YYYY-MM-DD, real calendar date (A4)
+#   - required frontmatter keys (slug/status/started) present, not duplicated,
+#     and not a YAML empty/placeholder (empty quoted string, comment-only, null/~)
 #   - no duplicate frontmatter keys overall
 #   - no duplicate ## Phases section
 #
+# THREAT MODEL: this check is the close honesty floor. Its purpose is to catch
+# an HONEST agent's mistake at close — a forgotten status=done stamp, a phase left
+# not-done, a plausible hand-edit error in the index. Its core guarantee is "the
+# epic is actually done" plus index structural well-formedness. It is NOT a security
+# boundary against adversarially-crafted input; it assumes a good-faith author.
+#
 # Prints its result (evidence) and exits non-zero on any violation, naming the fault.
 # Usage: bash check-close-ready.sh path/to/index.md
-# Requires: bash 3.2+, awk, grep, sed (all standard on macOS/Linux)
+# Requires: bash 3.2+, awk, grep, sed, python3 (all standard on macOS/Linux)
 set -uo pipefail
 
 FILE="${1:-}"
@@ -110,11 +118,37 @@ status_val=$(_get_fm_value "status")
 started_val=$(_get_fm_value "started")
 landed_val=$(_get_fm_value "landed")
 
+# Reject YAML empty/placeholder values: empty quoted strings ("" or ''),
+# comment-only values (value starts with # → the YAML parser treats the
+# field as empty), and the YAML null literals (null / ~).
+_check_placeholder() {
+    local field="$1" value="$2"
+    # empty quoted string: "" or ''
+    if [[ "$value" == '""' || "$value" == "''" ]]; then
+        fail "Required frontmatter key '$field' must not be an empty quoted string: $value"
+        return
+    fi
+    # comment-only: value starts with # (YAML strips it — field is empty in YAML)
+    if [[ "$value" =~ ^# ]]; then
+        fail "Required frontmatter key '$field' must not be a comment-only placeholder: $value"
+        return
+    fi
+    # YAML null literals
+    if [[ "$value" == "null" || "$value" == "~" ]]; then
+        fail "Required frontmatter key '$field' must not be null/~"
+        return
+    fi
+}
+
 if [[ -z "$slug_val" ]]; then
     fail "Missing required frontmatter key: slug"
+else
+    _check_placeholder "slug" "$slug_val"
 fi
 if [[ -z "$status_val" ]]; then
     fail "Missing required frontmatter key: status"
+else
+    _check_placeholder "status" "$status_val"
 fi
 # Shared date validator: check YYYY-MM-DD shape, then real calendar validity via python3.
 # Usage: _validate_date <field_name> <value>
@@ -135,6 +169,7 @@ _validate_date() {
 if [[ -z "$started_val" ]]; then
     fail "Missing required frontmatter key: started"
 else
+    _check_placeholder "started" "$started_val"
     _validate_date "started" "$started_val"
 fi
 
@@ -258,6 +293,18 @@ if [[ "$phases_count" -eq 1 ]]; then
                 fail "No 'Status' header found in Phases table"
             elif [[ $status_col_count -gt 1 ]]; then
                 fail "Duplicate 'Status' header found in Phases table"
+            fi
+
+            # Validate separator row: must be row 2 (immediately after header)
+            # and its column count must match the header width.
+            sep_row=$(echo "$table_rows" | sed -n '2p')
+            if ! echo "$sep_row" | grep -qE '^\|[-| :]+\|?$'; then
+                fail "Phases table missing valid separator row immediately after header (got: '$sep_row')"
+            else
+                sep_width=$(echo "$sep_row" | awk -F'|' '{print NF-2}')
+                if [[ "$sep_width" -ne "$header_width" ]]; then
+                    fail "Phases table separator width ($sep_width) does not match header width ($header_width)"
+                fi
             fi
 
             # Process data rows: skip header (row 1) and separator row(s) (lines with only ---|)
