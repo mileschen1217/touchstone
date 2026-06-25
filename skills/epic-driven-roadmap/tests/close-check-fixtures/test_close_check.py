@@ -148,3 +148,23 @@ def test_fail_status_no_space():
     """No-space false-green: status:done (no space after colon) is a YAML plain
     scalar, not a mapping entry — the check must treat status as missing."""
     _assert_fail("fail_status_no_space.md", "status")
+
+
+# ---------------------------------------------------------------------------
+# started date validation + non-ASCII YAML separator rejection
+# ---------------------------------------------------------------------------
+
+def test_fail_started_not_date():
+    """started: June 2026 is not a YYYY-MM-DD date — must fail."""
+    _assert_fail("fail_started_not_date.md", "started")
+
+
+def test_fail_started_unpadded():
+    """started: 2026-6-1 is unpadded — does not match YYYY-MM-DD — must fail."""
+    _assert_fail("fail_started_unpadded.md", "started")
+
+
+def test_fail_status_nbsp():
+    """status: followed by U+00A0 (non-breaking space) must not match the ASCII
+    YAML separator — the check must treat status as missing/unrecognised."""
+    _assert_fail("fail_status_nbsp.md", "status")

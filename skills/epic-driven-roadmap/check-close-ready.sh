@@ -82,8 +82,8 @@ fi
 # Extract key names from frontmatter — require proper YAML "key: value" syntax
 # (key followed by optional spaces then ": " with whitespace/EOL after the colon).
 # "key:value" (no space) is a plain scalar in YAML, not a mapping — ignore it.
-dup_keys=$(echo "$frontmatter" | grep -E '^[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*:([[:space:]]|$)' \
-    | sed 's/[[:space:]]*:.*//' \
+dup_keys=$(echo "$frontmatter" | grep -E '^[a-zA-Z_][a-zA-Z0-9_]*[ \t]*:([ \t]|$)' \
+    | sed 's/[ \t]*:.*//' \
     | sort | uniq -d)
 if [[ -n "$dup_keys" ]]; then
     while IFS= read -r k; do
@@ -99,8 +99,8 @@ fi
 # in YAML, not a mapping entry, so it must not match.
 _get_fm_value() {
     local k="$1"
-    echo "$frontmatter" | grep -E "^${k}[[:space:]]*:([[:space:]]|$)" \
-        | sed "s/^${k}[[:space:]]*:[[:space:]]*//" \
+    echo "$frontmatter" | grep -E "^${k}[ \t]*:([ \t]|$)" \
+        | sed "s/^${k}[ \t]*:[ \t]*//" \
         | tr -d '\r' \
         | head -1
 }
@@ -118,6 +118,19 @@ if [[ -z "$status_val" ]]; then
 fi
 if [[ -z "$started_val" ]]; then
     fail "Missing required frontmatter key: started"
+elif ! echo "$started_val" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+    fail "Invalid started date format: '$started_val' (required: YYYY-MM-DD)"
+else
+    # calendar-shape validation — month 01-12, day 01-31
+    _s_month=$(echo "$started_val" | cut -d'-' -f2)
+    _s_day=$(echo "$started_val" | cut -d'-' -f3)
+    _s_month_num=$(echo "$_s_month" | sed 's/^0*//')
+    _s_day_num=$(echo "$_s_day" | sed 's/^0*//')
+    if [[ -z "$_s_month_num" ]] || [[ "$_s_month_num" -lt 1 ]] || [[ "$_s_month_num" -gt 12 ]]; then
+        fail "Invalid started date (month out of range 01-12): '$started_val'"
+    elif [[ -z "$_s_day_num" ]] || [[ "$_s_day_num" -lt 1 ]] || [[ "$_s_day_num" -gt 31 ]]; then
+        fail "Invalid started date (day out of range 01-31): '$started_val'"
+    fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -134,7 +147,7 @@ fi
 # 5. landed present and YYYY-MM-DD with calendar-shaped values (A4)
 # ---------------------------------------------------------------------------
 # Check if landed key exists at all (even if empty) — require proper YAML syntax
-landed_line=$(echo "$frontmatter" | grep -E "^landed[[:space:]]*:([[:space:]]|$)" | head -1 || true)
+landed_line=$(echo "$frontmatter" | grep -E "^landed[ \t]*:([ \t]|$)" | head -1 || true)
 if [[ -z "$landed_line" ]]; then
     fail "Missing required frontmatter key: landed"
 elif [[ -z "$landed_val" ]]; then
