@@ -1,8 +1,9 @@
 """
-Scaffold structural/contract test (AC-10) — asserts that:
+Scaffold structural/contract test — asserts that:
 1. The epic-index template carries required frontmatter keys and sections
    (so a scaffold that copies the template will carry them).
-2. A representative scaffolded fixture carries the same required structure.
+2. A representative scaffolded fixture carries the same required structure,
+   non-empty slug and started values, and at least one Phases table row.
 
 DOES NOT drive the scaffold procedure — no agent step can be invoked from
 a test. These are structural/contract checks closing the coverage gap left
@@ -128,4 +129,64 @@ def test_scaffolded_fixture_status_is_valid_enum():
     valid_statuses = {"proposed", "active", "paused", "done", "cancelled"}
     assert status in valid_statuses, (
         f"Scaffolded fixture status {status!r} not in valid enum {valid_statuses!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# D1 — additional strength: non-empty field values + ≥1 Phases table row
+# ---------------------------------------------------------------------------
+
+def _frontmatter_values(text: str) -> dict[str, str]:
+    """Return key→value mapping from the YAML frontmatter block."""
+    m = re.match(r"^---\n(.*?)\n---", text, re.DOTALL)
+    assert m, "No frontmatter block found"
+    values = {}
+    for line in m.group(1).splitlines():
+        kv = re.match(r"^(\w+)\s*:\s*(.*)$", line)
+        if kv:
+            values[kv.group(1)] = kv.group(2).strip()
+    return values
+
+
+def _phases_data_rows(text: str) -> list[str]:
+    """Return data rows from the Phases table (excludes header and separator)."""
+    in_phases = False
+    rows = []
+    for line in text.splitlines():
+        if re.match(r"^## Phases\s*$", line):
+            in_phases = True
+            continue
+        if in_phases and re.match(r"^## ", line):
+            break
+        if in_phases and line.startswith("|"):
+            # skip separator rows
+            if re.match(r"^\|[-| :]+\|?$", line):
+                continue
+            rows.append(line)
+    return rows[1:] if rows else []  # skip header row
+
+
+def test_scaffolded_fixture_slug_is_nonempty():
+    """The scaffolded fixture's slug frontmatter value is non-empty."""
+    text = _read(SCAFFOLDED_FIXTURE)
+    vals = _frontmatter_values(text)
+    slug = vals.get("slug", "")
+    assert slug, f"Expected non-empty slug, got: {slug!r}"
+
+
+def test_scaffolded_fixture_started_is_nonempty():
+    """The scaffolded fixture's started frontmatter value is non-empty."""
+    text = _read(SCAFFOLDED_FIXTURE)
+    vals = _frontmatter_values(text)
+    started = vals.get("started", "")
+    assert started, f"Expected non-empty started, got: {started!r}"
+
+
+def test_scaffolded_fixture_phases_has_at_least_one_row():
+    """The scaffolded fixture's Phases table contains at least one data row."""
+    text = _read(SCAFFOLDED_FIXTURE)
+    rows = _phases_data_rows(text)
+    assert len(rows) >= 1, (
+        f"Expected at least 1 Phases table data row, got {len(rows)}\n"
+        "The scaffold must include an example phase row."
     )

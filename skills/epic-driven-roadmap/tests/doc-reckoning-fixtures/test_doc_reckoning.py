@@ -7,7 +7,8 @@ structural checks: assert the same fields are well-formed / extractable in the
 fixture. The ## Doc Reckoning section assertion is NEW coverage (the old
 stage7 test never checked for its presence).
 
-Renamed from test_stage7.py (stage7-fixtures/) — see REQ-6 / AC-9.
+Renamed from test_stage7.py (stage7-fixtures/) after the storage adapter
+was removed (the check moved from CLI integration to structural fixture parse).
 """
 import re
 from pathlib import Path

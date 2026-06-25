@@ -3,12 +3,14 @@
 #
 # Thin read-only close-readiness check for an epic index.md.
 # Asserts ALL of:
+#   - frontmatter opens on line 1 and has a closing --- delimiter (A3)
 #   - exactly one ## Phases section
-#   - >= 1 phase row
+#   - >= 1 phase row with numeric first column (A2)
 #   - every phase row Status cell == done (column located by header label, not index)
-#   - epic frontmatter status in {proposed,active,paused,done,cancelled}
+#   - in-table non-| rows fail loud, not silently skipped (A2)
+#   - epic frontmatter status EQUALS 'done' (not just in-enum — A1)
 #   - epic frontmatter started is present
-#   - epic frontmatter landed is present and valid YYYY-MM-DD
+#   - epic frontmatter landed is present, valid YYYY-MM-DD, and calendar-shaped (A4)
 #   - required frontmatter keys (slug/status/started) present and not duplicated
 #   - no duplicate frontmatter keys overall
 #   - no duplicate ## Phases section
@@ -46,6 +48,18 @@ frontmatter=$(awk '
 
 if [[ -z "$frontmatter" ]]; then
     fail "No YAML frontmatter block found"
+fi
+
+# A3: Require frontmatter to open on line 1 AND have a closing ---
+# A missing closing --- means the frontmatter block is unclosed (malformed).
+_first_line=$(head -1 "$FILE")
+if [[ "$_first_line" != "---" ]]; then
+    fail "Frontmatter must open on line 1 (first line must be '---', got: '$_first_line')"
+fi
+# Check that there is a closing --- after line 1 (the frontmatter terminator)
+_has_close_delim=$(awk 'NR==1{next} /^---$/{found=1; exit} END{print found+0}' "$FILE")
+if [[ "$_has_close_delim" -lt 1 ]]; then
+    fail "Frontmatter has no closing '---' delimiter"
 fi
 
 # ---------------------------------------------------------------------------
@@ -88,19 +102,17 @@ if [[ -z "$started_val" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Status enum check
+# 4. Status must equal 'done' (A1: not just in-enum; the close-check runs
+#    after the agent stamps status=done, so its job is to catch a missing stamp)
 # ---------------------------------------------------------------------------
 if [[ -n "$status_val" ]]; then
-    case "$status_val" in
-        proposed|active|paused|done|cancelled) ;;
-        *)
-            fail "Invalid epic status enum value: '$status_val' (allowed: proposed|active|paused|done|cancelled)"
-            ;;
-    esac
+    if [[ "$status_val" != "done" ]]; then
+        fail "Epic status must be 'done' at close, got: '$status_val'"
+    fi
 fi
 
 # ---------------------------------------------------------------------------
-# 5. landed present and YYYY-MM-DD
+# 5. landed present and YYYY-MM-DD with calendar-shaped values (A4)
 # ---------------------------------------------------------------------------
 # Check if landed key exists at all (even if empty)
 landed_line=$(echo "$frontmatter" | grep -E "^landed[[:space:]]*:" | head -1 || true)
@@ -110,6 +122,18 @@ elif [[ -z "$landed_val" ]]; then
     fail "Missing required frontmatter key: landed (key exists but value is empty)"
 elif ! echo "$landed_val" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
     fail "Invalid landed date format: '$landed_val' (required: YYYY-MM-DD)"
+else
+    # A4: calendar-shape validation — month 01-12, day 01-31
+    _month=$(echo "$landed_val" | cut -d'-' -f2)
+    _day=$(echo "$landed_val" | cut -d'-' -f3)
+    # strip leading zeros for arithmetic comparison
+    _month_num=$(echo "$_month" | sed 's/^0*//')
+    _day_num=$(echo "$_day" | sed 's/^0*//')
+    if [[ -z "$_month_num" ]] || [[ "$_month_num" -lt 1 ]] || [[ "$_month_num" -gt 12 ]]; then
+        fail "Invalid landed date (month out of range 01-12): '$landed_val'"
+    elif [[ -z "$_day_num" ]] || [[ "$_day_num" -lt 1 ]] || [[ "$_day_num" -gt 31 ]]; then
+        fail "Invalid landed date (day out of range 01-31): '$landed_val'"
+    fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -135,8 +159,40 @@ if [[ "$phases_count" -eq 1 ]]; then
         in_phases { print }
     ' "$FILE")
 
-    # Filter to table rows (lines starting with |)
-    table_rows=$(echo "$phases_block" | grep -E '^\|' || true)
+    # A2: parse ONE contiguous table.
+    # Find the first | line (header start). Once the table has started (after
+    # the first | line), any non-| non-blank line inside the contiguous table
+    # region is a malformed in-table row — fail loud (do NOT silently skip).
+    # The table ends at the first blank line (or non-| non-blank) after the header.
+    table_rows=""
+    in_table=0
+    table_ended=0
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^\| ]]; then
+            if [[ "$table_ended" -eq 1 ]]; then
+                # A second table block after a gap — not expected, treat as stray
+                fail "Unexpected '|'-line after Phases table ended (possible malformed second table): $line"
+                break
+            fi
+            in_table=1
+            if [[ -n "$table_rows" ]]; then
+                table_rows="${table_rows}"$'\n'"${line}"
+            else
+                table_rows="$line"
+            fi
+        elif [[ -n "$line" ]]; then
+            # Non-empty, non-| line
+            if [[ "$in_table" -eq 1 && "$table_ended" -eq 0 ]]; then
+                # We are inside the table — this is a malformed in-table row (A2)
+                fail "Malformed in-table row (not '|'-delimited) in '## Phases': $line"
+            fi
+        else
+            # Blank line: if we were in the table, mark it as ended
+            if [[ "$in_table" -eq 1 ]]; then
+                table_ended=1
+            fi
+        fi
+    done <<< "$phases_block"
 
     if [[ -z "$table_rows" ]]; then
         fail "No table found in '## Phases' section"
@@ -193,15 +249,16 @@ if [[ "$phases_count" -eq 1 ]]; then
                 fi
                 data_row_num=$((data_row_num + 1))
 
-                # Parse data cells
-                row_cells=$(echo "$row" | awk -F'|' '{
-                    for (i=2; i<=NF-1; i++) {
-                        gsub(/^[[:space:]]+|[[:space:]]+$/, "", $i)
-                        print $i
-                    }
+                # A2: first column (phase number) must be numeric
+                phase_num_cell=$(echo "$row" | awk -F'|' '{
+                    gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2)
+                    print $2
                 }')
-                # Count non-empty from original parse (include empty cells to get width)
-                # Actually we need the count of cells (including possible empty cells between pipes)
+                if ! echo "$phase_num_cell" | grep -qE '^[0-9]+$'; then
+                    fail "Phase row first column must be a number, got: '$phase_num_cell' in row: $row"
+                fi
+
+                # Count cells (including possible empty cells between pipes)
                 row_width=$(echo "$row" | awk -F'|' '{print NF-2}')
 
                 if [[ "$row_width" -ne "$header_width" ]]; then

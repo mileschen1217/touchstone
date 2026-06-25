@@ -1,5 +1,5 @@
 """
-Close-readiness check — negative-fixture suite (AC-5 / AC-11).
+Close-readiness check — negative-fixture suite.
 
 Runs check-close-ready.sh against each fixture and asserts:
 - PASS fixtures: exit code 0
@@ -10,7 +10,6 @@ index), so a reordered / narrower table that still carries a "Status" header
 passes (pass_reordered_status_col.md).
 """
 import subprocess
-import sys
 from pathlib import Path
 
 FIXTURES_DIR = Path(__file__).parent
@@ -108,3 +107,32 @@ def test_fail_duplicate_frontmatter_key():
 
 def test_fail_duplicate_phases_section():
     _assert_fail("fail_duplicate_phases_section.md", "phases")
+
+
+# ---------------------------------------------------------------------------
+# New negative fixtures: A1 / A2 / A3 / A4 honesty-floor hardening
+# ---------------------------------------------------------------------------
+
+def test_fail_status_not_done():
+    """A1: epic with status: active (even with all phases done) must fail."""
+    _assert_fail("fail_status_not_done.md", "done")
+
+
+def test_fail_nonnumeric_phase_number():
+    """A2: a phase row whose first column is not numeric must fail."""
+    _assert_fail("fail_nonnumeric_phase_number.md", "number")
+
+
+def test_fail_intable_malformed_row():
+    """A2: an in-table row that breaks the pipe-delimited shape must fail loud."""
+    _assert_fail("fail_intable_malformed_row.md", "malformed")
+
+
+def test_fail_no_fm_close_delimiter():
+    """A3: frontmatter with no closing --- delimiter must fail."""
+    _assert_fail("fail_no_fm_close_delimiter.md", "closing")
+
+
+def test_fail_calendar_invalid_date():
+    """A4: a landed date with calendar-invalid month or day must fail."""
+    _assert_fail("fail_calendar_invalid_date.md", "range")

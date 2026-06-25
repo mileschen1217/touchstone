@@ -1,10 +1,10 @@
 # skills/epic-driven-roadmap/tests/test_procedure_prose_purity.py
 #
-# test_skill_md_calls_cli_at_least_once — DROPPED (AC-7): the adapter CLI is
+# test_skill_md_calls_cli_at_least_once — DROPPED: the adapter CLI is
 # removed; SKILL.md must NOT contain cli.py invocations.
 #
 # _build_forbidden_tokens now derives its list from a literal / the template,
-# not from the deleted adapter schema (AC-7).
+# not from the deleted adapter schema.
 
 
 def _build_forbidden_tokens() -> list[str]:
