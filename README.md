@@ -2,7 +2,7 @@
 
 > A test of what is genuine. (試金石 — a stone used to test the authenticity of metal.)
 
-A Claude Code plugin for **workflow discipline** — 11 stage skills + 5 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
+A Claude Code plugin for **workflow discipline** — 10 stage skills + 5 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
 
 ## What it is
 
@@ -58,7 +58,6 @@ Without `everything-claude-code`, the language-specific code reviewers and the `
 - `touchstone:code-review` — Per-commit + per-batch code review (Patterns C / B).
 - `touchstone:epic-driven-roadmap` — Pure-tracker ROADMAP + per-epic index convention.
 - `touchstone:grounded-claims` — Narration mode: cite source, mark `[假設]`.
-- `touchstone:test-quality-audit` — Audit test suite against quality heuristics.
 - `touchstone:cross-provider-architect` — Parallel CC + Codex architecture review.
 - `touchstone:cross-provider-reviewer` — Parallel CC + Codex code review composite.
 

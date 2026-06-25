@@ -33,7 +33,7 @@ kill-on: <epic-slug>
 
 ## Source-level Deposit
 
-> Filled by author at draft time. Names the lever (source-level change) this spec advances, or "none" with reason. Per the `source-as-truth` discipline (see `skills/_shared/inject/bridge-content-gate.md`): every feature epic carries a deposit budget so architecture compounds in source rather than prose. Stage 7 doc-reckoning reads this field at epic close.
+> Filled by author at draft time. Names the lever (source-level change) this spec advances, or "none" with reason. Per the `source-as-truth` discipline (see `skills/_shared/inject/bridge-content-gate.md`): every feature epic carries a deposit budget so architecture compounds in source rather than prose. Doc Reckoning reads this field at epic close.
 >
 > Skip this section entirely in projects that have NOT adopted the `source-as-truth` discipline — leave the heading off.
 

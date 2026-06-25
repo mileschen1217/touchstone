@@ -79,6 +79,14 @@ semantic catch.
 
 ### Step 2: Detect domain concerns
 
+**Domain-lens selection:** the generic reviewer scrutinizes at the depth the
+diff's risk surface demands — it self-selects domain lenses from the diff
+(no enumerated catalogue). A *separate* specialist dispatch fires only for the
+named deep domains below (security / database), on their conditions. The
+test-evidence lens (when the diff touches test files) is part of the generic
+reviewer, not a separate dispatch. (Why the specialist roster is capped to those
+two — maintainer rationale — lives in `README.md` + ADR-0025.)
+
 Read the diff briefly. Dispatch a specialist only if the diff *meaningfully*
 touches the domain — not just mentions a keyword.
 
@@ -96,6 +104,13 @@ persistence operations, schema definitions, migration files, or data contracts
 changes that reference DB entities without altering persistence structure do NOT
 warrant dispatch.
 
+**Regression-presence (trigger split note):** "a fix commit should carry a
+regression test" fires on fix commits *regardless of whether test files are
+touched* — gating it on test-files-touched would skip exactly the commits that
+need it. This concern belongs to the generic always-on review (check 7 in the
+generic-diff prompt) and the batch regression-gap scan, not the test-evidence
+lens.
+
 ### Step 3: Dispatch reviewers in parallel
 
 Never review inline — always spawn separate agents. Launch all reviewers in a
@@ -109,11 +124,13 @@ Never review inline — always spawn separate agents. Launch all reviewers in a
 
 **security / database review:** dispatched only when AI judgment in Step 2 flagged the
 concern. Dispatch a **generic Sonnet agent** (`model: "sonnet"`) carrying the
-`security-reviewer` / `database-reviewer` invariant prompt from
-`references/reviewer-prompts.md` — touchstone's own invariant-based prompts that
-self-generate the specific checks from the domain invariant. These are **not** the ECC
-`everything-claude-code:security-reviewer` / `database-reviewer` agents: we deliberately
-do not depend on their fixed checklists, for self-containment.
+`specialist-reviewer` prompt from `references/reviewer-prompts.md`, inlined with the
+**security** or **database** domain block (both specialists share one shape;
+the block supplies the invariant + adequate-guarantee menu) — touchstone's own
+invariant-based prompt that self-generates the specific checks from the domain
+invariant. This is **not** the ECC `everything-claude-code:security-reviewer` /
+`database-reviewer` agents: we deliberately do not depend on their fixed checklists,
+for self-containment.
 
 **For specific-file invocation** (`/touchstone:code-review path/to/file`):
 

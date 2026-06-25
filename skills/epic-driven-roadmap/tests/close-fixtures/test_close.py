@@ -1,63 +1,59 @@
-"""Close on a clean epic exercises adapter read+write through CLI."""
-import json
-import os
-import subprocess
-import sys
-import textwrap
+"""
+Close structural/contract test — parses a static closed index .md fixture.
+
+DOES NOT drive or invoke cli.py — the adapter has been removed. These are
+structural checks: assert the same fields are well-formed / extractable in
+the fixture. The behavioural guarantee that close stamps these fields lives
+in the AC-5 close-check that gates the agent, not in a procedure-driving test.
+"""
+import re
 from pathlib import Path
 
-CLI = Path(__file__).resolve().parents[2] / "adapters" / "local-markdown" / "cli.py"
+FIXTURE = Path(__file__).parent / "closed_epic.md"
 
 
-def _run(root, *args, stdin=None):
-    env = os.environ.copy()
-    env["EPIC_ROOT"] = str(root)
-    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[5])
-    return subprocess.run(
-        [sys.executable, str(CLI), *args],
-        capture_output=True, text=True, input=stdin, env=env,
+def _read_fixture() -> str:
+    return FIXTURE.read_text()
+
+
+def _frontmatter(text: str) -> dict[str, str]:
+    """Extract key→value pairs from the YAML frontmatter block."""
+    m = re.match(r"^---\n(.*?)\n---", text, re.DOTALL)
+    assert m, "No frontmatter found in fixture"
+    result = {}
+    for line in m.group(1).splitlines():
+        kv = re.match(r"^(\w+):\s*(.*)$", line)
+        if kv:
+            result[kv.group(1)] = kv.group(2).strip()
+    return result
+
+
+def test_closed_fixture_status_is_done():
+    """A closed epic fixture parses with status == done."""
+    text = _read_fixture()
+    fm = _frontmatter(text)
+    assert fm.get("status") == "done", (
+        f"Expected status=done, got {fm.get('status')!r}"
     )
 
 
-def test_close_appends_retrospective_via_cli(tmp_path):
-    (tmp_path / "ep").mkdir()
-    (tmp_path / "ep" / "index.md").write_text(textwrap.dedent("""\
-        ---
-        schema_version: 1
-        slug: ep
-        status: active
-        started: 2026-05-01
-        ---
+def test_closed_fixture_landed_is_stamped():
+    """A closed epic fixture has a landed date in YYYY-MM-DD format."""
+    text = _read_fixture()
+    fm = _frontmatter(text)
+    landed = fm.get("landed", "")
+    assert re.match(r"^\d{4}-\d{2}-\d{2}$", landed), (
+        f"Expected YYYY-MM-DD landed, got {landed!r}"
+    )
 
-        **Aim:** ship.
 
-        ## Foundation
-
-        ## Phases
-
-        | n | title | status | landed |
-        |---|---|---|---|
-        | 1 | Phase 1 | done | 2026-05-15 |
-
-        ## Retrospective
-
-        ## Open Questions
-        """))
-
-    # close procedure: read, mutate status+landed+retrospective, write
-    r = _run(tmp_path, "read", "--slug", "ep")
-    assert r.returncode == 0
-    data = json.loads(r.stdout)
-    data["status"] = "done"
-    data["landed"] = "2026-05-20"
-    data["retrospective"].append("Shipped clean.")
-
-    w = _run(tmp_path, "write", "--slug", "ep", "--stdin", stdin=json.dumps(data))
-    assert w.returncode == 0, w.stderr
-
-    r2 = _run(tmp_path, "read", "--slug", "ep")
-    assert r2.returncode == 0
-    after = json.loads(r2.stdout)
-    assert after["status"] == "done"
-    assert after["landed"] == "2026-05-20"
-    assert "Shipped clean." in after["retrospective"]
+def test_closed_fixture_retrospective_content_present():
+    """A closed epic fixture has non-empty retrospective content."""
+    text = _read_fixture()
+    # Locate the ## Retrospective section and assert at least one non-blank
+    # content line (beyond the header itself)
+    m = re.search(r"^## Retrospective\s*\n(.*?)(?=^##|\Z)", text,
+                  re.MULTILINE | re.DOTALL)
+    assert m, "No ## Retrospective section found in fixture"
+    content = m.group(1).strip()
+    assert content, "## Retrospective section is empty — expected content in a closed epic"

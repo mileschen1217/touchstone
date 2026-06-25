@@ -87,7 +87,7 @@ existing docs backfill.
 **Touchstone-side ask:** Either extend `scripts/check-spec-floor.sh` to
 assert `kind:` (so it runs as part of the floor gate at close), or add a
 separate `scripts/check-doc-kind.sh` invoked by `epic-driven-roadmap`
-Stage 7 Doc Reckoning. Adoption gate via `.claude/touchstone.yaml` toggle.
+Doc Reckoning. Adoption gate via `.claude/touchstone.yaml` toggle.
 
 ### 3. Floor checker incompatible with lettered sub-AC ids
 
