@@ -116,21 +116,26 @@ fi
 if [[ -z "$status_val" ]]; then
     fail "Missing required frontmatter key: status"
 fi
+# Shared date validator: check YYYY-MM-DD shape, then real calendar validity via python3.
+# Usage: _validate_date <field_name> <value>
+# Calls fail() on any violation; returns 0 on a real date.
+_validate_date() {
+    local field="$1" value="$2"
+    if ! echo "$value" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+        fail "Invalid $field date format: '$value' (required: YYYY-MM-DD)"
+        return
+    fi
+    if ! python3 -c \
+        'import sys,datetime; y,m,d=map(int,sys.argv[1].split("-")); datetime.date(y,m,d)' \
+        "$value" 2>/dev/null; then
+        fail "Invalid $field date (not a real calendar date): '$value'"
+    fi
+}
+
 if [[ -z "$started_val" ]]; then
     fail "Missing required frontmatter key: started"
-elif ! echo "$started_val" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
-    fail "Invalid started date format: '$started_val' (required: YYYY-MM-DD)"
 else
-    # calendar-shape validation — month 01-12, day 01-31
-    _s_month=$(echo "$started_val" | cut -d'-' -f2)
-    _s_day=$(echo "$started_val" | cut -d'-' -f3)
-    _s_month_num=$(echo "$_s_month" | sed 's/^0*//')
-    _s_day_num=$(echo "$_s_day" | sed 's/^0*//')
-    if [[ -z "$_s_month_num" ]] || [[ "$_s_month_num" -lt 1 ]] || [[ "$_s_month_num" -gt 12 ]]; then
-        fail "Invalid started date (month out of range 01-12): '$started_val'"
-    elif [[ -z "$_s_day_num" ]] || [[ "$_s_day_num" -lt 1 ]] || [[ "$_s_day_num" -gt 31 ]]; then
-        fail "Invalid started date (day out of range 01-31): '$started_val'"
-    fi
+    _validate_date "started" "$started_val"
 fi
 
 # ---------------------------------------------------------------------------
@@ -144,7 +149,7 @@ if [[ -n "$status_val" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 5. landed present and YYYY-MM-DD with calendar-shaped values (A4)
+# 5. landed present and YYYY-MM-DD with real calendar validity (A4)
 # ---------------------------------------------------------------------------
 # Check if landed key exists at all (even if empty) — require proper YAML syntax
 landed_line=$(echo "$frontmatter" | grep -E "^landed[ \t]*:([ \t]|$)" | head -1 || true)
@@ -152,20 +157,8 @@ if [[ -z "$landed_line" ]]; then
     fail "Missing required frontmatter key: landed"
 elif [[ -z "$landed_val" ]]; then
     fail "Missing required frontmatter key: landed (key exists but value is empty)"
-elif ! echo "$landed_val" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
-    fail "Invalid landed date format: '$landed_val' (required: YYYY-MM-DD)"
 else
-    # A4: calendar-shape validation — month 01-12, day 01-31
-    _month=$(echo "$landed_val" | cut -d'-' -f2)
-    _day=$(echo "$landed_val" | cut -d'-' -f3)
-    # strip leading zeros for arithmetic comparison
-    _month_num=$(echo "$_month" | sed 's/^0*//')
-    _day_num=$(echo "$_day" | sed 's/^0*//')
-    if [[ -z "$_month_num" ]] || [[ "$_month_num" -lt 1 ]] || [[ "$_month_num" -gt 12 ]]; then
-        fail "Invalid landed date (month out of range 01-12): '$landed_val'"
-    elif [[ -z "$_day_num" ]] || [[ "$_day_num" -lt 1 ]] || [[ "$_day_num" -gt 31 ]]; then
-        fail "Invalid landed date (day out of range 01-31): '$landed_val'"
-    fi
+    _validate_date "landed" "$landed_val"
 fi
 
 # ---------------------------------------------------------------------------

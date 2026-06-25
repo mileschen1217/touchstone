@@ -134,8 +134,8 @@ def test_fail_no_fm_close_delimiter():
 
 
 def test_fail_calendar_invalid_date():
-    """A4: a landed date with calendar-invalid month or day must fail."""
-    _assert_fail("fail_calendar_invalid_date.md", "range")
+    """A4: a landed date with calendar-invalid values must fail."""
+    _assert_fail("fail_calendar_invalid_date.md", "landed")
 
 
 def test_fail_phases_in_frontmatter():
@@ -168,3 +168,26 @@ def test_fail_status_nbsp():
     """status: followed by U+00A0 (non-breaking space) must not match the ASCII
     YAML separator — the check must treat status as missing/unrecognised."""
     _assert_fail("fail_status_nbsp.md", "status")
+
+
+# ---------------------------------------------------------------------------
+# Real calendar validity (month-length + leap-year rules)
+# ---------------------------------------------------------------------------
+
+def test_pass_leap_day():
+    """2024-02-29 is a real leap day — must pass the date validator."""
+    r = _run("pass_leap_day.md")
+    assert r.returncode == 0, (
+        f"Expected PASS for real leap day 2024-02-29 but got rc={r.returncode}\n"
+        f"stdout={r.stdout}\nstderr={r.stderr}"
+    )
+
+
+def test_fail_landed_feb29_nonleap():
+    """landed: 2026-02-29 is impossible — 2026 is not a leap year — must fail."""
+    _assert_fail("fail_landed_feb29_nonleap.md", "landed")
+
+
+def test_fail_started_apr31():
+    """started: 2026-04-31 is impossible — April has 30 days — must fail."""
+    _assert_fail("fail_started_apr31.md", "started")
