@@ -28,7 +28,7 @@ case "$MODE" in
     # (2) Bare legacy skill name (in prose, e.g., "m-design-spec" without slash)
     # (3) Filesystem-prefixed: ~/.claude/skills/m-<name>
     # Includes ground-in-source and dispatch-gemini (these stay legacy, but references must be classified).
-    SKILL_NAMES='design-spec|design-review|keystone|epic-driven-roadmap|code-review|test-quality-audit|harness-audit|extract-knowledge|cross-provider-reviewer|cross-provider-architect|ground-in-source|dispatch-gemini'
+    SKILL_NAMES='design-spec|design-review|keystone|epic-driven-roadmap|code-review|harness-audit|extract-knowledge|cross-provider-reviewer|cross-provider-architect|ground-in-source|dispatch-gemini'
     PATTERN_SLASH="/m-(${SKILL_NAMES})"
     PATTERN_BARE="\\bm-(${SKILL_NAMES})\\b"
     PATTERN_FS="~/\\.claude/skills/m-(${SKILL_NAMES})"
