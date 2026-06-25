@@ -20,6 +20,32 @@ Check for:
    (applies to every language present: Python, Rust, Go, TypeScript, Java,
    Kotlin, C/C++, Dart, shell, markdown, and any other). No enumerated list
    needed — judge by what the language demands.
+7. Regression gap (always-on, regardless of whether test files are touched):
+   if this is a fix commit, it should carry a regression test that would have
+   caught the original bug.
+
+If the diff touches test files, additionally apply the test-evidence lens:
+
+A test's green must be a true, reproducible, localized witness that the
+behaviour it names holds. Ask of each test: if the named behaviour silently
+broke, would this test go red? If not, flag it. Common ways green decouples
+from behaviour:
+- asserts a proxy not the behaviour (env-varying values, absolute counts)
+- exercises a substitute not the code (mocks the boundary under test — only
+  replace the genuinely external: network / filesystem / clock / hardware)
+- assumes an effect instead of observing it (no write-then-readback on a
+  mutation)
+- depends on the schedule not the behaviour (order / leaked shared state, no
+  self-contained teardown)
+- would not localize (one test bundles several behaviours)
+- has no behaviour to witness (tautological accessor / framework internal)
+- cannot go red because it is disabled (skipped / xfail / commented-out,
+  added as if it were coverage)
+
+These are illustrative shapes of one force — apply the core question; you
+will recognize others. For depth, cross-reference the ECC `*-testing` skills
+(python-testing, rust-testing, golang-testing, etc.) and
+`superpowers:test-driven-development`.
 
 Report findings as a numbered list, each tagged [Critical], [High], [Medium], or [Low].
 If no issues found, report "No issues found."

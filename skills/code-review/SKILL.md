@@ -79,6 +79,15 @@ semantic catch.
 
 ### Step 2: Detect domain concerns
 
+**Governance invariant:** the generic reviewer scrutinizes at the depth the
+diff's risk surface demands — it self-selects domain lenses from the diff
+without an enumerated domain catalogue. A *separate* specialist dispatch is
+added only when the generic reviewer **measurably** under-reviews a deep
+domain — justified per item, not per file-type. Security and database are the
+only current named specialist exceptions; this enumeration does not grow with
+file types. The test-evidence lens (applied when the diff touches test files)
+is therefore folded into the generic reviewer — it is not a separate dispatch.
+
 Read the diff briefly. Dispatch a specialist only if the diff *meaningfully*
 touches the domain — not just mentions a keyword.
 
@@ -95,6 +104,13 @@ persistence operations, schema definitions, migration files, or data contracts
 (ORM models / transaction boundaries / index definitions). Pure application-layer
 changes that reference DB entities without altering persistence structure do NOT
 warrant dispatch.
+
+**Regression-presence (trigger split note):** "a fix commit should carry a
+regression test" fires on fix commits *regardless of whether test files are
+touched* — gating it on test-files-touched would skip exactly the commits that
+need it. This concern belongs to the generic always-on review (check 7 in the
+generic-diff prompt) and the batch regression-gap scan, not the test-evidence
+lens.
 
 ### Step 3: Dispatch reviewers in parallel
 
