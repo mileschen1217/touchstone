@@ -136,3 +136,9 @@ def test_fail_no_fm_close_delimiter():
 def test_fail_calendar_invalid_date():
     """A4: a landed date with calendar-invalid month or day must fail."""
     _assert_fail("fail_calendar_invalid_date.md", "range")
+
+
+def test_fail_phases_in_frontmatter():
+    """C1: a Phases table embedded inside the frontmatter block must not satisfy
+    the body Phases requirement — the check scopes its scan to the body only."""
+    _assert_fail("fail_phases_in_frontmatter.md", "Phases")

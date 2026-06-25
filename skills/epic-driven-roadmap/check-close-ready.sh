@@ -4,7 +4,8 @@
 # Thin read-only close-readiness check for an epic index.md.
 # Asserts ALL of:
 #   - frontmatter opens on line 1 and has a closing --- delimiter (A3)
-#   - exactly one ## Phases section
+#   - ## Phases section exists in the BODY (not inside frontmatter — C1)
+#   - exactly one ## Phases section in the body
 #   - >= 1 phase row with numeric first column (A2)
 #   - every phase row Status cell == done (column located by header label, not index)
 #   - in-table non-| rows fail loud, not silently skipped (A2)
@@ -40,10 +41,23 @@ content=$(<"$FILE")
 
 # ---------------------------------------------------------------------------
 # 1. Extract YAML frontmatter (lines between first pair of --- delimiters)
+#    and document body (everything AFTER the closing --- delimiter).
+#    C1 fix: ## Phases must be located only in the BODY, not in the frontmatter.
 # ---------------------------------------------------------------------------
 frontmatter=$(awk '
     /^---$/ { if (depth==0) { depth=1; next } else { exit } }
     depth==1 { print }
+' "$FILE")
+
+# body = lines after the closing --- (skip opening --- on line 1, the frontmatter
+# content, and the closing ---; print everything that follows)
+body=$(awk '
+    /^---$/ {
+        count++
+        if (count == 2) { in_body=1; next }
+        next
+    }
+    in_body { print }
 ' "$FILE")
 
 if [[ -z "$frontmatter" ]]; then
@@ -137,9 +151,9 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6. Exactly one ## Phases section
+# 6. Exactly one ## Phases section — scanned in BODY only (C1: not frontmatter)
 # ---------------------------------------------------------------------------
-phases_count=$(echo "$content" | grep -cE '^## Phases[[:space:]]*$' || true)
+phases_count=$(echo "$body" | grep -cE '^## Phases[[:space:]]*$' || true)
 if [[ "$phases_count" -eq 0 ]]; then
     fail "No '## Phases' section found"
 elif [[ "$phases_count" -gt 1 ]]; then
@@ -152,12 +166,12 @@ fi
 data_rows_count=0
 
 if [[ "$phases_count" -eq 1 ]]; then
-    # Extract lines from ## Phases to next ## heading (or EOF)
-    phases_block=$(awk '
+    # Extract lines from ## Phases to next ## heading (or EOF) — from BODY only
+    phases_block=$(echo "$body" | awk '
         /^## Phases[[:space:]]*$/ { in_phases=1; next }
         in_phases && /^## / { exit }
         in_phases { print }
-    ' "$FILE")
+    ')
 
     # A2: parse ONE contiguous table.
     # Find the first | line (header start). Once the table has started (after
