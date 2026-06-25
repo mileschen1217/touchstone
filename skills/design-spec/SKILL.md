@@ -8,8 +8,8 @@ description: |
   scope/AC errors before build; skip when it is contained enough that the contract
   costs more than it saves. Heuristic: the change spans multiple modules, or
   introduces a new contract (API / CLI / IPC / skill). On first invocation in a project, runs
-  setup to record the specs directory. Always dispatches the `architect` agent
-  for fresh-context review of the draft.
+  setup to record the specs directory. By default dispatches the `architect` agent
+  for fresh-context review of the draft (`quick` mode skips it).
 allowed-tools:
   - Bash
   - Read
