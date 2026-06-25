@@ -79,14 +79,13 @@ semantic catch.
 
 ### Step 2: Detect domain concerns
 
-**Governance invariant:** the generic reviewer scrutinizes at the depth the
+**Domain-lens selection:** the generic reviewer scrutinizes at the depth the
 diff's risk surface demands — it self-selects domain lenses from the diff
-without an enumerated domain catalogue. A *separate* specialist dispatch is
-added only when the generic reviewer **measurably** under-reviews a deep
-domain — justified per item, not per file-type. Security and database are the
-only current named specialist exceptions; this enumeration does not grow with
-file types. The test-evidence lens (applied when the diff touches test files)
-is therefore folded into the generic reviewer — it is not a separate dispatch.
+(no enumerated catalogue). A *separate* specialist dispatch fires only for the
+named deep domains below (security / database), on their conditions. The
+test-evidence lens (when the diff touches test files) is part of the generic
+reviewer, not a separate dispatch. (Why the specialist roster is capped to those
+two — maintainer rationale — lives in `README.md` + ADR-0025.)
 
 Read the diff briefly. Dispatch a specialist only if the diff *meaningfully*
 touches the domain — not just mentions a keyword.
@@ -125,11 +124,13 @@ Never review inline — always spawn separate agents. Launch all reviewers in a
 
 **security / database review:** dispatched only when AI judgment in Step 2 flagged the
 concern. Dispatch a **generic Sonnet agent** (`model: "sonnet"`) carrying the
-`security-reviewer` / `database-reviewer` invariant prompt from
-`references/reviewer-prompts.md` — touchstone's own invariant-based prompts that
-self-generate the specific checks from the domain invariant. These are **not** the ECC
-`everything-claude-code:security-reviewer` / `database-reviewer` agents: we deliberately
-do not depend on their fixed checklists, for self-containment.
+`specialist-reviewer` prompt from `references/reviewer-prompts.md`, inlined with the
+**security** or **database** domain block (both specialists share one shape;
+the block supplies the invariant + adequate-guarantee menu) — touchstone's own
+invariant-based prompt that self-generates the specific checks from the domain
+invariant. This is **not** the ECC `everything-claude-code:security-reviewer` /
+`database-reviewer` agents: we deliberately do not depend on their fixed checklists,
+for self-containment.
 
 **For specific-file invocation** (`/touchstone:code-review path/to/file`):
 

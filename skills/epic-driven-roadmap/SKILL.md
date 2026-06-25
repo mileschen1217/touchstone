@@ -4,7 +4,7 @@ kind: workflow
 description: |
   Scaffold, maintain, and audit a project's epic-driven roadmap. Every project
   using this convention keeps a pure-tracker ROADMAP.md plus one tracker per
-  epic under .touchstone/epics/<slug>/index.md. Invoke when: starting a new epic, <!-- phase-2-carve-out -->
+  epic under .touchstone/epics/<slug>/index.md. Invoke when: starting a new epic,
   closing an epic (retrospective + move to Completed), auditing status drift,
   or bootstrapping the convention in a new project. Concrete paths come from
   the project's CLAUDE.md § Doc Routing; this skill owns the shape, templates,
@@ -41,9 +41,9 @@ Pure-tracker roadmap + per-epic tracker convention. CLAUDE.md routes here; this 
 - **Scaffold a new epic** — user starts work on a new initiative not yet tracked.
 - **Close an epic** — all phases done, needs retrospective + move to Completed table.
 - **Audit** — weekly or on demand: status drift between ROADMAP row and epic frontmatter, stale epics, orphans, scope overlap.
-- **Bootstrap** — new project adopts this convention (ROADMAP.md + `.touchstone/epics/README.md` + first epic). <!-- phase-2-carve-out -->
+- **Bootstrap** — new project adopts this convention (ROADMAP.md + `.touchstone/epics/README.md` + first epic).
 
-Skip if: the project doesn't use this convention (no `ROADMAP.md` or `.touchstone/epics/`). <!-- phase-2-carve-out -->
+Skip if: the project doesn't use this convention (no `ROADMAP.md` or `.touchstone/epics/`).
 
 ## The Rule
 
@@ -62,10 +62,10 @@ Maps to the 6-stage workflow in `~/.claude/CLAUDE.md`. Concrete paths come from 
 | Q (stage) | Home (abstract) | Example concrete path |
 |---|---|---|
 | Why at all? (0) | Project vision / scope | `.touchstone/vision.md`, `ROADMAP.md` scope block |
-| Why this epic? (1) | Epic tracker index | `.touchstone/epics/<slug>/index.md` | <!-- phase-2-carve-out -->
+| Why this epic? (1) | Epic tracker index | `.touchstone/epics/<slug>/index.md` |
 | What might work? (2) | Research note | `.touchstone/research/YYYY-MM-DD-<slug>.md` |
 | What contract? (3, GWT) | Design spec | `.touchstone/specs/YYYY-MM-DD-<slug>.md` |
-| How, in order — epic-level? (4a) | **Epic master plan** (lives with the epic) | `.touchstone/epics/<slug>/<name>-roadmap.md` (only when epic spans 2+ specs) | <!-- phase-2-carve-out -->
+| How, in order — epic-level? (4a) | **Epic master plan** (lives with the epic) | `.touchstone/epics/<slug>/<name>-roadmap.md` (only when epic spans 2+ specs) |
 | How, in order — per-spec? (4b) | Implementation plan (one per design spec) | `.touchstone/plans/YYYY-MM-DD-<slug>.md` |
 | Did it work? (5) | Commits, MRs | Commits, MRs |
 | What did we learn? (6) | Retrospective on epic index | Retrospective on epic index |
@@ -75,7 +75,7 @@ Maps to the 6-stage workflow in `~/.claude/CLAUDE.md`. Concrete paths come from 
 
 Two distinct artifacts; do not conflate.
 
-- **Epic master plan (Q4a)** — sequences the epic's phases, locks cross-spec decisions (e.g. "primary gate is X, deprecate Y"), states effort + acceptance per phase, freezes scope so reactive expansion is rejected. Lives **with the epic**: `.touchstone/epics/<slug>/<short-name>.md` (e.g. `v6-3-roadmap.md`, `roadmap.md`, or `master-plan.md`). The epic index links to it. One per epic — not per phase. <!-- phase-2-carve-out -->
+- **Epic master plan (Q4a)** — sequences the epic's phases, locks cross-spec decisions (e.g. "primary gate is X, deprecate Y"), states effort + acceptance per phase, freezes scope so reactive expansion is rejected. Lives **with the epic**: `.touchstone/epics/<slug>/<short-name>.md` (e.g. `v6-3-roadmap.md`, `roadmap.md`, or `master-plan.md`). The epic index links to it. One per epic — not per phase.
 - **Task plan (Q4b)** — per-spec implementation plan for a single design spec. Lives under `docs/superpowers/plans/` (or the project's plan path). One per spec.
 
 **When to write a master plan:** an epic that crosses 2+ design specs, locks methodology decisions that bind multiple specs, or needs effort sequencing across phases. Skinny epics (single spec, one PR) skip the master plan and go straight from epic index → spec → plan.
@@ -93,21 +93,21 @@ Two distinct artifacts; do not conflate.
    synthesise, confirm — all canonical emit strings live there). Epic
    scaffold is the ORIGIN of the foundation — no parent to inherit, so always
    run the shared gate from its from-scratch opener (no inheritance pre-step).
-   On confirm, record per the template below: aim into the **Aim:** headline, <!-- phase-2-carve-out -->
-   intention + out-of-scope into `## Foundation`. <!-- phase-2-carve-out -->
+   On confirm, record per the template below: aim into the **Aim:** headline,
+   intention + out-of-scope into `## Foundation`.
    This is the highest-ROI step — it prevents a spec being written for the
    wrong scope.
 1. Pick a slug — lowercase, hyphen-separated, names the **deliverable surface** (e.g. `port-statistics-stacking`), not a phase number.
-2. Read the project's CLAUDE.md § Doc Routing to get the concrete `.touchstone/epics/` path. <!-- phase-2-carve-out -->
+2. Read the project's CLAUDE.md § Doc Routing to get the concrete `.touchstone/epics/` path.
 3. Write the new epic index directly from the template:
 
-   Read `templates/epic-index.md`, then create `<epics-dir>/<slug>/index.md` by <!-- phase-2-carve-out -->
-   writing the template verbatim with the Edit/Write tool. Fill in: <!-- phase-2-carve-out -->
-   - frontmatter `slug`, `started` (today's date YYYY-MM-DD), `status: proposed` <!-- phase-2-carve-out -->
-   - `**Aim:**` headline <!-- phase-2-carve-out -->
-   - `## Foundation` (intention + out-of-scope from the elicitation) <!-- phase-2-carve-out -->
-   - Phase 1 row in the `## Phases` table <!-- phase-2-carve-out -->
-4. Add a row to `ROADMAP.md` § Active Epics: `| <slug> | <aim> | proposed | [index](<epics-dir>/<slug>/index.md) |`. <!-- phase-2-carve-out -->
+   Read `templates/epic-index.md`, then create `<epics-dir>/<slug>/index.md` by
+   writing the template verbatim with the Edit/Write tool. Fill in:
+   - frontmatter `slug`, `started` (today's date YYYY-MM-DD), `status: proposed`
+   - `**Aim:**` headline
+   - `## Foundation` (intention + out-of-scope from the elicitation)
+   - Phase 1 row in the `## Phases` table
+4. Add a row to `ROADMAP.md` § Active Epics: `| <slug> | <aim> | proposed | [index](<epics-dir>/<slug>/index.md) |`.
 5. When creating content docs (research, specs, plans, ADRs) for this epic, add frontmatter `epics: [<slug>]` so the backlink exists from day one. See `templates/content-doc.md`.
 5. Commit.
 
@@ -130,7 +130,7 @@ Four-step convention bootstrap → [`references/bootstrap.md`](references/bootst
 ## Templates
 
 - `templates/ROADMAP.md` — pure-tracker ROADMAP
-- `templates/epic-index.md` — epic tracker <!-- phase-2-carve-out -->
+- `templates/epic-index.md` — epic tracker
 - `templates/content-doc.md` — research / spec / plan / ADR / reflection (frontmatter shape only; body is free-form)
 
 Copy verbatim; edit in place.

@@ -221,13 +221,13 @@ chk "cr-test-evidence-core-question" \
   "skills/code-review/references/reviewer-prompts.md" \
   "would this test go red|witness.*behav|behav.*witness"
 
-# (b) governance invariant: generic reviewer self-selects lenses; specialist dispatch only for
-#     measurably under-reviewed deep domains
+# (b) governance: SKILL.md carries the BEHAVIORAL self-select rule; the maintainer
+#     CAP rationale (measurably-under-reviewed → add specialist) lives in README.
 chk "cr-governance-self-selects" \
   "skills/code-review/SKILL.md" \
   "self-selects? domain lenses|self.selects? .* diff"
-chk "cr-governance-measurably" \
-  "skills/code-review/SKILL.md" \
+chk "cr-governance-cap-in-readme" \
+  "skills/code-review/README.md" \
   "measurably.{0,30}under.review|specialist.*measurably"
 
 # (c) regression-presence trigger-split note — fires on fix commits regardless of test files touched

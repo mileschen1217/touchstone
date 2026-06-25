@@ -9,6 +9,18 @@ diversity is preserved via the builder→reviewer swap. High-leverage Pattern A 
 for `/touchstone:design-review` (Stage 0), `/touchstone:keystone`, and
 `/touchstone:design-spec`.
 
+## Specialist-roster cap (why security/database are the only named reviewers)
+
+A *separate* specialist dispatch is added only when the generic reviewer
+**measurably** under-reviews a deep domain — justified per item, not per
+file-type. This keeps the roster from growing into an enumerated catalogue (one
+reviewer per language / per file kind), which would be the checklist smell the
+altitude doctrine forbids. Security and database are the only current named
+exceptions because each is a deep domain where a focused, invariant-driven prompt
+measurably outperforms the generic reviewer. The test-evidence lens is folded into
+the generic reviewer rather than dispatched separately, precisely because test
+hygiene is *not* such a deep domain. Rationale: ADR-0025.
+
 ## Dependencies
 
 - `everything-claude-code:code-reviewer` + language/security/database reviewers (ECC, EXTERNAL)
