@@ -281,7 +281,7 @@ The `epic-driven-roadmap` skill keeps its work-content in a local markdown index
 
 **agent-as-universal-shim** — the LLM natively reads and writes any format, so no code shim sits between the skill and a backend. Forward projection (render the index onto a tracker card) and any reverse reconciliation (read a tracker via `gh` / CLI / MCP, diff, self-update the index) are both done by the agent semantically. _Avoid_: "storage adapter" / "shim layer" as a code component — the shim is the agent, not a script.
 
-**projection** — the one-way render of the index's shared subset (aim, phases-as-checklist, status, back-link) onto a tracker card, produced at need. Lossy by design: close-only internal artifacts (retrospective, Stage 7 Doc Reckoning, Evidence Reckoning) are not projected. _Avoid_: "sync" — implies bidirectional parity; projection is one-way local→tracker.
+**projection** — the one-way render of the index's shared subset (aim, phases-as-checklist, status, back-link) onto a tracker card, produced at need. Lossy by design: close-only internal artifacts (retrospective, Doc Reckoning, Evidence Reckoning) are not projected. _Avoid_: "sync" — implies bidirectional parity; projection is one-way local→tracker.
 
 **reconciliation** — the reverse path, built only if a real consumer needs it: the agent fetches tracker state and diffs it against the local index, then updates the index. Semantic, agent-performed, no schema or round-trip contract. Not a standing mechanism (YAGNI until a tracker is a genuine upstream author).
 

@@ -67,7 +67,7 @@ and no swap**, that failure mode does not exist: the close gate reads the same
    work-content. A tracker card (GitHub / GitLab Issue, Jira, Linear) is a
    **projection** — the agent renders the index's *shared subset* (aim,
    phases-as-checklist, status, back-link) onto the card at need. Close-only
-   internal artifacts (retrospective, Stage 7 Doc Reckoning, Evidence
+   internal artifacts (retrospective, Doc Reckoning, Evidence
    Reckoning) are not projected. Prefer reusing a community render skill (e.g.
    `to-github-issue`); for GitHub, inline `gh issue create` may suffice. Do not
    pre-build Jira / GitLab / Linear renderers until a real consumer exists.

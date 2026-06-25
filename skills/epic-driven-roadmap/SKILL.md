@@ -29,10 +29,10 @@ If `source-as-truth` is in `bundle.disciplines`, read
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` and
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/standing-vs-transient-bridge.md`,
 plus § "Four doc kinds" from `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` — which
-define the rules Stage 7 doc reckoning applies. This skill does not dispatch
+define the rules Doc Reckoning applies. This skill does not dispatch
 to other skills, so no envelope handoff is needed.
 
-If `source-as-truth` is not adopted: Stage 7 doc reckoning runs in default mode (mechanical mtime-based bridge audit only, no frontmatter kind: classification, no distill-or-archive recommendation).
+If `source-as-truth` is not adopted: Doc Reckoning runs in default mode (mechanical mtime-based bridge audit only, no frontmatter kind: classification, no distill-or-archive recommendation).
 
 Pure-tracker roadmap + per-epic tracker convention. CLAUDE.md routes here; this skill owns the rule and the templates.
 
@@ -69,7 +69,7 @@ Maps to the 6-stage workflow in `~/.claude/CLAUDE.md`. Concrete paths come from 
 | How, in order — per-spec? (4b) | Implementation plan (one per design spec) | `.touchstone/plans/YYYY-MM-DD-<slug>.md` |
 | Did it work? (5) | Commits, MRs | Commits, MRs |
 | What did we learn? (6) | Retrospective on epic index | Retrospective on epic index |
-| Did docs catch up? (7) | Doc Reckoning block on epic index (see "Close an epic") | Doc Reckoning block on epic index |
+| Did docs catch up? (7) | Doc Reckoning block on epic index (see "Close an epic + Doc Reckoning") | Doc Reckoning block on epic index |
 
 ### Master plan vs. task plan
 
@@ -99,25 +99,21 @@ Two distinct artifacts; do not conflate.
    wrong scope.
 1. Pick a slug — lowercase, hyphen-separated, names the **deliverable surface** (e.g. `port-statistics-stacking`), not a phase number.
 2. Read the project's CLAUDE.md § Doc Routing to get the concrete `.touchstone/epics/` path. <!-- phase-2-carve-out -->
-3. Write the new epic index via the adapter:
+3. Write the new epic index directly from the template:
 
-   ```bash
-   python skills/epic-driven-roadmap/adapters/local-markdown/cli.py write --slug "$SLUG" \
-     --field slug="$SLUG" \
-     --field started="$(date +%Y-%m-%d)" \
-     --field status=proposed
-   ```
-
-   Then populate `**Aim:**`, `## Foundation`, `owner_teams`, and Phase 1 into the created <!-- phase-2-carve-out -->
-   `<epics-dir>/<slug>/index.md`. If exit code is non-zero, surface the typed error class <!-- phase-2-carve-out -->
-   from stderr and stop — do not proceed with partial data.
+   Read `templates/epic-index.md`, then create `<epics-dir>/<slug>/index.md` by <!-- phase-2-carve-out -->
+   writing the template verbatim with the Edit/Write tool. Fill in: <!-- phase-2-carve-out -->
+   - frontmatter `slug`, `started` (today's date YYYY-MM-DD), `status: proposed` <!-- phase-2-carve-out -->
+   - `**Aim:**` headline <!-- phase-2-carve-out -->
+   - `## Foundation` (intention + out-of-scope from the elicitation) <!-- phase-2-carve-out -->
+   - Phase 1 row in the `## Phases` table <!-- phase-2-carve-out -->
 4. Add a row to `ROADMAP.md` § Active Epics: `| <slug> | <aim> | proposed | [index](<epics-dir>/<slug>/index.md) |`. <!-- phase-2-carve-out -->
 5. When creating content docs (research, specs, plans, ADRs) for this epic, add frontmatter `epics: [<slug>]` so the backlink exists from day one. See `templates/content-doc.md`.
 5. Commit.
 
-### Close an epic + Stage 7 Doc Reckoning
+### Close an epic + Doc Reckoning
 
-Procedure (mark phases done, retrospective, ROADMAP move) + the full Stage-7 doc-reckoning inventory and output template → [`references/close-and-stage7.md`](references/close-and-stage7.md).
+Procedure (mark phases done, retrospective, ROADMAP move) + the full Doc Reckoning inventory and output template → [`references/close-and-doc-reckoning.md`](references/close-and-doc-reckoning.md).
 
 ### Tasks (scaffold / contract scope / close / status)
 
