@@ -76,4 +76,11 @@ else
   echo "FAIL v2-happy"; fail=$((fail+1))
 fi
 
+# FIX-4 (AC-9): normalizer_version VALUE mismatch → BLOCK with "mismatch"
+# Use nv=0 which is guaranteed != current (always 1); schema_version=2; otherwise valid.
+write nv-mismatch.json '{"schema_version":2,"normalizer_version":0,"author_id":"A","challenger_id":"B","input_digest":"x","findings":[]}'
+chk 1 nv-mismatch.json "mismatch" nv-value-mismatch
+# FIX-6: empty-question marker [NEEDS CLARIFICATION:] → BLOCK (marker must have non-empty question)
+write empty-marker.json '{"schema_version":2,"normalizer_version":'"$NV"',"author_id":"A","challenger_id":"B","input_digest":"x","findings":[{"id":"F-1","marker":"[NEEDS CLARIFICATION:]","req":"REQ-1"}]}'
+chk 1 empty-marker.json "marker" empty-marker-rejected
 [ "$fail" -eq 0 ] && { echo ALL GREEN; exit 0; } || { echo "RED: $fail"; exit 1; }

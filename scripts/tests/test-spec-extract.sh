@@ -78,4 +78,13 @@ done
 bash "$ex" stories "$fix/extract-edges.md" | grep -q 'US-99' && { echo "FAIL fenced US-99 parsed"; fail=$((fail+1)); } || echo "ok fenced-us-not-parsed"
 # boundary agreement: the floor checker passes this well-formed requirement-bearing edge spec
 if bash "$here/../check-spec-floor.sh" "$fix/extract-edges.md" >/dev/null 2>&1; then echo "ok floor-boundary-agreement"; else echo "FAIL floor disagrees on edge boundary"; fail=$((fail+1)); fi
+# FIX-3: non-vacuous fence-in-US-section test (story-fence.md has US-2 INSIDE a fence in ## User Stories)
+sf_out="$(bash "$ex" stories "$fix/story-fence.md")"
+printf '%s\n' "$sf_out" | grep -q 'US-2' && { echo "FAIL fenced-us-in-us-section parsed (US-2)"; fail=$((fail+1)); } || echo "ok fenced-us-in-us-section-not-parsed"
+# FIX-1: fence info-string changes digest (```sh vs ```python)
+d_infosh="$(bash "$ex" digest "$fix/attested-fence-infosh.md")"
+d_infopy="$(bash "$ex" digest "$fix/attested-fence-infopy.md")"
+[ "$d_infosh" != "$d_infopy" ] && echo "ok fence-info-string-changes-digest" || { echo "FAIL fence info-string edit did not change digest"; fail=$((fail+1)); }
+# FIX-5: unbalanced global fence → digest exits non-zero
+if bash "$ex" digest "$fix/attested-unbalanced-fence.md" >/dev/null 2>&1; then echo "FAIL unbalanced-fence did not BLOCK"; fail=$((fail+1)); else echo "ok unbalanced-fence-blocks"; fi
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail"; exit 1; fi

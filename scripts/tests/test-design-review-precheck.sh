@@ -32,4 +32,10 @@ run "$tmp/zero.md" 1 "structural" block-structural
 # legacy spec (no requirements) → PROCEED without a challenge-result
 cp "$here/floor-fixtures/req-legacy.md" "$tmp/legacy.md"
 run "$tmp/legacy.md" 0 "PRE-CHECK OK" proceed-legacy
+# FIX-2 (AC-8): duplicate REQ-N → BLOCK at FLOOR step (not challenge step), output contains "structural"
+cp "$here/floor-fixtures/req-dup-id.md" "$tmp/dup.md"
+run "$tmp/dup.md" 1 "structural" block-dup-id-floor
+# Also verify it does NOT say "stale" or "challenge" (it's a floor failure, not freshness)
+_dup_out="$(bash "$pc" "$tmp/dup.md" 2>&1)" || true
+printf '%s' "$_dup_out" | grep -qiE "stale|challenge" && { echo "FAIL block-dup-id-floor: should not mention stale/challenge ($out)"; fail=$((fail+1)); } || echo "ok block-dup-id-floor-no-stale"
 [ "$fail" -eq 0 ] && { echo ALL GREEN; exit 0; } || { echo "RED: $fail"; exit 1; }

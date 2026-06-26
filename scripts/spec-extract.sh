@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Canonical spec extractor — the ONE parse the checker, the challenge validator,
-# and the design-review pre-check all call. Scope: the `## Acceptance Criteria`
-# section only (heading → next non-fenced `## `), fence-aware.
+# and the design-review pre-check all call. Attested surface: `## Foundation`,
+# `## User Stories`, and `## Acceptance Criteria` sections, fence-aware.
 set -uo pipefail
 cmd="${1:-}"; spec="${2:-}"
 if [ "$cmd" != "normalizer-version" ]; then
@@ -70,11 +70,12 @@ NORMALIZER_VERSION=1
 attested_section() {
   awk -v name="$1" '
     function ishdr(l)  { return l ~ ("^## " name "[[:space:]]*$") }
-    /^```/ { if (inx) { fence=!fence; print "```"; next } gfence=!gfence; next }
+    /^```/ { if (inx) { fence=!fence; sub(/\r$/,""); sub(/[[:space:]]+$/,""); print; next } gfence=!gfence; next }
     gfence { next }
     ishdr($0) { if (seen){ exit 2 } seen=1; inx=1; print "## " name; next }
     inx && !fence && /^## / { inx=0 }
     inx { sub(/\r$/,""); sub(/[[:space:]]+$/,""); print }
+    END { if (gfence) exit 2 }
   ' "$2"
 }
 # (heading matched by the canonical ^## <name>[[:space:]]*$ rule — a trailing-space
@@ -82,6 +83,7 @@ attested_section() {
 #  + a duplicate trailing-space heading fixture to the Task 2 fixture set.)
 digest_input() {
   local rc=0
+  # canonical fixed order — independent of file appearance order
   for s in "Foundation" "User Stories" "Acceptance Criteria"; do
     attested_section "$s" "$1" || rc=$?
   done

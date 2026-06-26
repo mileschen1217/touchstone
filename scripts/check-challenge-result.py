@@ -4,7 +4,7 @@ import json, subprocess, sys, os, re
 
 ALLOWED_TOP = {"schema_version", "normalizer_version", "author_id", "challenger_id", "input_digest", "findings"}
 ALLOWED_FINDING = {"id", "marker", "req"}
-MARKER_RE = re.compile(r'\[NEEDS CLARIFICATION:[^\]]*\]')  # used with fullmatch
+MARKER_RE = re.compile(r'\[NEEDS CLARIFICATION:[^\]]+\]')  # used with fullmatch
 
 def fail(msg):
     print(f"BLOCK: {msg}"); sys.exit(1)
