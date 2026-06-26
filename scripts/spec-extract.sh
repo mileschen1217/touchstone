@@ -4,7 +4,7 @@
 # section only (heading → next non-fenced `## `), fence-aware.
 set -uo pipefail
 cmd="${1:-}"; spec="${2:-}"
-{ [ -n "$cmd" ] && [ -f "$spec" ]; } || { echo "usage: spec-extract.sh <reqs|stories|digest> <spec>" >&2; exit 2; }
+{ [ -n "$cmd" ] && [ -f "$spec" ]; } || { echo "usage: spec-extract.sh <reqs|stories|raw-stories|raw-reqs|traces|digest|normalizer-version> <spec>" >&2; exit 2; }
 
 reqs() {
   awk '
@@ -28,6 +28,38 @@ stories() {
   ' "$spec" | sort -u
 }
 
+raw_stories() {
+  awk '
+    /^```/ { fence = !fence; next }
+    fence  { next }
+    /^## User Stories[[:space:]]*$/ { inus=1; next }
+    inus && /^## / { inus=0 }
+    !inus  { next }
+    /^[[:space:]]*-[[:space:]]+US-[0-9]+([^[:alnum:]_]|$)/ { match($0,/US-[0-9]+/); print substr($0,RSTART,RLENGTH) }
+  ' "$spec"
+}
+raw_reqs() {
+  awk '
+    /^```/ { fence = !fence; next }
+    fence  { next }
+    /^## Acceptance Criteria[[:space:]]*$/ { inac=1; next }
+    inac && /^## / { inac=0 }
+    !inac  { next }
+    /^### Requirement:[[:space:]]+REQ-[0-9]+/ { match($0,/REQ-[0-9]+/); print substr($0,RSTART,RLENGTH) }
+  ' "$spec"
+}
+traces() {
+  awk '
+    /^```/ { fence = !fence; next }
+    fence  { next }
+    /^## Acceptance Criteria[[:space:]]*$/ { inac=1; next }
+    inac && /^## / { inac=0 }
+    !inac  { next }
+    /^### Requirement:[[:space:]]+REQ-[0-9]+/ { match($0,/REQ-[0-9]+/); cur=substr($0,RSTART,RLENGTH); next }
+    /^traces-to:/ && cur!="" { line=$0; while (match(line,/US-[0-9]+/)) { print cur " " substr(line,RSTART,RLENGTH); line=substr(line,RSTART+RLENGTH) } }
+  ' "$spec"
+}
+
 digest_input() {
   awk '
     /^## Acceptance Criteria[[:space:]]*$/ { inac=1; print "## Acceptance Criteria"; next }
@@ -42,8 +74,11 @@ digest() {
 }
 
 case "$cmd" in
-  reqs)    reqs ;;
-  stories) stories ;;
-  digest)  digest ;;
-  *)       echo "unknown subcommand: $cmd" >&2; exit 2 ;;
+  reqs)        reqs ;;
+  stories)     stories ;;
+  raw-stories) raw_stories ;;
+  raw-reqs)    raw_reqs ;;
+  traces)      traces ;;
+  digest)      digest ;;
+  *)           echo "unknown subcommand: $cmd" >&2; exit 2 ;;
 esac

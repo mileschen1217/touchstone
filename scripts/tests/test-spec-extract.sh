@@ -29,4 +29,11 @@ sout="$(bash "$ex" stories "$fix/story-extract.md")"
 if [ "$sout" != "$(printf 'US-1\nUS-2')" ]; then echo "FAIL stories: [$sout]"; fail=$((fail+1)); else echo "ok stories"; fi
 sus="$(bash "$ex" stories "$fix/story-extract.md")"
 [ "$sus" = "$sout" ] && echo "ok stories-deterministic" || { echo "FAIL stories non-deterministic"; fail=$((fail+1)); }
+# --- Task 1: raw extractors ---
+rs="$(bash "$ex" raw-stories "$fix/story-dup.md")"
+[ "$(printf '%s\n' "$rs" | sort | uniq -d | grep -c .)" -ge 1 ] && echo "ok raw-stories-nondedup" || { echo "FAIL raw-stories deduped"; fail=$((fail+1)); }
+rr="$(bash "$ex" raw-reqs "$fix/req-dup-id.md")"
+[ "$(printf '%s\n' "$rr" | sort | uniq -d | grep -c .)" -ge 1 ] && echo "ok raw-reqs-nondedup" || { echo "FAIL raw-reqs deduped"; fail=$((fail+1)); }
+tr="$(bash "$ex" traces "$fix/req-happy.md")"
+printf '%s\n' "$tr" | grep -qE '^REQ-[0-9]+ US-[0-9]+$' && echo "ok traces-pairs" || { echo "FAIL traces shape: [$tr]"; fail=$((fail+1)); }
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail"; exit 1; fi

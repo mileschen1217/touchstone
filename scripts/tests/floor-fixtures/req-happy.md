@@ -10,6 +10,7 @@ status: accepted
 | REQ-1 | AC-1 | a |
 | REQ-2 | AC-2 | b |
 ### Requirement: REQ-1 — the system SHALL do X
+traces-to: US-1
 #### AC-1 — a
 ```
 Given x
