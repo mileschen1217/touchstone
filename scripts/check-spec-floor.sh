@@ -47,26 +47,12 @@ if [ "$has_us" = "yes" ]; then
   storyset="$(bash "$ex" stories "$spec")"; strc=$?
   if [ "$strc" -ne 0 ]; then echo "FAIL: spec-extract stories failed"; exit 1; fi
 
-  rawstories="$(awk '
-    /^```/ { fence=!fence; next } fence { next }
-    /^## User Stories[[:space:]]*$/ { inus=1; next }
-    inus && /^## / { inus=0 } !inus { next }
-    /^[[:space:]]*-[[:space:]]+US-[0-9]+([^[:alnum:]_]|$)/ { match($0,/US-[0-9]+/); print substr($0,RSTART,RLENGTH) }
-  ' "$spec")"
+  rawstories="$(bash "$ex" raw-stories "$spec")" || { echo "FAIL: spec-extract raw-stories failed"; exit 1; }
 
   if [ -z "$storyset" ]; then note "## User Stories present but holds zero parseable US-N entries"; fi
   for u in $(printf '%s\n' "$rawstories" | sort | uniq -d); do note "$u is a duplicated user-story id"; done
 
-  tracedpairs="$(awk '
-    /^```/ { fence=!fence; next } fence { next }
-    /^## Acceptance Criteria[[:space:]]*$/ { inac=1; next }
-    inac && /^## / { inac=0 } !inac { next }
-    /^### Requirement:[[:space:]]+REQ-[0-9]+/ { match($0,/REQ-[0-9]+/); cur=substr($0,RSTART,RLENGTH); next }
-    /^traces-to:/ && cur!="" {
-      line=$0
-      while (match(line,/US-[0-9]+/)) { print cur " " substr(line,RSTART,RLENGTH); line=substr(line,RSTART+RLENGTH) }
-    }
-  ' "$spec")"
+  tracedpairs="$(bash "$ex" traces "$spec")" || { echo "FAIL: spec-extract traces failed"; exit 1; }
   tracedset="$(printf '%s\n' "$tracedpairs" | awk 'NF{print $2}' | sort -u)"
 
   for u in $storyset; do printf '%s\n' "$tracedset" | grep -qx "$u" || note "$u has no requirement (untraced story)"; done
@@ -114,9 +100,8 @@ if [ -n "$reqset" ]; then
     note "$a is an orphan AC (no in-scope parent requirement)"
   done
   # duplicate REQ id
-  for r in $(printf '%s\n' "$scan" | sed -n 's/^REQHEAD //p' | sort | uniq -d); do
-    note "$r is a duplicated requirement id"
-  done
+  rawreqs="$(bash "$ex" raw-reqs "$spec")" || { echo "FAIL: spec-extract raw-reqs failed"; exit 1; }
+  for r in $(printf '%s\n' "$rawreqs" | sort | uniq -d); do note "$r is a duplicated requirement id"; done
   # duplicate AC id in the body (by AC id alone, across parents)
   for a in $(printf '%s\n' "$scan" | sed -n 's/^AC [^ ]* //p' | sort | uniq -d); do
     note "$a is a duplicated AC id"

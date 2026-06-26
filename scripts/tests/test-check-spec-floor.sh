@@ -73,4 +73,8 @@ out="$(bash "$tmp/check-spec-floor.sh" "$tmp/s.md" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qF "stories failed"; then echo "ok story-extract-fail-closed"; else echo "FAIL story-extract-fail-closed: rc=$rc out=$out"; fail=$((fail+1)); fi
 rm -rf "$tmp"
 
+# grep for the REMOVED inline awk GRAMMAR, not the variable names (which are kept,
+# now holding subcommand output): inus=1 (the rawstories awk) and the traces while-match.
+if grep -qE 'inus=1|while \(match\(line,/US-' "$here/../check-spec-floor.sh"; then echo "FAIL floor still inline-parses unit ids"; fail=$((fail+1)); else echo "ok floor-no-inline-unit-reparse"; fi
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
