@@ -60,4 +60,14 @@ if command -v shasum >/dev/null 2>&1 && command -v sha256sum >/dev/null 2>&1; th
   h2="$(printf 'attested-body' | sha256sum | awk '{print $1}')"
   [ "$h1" = "$h2" ] && echo "ok cross-tool-digest" || { echo "FAIL shasum vs sha256sum differ"; fail=$((fail+1)); }
 else echo "ok cross-tool-digest (one tool absent — n/a on this host)"; fi
+# --- Task 2 review fixes: trailing-space-heading fixtures + dup-block for Foundation/AC ---
+# trailing-space headings are still the same section (canonical print); digest must equal base
+tsh="$(bash "$ex" digest "$fix/attested-trailing-space-heading.md")"
+[ "$tsh" = "$base" ] && echo "ok trailing-space-heading-equals-base" || { echo "FAIL trailing-space-heading digest differs from base"; fail=$((fail+1)); }
+# duplicate trailing-space heading is still a duplicate — must block
+if bash "$ex" digest "$fix/attested-dup-trailing-space-heading.md" >/dev/null 2>&1; then echo "FAIL dup trailing-space heading did not BLOCK"; fail=$((fail+1)); else echo "ok dup-trailing-space-heading-blocks"; fi
+# duplicate Foundation heading must block
+if bash "$ex" digest "$fix/attested-dup-foundation.md" >/dev/null 2>&1; then echo "FAIL dup Foundation heading did not BLOCK"; fail=$((fail+1)); else echo "ok dup-foundation-blocks"; fi
+# duplicate Acceptance Criteria heading must block
+if bash "$ex" digest "$fix/attested-dup-ac.md" >/dev/null 2>&1; then echo "FAIL dup Acceptance Criteria heading did not BLOCK"; fail=$((fail+1)); else echo "ok dup-ac-blocks"; fi
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail"; exit 1; fi
