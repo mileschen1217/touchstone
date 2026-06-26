@@ -77,4 +77,8 @@ rm -rf "$tmp"
 # now holding subcommand output): inus=1 (the rawstories awk) and the traces while-match.
 if grep -qE 'inus=1|while \(match\(line,/US-' "$here/../check-spec-floor.sh"; then echo "FAIL floor still inline-parses unit ids"; fail=$((fail+1)); else echo "ok floor-no-inline-unit-reparse"; fi
 
+ctx="$here/../../CONTEXT.md"
+for term in "challenge-result" "attested surface"; do grep -q "$term" "$ctx" || { echo "FAIL CONTEXT.md missing: $term"; fail=$((fail+1)); }; done
+grep -qiE "freshness.*challenge-pass|challenge-pass sense" "$ctx" && echo "ok ctx-freshness-distinct" || { echo "FAIL ctx missing challenge-pass freshness"; fail=$((fail+1)); }
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
