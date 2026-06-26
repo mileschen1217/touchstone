@@ -47,6 +47,9 @@ non="$(bash "$ex" digest "$fix/attested-nonattested.md")"
 order="$(bash "$ex" digest "$fix/attested-reordered.md")"
 [ "$base" = "$order" ] && echo "ok widen-fixed-order" || { echo "FAIL section reorder changed digest"; fail=$((fail+1)); }
 if bash "$ex" digest "$fix/attested-dup-heading.md" >/dev/null 2>&1; then echo "FAIL dup heading did not BLOCK"; fail=$((fail+1)); else echo "ok dup-heading-blocks"; fi
+# regression: literal string in body must NOT false-trigger dup-block (AC-10 fix)
+dup_str_h="$(bash "$ex" digest "$fix/attested-body-with-dup-string.md" 2>/dev/null)"
+[ -n "$dup_str_h" ] && [ "${#dup_str_h}" -eq 64 ] && echo "ok dup-string-in-body-no-block" || { echo "FAIL dup string in body false-triggered block"; fail=$((fail+1)); }
 nv="$(bash "$ex" normalizer-version)"   # NO spec arg
 [ "$nv" = "1" ] && echo "ok normalizer-version" || { echo "FAIL normalizer-version: [$nv]"; fail=$((fail+1)); }
 # cross-tool determinism (AC-7): verify the two tools agree on the SAME input directly
