@@ -36,4 +36,25 @@ rr="$(bash "$ex" raw-reqs "$fix/req-dup-id.md")"
 [ "$(printf '%s\n' "$rr" | sort | uniq -d | grep -c .)" -ge 1 ] && echo "ok raw-reqs-nondedup" || { echo "FAIL raw-reqs deduped"; fail=$((fail+1)); }
 tr="$(bash "$ex" traces "$fix/req-happy.md")"
 printf '%s\n' "$tr" | grep -qE '^REQ-[0-9]+ US-[0-9]+$' && echo "ok traces-pairs" || { echo "FAIL traces shape: [$tr]"; fail=$((fail+1)); }
+# --- Task 2: attested-surface widening ---
+base="$(bash "$ex" digest "$fix/attested-base.md")"
+for variant in us-edit us-add us-remove foundation-intention foundation-aim foundation-oos ac-edit; do
+  v="$(bash "$ex" digest "$fix/attested-$variant.md")"
+  [ "$base" != "$v" ] && echo "ok widen-$variant" || { echo "FAIL $variant did not change digest"; fail=$((fail+1)); }
+done
+non="$(bash "$ex" digest "$fix/attested-nonattested.md")"
+[ "$base" = "$non" ] && echo "ok widen-nonattested-invariant" || { echo "FAIL non-attested edit changed digest"; fail=$((fail+1)); }
+order="$(bash "$ex" digest "$fix/attested-reordered.md")"
+[ "$base" = "$order" ] && echo "ok widen-fixed-order" || { echo "FAIL section reorder changed digest"; fail=$((fail+1)); }
+if bash "$ex" digest "$fix/attested-dup-heading.md" >/dev/null 2>&1; then echo "FAIL dup heading did not BLOCK"; fail=$((fail+1)); else echo "ok dup-heading-blocks"; fi
+nv="$(bash "$ex" normalizer-version)"   # NO spec arg
+[ "$nv" = "1" ] && echo "ok normalizer-version" || { echo "FAIL normalizer-version: [$nv]"; fail=$((fail+1)); }
+# cross-tool determinism (AC-7): verify the two tools agree on the SAME input directly
+# (SHA-256 is SHA-256). Tool-level equivalence is the honest claim; do NOT try to force
+# digest()'s branch via a PATH shim (command -v still finds a present-but-failing shasum).
+if command -v shasum >/dev/null 2>&1 && command -v sha256sum >/dev/null 2>&1; then
+  h1="$(printf 'attested-body' | shasum -a 256 | awk '{print $1}')"
+  h2="$(printf 'attested-body' | sha256sum | awk '{print $1}')"
+  [ "$h1" = "$h2" ] && echo "ok cross-tool-digest" || { echo "FAIL shasum vs sha256sum differ"; fail=$((fail+1)); }
+else echo "ok cross-tool-digest (one tool absent — n/a on this host)"; fi
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail"; exit 1; fi
