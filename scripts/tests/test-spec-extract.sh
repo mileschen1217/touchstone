@@ -70,4 +70,12 @@ if bash "$ex" digest "$fix/attested-dup-trailing-space-heading.md" >/dev/null 2>
 if bash "$ex" digest "$fix/attested-dup-foundation.md" >/dev/null 2>&1; then echo "FAIL dup Foundation heading did not BLOCK"; fail=$((fail+1)); else echo "ok dup-foundation-blocks"; fi
 # duplicate Acceptance Criteria heading must block
 if bash "$ex" digest "$fix/attested-dup-ac.md" >/dev/null 2>&1; then echo "FAIL dup Acceptance Criteria heading did not BLOCK"; fail=$((fail+1)); else echo "ok dup-ac-blocks"; fi
+# --- Task 4: golden edge-case + boundary-agreement (AC-6) ---
+for sub in stories raw-stories reqs raw-reqs traces digest; do
+  got="$(bash "$ex" "$sub" "$fix/extract-edges.md")"; want="$(cat "$fix/extract-edges.$sub.expected")"
+  [ "$got" = "$want" ] && echo "ok golden-$sub" || { echo "FAIL golden-$sub drift"; fail=$((fail+1)); }
+done
+bash "$ex" stories "$fix/extract-edges.md" | grep -q 'US-99' && { echo "FAIL fenced US-99 parsed"; fail=$((fail+1)); } || echo "ok fenced-us-not-parsed"
+# boundary agreement: the floor checker passes this well-formed requirement-bearing edge spec
+if bash "$here/../check-spec-floor.sh" "$fix/extract-edges.md" >/dev/null 2>&1; then echo "ok floor-boundary-agreement"; else echo "FAIL floor disagrees on edge boundary"; fail=$((fail+1)); fi
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail"; exit 1; fi

@@ -70,8 +70,9 @@ NORMALIZER_VERSION=1
 attested_section() {
   awk -v name="$1" '
     function ishdr(l)  { return l ~ ("^## " name "[[:space:]]*$") }
+    /^```/ { if (inx) { fence=!fence; print "```"; next } gfence=!gfence; next }
+    gfence { next }
     ishdr($0) { if (seen){ exit 2 } seen=1; inx=1; print "## " name; next }
-    inx && /^```/ { fence=!fence; print "```"; next }
     inx && !fence && /^## / { inx=0 }
     inx { sub(/\r$/,""); sub(/[[:space:]]+$/,""); print }
   ' "$2"
