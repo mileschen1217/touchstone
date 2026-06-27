@@ -35,6 +35,7 @@ Run each requirement through the techniques below. For each gap or ambiguity, em
 | Workflow / lifecycle / mode | **State-transition** (0-switch baseline; 1-switch practical ceiling) | Every transition (0-sw) / every adjacent pair (1-sw); + invalid-transition ACs |
 | Data entity | **CRUD completeness** matrix | Every entity × operation cell ≥ 1 AC; + write-then-readback AC |
 | General BDD rule (none of the above) | **Nagy's 5** (see below) | No new Example emerges from all 5 passes AND no open red cards remain |
+| Changes a **shared artifact** (record / schema / message / format crossing an actor boundary) | **party sweep** — enumerate every party that touches the artifact (producer / consumer / migrator are common roles, NOT an exhaustive list) | every touching party has ≥ 1 AC; first-hit on one party (e.g. validator-only) is the failure — this is `ground-and-sweep` at the requirement level |
 
 Apply as many techniques as the requirement warrants. A numeric requirement with workflow implications needs both EP/BVA and state-transition passes.
 
@@ -51,18 +52,6 @@ For each requirement, run all five passes in order:
 5. **Different contexts, same outcome** — is the same outcome produced via a different path or context not yet represented? Each such path deserves its own AC or a question.
 
 **Stop condition:** no new green card (AC) and no new red card (question) emerged in a full pass of all 5 techniques.
-
----
-
-## Contract-artifact lifecycle — both-ends completeness
-
-The techniques above partition ONE requirement's input domain; they do NOT surface a **missing party**. When a requirement names a **shared artifact that crosses an actor boundary** — a record / message / schema / file / wire-format / config / API shape (e.g. "the record SHALL be schema v2", "the message SHALL carry field Y") — run a lifecycle trace and emit a question for every party no AC covers:
-
-- **Who PRODUCES it?** Is there an AC that the producer emits the new shape?
-- **Who READS / VALIDATES it?** Is there an AC that the consumer accepts/rejects it?
-- **Who MIGRATES old instances?** If the shape changed, is the legacy/upgrade path covered?
-
-A contract is symmetric: a one-ended requirement (validator-only OR producer-only) silently drops the other half, and every downstream consistency-review inherits the hole — they check coverage *within the stated scope*, never the completeness *of* the scope. This is the requirement-level application of ground-and-sweep: the true subject of "the artifact SHALL be X" is *every producer + consumer of X*, a superset of the delivery diff. (Origin: a v2-validator / v1-producer split shipped past all gates in Phase 3.1 and was caught only by a human's "is it wired end-to-end?" — the gates verified honesty within scope, not scope completeness.)
 
 ---
 
