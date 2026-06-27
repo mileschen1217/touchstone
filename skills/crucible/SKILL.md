@@ -30,7 +30,7 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 
 5. **`/touchstone:design-spec`** — chain tail. Authors the requirement → AC contract. Its Load-vocabulary / Foundation-elicitation phase elicits intention / aim / out-of-scope from context; US-N assignment and story→requirement trace are design-spec's responsibility, not crucible's.
 
-6. **Set `status: accepted-candidate`** on the spec frontmatter, then invoke `/touchstone:design-review <spec>` — the consolidated design-review gate (ADR-0026, union of design-soundness ∪ verification-honesty lenses). This is the 3→2 front-load: the gate runs pre-accept here, not separately after.
+6. **Set `status: accepted-candidate`** on the spec frontmatter, then invoke `/touchstone:design-review <spec>` — the consolidated design-review gate (the union of design-soundness ∪ verification-honesty lenses). This is the 3→2 front-load: the gate runs pre-accept here, not separately after.
 
 ## Standing-decision conflict
 

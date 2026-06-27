@@ -152,4 +152,4 @@ Additional report fields:
 2. The run date.
 3. The commit hash at run time: `git rev-parse HEAD` (anvil stamps this via a Bash call in-session — not hand-entered).
 
-No crypto-attestation (ADR-0009 over-spec guard) — these three marks suffice for human-in-the-loop close.
+No crypto-attestation (over-spec for a markdown plugin whose close has a human in the loop) — these three marks suffice.

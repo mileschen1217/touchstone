@@ -29,11 +29,9 @@ Out of scope — return "not in scope; this skill reviews specs / plans / ADRs o
 
 This skill reviews an **`accepted-candidate`** before crucible's accept (an already-`accepted` artifact stays valid for standalone re-review). crucible writes `status: accepted-candidate` on the spec, then invokes this gate; the terminal human-accept step in crucible promotes `accepted-candidate → accepted` only after a clean design-review (C+H = 0). A `draft` spec is not gated here (the pre-check skips it).
 
-## Relationship to /touchstone:design-spec (this is the gate; its architect critique is not)
+## Relationship to /touchstone:design-spec — this is the only design gate
 
-**design-spec's architect critique is not this gate — this is the C+H gate on the accepted-candidate artifact (rationale: ADR-0015; consolidated UNION: ADR-0026).**
-
-This skill is the consolidated design-review gate (3→2 front-load, ADR-0026): it reviews an **`accepted-candidate`** before crucible's terminal human-accept, dispatches the `reviewer` composite with the doc-review prompt applying BOTH lens-sets (design-soundness ∪ verification-honesty), and is C+H-tiered and Build-blocking. design-spec's architect critique was author-time and advisory — that gate was removed; this consolidated gate is the only design-review gate. Never treat "design-spec was run" as "this gate passed".
+`design-spec` is **pure authoring**: it emits a `Draft` and runs no review of its own (there is no separate author-time architect critique). This skill is the **single consolidated design-review gate** — it reviews an **`accepted-candidate`** before crucible's terminal human-accept, dispatches the `reviewer` composite with the doc-review prompt applying BOTH lens-sets (**design-soundness ∪ verification-honesty** — the union; passing one lens never discharges the other), and is C+H-tiered and Build-blocking. Never treat "design-spec was run" as "this gate passed".
 
 ## Procedure
 
@@ -112,7 +110,9 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 
 **For spec / plan / ADR:**
 
-> You are reviewing an authored design document (spec, plan, or ADR). Apply TWO lens-sets (UNION, not substitution — ADR-0026): **(i) design-soundness** — is the approach/architecture sound (structural validity, failure modes, edge cases); **(ii) verification-honesty** — Verification-Strategy declaration, live-bearing, coverage, `[unverified]` (items 1–7 below). Passing one lens **NEVER** discharges the other.
+> You are reviewing an authored design document (spec, plan, or ADR). Apply TWO lens-sets (UNION, not substitution): **(i) design-soundness** and **(ii) verification-honesty**. Passing one lens **NEVER** discharges the other.
+>
+> Check (design-soundness lens) — is the approach / architecture sound? Score against the architecture rubric (single home: `skills/keystone/references/arch-rubric.md`) — its forces: **interface economy / information-hiding** (minimize what a consumer must know to use or change a unit), **cohesion** (one reason-to-change per unit), **coupling** (minimize, keep acyclic, what must change together), **speculative cost / YAGNI** (no complexity for improbable futures) — plus structural validity, unhandled failure modes, and missed edge cases. Flag a design that violates a force or leaves a failure mode unhandled. (This is the architecture lens the former author-time critique carried; it now lives here as one half of the gate.)
 >
 > Check (verification-honesty lens):
 > 1. Problem / Scope / Non-goals are concrete and falsifiable
