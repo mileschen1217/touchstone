@@ -52,5 +52,35 @@ chk "A5 CONTEXT.md crucible entry no longer says crucible does-not-invoke design
 chk "A15 CONTEXT.md anvil entry no longer over-claims unqualified program-enforced independence" \
   '! grep -qE "adds only the deterministic sequencing \+ program-enforced independence" CONTEXT.md'
 
+# --- B1: check-stage-return.py validator, fail-closed ---
+sr=$(mktemp -d)
+printf '{"schema":"stage-return/v1","stage":"plan-review","status":"DONE","artifacts":["p.md"]}' > "$sr/done.json"
+chk "B1 well-formed DONE → DONE" \
+  '[ "$(python3 scripts/check-stage-return.py "$sr/done.json")" = "status=DONE" ]'
+printf '{"schema":"stage-return/v1","stage":"plan-review","status":"BLOCKED","reason":"C+H=2"}' > "$sr/blk.json"
+chk "B1 BLOCKED+reason → BLOCKED" \
+  '[ "$(python3 scripts/check-stage-return.py "$sr/blk.json")" = "status=BLOCKED" ]'
+printf '{"schema":"stage-return/v1","stage":"plan-review","status":"NEEDS_HUMAN"}' > "$sr/nh.json"
+chk "B1 NEEDS_HUMAN without reason → BLOCKED (fail closed)" \
+  '[ "$(python3 scripts/check-stage-return.py "$sr/nh.json")" = "status=BLOCKED" ]'
+printf '{"schema":"stage-return/v1","stage":"plan-review","status":"DONE","reason":"x","artifacts":["p.md"]}' > "$sr/baddone.json"
+chk "B1 DONE carrying a reason → BLOCKED (exclusion direction)" \
+  '[ "$(python3 scripts/check-stage-return.py "$sr/baddone.json")" = "status=BLOCKED" ]'
+printf '{"schema":"stage-return/v1","stage":"plan-review","status":"DONE"}' > "$sr/noart.json"
+chk "B1 DONE without artifacts → BLOCKED (DONE must produce an artifact)" \
+  '[ "$(python3 scripts/check-stage-return.py "$sr/noart.json")" = "status=BLOCKED" ]'
+printf '{"schema":"stage-return/v1","stage":"plan-review","status":"BLOCKED","reason":"r","artifacts":["x"]}' > "$sr/artblk.json"
+chk "B1 BLOCKED carrying artifacts → BLOCKED (reaches the artifacts rule with full fixture)" \
+  '[ "$(python3 scripts/check-stage-return.py "$sr/artblk.json")" = "status=BLOCKED" ]'
+printf '{"schema":"stage-return/v1","stage":"bogus","status":"DONE","artifacts":["p.md"]}' > "$sr/badstage.json"
+chk "B1 unknown stage → BLOCKED" \
+  '[ "$(python3 scripts/check-stage-return.py "$sr/badstage.json")" = "status=BLOCKED" ]'
+printf 'not json' > "$sr/bad.json"
+chk "B1 unparseable → BLOCKED" \
+  '[ "$(python3 scripts/check-stage-return.py "$sr/bad.json")" = "status=BLOCKED" ]'
+chk "B1 missing file → BLOCKED" \
+  '[ "$(python3 scripts/check-stage-return.py "$sr/nope.json")" = "status=BLOCKED" ]'
+rm -rf "$sr"
+
 echo "$fail"
 exit "$fail"
