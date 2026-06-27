@@ -82,5 +82,36 @@ chk "B1 missing file → BLOCKED" \
   '[ "$(python3 scripts/check-stage-return.py "$sr/nope.json")" = "status=BLOCKED" ]'
 rm -rf "$sr"
 
+# --- B2: normalize-stage-return.sh adapter ---
+td=$(mktemp -d)
+# review stage: clean (C+H=0, not degraded) → DONE
+printf '{"status":"ok","providers_expected":["cc","codex"],"providers_used":["cc","codex"]}' > "$td/review.result.json"
+printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
+chk "B2 clean review → DONE" \
+  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=DONE" ]'
+# C+H>=1 → BLOCKED
+printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=1 high=2 degraded=false\n' > "$td/review.md"
+chk "B2 C+H>=1 review → BLOCKED" \
+  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+# degraded=true → NEEDS_HUMAN. The reviewer composite computes degraded per provenance.md
+# Operation 3 and writes it into the sentinel (the adapter TRUSTS the sentinel — degraded is NEVER
+# stored in review.result.json). Make the fixture realistic: providers_used ⊊ providers_expected.
+printf '{"status":"ok","providers_expected":["cc","codex"],"providers_used":["cc"]}' > "$td/review.result.json"
+printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=true\n' > "$td/review.md"
+chk "B2 degraded review → NEEDS_HUMAN" \
+  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=NEEDS_HUMAN" ]'
+# missing sentinel → BLOCKED (fail closed)
+printf 'findings... no sentinel\n' > "$td/review.md"
+chk "B2 missing sentinel → BLOCKED" \
+  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+# entry-precondition: exit 0 → DONE
+printf 'PRE-CHECK OK\n' > "$td/precheck.out"; echo 0 > "$td/precheck.rc"
+chk "B2 precheck exit0 → DONE" \
+  '[ "$(bash scripts/normalize-stage-return.sh entry-precondition "$td")" = "status=DONE" ]'
+printf 'BLOCK: stale\n' > "$td/precheck.out"; echo 1 > "$td/precheck.rc"
+chk "B2 precheck nonzero → BLOCKED" \
+  '[ "$(bash scripts/normalize-stage-return.sh entry-precondition "$td")" = "status=BLOCKED" ]'
+rm -rf "$td"
+
 echo "$fail"
 exit "$fail"
