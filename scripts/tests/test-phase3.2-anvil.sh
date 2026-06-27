@@ -142,5 +142,10 @@ chk "B14 dogfood honest token degradation" \
 chk "B14 dogfood provenance floor (contract + date + commit hash)" \
   'grep -qiE "commit hash|rev-parse" skills/anvil/SKILL.md'
 
+# --- B5: anvil registered + suite green ---
+chk "B5 anvil skill dir present with SKILL.md" 'test -f skills/anvil/SKILL.md'
+# Registration check: skills are auto-discovered by directory (no manifest skill list —
+# the other skills aren't listed in plugin.json either; presence of the dir IS registration).
+
 echo "$fail"
 exit "$fail"
