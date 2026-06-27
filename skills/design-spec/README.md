@@ -1,7 +1,6 @@
 # design-spec — maintainer notes
 
-Orientation for maintainers. The executable procedure (Load vocabulary, Draft Mode, the
-architect critique, the Boundary) lives in `SKILL.md`.
+Orientation for maintainers. The executable procedure (Load vocabulary, Draft Mode) lives in `SKILL.md`.
 
 ## Workflow chain
 
@@ -19,8 +18,7 @@ Naturally chained with exploration (Topic 2 routing) on the input side and
   structural-commitment questions before drafting the spec.
 - ATDD chain (downstream): "ATDD — spec and test development" in global `CLAUDE.md`.
 - Plan generation (downstream): `/superpowers:writing-plans`.
-- design-review gate (downstream, distinct from the architect critique): `/touchstone:design-review`
-  — the distinction is load-bearing and stays in `SKILL.md`'s Boundary section.
+- design-review gate (downstream, consolidated): `/touchstone:design-review` — runs after crucible writes `accepted-candidate`.
 - ADR workflow: `${CLAUDE_PLUGIN_ROOT}/skills/keystone/adr-authoring.md`.
 
 ## Example

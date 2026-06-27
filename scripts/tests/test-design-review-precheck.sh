@@ -38,4 +38,14 @@ run "$tmp/dup.md" 1 "structural" block-dup-id-floor
 # Also verify it does NOT say "stale" or "challenge" (it's a floor failure, not freshness)
 _dup_out="$(bash "$pc" "$tmp/dup.md" 2>&1)" || true
 printf '%s' "$_dup_out" | grep -qiE "stale|challenge" && { echo "FAIL block-dup-id-floor: should not mention stale/challenge ($out)"; fail=$((fail+1)); } || echo "ok block-dup-id-floor-no-stale"
+# accepted-candidate IS gated (not skipped); draft still skipped.
+# macOS mktemp has no --suffix → use a temp DIR with named files (matches repo test convention).
+# Capture output before piping to avoid pipefail masking grep's own exit code.
+td=$(mktemp -d); trap 'rm -rf "$td"' EXIT
+acc="$td/accepted.md"; printf -- '---\nstatus: accepted-candidate\n---\n## Acceptance Criteria\n### Requirement: REQ-1 — x\ntraces-to: US-1\n#### AC-1 — x\n' > "$acc"
+_acc_out="$(bash "$pc" "$acc" 2>&1)" || true
+if printf '%s' "$_acc_out" | grep -qv "skipped: draft"; then echo "ok: accepted-candidate not draft-skipped"; else echo "FAIL: accepted-candidate skipped"; fail=$((fail+1)); fi
+drf="$td/draft.md"; printf -- '---\nstatus: draft\n---\n' > "$drf"
+_drf_out="$(bash "$pc" "$drf" 2>&1)" || true
+if printf '%s' "$_drf_out" | grep -q "skipped: draft"; then echo "ok: draft still skipped"; else echo "FAIL: draft not skipped"; fail=$((fail+1)); fi
 [ "$fail" -eq 0 ] && { echo ALL GREEN; exit 0; } || { echo "RED: $fail"; exit 1; }

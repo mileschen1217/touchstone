@@ -75,8 +75,7 @@ ar=$(sweep 'arch-review')
 for c in README.md CONTEXT.md agents/codex-adversarial-reviewer.md scripts/migration-audit.sh \
          skills/_shared/inject/bridge-content-gate.md skills/_shared/inject/standing-vs-transient-bridge.md \
          skills/cross-provider-architect/SKILL.md skills/cross-provider-reviewer/SKILL.md \
-         skills/code-review/README.md skills/design-spec/README.md \
-         skills/design-spec/references/architect-dispatch.md; do
+         skills/code-review/README.md skills/design-spec/README.md; do
   [ -f "$c" ] || { err "[archreview-repointed] consumer $c missing"; continue; }
   grep -qw keystone "$c" || err "[archreview-repointed] consumer $c lacks whole-word keystone"
 done

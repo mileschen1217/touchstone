@@ -7,7 +7,7 @@ description: Front-end contract orchestrator — chains brainstorming (condition
 
 Forges raw intent into a precise, accepted contract in ONE invocation. Chains existing skills; the human accepts once at the end (human accept); hands the accepted contract to the build phase. Auto-invokes neither the build-phase gate nor the build.
 
-**Applicability boundary:** crucible forges a contract by sharpening intent and then grounding it in the system. **Exploration is a phase of the chain (after grill), not a precondition** — grill sharpens the *what* (intent / vocabulary, against CONTEXT.md / ADRs); explore grounds it in the *how* (the system). Sharpen the what before grounding the how. The one exception is work where you cannot state the intent until you have looked — the router below front-loads exploration for that case. (Rationale: ADR-0023.)
+**Applicability boundary:** crucible forges a contract by sharpening intent and then grounding it in the system. **Exploration is a phase of the chain (after grill), not a precondition** — grill sharpens the *what* (intent / vocabulary, against CONTEXT.md / ADRs); explore grounds it in the *how* (the system). Sharpen the what before grounding the how. The one exception is work where you cannot state the intent until you have looked — the router below front-loads exploration for that case.
 
 ## Before the chain — which role does exploration play?
 
@@ -26,9 +26,11 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 
 3. **explore** — ground the now-sharpened intent in the system: read the code paths, existing patterns, and constraints the contract must respect, scoped by that intent. Light when the system is already understood; heavier for an unfamiliar surface. For problem-finding work (per the router above) the heavy discovery already ran before the chain, so this phase is confirmatory. Findings feed the requirement → AC contract; they do not author it.
 
-4. **`touchstone:keystone`** — conditional structural-fork step. Trigger: a not-yet-ratified architectural fork with ≥2 viable options whose choice constrains future deliveries. Keystone is a judgment-comparator — fork-driven, NOT a fixed question-bank (ADR-0018). It produces an ADR that design-spec inherits via its Related field. Skip-path: if direction is clear and no fork is open, proceed directly to design-spec (record "no fork" inline — do not silently proceed).
+4. **`touchstone:keystone`** — conditional structural-fork step. Trigger: a not-yet-ratified architectural fork with ≥2 viable options whose choice constrains future deliveries. Keystone is a judgment-comparator — fork-driven, NOT a fixed question-bank. It produces an ADR that design-spec inherits via its Related field. Skip-path: if direction is clear and no fork is open, proceed directly to design-spec (record "no fork" inline — do not silently proceed).
 
 5. **`/touchstone:design-spec`** — chain tail. Authors the requirement → AC contract. Its Load-vocabulary / Foundation-elicitation phase elicits intention / aim / out-of-scope from context; US-N assignment and story→requirement trace are design-spec's responsibility, not crucible's.
+
+6. **Set `status: accepted-candidate`** on the spec frontmatter, then invoke `/touchstone:design-review <spec>` — the consolidated design-review gate (the union of design-soundness ∪ verification-honesty lenses). This is the 3→2 front-load: the gate runs pre-accept here, not separately after.
 
 ## Standing-decision conflict
 
@@ -37,15 +39,14 @@ When a change's alignment touches a ratified ADR or standing decision, **surface
 - **True structural fork** (≥2 viable paths remain after the conflict): route to keystone (the structural-fork step) before design-spec.
 - **Decisively-resolved conflict** (the ratified decision still stands; no viable alternative remains): proceed noting the conflict inline (F-1 disposition). Do NOT silently proceed past a standing decision without naming it.
 
-## Mid-chain halt (design-spec architect critique)
+## Mid-chain halt (design-review Critical/High)
 
-- If the chained `/touchstone:design-spec` architect critique returns a **Critical or High** finding, **halt and surface** it to the human to clear (resolve or dismiss) before continuing.
-- Do NOT silently fold it into Open Questions; do NOT auto-advance.
-- After the human clears it, proceed to the terminal human-accept step. design-spec's architect critique was the chain's last design-spec step — crucible does not re-loop the chain; any post-clear edit is re-judged downstream.
+- If the consolidated `/touchstone:design-review` returns **Critical or High** findings, **halt and surface** them to the human to clear (resolve inline and re-invoke `/touchstone:design-review`). The spec stays `accepted-candidate` until a clean pass. No auto-loop.
+- Do NOT silently fold findings into Open Questions; do NOT auto-advance.
 
 ## Terminal step — human accept
 
-- Present the resulting design-spec draft (Status: Draft) for **human accept** — the single human gate of the whole spine.
+- After a clean design-review (Critical+High = 0), present the `accepted-candidate` spec for **terminal human-accept** — the single human gate of the whole spine. Human accept promotes `accepted-candidate → accepted`.
 - Name the **build phase** as the next stage (today: the existing Stage-5 build workflow; `/build` once it lands).
 - Do NOT auto-invoke the build-phase gate or the build. The front-end stops at the contract.
 
