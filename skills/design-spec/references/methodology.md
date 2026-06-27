@@ -35,6 +35,7 @@ Run each requirement through the techniques below. For each gap or ambiguity, em
 | Workflow / lifecycle / mode | **State-transition** (0-switch baseline; 1-switch practical ceiling) | Every transition (0-sw) / every adjacent pair (1-sw); + invalid-transition ACs |
 | Data entity | **CRUD completeness** matrix | Every entity × operation cell ≥ 1 AC; + write-then-readback AC |
 | General BDD rule (none of the above) | **Nagy's 5** (see below) | No new Example emerges from all 5 passes AND no open red cards remain |
+| Changes a **shared artifact** (record / schema / message / format crossing an actor boundary) | **party sweep** — enumerate every party that touches the artifact (producer / consumer / migrator are common roles, NOT an exhaustive list) | every touching party has ≥ 1 AC; first-hit on one party (e.g. validator-only) is the failure — this is `ground-and-sweep` at the requirement level |
 
 Apply as many techniques as the requirement warrants. A numeric requirement with workflow implications needs both EP/BVA and state-transition passes.
 
@@ -73,6 +74,6 @@ For each gap, emit a finding in this exact form (one per line, tied to its requi
 REQ-N: [NEEDS CLARIFICATION: <single concrete question>]
 ```
 
-The orchestrator (not you) will write these into the `challenge-result/v1` record and place the `[NEEDS CLARIFICATION: <q>]` markers inline in the spec for the human to resolve.
+The orchestrator (not you) will write these into the `challenge-result/v2` record and place the `[NEEDS CLARIFICATION: <q>]` markers inline in the spec for the human to resolve.
 
 Do not summarise. Do not approve. Do not certify completeness. Emit questions for gaps; silence for coverage already present.

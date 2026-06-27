@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Validate a challenge-result/v1 record against its spec. Fail closed."""
+"""Validate a challenge-result/v2 record against its spec. Fail closed."""
 import json, subprocess, sys, os, re
 
-ALLOWED_TOP = {"schema_version", "author_id", "challenger_id", "input_digest", "findings"}
+ALLOWED_TOP = {"schema_version", "normalizer_version", "author_id", "challenger_id", "input_digest", "findings"}
 ALLOWED_FINDING = {"id", "marker", "req"}
-MARKER_RE = re.compile(r'\[NEEDS CLARIFICATION:[^\]]*\]')  # used with fullmatch
+MARKER_RE = re.compile(r'\[NEEDS CLARIFICATION:[^\]]+\]')  # used with fullmatch
 
 def fail(msg):
     print(f"BLOCK: {msg}"); sys.exit(1)
@@ -29,20 +29,23 @@ def main():
     except Exception as e:
         fail(f"cannot parse challenge-result (fail closed): {e}")
     if not isinstance(data, dict): fail("record is not a JSON object")
+    sv = data.get("schema_version")
+    if type(sv) is not int: fail("schema_version must be an integer (type)")
+    if sv == 1: fail("schema_version 1 is legacy — re-challenge under v2")
+    if sv != 2: fail("schema_version must be 2")
     extra = set(data) - ALLOWED_TOP
     if extra: fail(f"extra top-level field(s): {sorted(extra)}")
     missing = ALLOWED_TOP - set(data)
     if missing: fail(f"missing required field(s): {sorted(missing)}")
-    # types before values (bool is a subclass of int → reject schema_version is True)
-    if not isinstance(data["schema_version"], int) or isinstance(data["schema_version"], bool):
-        fail("schema_version must be an integer (type)")
-    if data["schema_version"] != 1: fail("schema_version must be 1")
+    if type(data["normalizer_version"]) is not int: fail("normalizer_version must be an integer (type)")
     for k in ("author_id", "challenger_id", "input_digest"):
         if not isinstance(data[k], str): fail(f"{k} must be a string (type)")
     if not isinstance(data["findings"], list): fail("findings must be a list (type)")
     if not data["author_id"] or not data["author_id"].strip(): fail("empty author_id/challenger_id")
     if not data["challenger_id"] or not data["challenger_id"].strip(): fail("empty author_id/challenger_id")
     if data["author_id"] == data["challenger_id"]: fail("author_id == challenger_id (not independent)")
+    cur_nv = run_extract("normalizer-version", spec).strip()
+    if str(data["normalizer_version"]) != cur_nv: fail("normalizer_version mismatch — normalizer changed, re-challenge")
     rs = set(run_extract("reqs", spec).split())
     seen = set()
     for f in data["findings"]:
@@ -64,7 +67,7 @@ def main():
         if not cur: fail("could not compute spec digest (fail closed)")
         if data["input_digest"] != cur:
             fail("stale input_digest (spec changed after the challenge) — re-run the challenge-pass")
-    print("ok: challenge-result/v1 valid")
+    print("ok: challenge-result/v2 valid")
 
 if __name__ == "__main__":
     main()
