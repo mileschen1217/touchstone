@@ -134,5 +134,13 @@ chk "B15 anvil honest-ceiling bounded (no per-task over-claim)" \
 chk "B11 anvil escalates NEEDS_HUMAN/BLOCKED (halt-on-stuck)" \
   'grep -qE "NEEDS_HUMAN" "$A" && grep -qE "BLOCKED" "$A" && grep -qiE "halt|escalat|surface" "$A"'
 
+# --- B4: dogfood instrumentation ---
+chk "B14 anvil documents the dogfood report (cost + catch-attribution)" \
+  'grep -qiE "dogfood" skills/anvil/SKILL.md && grep -qiE "catch-attribution" skills/anvil/SKILL.md'
+chk "B14 dogfood honest token degradation" \
+  'grep -qE "\[unverified: token capture\]" skills/anvil/SKILL.md'
+chk "B14 dogfood provenance floor (contract + date + commit hash)" \
+  'grep -qiE "commit hash|rev-parse" skills/anvil/SKILL.md'
+
 echo "$fail"
 exit "$fail"

@@ -134,6 +134,22 @@ Per-task builder≠reviewer swap remains SDD's soft internal loop (Level-B defer
 
 ## Dogfood instrumentation
 
-*(Documented here per AC-14 — see § B4 section below for the full report shape.)*
+At run end, anvil emits a dogfood report. Fields:
 
-At run end, anvil emits a dogfood report (see `## Dogfood instrumentation` section below).
+| Column | Content |
+|---|---|
+| Stage / task | entry-precondition, plan-review, each SDD task (from `progress.md`), final-review |
+| Wall-clock | start→end time for each stage (anvil records timestamps before/after each sub-skill call) |
+| Tokens in / out | where capturable from the stage's result artifact; else `[unverified: token capture]` (wall-clock + model-mix retained — honest degradation, never a silent omission) |
+| Cost | tokens × resolved model price; else `[unverified: token capture]` |
+
+Additional report fields:
+- **catch-attribution** — a map `{finding_id → gate}` listing which gate (plan-review vs final-review) caught each finding, so per-gate ROI is observable.
+- **rework_rate** — task-review send-backs vs first-pass acceptances (from `progress.md`).
+
+**Provenance floor** (so a reviewer can authenticate this as a real run, not a fabricated table): the report names:
+1. The contract/spec path it ran against.
+2. The run date.
+3. The commit hash at run time: `git rev-parse HEAD` (anvil stamps this via a Bash call in-session — not hand-entered).
+
+No crypto-attestation (ADR-0009 over-spec guard) — these three marks suffice for human-in-the-loop close.
