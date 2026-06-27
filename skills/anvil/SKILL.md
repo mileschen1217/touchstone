@@ -1,0 +1,139 @@
+---
+name: anvil
+description: Back-end contract executor — sequences entry-precondition → writing-plans → plan-review → SDD → final cross-vendor review, consuming a typed stage-return envelope at each dispatched stage and stopping before ship.
+allowed-tools: [Bash, Read, Skill, Agent, Edit, Write]
+user-invocable: true
+kind: workflow
+---
+
+# /touchstone:anvil — Back-End Contract Executor
+
+**anvil** is a plain orchestrator skill (the crucible precedent — sequential sub-skill invocation, NOT a Workflow-tool JS script). It takes an accepted contract from crucible's front-end and runs the full back-end pipeline, stopping at a reviewed deliverable on a branch. The human governs ship (Stage 7: push / PR / merge / release) — anvil never crosses that boundary.
+
+**Invocation:** `/touchstone:anvil <spec-path>` where `<spec-path>` is an accepted spec (frontmatter `status: accepted`).
+
+---
+
+## Stage sequence (un-skippable — each gate's DONE is the next's precondition)
+
+```
+entry-precondition → writing-plans → [boundary check] → plan-review → SDD → final cross-vendor review → reviewed deliverable on branch
+```
+
+Each dispatched stage produces a `stage-return/v1` artifact via `normalize-stage-return.sh`. anvil proceeds only from the validator's `status=` — never from liveness.
+
+---
+
+## Stage 1 — Entry precondition (dispatched; structured-return required)
+
+Run the Phase-3.1 spine-integrity gate on the accepted contract. Capture native output FIRST, then normalize:
+
+```bash
+bash scripts/design-review-precheck.sh "$spec" > "$task_dir/precheck.out" 2>&1
+echo $? > "$task_dir/precheck.rc"
+bash scripts/normalize-stage-return.sh entry-precondition "$task_dir"
+```
+
+**Structured-return handling:**
+- `status=DONE` → proceed to Stage 2.
+- `status=BLOCKED` → surface the BLOCK line to the human; halt. Run **no downstream stage**.
+- `status=NEEDS_HUMAN` → surface the reason; halt for ack before any downstream stage.
+
+Stale digest, unmet structural floor, or script non-zero → adapter emits `BLOCKED` (fail-closed, AC-11).
+
+---
+
+## Stage 2 — writing-plans (in-session)
+
+Invoke `/superpowers:writing-plans` in-session (inherits session context; authoring independence is supplied by the downstream `plan-review` dispatch). Output: a plan file at a known path.
+
+### Boundary check (before dispatching plan-review)
+
+After `writing-plans` completes, verify:
+1. The plan file exists.
+2. The file is non-empty.
+3. The file contains ≥1 task (at least one `- [ ]` or numbered task line).
+
+If any check fails: halt and surface to the human. Do NOT dispatch plan-review on a degenerate plan.
+
+---
+
+## Stage 3 — plan-review (dispatched; structured-return required)
+
+Dispatch `touchstone:cross-provider-reviewer` on the plan. The dispatch prompt MUST ask the reviewer to end its output with the sentinel:
+
+```
+STAGE-REVIEW-SUMMARY: critical=<n> high=<n> degraded=<true|false>
+```
+
+Capture into `$task_dir/review.result.json` (the composite's native result) and `$task_dir/review.md` (free-text synthesis + sentinel), then normalize:
+
+```bash
+bash scripts/normalize-stage-return.sh plan-review "$task_dir"
+```
+
+**Structured-return handling:**
+- `status=DONE` → proceed to Stage 4.
+- `status=BLOCKED` → surface findings; halt. Human resolves; re-invoke anvil or this stage.
+- `status=NEEDS_HUMAN` → surface degraded/partial provenance reason; halt for explicit ack.
+
+---
+
+## Stage 4 — SDD (in-session)
+
+Invoke `/superpowers:subagent-driven-development` in-session. SDD is designed for continuous in-session execution (no routine human stops). After SDD's run, read `.superpowers/sdd/progress.md` for terminal state:
+
+- All tasks complete → proceed to Stage 5.
+- A task is BLOCKED → surface directly to the present human (SDD runs in-session; no envelope needed — REQ-7 scope is dispatched stages only). Resume after resolution.
+
+SDD per-task token/cost is `[unverified: token capture]` for v1 (SDD's ledger records commits, not model/token — observing it requires re-owning the loop, which is Level-B deferred).
+
+---
+
+## Stage 5 — Final cross-vendor review (dispatched; structured-return required)
+
+Dispatch `touchstone:cross-provider-reviewer` on the deliverable. Same capture-then-normalize two-step as Stage 3 (write `review.result.json` + `review.md` into `$task_dir`):
+
+```bash
+bash scripts/normalize-stage-return.sh final-review "$task_dir"
+```
+
+**Structured-return handling:**
+- `status=DONE` (C+H=0, not degraded) → proceed to terminal.
+- `status=BLOCKED` (C+H≥1) → surface findings; halt. Human resolves; do NOT present clean deliverable.
+- `status=NEEDS_HUMAN` (degraded provenance) → surface reason; halt for ack.
+
+---
+
+## Terminal — reviewed deliverable on a branch
+
+Present the branch name and the final-review result to the human for their final-accept.
+
+**anvil stops here.** It never push, open a PR, merge, or release on any code path — including BLOCKED and NEEDS_HUMAN halts. Ship stays the human-governed Stage 7.
+
+---
+
+## Invariants
+
+1. **Never promote AC to verified** — anvil does not mark any AC verified; `[unverified]` markers survive intact to Evidence Reckoning (AC-13).
+2. **Stop before ship** — no git push / PR creation / merge / release under any path (AC-12).
+3. **Fail-closed** — anything not a well-formed DONE is treated as not-done. anvil proceeds only from the validator's `status=`, never from stage liveness.
+4. **Escalate, never decide** — NEEDS_HUMAN and BLOCKED surface + halt; no silent auto-resolution of a human-gate.
+
+---
+
+## Honest ceiling (AC-15)
+
+anvil claims exactly:
+- **Deterministic stage sequencing** — the procedure specifies a fixed order; no stage may be skipped to reach a later one.
+- **Independent cross-vendor FINAL review** — the Stage-5 final review is cross-vendor staffed (CC builds, Codex reviews or vice-versa).
+
+Per-task builder≠reviewer swap remains SDD's soft internal loop (Level-B deferred — re-owning SDD's loop requires the Workflow-tool substrate anvil deliberately avoids). anvil does NOT claim: sweep-verification, per-task program-enforced independence, or anything stronger than the two buys above.
+
+---
+
+## Dogfood instrumentation
+
+*(Documented here per AC-14 — see § B4 section below for the full report shape.)*
+
+At run end, anvil emits a dogfood report (see `## Dogfood instrumentation` section below).

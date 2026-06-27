@@ -113,5 +113,26 @@ chk "B2 precheck nonzero → BLOCKED" \
   '[ "$(bash scripts/normalize-stage-return.sh entry-precondition "$td")" = "status=BLOCKED" ]'
 rm -rf "$td"
 
+# --- B3: anvil SKILL.md plain orchestrator ---
+A=skills/anvil/SKILL.md
+chk "B3 anvil SKILL.md exists, user-invocable" \
+  'test -f "$A" && grep -qE "user-invocable: true" "$A"'
+chk "B6 anvil is plain orchestrator, NOT Workflow-tool" \
+  'grep -qiE "plain orchestrator" "$A" && ! grep -qiE "Workflow-tool (JS )?script that (anvil|it) (is|runs)" "$A"'
+chk "B7 anvil documents the fixed stage sequence" \
+  'grep -qE "entry-precondition" "$A" && grep -qE "writing-plans" "$A" && grep -qE "plan-review" "$A" && grep -qiE "final.*review" "$A"'
+chk "B7 anvil runs the writing-plans boundary check" \
+  'grep -qiE "boundary check|non-empty|exists.*task" "$A"'
+chk "B11 anvil consumes the structured-return via the adapter+validator" \
+  'grep -qE "normalize-stage-return|stage-return" "$A"'
+chk "B12 anvil stops before ship (no push/PR/merge)" \
+  'grep -qiE "stops? (at|before).*(branch|ship)|never (push|open a PR|merge)" "$A"'
+chk "B13 anvil never promotes AC to verified" \
+  'grep -qiE "never (promote|mark).*(verified)|\[unverified\].*(survive|intact)" "$A"'
+chk "B15 anvil honest-ceiling bounded (no per-task over-claim)" \
+  'grep -qiE "honest ceiling" "$A" && ! grep -qiE "program-enforced per-task|hard gate" "$A"'
+chk "B11 anvil escalates NEEDS_HUMAN/BLOCKED (halt-on-stuck)" \
+  'grep -qE "NEEDS_HUMAN" "$A" && grep -qE "BLOCKED" "$A" && grep -qiE "halt|escalat|surface" "$A"'
+
 echo "$fail"
 exit "$fail"
