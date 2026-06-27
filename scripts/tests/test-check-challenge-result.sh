@@ -83,4 +83,14 @@ chk 1 nv-mismatch.json "mismatch" nv-value-mismatch
 # FIX-6: empty-question marker [NEEDS CLARIFICATION:] → BLOCK (marker must have non-empty question)
 write empty-marker.json '{"schema_version":2,"normalizer_version":'"$NV"',"author_id":"A","challenger_id":"B","input_digest":"x","findings":[{"id":"F-1","marker":"[NEEDS CLARIFICATION:]","req":"REQ-1"}]}'
 chk 1 empty-marker.json "marker" empty-marker-rejected
+# producer↔validator schema consistency (the gap that slipped Phase 3.1's first pass:
+# the validator was migrated to v2 but the design-spec PRODUCER template still wrote v1).
+# Guard that the record-writing skill template declares the SAME schema_version this
+# validator requires, and carries normalizer_version.
+prod="$here/../../skills/design-spec/references/draft-workflow.md"
+if [ -f "$prod" ]; then
+  prod_sv="$(grep -oE '"schema_version": ?[0-9]+' "$prod" | grep -oE '[0-9]+' | head -1)"
+  [ "$prod_sv" = "2" ] && echo "ok producer-schema-matches-validator" || { echo "FAIL design-spec producer writes schema_version '$prod_sv', validator requires 2"; fail=$((fail+1)); }
+  grep -q "normalizer_version" "$prod" && echo "ok producer-has-normalizer-version" || { echo "FAIL producer template missing normalizer_version"; fail=$((fail+1)); }
+else echo "ok producer-guard-skipped (template absent)"; fi
 [ "$fail" -eq 0 ] && { echo ALL GREEN; exit 0; } || { echo "RED: $fail"; exit 1; }

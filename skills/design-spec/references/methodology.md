@@ -73,6 +73,6 @@ For each gap, emit a finding in this exact form (one per line, tied to its requi
 REQ-N: [NEEDS CLARIFICATION: <single concrete question>]
 ```
 
-The orchestrator (not you) will write these into the `challenge-result/v1` record and place the `[NEEDS CLARIFICATION: <q>]` markers inline in the spec for the human to resolve.
+The orchestrator (not you) will write these into the `challenge-result/v2` record and place the `[NEEDS CLARIFICATION: <q>]` markers inline in the spec for the human to resolve.
 
 Do not summarise. Do not approve. Do not certify completeness. Emit questions for gaps; silence for coverage already present.
