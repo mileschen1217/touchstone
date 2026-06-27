@@ -112,6 +112,7 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 > 1. Problem / Scope / Non-goals are concrete and falsifiable
 > 2. Acceptance Criteria cover happy path, error paths, boundaries
 > 3. Interfaces / Contracts are specific (field names, types, error returns)
+> 3a. Contract-artifact lifecycle (both-ends). If the doc changes a shared artifact that crosses an actor boundary — a record / message / schema / file / wire-format / config / API shape — trace its full lifecycle and confirm EVERY party is covered: who PRODUCES the new shape, who READS/VALIDATES it, who MIGRATES old instances. A one-ended contract change (validator-only or producer-only) is a silent scope hole that AC-coverage-within-scope cannot catch. Surface any uncovered party as a finding.
 > 4. Error Handling rows map to scenarios
 > 5. Invariants are cross-cutting rules
 > 6. Risks / Open Questions are not hidden

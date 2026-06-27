@@ -54,6 +54,18 @@ For each requirement, run all five passes in order:
 
 ---
 
+## Contract-artifact lifecycle — both-ends completeness
+
+The techniques above partition ONE requirement's input domain; they do NOT surface a **missing party**. When a requirement names a **shared artifact that crosses an actor boundary** — a record / message / schema / file / wire-format / config / API shape (e.g. "the record SHALL be schema v2", "the message SHALL carry field Y") — run a lifecycle trace and emit a question for every party no AC covers:
+
+- **Who PRODUCES it?** Is there an AC that the producer emits the new shape?
+- **Who READS / VALIDATES it?** Is there an AC that the consumer accepts/rejects it?
+- **Who MIGRATES old instances?** If the shape changed, is the legacy/upgrade path covered?
+
+A contract is symmetric: a one-ended requirement (validator-only OR producer-only) silently drops the other half, and every downstream consistency-review inherits the hole — they check coverage *within the stated scope*, never the completeness *of* the scope. This is the requirement-level application of ground-and-sweep: the true subject of "the artifact SHALL be X" is *every producer + consumer of X*, a superset of the delivery diff. (Origin: a v2-validator / v1-producer split shipped past all gates in Phase 3.1 and was caught only by a human's "is it wired end-to-end?" — the gates verified honesty within scope, not scope completeness.)
+
+---
+
 ## Transition-A anti-redundancy detection
 
 When reviewing the SHALL text itself for rule-altitude (not reviewing ACs): apply these four tests to detect requirements that merely reword their parent story. Flag each failure as a `[NEEDS CLARIFICATION: <q>]` finding on the REQ-N.
