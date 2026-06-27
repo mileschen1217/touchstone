@@ -16,6 +16,8 @@ date: 2026-06-19
 Accepted. Decided during the `skill-ceiling` Phase-1 first-principles audit (2026-06-19),
 which surfaced the defect this ADR fixes.
 
+**Superseded by: ADR-0026** (Phase 3.2, 2026-06-28) — the consolidated design-review now carries BOTH lens-sets (design-soundness ∪ verification-honesty) and runs pre-accept. The core rule (critic's verdict does not discharge the gate's currency; substitution is banned) survives unchanged in ADR-0026's union constraint. The lifecycle framing (gate runs on the "final, human-accepted" artifact) is updated: the gate now runs on `accepted-candidate` (pre-accept), which is strictly safer.
+
 ## Triggered by
 
 `skill-ceiling` epic, Phase 1 — first-principles audit of the touchstone skill suite. The defect

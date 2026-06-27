@@ -39,5 +39,18 @@ chk "A4 crucible chain tail invokes design-review before accept" \
 chk "A16 crucible no longer halts on the design-spec architect critique" \
   '! grep -qiE "architect critique returns a Critical" skills/crucible/SKILL.md'
 
+# --- A5: new ADR supersedes 0015 (union != substitution) — located by GLOB, not a hard-coded number (AC-5) ---
+adr="$(ls docs/adr/ 2>/dev/null | grep -i "consolidated-design-review" | head -1)"
+chk "A5 new consolidated-design-review ADR exists and states union" \
+  '[ -n "$adr" ] && grep -qiE "union" "docs/adr/$adr"'
+chk "A5 new ADR distinguishes substitution-ban from union" \
+  '[ -n "$adr" ] && grep -qiE "substitution" "docs/adr/$adr"'
+chk "A5 ADR-0015 marked superseded" \
+  'grep -qiE "Superseded by" docs/adr/0015-critique-never-discharges-the-design-review-gate.md'
+chk "A5 CONTEXT.md crucible entry no longer says crucible does-not-invoke design-review" \
+  '! grep -qE "auto-invokes \*\*neither\*\* the design-review gate" CONTEXT.md'
+chk "A15 CONTEXT.md anvil entry no longer over-claims unqualified program-enforced independence" \
+  '! grep -qE "adds only the deterministic sequencing \+ program-enforced independence" CONTEXT.md'
+
 echo "$fail"
 exit "$fail"
