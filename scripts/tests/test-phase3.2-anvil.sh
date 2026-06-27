@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Phase 3.2 anvil + front-end seam wiring tests.
+# shellcheck disable=SC2016  # chk's 2nd arg is an eval string — single-quoting is intentional (deferred expansion)
 set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 1  # repo root
 fail=0
