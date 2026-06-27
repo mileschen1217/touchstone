@@ -17,6 +17,11 @@ A Claude Code plugin: skills + commands + agents under `.claude-plugin/`, `skill
 
 In-flight work (specs, plans, epics, draft ADRs) is **local-only** — see `CLAUDE.local.md`. Promote to the public surfaces above when an artifact is stable and externally relevant. `ROADMAP.md` is part of this local-only set — it is the machine-local epic tracker indexing `.touchstone/epics/`, gitignored, not a public committed surface (see `CLAUDE.local.md § Local Doc Routing`).
 
+## Skill-body content conventions
+
+- **State the rule, not the ADR.** A `SKILL.md` body states its behaviour/rule self-containedly — it does **not** cite ADR numbers (`ADR-NNNN`) inline. ADRs are the rationale *ledger*; their home is `docs/adr/` (the why), indexed from `CONTEXT.md` (the vocab/authority table). A reader of a skill should learn *what to do* without a lookup. (Where a rationale pointer genuinely helps, point at the **named concept** in `CONTEXT.md`, not the ADR number.) Legitimate ADR citations stay in: `CONTEXT.md` (the authority ledger), `docs/`, and test assertions that verify an ADR file exists.
+- **Cold-reviewer self-containment.** Any lens / doctrine a *cold-dispatched* reviewer must apply MUST be either defined inline in the dispatch prompt or load-and-injected from a `_shared/inject/` fragment — never named without a usable definition (the cold reviewer cannot see `CONTEXT.md`). A union/multi-lens review's lenses must be grounded to **equal depth** — one lens injected + another merely named is the defect that shipped the design-soundness gap (PR #27).
+
 ## Issue Tracking — GitHub
 
 Shared work moves through GitHub Issues, not committed `.md` files.

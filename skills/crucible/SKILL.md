@@ -7,7 +7,7 @@ description: Front-end contract orchestrator — chains brainstorming (condition
 
 Forges raw intent into a precise, accepted contract in ONE invocation. Chains existing skills; the human accepts once at the end (human accept); hands the accepted contract to the build phase. Auto-invokes neither the build-phase gate nor the build.
 
-**Applicability boundary:** crucible forges a contract by sharpening intent and then grounding it in the system. **Exploration is a phase of the chain (after grill), not a precondition** — grill sharpens the *what* (intent / vocabulary, against CONTEXT.md / ADRs); explore grounds it in the *how* (the system). Sharpen the what before grounding the how. The one exception is work where you cannot state the intent until you have looked — the router below front-loads exploration for that case. (Rationale: ADR-0023.)
+**Applicability boundary:** crucible forges a contract by sharpening intent and then grounding it in the system. **Exploration is a phase of the chain (after grill), not a precondition** — grill sharpens the *what* (intent / vocabulary, against CONTEXT.md / ADRs); explore grounds it in the *how* (the system). Sharpen the what before grounding the how. The one exception is work where you cannot state the intent until you have looked — the router below front-loads exploration for that case.
 
 ## Before the chain — which role does exploration play?
 
@@ -26,7 +26,7 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 
 3. **explore** — ground the now-sharpened intent in the system: read the code paths, existing patterns, and constraints the contract must respect, scoped by that intent. Light when the system is already understood; heavier for an unfamiliar surface. For problem-finding work (per the router above) the heavy discovery already ran before the chain, so this phase is confirmatory. Findings feed the requirement → AC contract; they do not author it.
 
-4. **`touchstone:keystone`** — conditional structural-fork step. Trigger: a not-yet-ratified architectural fork with ≥2 viable options whose choice constrains future deliveries. Keystone is a judgment-comparator — fork-driven, NOT a fixed question-bank (ADR-0018). It produces an ADR that design-spec inherits via its Related field. Skip-path: if direction is clear and no fork is open, proceed directly to design-spec (record "no fork" inline — do not silently proceed).
+4. **`touchstone:keystone`** — conditional structural-fork step. Trigger: a not-yet-ratified architectural fork with ≥2 viable options whose choice constrains future deliveries. Keystone is a judgment-comparator — fork-driven, NOT a fixed question-bank. It produces an ADR that design-spec inherits via its Related field. Skip-path: if direction is clear and no fork is open, proceed directly to design-spec (record "no fork" inline — do not silently proceed).
 
 5. **`/touchstone:design-spec`** — chain tail. Authors the requirement → AC contract. Its Load-vocabulary / Foundation-elicitation phase elicits intention / aim / out-of-scope from context; US-N assignment and story→requirement trace are design-spec's responsibility, not crucible's.
 
