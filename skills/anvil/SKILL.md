@@ -39,7 +39,7 @@ bash scripts/normalize-stage-return.sh entry-precondition "$task_dir"
 - `status=BLOCKED` → surface the BLOCK line to the human; halt. Run **no downstream stage**.
 - `status=NEEDS_HUMAN` → surface the reason; halt for ack before any downstream stage.
 
-Stale digest, unmet structural floor, or script non-zero → adapter emits `BLOCKED` (fail-closed, AC-11).
+Stale digest, unmet structural floor, or script non-zero → adapter emits `BLOCKED` (fail-closed).
 
 ---
 
@@ -115,14 +115,14 @@ Present the branch name and the final-review result to the human for their final
 
 ## Invariants
 
-1. **Never promote AC to verified** — anvil does not mark any AC verified; `[unverified]` markers survive intact to Evidence Reckoning (AC-13).
-2. **Stop before ship** — no git push / PR creation / merge / release under any path (AC-12).
+1. **Never promote AC to verified** — anvil does not mark any AC verified; `[unverified]` markers survive intact to Evidence Reckoning.
+2. **Stop before ship** — no git push / PR creation / merge / release under any path.
 3. **Fail-closed** — anything not a well-formed DONE is treated as not-done. anvil proceeds only from the validator's `status=`, never from stage liveness.
 4. **Escalate, never decide** — NEEDS_HUMAN and BLOCKED surface + halt; no silent auto-resolution of a human-gate.
 
 ---
 
-## Honest ceiling (AC-15)
+## Honest ceiling
 
 anvil claims exactly:
 - **Deterministic stage sequencing** — the procedure specifies a fixed order; no stage may be skipped to reach a later one.

@@ -14,7 +14,7 @@ chk "A1 no architect dispatch left under design-spec/ tree (excluding tests fixt
   '! grep -rqiE "cross-provider-architect" skills/design-spec/SKILL.md skills/design-spec/references/ skills/design-spec/README.md skills/design-spec/template.md'
 chk "A1 quick/with-vendor critique modifiers gone from SKILL.md" \
   '! grep -qE "design-spec <feature-name> (quick|with (codex|cc))" skills/design-spec/SKILL.md'
-chk "A1 no dangling link to architect-dispatch.md (inbound links removed, AC-1)" \
+chk "A1 no dangling link to architect-dispatch.md (inbound links removed)" \
   '! grep -rqE "architect-dispatch\.md" skills/design-spec/SKILL.md skills/design-spec/references/ skills/design-spec/README.md skills/design-spec/template.md'
 
 # --- A2: design-review UNION rubric + lifecycle + sentinel ---
@@ -39,8 +39,9 @@ chk "A4 crucible chain tail invokes design-review before accept" \
 chk "A16 crucible no longer halts on the design-spec architect critique" \
   '! grep -qiE "architect critique returns a Critical" skills/crucible/SKILL.md'
 
-# --- A5: new ADR supersedes 0015 (union != substitution) — located by GLOB, not a hard-coded number (AC-5) ---
-adr="$(ls docs/adr/ 2>/dev/null | grep -i "consolidated-design-review" | head -1)"
+# --- A5: new ADR supersedes 0015 (union != substitution) — located by GLOB, not a hard-coded number ---
+# shellcheck disable=SC2034
+adr="$(find docs/adr/ -name '*consolidated-design-review*' -maxdepth 1 2>/dev/null | head -1 | xargs basename 2>/dev/null || true)"
 chk "A5 new consolidated-design-review ADR exists and states union" \
   '[ -n "$adr" ] && grep -qiE "union" "docs/adr/$adr"'
 chk "A5 new ADR distinguishes substitution-ban from union" \
@@ -111,9 +112,22 @@ chk "B2 precheck exit0 → DONE" \
 printf 'BLOCK: stale\n' > "$td/precheck.out"; echo 1 > "$td/precheck.rc"
 chk "B2 precheck nonzero → BLOCKED" \
   '[ "$(bash scripts/normalize-stage-return.sh entry-precondition "$td")" = "status=BLOCKED" ]'
+# fail-closed guards (FIX 1): missing review.result.json, unknown status, duplicate sentinel
+rm -f "$td/review.result.json"
+printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
+chk "B2 missing review.result.json → BLOCKED" \
+  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+printf '{"status":"bogus_status"}' > "$td/review.result.json"
+chk "B2 status not in enum → BLOCKED" \
+  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+printf '{"status":"ok"}' > "$td/review.result.json"
+printf 'STAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\nextra\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
+chk "B2 duplicate sentinel → BLOCKED" \
+  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
 rm -rf "$td"
 
 # --- B3: anvil SKILL.md plain orchestrator ---
+# shellcheck disable=SC2034
 A=skills/anvil/SKILL.md
 chk "B3 anvil SKILL.md exists, user-invocable" \
   'test -f "$A" && grep -qE "user-invocable: true" "$A"'
@@ -135,11 +149,14 @@ chk "B11 anvil escalates NEEDS_HUMAN/BLOCKED (halt-on-stuck)" \
   'grep -qE "NEEDS_HUMAN" "$A" && grep -qE "BLOCKED" "$A" && grep -qiE "halt|escalat|surface" "$A"'
 
 # --- B4: dogfood instrumentation ---
-chk "B14 anvil documents the dogfood report (cost + catch-attribution)" \
+# NOTE: these tests witness that anvil DOCUMENTS the dogfood report shape; they do NOT verify
+# a real anvil run produced the artifact. AC-14 live behaviour is [unverified] pending the first
+# end-to-end anvil dogfood run.
+chk "B14 anvil documents the dogfood report shape (cost + catch-attribution fields specified)" \
   'grep -qiE "dogfood" skills/anvil/SKILL.md && grep -qiE "catch-attribution" skills/anvil/SKILL.md'
-chk "B14 dogfood honest token degradation" \
+chk "B14 anvil documents honest token degradation annotation" \
   'grep -qE "\[unverified: token capture\]" skills/anvil/SKILL.md'
-chk "B14 dogfood provenance floor (contract + date + commit hash)" \
+chk "B14 anvil documents provenance floor fields (contract + date + commit hash)" \
   'grep -qiE "commit hash|rev-parse" skills/anvil/SKILL.md'
 
 # --- B5: anvil registered + suite green ---

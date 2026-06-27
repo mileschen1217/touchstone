@@ -20,11 +20,21 @@ case "$stage" in
     fi ;;
   plan-review|final-review)
     rj="$td/review.result.json"; rm="$td/review.md"
-    sline="$(grep -oE 'STAGE-REVIEW-SUMMARY: critical=[0-9]+ high=[0-9]+ degraded=(true|false)' "$rm" 2>/dev/null | tail -1)"
+    # Guard 1: review.result.json must exist
+    if [ ! -f "$rj" ]; then
+      emit "{\"schema\":\"stage-return/v1\",\"stage\":\"$stage\",\"status\":\"BLOCKED\",\"reason\":\"review.result.json missing\"}"; exit 0
+    fi
+    # Guard 2: status must be one of {ok, partial, failed}
     rstatus="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("status",""))' "$rj" 2>/dev/null || echo "")"
-    if [ -z "$sline" ]; then
-      emit "{\"schema\":\"stage-return/v1\",\"stage\":\"$stage\",\"status\":\"BLOCKED\",\"reason\":\"missing or malformed STAGE-REVIEW-SUMMARY sentinel\"}"
-    elif [ "$rstatus" = "failed" ]; then
+    case "$rstatus" in ok|partial|failed) ;; *)
+      emit "{\"schema\":\"stage-return/v1\",\"stage\":\"$stage\",\"status\":\"BLOCKED\",\"reason\":\"unknown review status\"}"; exit 0 ;; esac
+    # Guard 3: exactly one STAGE-REVIEW-SUMMARY sentinel line required
+    sentinel_count="$(grep -cE 'STAGE-REVIEW-SUMMARY: critical=[0-9]+ high=[0-9]+ degraded=(true|false)' "$rm" 2>/dev/null || echo 0)"
+    if [ "$sentinel_count" != "1" ]; then
+      emit "{\"schema\":\"stage-return/v1\",\"stage\":\"$stage\",\"status\":\"BLOCKED\",\"reason\":\"missing or duplicate sentinel\"}"; exit 0
+    fi
+    sline="$(grep -oE 'STAGE-REVIEW-SUMMARY: critical=[0-9]+ high=[0-9]+ degraded=(true|false)' "$rm")"
+    if [ "$rstatus" = "failed" ]; then
       emit "{\"schema\":\"stage-return/v1\",\"stage\":\"$stage\",\"status\":\"BLOCKED\",\"reason\":\"review status failed\"}"
     else
       crit="$(echo "$sline" | grep -oE 'critical=[0-9]+' | cut -d= -f2)"
