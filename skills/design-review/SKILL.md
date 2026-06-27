@@ -16,20 +16,24 @@ user-invocable: true
 
 Reviews captured design artifacts before Build. The Stage 0 gate of the Review Gate.
 
-## When to Invoke
+## Input scope
 
 Required when any of:
-- A spec is authored by `/touchstone:design-spec` and ready for review
+- A spec is at `status: accepted-candidate` (crucible pre-accept path) or `status: accepted` (standalone re-review)
 - A plan is authored by `/superpowers:writing-plans` and ready for review
 - An ADR is authored and introduces a new contract
 Out of scope — return "not in scope; this skill reviews specs / plans / ADRs only" and exit:
 - Anything that is not a contract-bearing design document (spec / plan / ADR) (e.g. a research note)
 
+## When to Invoke (lifecycle)
+
+This skill reviews an **`accepted-candidate`** before crucible's accept (an already-`accepted` artifact stays valid for standalone re-review). crucible writes `status: accepted-candidate` on the spec, then invokes this gate; the terminal human-accept step in crucible promotes `accepted-candidate → accepted` only after a clean design-review (C+H = 0). A `draft` spec is not gated here (the pre-check skips it).
+
 ## Relationship to /touchstone:design-spec (this is the gate; its architect critique is not)
 
-**design-spec's architect critique is not this gate — this is the C+H Build-blocking gate on the human-accepted artifact (rationale: ADR-0015).**
+**design-spec's architect critique is not this gate — this is the C+H gate on the accepted-candidate artifact (rationale: ADR-0015; consolidated UNION: ADR-0026).**
 
-This skill is the Stage-0 design-review gate: it reviews the **final, human-accepted** artifact, dispatches the `reviewer` composite with the doc-review prompt (Problem/Scope/AC/Interfaces + Verification-Strategy / live-bearing declaration), and is C+H-tiered and Build-blocking. design-spec's architect critique is author-time and advisory — its verdict is not this gate's doc-review C+H currency. Never treat "design-spec was run" as "this gate passed".
+This skill is the consolidated design-review gate (3→2 front-load, ADR-0026): it reviews an **`accepted-candidate`** before crucible's terminal human-accept, dispatches the `reviewer` composite with the doc-review prompt applying BOTH lens-sets (design-soundness ∪ verification-honesty), and is C+H-tiered and Build-blocking. design-spec's architect critique was author-time and advisory — that gate was removed; this consolidated gate is the only design-review gate. Never treat "design-spec was run" as "this gate passed".
 
 ## Procedure
 
@@ -108,7 +112,9 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 
 **For spec / plan / ADR:**
 
-> You are reviewing an authored design document (spec, plan, or ADR). Check:
+> You are reviewing an authored design document (spec, plan, or ADR). Apply TWO lens-sets (UNION, not substitution — ADR-0026): **(i) design-soundness** — is the approach/architecture sound (structural validity, failure modes, edge cases); **(ii) verification-honesty** — Verification-Strategy declaration, live-bearing, coverage, `[unverified]` (items 1–7 below). Passing one lens **NEVER** discharges the other.
+>
+> Check (verification-honesty lens):
 > 1. Problem / Scope / Non-goals are concrete and falsifiable
 > 2. Acceptance Criteria cover happy path, error paths, boundaries
 > 3. Interfaces / Contracts are specific (field names, types, error returns)
@@ -127,7 +133,13 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 >    judgment only — do NOT read test source or judge per-AC coverage (those belong to
 >    code-review batch / epic-close).
 >
+> Tag each finding `[lens: design-soundness]` or `[lens: verification-honesty]` so an auditor can count per-lens without re-running (a zero-finding lens must be visibly stated as zero, not hidden).
+>
 > Return findings sorted by severity (Critical, High, Medium, Low). Each finding cites the section and a concrete fix. End with verdict: approve | revise | block.
+>
+> End your output with the machine-readable sentinel line:
+> `STAGE-REVIEW-SUMMARY: critical=<n> high=<n> degraded=<true|false>`
+> (`degraded` computed per `cross-provider-reviewer/references/provenance.md` Operation 3 — anvil's `normalize-stage-return.sh` greps it.)
 
 ### Apply findings
 

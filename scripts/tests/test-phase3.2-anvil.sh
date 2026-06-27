@@ -17,5 +17,19 @@ chk "A1 quick/with-vendor critique modifiers gone from SKILL.md" \
 chk "A1 no dangling link to architect-dispatch.md (inbound links removed, AC-1)" \
   '! grep -rqE "architect-dispatch\.md" skills/design-spec/SKILL.md skills/design-spec/references/ skills/design-spec/README.md skills/design-spec/template.md'
 
+# --- A2: design-review UNION rubric + lifecycle + sentinel ---
+chk "A2 design-review names the design-soundness lens" \
+  'grep -qiE "design-soundness" skills/design-review/SKILL.md'
+chk "A2 design-review names the verification-honesty lens" \
+  'grep -qiE "verification-honesty" skills/design-review/SKILL.md'
+chk "A2 design-review requires a per-finding lens tag" \
+  'grep -qiE "lens tag|\[lens:" skills/design-review/SKILL.md'
+chk "A2 design-review dispatch asks for STAGE-REVIEW-SUMMARY sentinel" \
+  'grep -q "STAGE-REVIEW-SUMMARY" skills/design-review/SKILL.md'
+chk "A19 design-review now reviews accepted-candidate" \
+  'grep -qiE "accepted-candidate" skills/design-review/SKILL.md'
+chk "A19 old final-human-accepted-ONLY language removed" \
+  '! grep -qiE "reviews the \*\*final, human-accepted\*\* artifact" skills/design-review/SKILL.md'
+
 echo "$fail"
 exit "$fail"
