@@ -31,5 +31,13 @@ chk "A19 design-review now reviews accepted-candidate" \
 chk "A19 old final-human-accepted-ONLY language removed" \
   '! grep -qiE "reviews the \*\*final, human-accepted\*\* artifact" skills/design-review/SKILL.md'
 
+# --- A4: crucible writes accepted-candidate + design-review halt before accept ---
+chk "A4 crucible writes accepted-candidate status" \
+  'grep -qiE "accepted-candidate" skills/crucible/SKILL.md'
+chk "A4 crucible chain tail invokes design-review before accept" \
+  'grep -qiE "design-review" skills/crucible/SKILL.md'
+chk "A16 crucible no longer halts on the design-spec architect critique" \
+  '! grep -qiE "architect critique returns a Critical" skills/crucible/SKILL.md'
+
 echo "$fail"
 exit "$fail"

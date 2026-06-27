@@ -90,12 +90,11 @@ chk "crucible-then-accept"    "skills/crucible/SKILL.md" "terminal human-accept"
 chk "crucible-human-accept" "skills/crucible/SKILL.md" "human accept"
 chk "crucible-names-build"  "skills/crucible/SKILL.md" "build phase|/build"
 chk "crucible-no-auto"      "skills/crucible/SKILL.md" "NOT auto-invoke"
-# negative — body must NOT INVOKE the design-review gate NOR a writing-plans step.
-# (A naming-only mention of /build as "the next stage" is allowed per spec OQ-5 — a negative
-#  grep cannot distinguish naming from invoking; design-review + writing-plans tokens are absent
-#  entirely, which IS grep-checkable.)
+# Phase 3.2 A4: crucible NOW invokes /touchstone:design-review pre-accept (3→2 front-load, ADR-0026).
+# The former negative check is FLIPPED to positive: design-review token MUST be present.
+# writing-plans is still absent (crucible does NOT invoke the build phase's planning step).
 if grep -qE "/touchstone:design-review" "$root/skills/crucible/SKILL.md"; then
-  echo "FAIL crucible-no-design-review-token"; fail=$((fail+1)); else echo "ok crucible-no-design-review-token"; fi
+  echo "ok crucible-has-design-review-token"; else echo "FAIL crucible-has-design-review-token: /touchstone:design-review not found in crucible"; fail=$((fail+1)); fi
 if grep -qE "superpowers:writing-plans|/superpowers:writing-plans" "$root/skills/crucible/SKILL.md"; then
   echo "FAIL crucible-no-writing-plans-token"; fail=$((fail+1)); else echo "ok crucible-no-writing-plans-token"; fi
 # quality bar — <=200 lines

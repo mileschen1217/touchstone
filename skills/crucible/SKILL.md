@@ -30,6 +30,8 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 
 5. **`/touchstone:design-spec`** — chain tail. Authors the requirement → AC contract. Its Load-vocabulary / Foundation-elicitation phase elicits intention / aim / out-of-scope from context; US-N assignment and story→requirement trace are design-spec's responsibility, not crucible's.
 
+6. **Set `status: accepted-candidate`** on the spec frontmatter, then invoke `/touchstone:design-review <spec>` — the consolidated design-review gate (ADR-0026, union of design-soundness ∪ verification-honesty lenses). This is the 3→2 front-load: the gate runs pre-accept here, not separately after.
+
 ## Standing-decision conflict
 
 When a change's alignment touches a ratified ADR or standing decision, **surface the conflict for human resolution** — do not assume a clear slate where a prior decision can be silently overwritten. Two dispositions:
@@ -37,15 +39,14 @@ When a change's alignment touches a ratified ADR or standing decision, **surface
 - **True structural fork** (≥2 viable paths remain after the conflict): route to keystone (the structural-fork step) before design-spec.
 - **Decisively-resolved conflict** (the ratified decision still stands; no viable alternative remains): proceed noting the conflict inline (F-1 disposition). Do NOT silently proceed past a standing decision without naming it.
 
-## Mid-chain halt (design-spec architect critique)
+## Mid-chain halt (design-review Critical/High)
 
-- If the chained `/touchstone:design-spec` architect critique returns a **Critical or High** finding, **halt and surface** it to the human to clear (resolve or dismiss) before continuing.
-- Do NOT silently fold it into Open Questions; do NOT auto-advance.
-- After the human clears it, proceed to the terminal human-accept step. design-spec's architect critique was the chain's last design-spec step — crucible does not re-loop the chain; any post-clear edit is re-judged downstream.
+- If the consolidated `/touchstone:design-review` returns **Critical or High** findings, **halt and surface** them to the human to clear (resolve inline and re-invoke `/touchstone:design-review`). The spec stays `accepted-candidate` until a clean pass. No auto-loop.
+- Do NOT silently fold findings into Open Questions; do NOT auto-advance.
 
 ## Terminal step — human accept
 
-- Present the resulting design-spec draft (Status: Draft) for **human accept** — the single human gate of the whole spine.
+- After a clean design-review (Critical+High = 0), present the `accepted-candidate` spec for **terminal human-accept** — the single human gate of the whole spine. Human accept promotes `accepted-candidate → accepted`.
 - Name the **build phase** as the next stage (today: the existing Stage-5 build workflow; `/build` once it lands).
 - Do NOT auto-invoke the build-phase gate or the build. The front-end stops at the contract.
 
