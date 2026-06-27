@@ -8,8 +8,7 @@ description: |
   scope/AC errors before build; skip when it is contained enough that the contract
   costs more than it saves. Heuristic: the change spans multiple modules, or
   introduces a new contract (API / CLI / IPC / skill). On first invocation in a project, runs
-  setup to record the specs directory. By default dispatches the `architect` agent
-  for fresh-context review of the draft (`quick` mode skips it).
+  setup to record the specs directory.
 allowed-tools:
   - Bash
   - Read
@@ -23,9 +22,9 @@ allowed-tools:
 
 # touchstone:design-spec
 
-Produce an ATDD + TDD double-loop-aligned design spec for a feature, review it
-in fresh context via the `architect` agent, and write the final draft to the
-project's specs directory.
+Produce an ATDD + TDD double-loop-aligned design spec for a feature and write
+the Draft to the project's specs directory. The design-review gate runs after
+human accept (via crucible's chain tail).
 
 ## When to Invoke
 
@@ -50,33 +49,7 @@ full specs only.
 
 If `source-as-truth` is in `bundle.disciplines`, also read
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` and load the
-text into context for the envelope below.
-
-When dispatching to `touchstone:cross-provider-architect` (see Architect dispatch below), include in task envelope:
-
-```json
-{
-  "task": "<existing task>",
-  "system_prompt": "<existing system_prompt + loaded CONTEXT.md vocabulary verbatim>",
-  "discipline_mode": "source-as-truth",
-  "source_as_truth_vocab": "<loaded CONTEXT.md section text>",
-  "role": "architect"
-}
-```
-
-If `source-as-truth` is NOT adopted (yaml absent OR `adopted_disciplines` lacks it):
-  Skip the CONTEXT.md Read. When dispatching, set:
-
-```json
-{
-  "task": "<existing task>",
-  "system_prompt": "<existing>",
-  "discipline_mode": "none",
-  "role": "architect"
-}
-```
-
-(Omit `source_as_truth_vocab` field entirely; do not pass empty string.)
+text into context.
 
 ## Draft Mode
 
@@ -130,68 +103,30 @@ g. **Record** — write the confirmed foundation into the spec under
 
 ### Draft inputs & workflow
 
-Inputs to collect + the drafting workflow (template read, AC-sharpening from Foundation.aim, mandatory line-width policy, write → dispatch → rewrite steps) → [`references/draft-workflow.md`](references/draft-workflow.md).
-
-### Architect dispatch (default: Pattern A composite — fresh context)
-
-Dispatch-target resolution (`cc` / `codex` / default Pattern A composite) + the structural-review task envelope → [`references/architect-dispatch.md`](references/architect-dispatch.md).
+Inputs to collect + the drafting workflow (template read, AC-sharpening from Foundation.aim, mandatory line-width policy, write steps) → [`references/draft-workflow.md`](references/draft-workflow.md).
 
 ### Output
 
 - One file at `<specs_dir>/YYYY-MM-DD-<feature-name>-design.md`
-- Terminal summary with: spec path, architect-identified issues addressed,
-  architect-identified issues surfaced to Open Questions
-- Next step: `/superpowers:writing-plans` takes the spec as input for plan
-  generation
-
-## Boundary — the architect critique is NOT the design-review gate
-
-**The architect critique never discharges the `/touchstone:design-review` gate — different reviews, different criteria (rationale: ADR-0015).**
-
-The architect critique is an author-time adversarial pressure-test that improves the draft before human-accept. It dispatches the `architect` composite (structural validate + adversarial), is advisory (`approve|revise|block`), and is skippable (`quick`). Its verdict is not the gate's doc-review C+H currency — passing it leaves the gate's Verification-Strategy check unaudited.
-
-The human-accept step sits between them:
-
-```
-/touchstone:design-spec (architect critique)  →  Status: Draft  →  human reads/edits/accepts ★  →  /touchstone:design-review (gate)
-```
-
-Always run `/touchstone:design-review` on the **final, human-accepted** artifact; never treat "design-spec was run" as "the gate passed".
+- Terminal summary with: spec path, `Status: Draft`
+- Next step: crucible writes `accepted-candidate`, then `/touchstone:design-review` runs the consolidated gate before human accept
 
 ## Usage
 
 ```
 /touchstone:design-spec                          # interactive draft
 /touchstone:design-spec <feature-name>           # skip name prompt
-/touchstone:design-spec <feature-name> quick     # skip architect dispatch (draft only — fast iteration)
-/touchstone:design-spec <feature-name> with codex   # force Codex-only architect (no parallel CC)
-/touchstone:design-spec <feature-name> with cc      # force CC-only architect (no parallel Codex)
 ```
-
-The `quick` modifier skips the architect critique entirely. Useful for early sketches where structural review is premature; the user is expected to re-run without `quick` once the spec stabilizes. `Status: Draft` still applies, and the file is still written to `<specs_dir>/`.
-
-The `with <vendor>` modifier overrides the architect routing — the default Pattern A composite (CC `architect` + Codex `codex-adversarial-reviewer` in parallel) is replaced with a single-vendor dispatch. Recognized vendors: `codex`, `cc`. Unrecognized values fail loudly: "unknown vendor in `with` modifier — expected `codex` or `cc`".
-
-`quick` and `with <vendor>` are mutually exclusive — `quick` skips dispatch entirely, so vendor routing is moot. If both appear, `quick` wins and the `with` modifier is silently ignored.
-
-The architect critique runs by the same expected-value principle: run it when the
-draft is substantial enough to warrant the pressure-test; skip (`quick`) when
-structural review is premature for the sketch at hand. The user may override in
-plain language ("skip the architect" or "force codex only"). Note: `with <vendor>`
-routing is entangled with the cross-provider architecture and is not resolved here
-— see `references/architect-dispatch.md` for current routing logic.
 
 ## Status Lifecycle (intentionally minimal)
 
-Specs are written as `Status: Draft`. Transitions to `Accepted` / `Superseded`
-are manual edits when the user approves or replaces a spec. The skill does not
-manage lifecycle — when a spec is ready to implement, the human changes the
-status and hands off to `/superpowers:writing-plans`. The `Draft → human accept`
-step is the seam between this skill's architect critique and the `/touchstone:design-review`
-gate (see Boundary above) — keep it human-owned.
+Specs are written as `Status: Draft`. Crucible then writes `accepted-candidate`
+before the consolidated `/touchstone:design-review` gate runs. Transition to
+`accepted` is the human-governed terminal accept after a clean design-review.
+The skill does not manage lifecycle beyond producing the Draft.
 
 ## Related
 
 - Bundled template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md`.
-- design-review gate (downstream, distinct from the architect critique): `/touchstone:design-review` — see the Boundary section.
+- design-review gate (downstream, consolidated): `/touchstone:design-review` — runs after crucible writes `accepted-candidate`.
 - Workflow chain, other upstream/downstream skills, ADR workflow, example spec: `README.md`.

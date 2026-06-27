@@ -106,13 +106,6 @@ breaks that reflow and makes specs hard to read on modern monitors.
 
    After writing the record, place the surfaced `[NEEDS CLARIFICATION: <q>]` markers inline into the spec (on the relevant requirement or AC line) for the human to resolve before the design-review gate runs.
 
-   **Skip this step entirely if `quick = true`** — write the draft and stop after step 4.
-
 5a. **Internal coverage audit (remove-and-orphan).** After the challenge-pass, for each US-N in `## User Stories`: check whether EVERY requirement that `traces-to:` it ALSO traces to ≥1 other want. If yes — removing this US-N would orphan no requirement — surface it as a **demote-to-invariant candidate** for human judgment: "US-N traces-to coverage is fully covered by other wants — consider demoting to an Invariant." Do NOT auto-demote; this is a judgment call, not a deterministic action (the mechanizable floor — untraced/dangling US-N — is already caught by `check-spec-floor.sh`). If no candidate is found, emit: "Coverage audit: no demote-to-invariant candidates." Do not silently proceed without this message.
 
-6. **Dispatch** the architect (see below). **Skip this step entirely if `quick = true`.**
-7. **Apply** architect feedback. For high-signal feedback, integrate directly.
-   For judgment calls, add a `## Open Questions` entry noting the conflict and
-   continue.
-8. **Rewrite** the spec with architect integration. Keep `Status: Draft` until
-   the user explicitly accepts — the skill does not auto-promote status.
+The spec is complete at `Status: Draft`. The workflow ends here — crucible takes the Draft from this point (writes `accepted-candidate`, invokes design-review).
