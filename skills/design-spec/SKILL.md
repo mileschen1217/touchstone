@@ -23,8 +23,9 @@ allowed-tools:
 # touchstone:design-spec
 
 Produce an ATDD + TDD double-loop-aligned design spec for a feature and write
-the Draft to the project's specs directory. The design-review gate runs after
-human accept (via crucible's chain tail).
+the Draft to the project's specs directory. design-spec emits only Draft;
+crucible writes accepted-candidate, runs the consolidated design-review gate,
+then human accept promotes to accepted.
 
 ## When to Invoke
 

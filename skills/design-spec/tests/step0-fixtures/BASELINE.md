@@ -18,7 +18,9 @@ were used** (faithful replay is the gold standard; static is a dry-run).
 Subagents have no Agent tool and headless `claude --dangerously-skip-
 permissions` is blocked, so only the orchestrator can do faithful replay.
 
-## Results — 18/18 FAITHFUL GREEN (1 run each)
+## Results — 14/14 FAITHFUL GREEN (1 run each)
+
+Phase 3.2 removed bypass-quick/bypass-with-vendor (A1 — pure authoring, no modifier args).
 
 | Fixture | Faithful replay |
 |---|---|
@@ -34,17 +36,17 @@ permissions` is blocked, so only the orchestrator can do faithful replay.
 | scope-reframe | PASS (stop message, no spec written) |
 | legacy-epic | PASS (legacy note + opener, no inheritance prompt) |
 | same-session-reuse-spec | PASS (inheritance, not reuse) |
-| bypass-quick / with-vendor / unknown-arg / yaml-absent / yaml-no-intention-first | PASS (Foundation-elicitation phase reached, opener verbatim) |
+| bypass-unknown-arg / yaml-absent / yaml-no-intention-first | PASS (Foundation-elicitation phase reached, opener verbatim) |
 | bypass-invalid-vendor | PASS (loud error verbatim, no spec, Foundation-elicitation phase not reached) |
 
-## pass@5 (2026-05-23) — all 18 fixtures, orchestrator-driven, sonnet under-test + sonnet judge
+## pass@5 (2026-05-23) — all 14 fixtures, orchestrator-driven, sonnet under-test + sonnet judge
 
-Ran every fixture 5× (≥4/5 threshold per the AC). Result: **18/18 PASS**
-after three pass@5 fixes (below).
+Ran every fixture 5× (≥4/5 threshold per the AC). Result: **14/14 PASS**
+after three pass@5 fixes (below). (bypass-quick/with-vendor removed in Phase 3.2 A1.)
 
 | Fixture(s) | pass@5 |
 |---|---|
-| 6 bypass (quick/with-vendor/unknown-arg/yaml-absent/yaml-no-if/invalid-vendor) | 5/5 each |
+| 4 bypass (unknown-arg/yaml-absent/yaml-no-if/invalid-vendor) | 5/5 each |
 | same-session-reuse, same-session-reuse-spec, epic-to-spec-inherit, legacy-epic | 5/5 each |
 | happy-epic | 5/5 (L1 + L2 rubric via judge) |
 | happy-spec | 5/5 (L1 + L2 rubric) |
