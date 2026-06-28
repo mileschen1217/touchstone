@@ -189,8 +189,8 @@ else
   if [ -f "$VIO_SPEC" ]; then
     DUMMY_CONSUMER="$(mktemp)"
     echo "# dummy consumer — no fragment ref" > "$DUMMY_CONSUMER"
-    floor_out="$(bash "$FLOOR" "$VIO_SPEC" "$DUMMY_CONSUMER" 2>&1)" || true
-    floor_rc=$?
+    floor_rc=0
+    floor_out="$(bash "$FLOOR" "$VIO_SPEC" "$DUMMY_CONSUMER" 2>&1)" || floor_rc=$?
     rm -f "$DUMMY_CONSUMER"
     if [ "$floor_rc" -ne 0 ]; then
       ok "AC-7 floor: spec + unwired consumer → non-zero"
