@@ -237,6 +237,31 @@ else
     fail "AC-7 floor: descriptive-only fixture spec not found at $DESC_SPEC"
   fi
 
+  # (c3) REGRESSION (fail-open): a section with a normative SHALL must NOT be
+  # zeroed by a loose "no structural commitment" substring, nor by the exact
+  # additive sentinel sitting alongside a SHALL (contradictory → fail closed).
+  # The additive waiver counts only when no SHALL marker is present.
+  FOPEN_CONSUMER="$(mktemp)"; echo "# consumer, no fragment ref" > "$FOPEN_CONSUMER"
+  # loose substring + SHALL → must be nonzero
+  FOPEN1="$(mktemp)"
+  printf '## Architecture\n- Module M SHALL be deep.\n- (note: not a no structural commitment case)\n' > "$FOPEN1"
+  fo1_rc=0; bash "$FLOOR" "$FOPEN1" "$FOPEN_CONSUMER" >/dev/null 2>&1 || fo1_rc=$?
+  if [ "$fo1_rc" -ne 0 ]; then
+    ok "AC-7 floor regression: SHALL + loose 'no structural commitment' substring → nonzero (not fail-open)"
+  else
+    fail "AC-7 floor regression: SHALL + loose substring → exit 0 (FAIL-OPEN bug)"
+  fi
+  # exact sentinel + SHALL (contradictory) → must be nonzero (fail closed)
+  FOPEN2="$(mktemp)"
+  printf '## Architecture\n- Module M SHALL be deep.\n- no structural commitment — additive\n' > "$FOPEN2"
+  fo2_rc=0; bash "$FLOOR" "$FOPEN2" "$FOPEN_CONSUMER" >/dev/null 2>&1 || fo2_rc=$?
+  if [ "$fo2_rc" -ne 0 ]; then
+    ok "AC-7 floor regression: exact sentinel + SHALL (contradictory) → nonzero (fail closed)"
+  else
+    fail "AC-7 floor regression: exact sentinel + SHALL → exit 0 (fail-open)"
+  fi
+  rm -f "$FOPEN_CONSUMER" "$FOPEN1" "$FOPEN2"
+
   # (d) --dup-check: fails when fragment body is statically copied into another .md
   DUP_MD="$(mktemp).md"
   # Create a file that statically copies a key fragment body phrase

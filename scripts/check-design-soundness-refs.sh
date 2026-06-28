@@ -99,8 +99,17 @@ fi
 # Extract text from ## Architecture to next ## heading (or EOF)
 arch_section="$(awk '/^## Architecture/{found=1; next} found && /^## /{found=0} found{print}' "$spec")"
 
-if printf '%s' "$arch_section" | grep -qF "no structural commitment"; then
-  # Additive sentinel → zero commitments → vacuous pass (AC-14)
+# Additive sentinel counts as zero ONLY when the section carries the EXACT
+# documented sentinel AND no normative SHALL marker alongside it. AC-14 means
+# "zero NORMATIVE commitments": a section that asserts a SHALL commitment cannot
+# be zeroed by a waiver phrase. Fail closed — a contradictory section (exact
+# sentinel + a SHALL) is treated as commitment-bearing, so it still requires the
+# fragment reference. Matching the literal sentinel + detecting the SHALL marker
+# is commitment-PRESENCE detection (the floor's job); it never reads what a
+# commitment says (no honor judgment, no content parse — AC-7 honored).
+if printf '%s' "$arch_section" | grep -qF "no structural commitment — additive" \
+   && ! printf '%s' "$arch_section" | grep -qwE "SHALL"; then
+  # Explicit additive waiver, no commitment marker → zero commitments → vacuous pass (AC-14)
   exit 0
 fi
 
