@@ -92,6 +92,14 @@ SDD per-task token/cost is `[unverified: token capture]` for v1 (SDD's ledger re
 
 ## Stage 5 — Final cross-vendor review (dispatched; structured-return required)
 
+**Design-soundness feedback arm (FB).** Before dispatching the reviewer, read and inject
+verbatim `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`
+into the reviewer prompt (append to `system_prompt`). This is the **feedback arm** applied
+to the **whole deliverable** vs the **whole ## Architecture** section of the governing spec
+(subsystem scope, not per-diff). The cold reviewer applies the honor-judgment rule: enumerate
+the spec's SHALL commitments and judge each as honored, violated, or `[unverified: reason]`.
+Single home: load by path; never restate the body inline.
+
 Dispatch `touchstone:cross-provider-reviewer` on the deliverable. Same capture-then-normalize two-step as Stage 3 (write `review.result.json` + `review.md` into `$task_dir`):
 
 ```bash
