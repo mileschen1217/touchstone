@@ -184,4 +184,29 @@ zc="$(cc_subagent_cell r1 "$zev" "$win")"
 uev='{"agent_name":"reviewer","tokens":99,"cost_usd":0.99,"ts":150,"_unscoped":true}'
 if cc_subagent_cell r1 "$uev" "$win" >/dev/null 2>&1; then fail "H1 unscoped event leaked into run"; else ok "H1 unscoped event excluded from run total"; fi
 
+# --- AC-26 / AC-7 / AC-10 / AC-13: assembler emits per-run rows, no session cells, typed unverified ---
+acol="$TMP/asm"; mkdir -p "$acol"
+# run A: full codex + priced model
+printf '%s\n' '{"type":"turn.completed","usage":{"input_tokens":1000000,"output_tokens":0,"reasoning_output_tokens":0,"cached_input_tokens":0}}' > "$TMP/rawA.jsonl"
+"$WRITER" "$TMP/rawA.jsonl" "$acol" passA claude-opus-4-8 2026-06-29T10:00:00Z 2026-06-29T10:01:00Z >/dev/null
+# run B: meta references a missing codex artifact (simulate by deleting codex, keep meta)
+recB="$("$WRITER" "$TMP/rawA.jsonl" "$acol" passB claude-opus-4-8 2026-06-29T10:02:00Z 2026-06-29T10:03:00Z)"
+ridB="$(echo "$recB" | jq -r .run_id)"; rm -f "$acol/$ridB.codex.jsonl"
+rows="$(build_per_run_rows "$acol" "$PRICES" "" SES "")"
+# exactly 2 rows, none carrying a cc_main / costs cell
+[ "$(echo "$rows" | jq -s 'length')" = 2 ] && ok "AC-2 assembler one row per meta" || fail "row count"
+[ "$(echo "$rows" | jq -s 'map(has("cc_main") or has("costs_aggregate_usd")) | any')" = false ] \
+  && ok "AC-26 no per-run row carries a session-level cell" || fail "AC-26 leak"
+# run A codex_cost = 15.0; cc_subagent unverified (no OTel) ⇒ dispatch_total unverified
+rowA="$(echo "$rows" | jq -c 'select(.stage=="passA")')"
+[ "$(echo "$rowA" | jq -r .codex_cost_usd)" = "15.000000" ] && ok "AC-7 codex_cost computed" || fail "AC-7 got=$(echo "$rowA" | jq -r .codex_cost_usd)"
+# EXACT equality (not grep) so a corrupted cell (e.g. a jq error string containing the reason) fails
+[ "$(echo "$rowA" | jq -r .cc_subagent)" = "[unverified: subagent usage requires OTel]" ] && ok "AC-9 cc_subagent unverified no OTel" || fail "AC-9 cc_subagent=$(echo "$rowA" | jq -r .cc_subagent)"
+# dispatch_total must propagate the FAILING leg's EXACT closed-list reason (no OTel → cc_subagent leg)
+[ "$(echo "$rowA" | jq -r .dispatch_total_cost_usd)" = "[unverified: subagent usage requires OTel]" ] \
+  && ok "AC-7 dispatch_total carries failing leg's closed-list reason" || fail "AC-7 total reason: $(echo "$rowA" | jq -r .dispatch_total_cost_usd)"
+# run B codex cell unverified (artifact absent), row still present
+rowB="$(echo "$rows" | jq -c 'select(.stage=="passB")')"
+[ "$(echo "$rowB" | jq -r '.codex')" = "[unverified: codex artifact absent]" ] && ok "AC-10 missing codex → row kept, cell unverified" || fail "AC-10 codex=$(echo "$rowB" | jq -r .codex)"
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]

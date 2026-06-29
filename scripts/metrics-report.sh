@@ -234,6 +234,74 @@ otel_diagnostics() {
   done <<< "$events"
 }
 
+UNVERIFIED() { echo "[unverified: $1]"; }
+
+# build_per_run_rows <collection> <prices> <otel> <session_id> <scope_assert>
+# SINGLE pass (bash-3.2-safe, no associative array): windows + scoped events are built ONCE up
+# front, so each run's row — codex cell, cost, wallclock, cc_subagent, dispatch_total — is fully
+# assembled in one loop iteration. No row-stash between passes is needed.
+build_per_run_rows() {
+  local col="$1" prices="$2" otel="$3" sid="$4" assert="$5"
+  local metas; metas="$(resolve_runs "$col")" || return 1   # propagate duplicate hard error
+  local events="" otel_state="present"
+  if [ -n "$otel" ]; then
+    events="$(otel_scoped_events "$otel" "$sid" "$assert")"; [ $? -eq 2 ] && otel_state="absent"
+  else
+    otel_state="absent"
+  fi
+  # Build attribution windows once (DRY — otel_diagnostics reuses build_windows). A run with a
+  # malformed/absent bounding timestamp contributes NO window: the tool cannot bound it, so OTel
+  # events in its real range fall to UNATTRIBUTED rather than being mis-attributed — honest
+  # degradation; the run's wallclock cell is already [unverified] and its cc_subagent → NOEVENTS. (M6)
+  local wins; wins="$(build_windows "$col")"
+  local m rid stage model codex codex_cost wc cc_sub total cpath cabs usage cell badf
+  while IFS= read -r m; do
+    [ -z "$m" ] && continue
+    rid="$(jq -r '.run_id' "$m")"; stage="$(jq -r '.stage // ""' "$m")"; model="$(jq -r '.model // ""' "$m")"
+    # codex cell + codex_cost
+    cpath="$(jq -r '.codex_artifact_path // empty' "$m")"
+    if [ -z "$cpath" ] || [ "$cpath" = null ]; then
+      codex="$(UNVERIFIED 'codex artifact absent')"; codex_cost="$(UNVERIFIED 'codex artifact absent')"
+    else
+      cabs="$(dirname "$m")/$cpath"
+      if usage="$(codex_usage "$cabs" 2>/dev/null)"; then
+        codex="$usage"
+        if codex_cost="$(compute_codex_cost "$(echo "$usage" | jq -r .in)" "$(echo "$usage" | jq -r .cached_in)" "$(echo "$usage" | jq -r .out)" "$(echo "$usage" | jq -r .reasoning)" "$model" "$prices" 2>/dev/null)"; then :; else codex_cost="$(UNVERIFIED 'model not in price table')"; fi
+      else
+        codex="$(UNVERIFIED 'codex artifact absent')"; codex_cost="$(UNVERIFIED 'codex artifact absent')"
+      fi
+    fi
+    # wallclock from meta
+    if wc="$(meta_wallclock "$m" 2>/dev/null)"; then :; else
+      badf="$(meta_wallclock "$m" 2>&1 | sed 's/^MALFORMED://')"; wc="$(UNVERIFIED "malformed meta $badf")"
+    fi
+    # cc_subagent cell (windows already complete)
+    if [ "$otel_state" = absent ]; then
+      cc_sub="$(UNVERIFIED 'subagent usage requires OTel')"
+    else
+      if cell="$(cc_subagent_cell "$rid" "$events" "$wins" 2>/dev/null)"; then cc_sub="$cell"; else cc_sub="$(UNVERIFIED 'no OTel subagent events for run')"; fi
+    fi
+    # dispatch_total = codex_cost + cc_subagent.cost; [unverified] if EITHER leg is — propagate the
+    # FAILING leg's OWN closed-list reason verbatim (codex leg preferred if both). NEVER off-list. (C1)
+    if echo "$codex_cost" | grep -q '^\[unverified'; then
+      total="$codex_cost"
+    elif echo "$cc_sub" | grep -q '^\[unverified'; then
+      total="$cc_sub"
+    else
+      total="$(awk -v a="$codex_cost" -v b="$(echo "$cc_sub" | jq -r '.cost_usd')" 'BEGIN{printf "%.6f", a+b}')"
+    fi
+    # emit the per-run row; cells that are real JSON parse back, [unverified: …] strings stay strings
+    jq -nc --arg rid "$rid" --arg stage "$stage" --arg model "$model" \
+      --arg codex "$codex" --arg cc "$cc_sub" --arg wc "$wc" --arg cc_cost "$codex_cost" --arg total "$total" \
+      '{run_id:$rid, stage:$stage, model:$model,
+        codex:        ($codex | (fromjson? // .)),
+        cc_subagent:  ($cc    | (fromjson? // .)),
+        wallclock_s:  ($wc    | (fromjson? // .)),
+        codex_cost_usd: $cc_cost,
+        dispatch_total_cost_usd: $total }'
+  done <<< "$metas"
+}
+
 main() {
   echo "metrics-report: not yet implemented" >&2
   return 0
