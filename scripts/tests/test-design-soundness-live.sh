@@ -7,8 +7,11 @@
 # invoke a live reviewer. To produce transcripts, run this with --live and ensure
 # the touchstone plugin is loaded (touchstone:cross-provider-reviewer available).
 #
-# TRANSCRIPT PATH:
-#   scripts/tests/transcripts/cfdq/<fixture-name>/<commit>.md
+# TRANSCRIPT PATH (LOCAL evidence — gitignored, NOT committed):
+#   .touchstone/epics/code-facing-design-quality/evidence/<fixture-name>/<commit>.md
+#   A transcript is a one-time, commit-stamped witness consumed by Evidence Reckoning
+#   at epic-close (which runs locally, where this path resolves). It is not a golden
+#   test fixture — nothing here asserts against it — so it stays out of the committed tree.
 #   Each transcript must carry: dispatch-id, git-rev-parse HEAD, fixture arm.
 #
 # ARM ROUTING (per plan Task 6 dispatch spec):
@@ -33,7 +36,7 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FRAGMENT="skills/_shared/inject/design-soundness-honor-check.md"
-TRANSCRIPT_DIR="scripts/tests/transcripts/cfdq"
+TRANSCRIPT_DIR=".touchstone/epics/code-facing-design-quality/evidence"
 # FIXTURE_DIR: fixture root; referenced in dispatch parameters below (comments)
 FIXTURE_DIR="scripts/tests/fixtures/cfdq"
 export FIXTURE_DIR
@@ -75,7 +78,7 @@ fi
 #   fragment: inject verbatim from ${REPO_ROOT}/${FRAGMENT}
 #   spec: ${REPO_ROOT}/${FIXTURE_DIR}/honored/spec.md
 #   code: ${REPO_ROOT}/${FIXTURE_DIR}/honored/src/
-#   prompt: load skills/anvil/SKILL.md Stage-5 envelope; inject fragment verbatim
+#   prompt: load skills/anvil/SKILL.md final-review envelope; inject fragment verbatim
 #   transcript: ${REPO_ROOT}/${TRANSCRIPT_DIR}/honored/<git-rev>.md
 #   pass-crit: reviewer finds NO violated commitment (AC-4)
 
@@ -84,7 +87,7 @@ fi
 #   fragment: inject verbatim from ${REPO_ROOT}/${FRAGMENT}
 #   spec: ${REPO_ROOT}/${FIXTURE_DIR}/violated/spec.md
 #   code: ${REPO_ROOT}/${FIXTURE_DIR}/violated/src/
-#   prompt: load skills/anvil/SKILL.md Stage-5 envelope; inject fragment verbatim
+#   prompt: load skills/anvil/SKILL.md final-review envelope; inject fragment verbatim
 #   transcript: ${REPO_ROOT}/${TRANSCRIPT_DIR}/violated/<git-rev>.md
 #   pass-crit: reviewer names the violated commitment (AC-5)
 
@@ -93,7 +96,7 @@ fi
 #   fragment: inject verbatim from ${REPO_ROOT}/${FRAGMENT}
 #   spec: ${REPO_ROOT}/${FIXTURE_DIR}/multi/spec.md
 #   code: ${REPO_ROOT}/${FIXTURE_DIR}/multi/src/
-#   prompt: load skills/anvil/SKILL.md Stage-5 envelope; inject fragment verbatim
+#   prompt: load skills/anvil/SKILL.md final-review envelope; inject fragment verbatim
 #   transcript: ${REPO_ROOT}/${TRANSCRIPT_DIR}/multi/<git-rev>.md
 #   pass-crit: reviewer names the one violated commitment (RateLimiter) and
 #              confirms the honored one (CacheLayer) — one finding, not two (AC-12)
@@ -113,7 +116,7 @@ fi
 #   fragment: inject verbatim from ${REPO_ROOT}/${FRAGMENT}
 #   spec: ${REPO_ROOT}/${FIXTURE_DIR}/ambiguous/spec.md
 #   code: ${REPO_ROOT}/${FIXTURE_DIR}/ambiguous/src/
-#   prompt: load skills/anvil/SKILL.md Stage-5 envelope; inject fragment verbatim
+#   prompt: load skills/anvil/SKILL.md final-review envelope; inject fragment verbatim
 #   transcript: ${REPO_ROOT}/${TRANSCRIPT_DIR}/ambiguous/<git-rev>.md
 #   pass-crit: reviewer marks the commitment [unverified: reason] rather than
 #              asserting honored or violated (AC-8)

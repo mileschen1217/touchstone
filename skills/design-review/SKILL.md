@@ -120,14 +120,10 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 
 > You are reviewing an authored design document (spec, plan, or ADR). Apply TWO lens-sets (UNION, not substitution): **(i) design-soundness** and **(ii) verification-honesty**. Passing one lens **NEVER** discharges the other.
 >
-> **Design-soundness lens — feedforward arm (FF):** apply the design-soundness
-> honor-check definition loaded from
-> `skills/_shared/inject/design-soundness-honor-check.md` (injected verbatim above).
-> At this surface you apply the **feedforward duty** (spec document, not code): use
-> the depth-stakes decision rule to assess whether each component that has depth stakes
-> has normative SHALL commitments in `## Architecture`; flag a descriptive-only
-> `## Architecture` on a depth-stakes feature as a missing-commitment finding. Also
-> assess structural validity, unhandled failure modes, and missed edge cases.
+> **Design-soundness lens — feedforward arm (FF):** apply the feedforward duty from
+> the design-soundness fragment injected verbatim above (subject = the spec document,
+> not code). Additionally assess structural validity, unhandled failure modes, and
+> missed edge cases against the architecture rubric.
 >
 > Check (verification-honesty lens):
 > 1. Problem / Scope / Non-goals are concrete and falsifiable
