@@ -101,4 +101,19 @@ bad="$TMP/bad.meta.json"; printf '{"run_id":"Y","started_at":"2026-06-29T10:00:0
 w="$(meta_wallclock "$bad" 2>&1)"; rc=$?
 [ "$rc" != 0 ] && echo "$w" | grep -q ended_at && ok "AC-4 malformed names offending field" || fail "AC-4 got=$w rc=$rc"
 
+# --- AC-3: main-loop sums only isSidechain false/absent ---
+tr="$TMP/transcript.jsonl"
+printf '%s\n' \
+ '{"type":"assistant","timestamp":"2026-06-29T10:00:00Z","message":{"usage":{"input_tokens":100,"output_tokens":40}}}' \
+ '{"type":"assistant","isSidechain":true,"timestamp":"2026-06-29T10:00:30Z","message":{"usage":{"input_tokens":999,"output_tokens":999}}}' \
+ '{"type":"assistant","isSidechain":false,"timestamp":"2026-06-29T10:05:00Z","message":{"usage":{"input_tokens":20,"output_tokens":10}}}' > "$tr"
+ml="$(mainloop_usage "$tr")"
+[ "$(echo "$ml" | jq -r .in)" = 120 ] && [ "$(echo "$ml" | jq -r .out)" = 50 ] \
+  && ok "AC-3 main-loop excludes sidechain" || fail "AC-3 got=$ml"
+# --- AC-21: session wallclock; malformed → unverified marker ---
+sw="$(session_wallclock "$tr")"
+[ "$sw" = 300 ] && ok "AC-21 session wallclock = last-first" || fail "AC-21 got=$sw"
+badtr="$TMP/badtr.jsonl"; printf '%s\n' '{"type":"assistant","message":{"usage":{}}}' '{"type":"assistant","timestamp":"nope","message":{"usage":{}}}' > "$badtr"
+if session_wallclock "$badtr" >/dev/null 2>&1; then fail "AC-21 malformed should fail"; else ok "AC-21 malformed transcript ts → MALFORMED"; fi
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]

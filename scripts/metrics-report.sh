@@ -78,6 +78,26 @@ iso_to_epoch() {
   date -u -d "$t" +%s 2>/dev/null || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$t" +%s 2>/dev/null
 }
 
+# mainloop_usage <transcript> → {in,out} over assistant entries with isSidechain false/absent
+mainloop_usage() {
+  jq -s '[ .[] | select(.type=="assistant") | select((.isSidechain // false) == false) | .message.usage // {} ]
+    | { in:  (map(.input_tokens // 0)  | add // 0),
+        out: (map(.output_tokens // 0) | add // 0) }' "$1"
+}
+
+# session_wallclock <transcript> → integer seconds OR prints MALFORMED + return 1
+# AC-21 is literal: the FIRST and LAST transcript ENTRY must each carry a parseable
+# `timestamp`. A boundary entry lacking/malforming it → MALFORMED (honest degradation:
+# the tool will not claim a span it cannot bound). iso_to_epoch rejects "ABSENT"/"nope".
+session_wallclock() {
+  local f="$1" rawfirst rawlast fe le
+  rawfirst="$(jq -r '.timestamp // "ABSENT"' "$f" 2>/dev/null | head -1)"
+  rawlast="$(jq -r '.timestamp // "ABSENT"' "$f" 2>/dev/null | tail -1)"
+  fe="$(iso_to_epoch "$rawfirst")" || { echo MALFORMED; return 1; }
+  le="$(iso_to_epoch "$rawlast")" || { echo MALFORMED; return 1; }
+  echo $(( le - fe ))
+}
+
 main() {
   echo "metrics-report: not yet implemented" >&2
   return 0
