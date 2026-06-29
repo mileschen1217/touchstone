@@ -26,13 +26,13 @@ FRAGMENT_PATH="skills/_shared/inject/design-soundness-honor-check.md"
 #
 #   check-design-soundness-refs.sh --dup-check <file.md>
 #     → exit 1 if <file.md> appears to contain a STATIC BODY COPY of the fragment
-#       (detected by the presence of all five AC-15 sentinel phrases together in one file)
+#       (detected by the presence of all five sentinel phrases together in one file)
 #     → exit 0 if the file only has a load-by-path reference line (or no reference at all)
 #
-# AC-7 guarantee: this script checks reference-presence only. It does not parse commitment
+# Guarantee: this script checks reference-presence only. It does not parse commitment
 # text, does not score arch-rubric forces, and emits no honor verdict.
-# AC-14 guarantee: additive sentinel → exit 0 without requiring any consumer reference.
-# AC-13 guarantee: --dup-check detects static body copies (the AC-13 violation).
+# Guarantee: additive sentinel → exit 0 without requiring any consumer reference.
+# Guarantee: --dup-check detects static body copies (the single-home violation).
 
 set -uo pipefail
 
@@ -49,7 +49,7 @@ if [ "${1:-}" = "--dup-check" ]; then
     echo "ERROR: file not found: $target" >&2
     exit 2
   fi
-  # A static body copy is detected by all five AC-15 sentinel phrases present together.
+  # A static body copy is detected by all five sentinel phrases present together.
   # A load-by-path reference line only contains the path, not the body sentinels.
   hits=0
   for phrase in \
@@ -62,7 +62,7 @@ if [ "${1:-}" = "--dup-check" ]; then
     grep -qF "$phrase" "$target" 2>/dev/null && hits=$((hits+1))
   done
   if [ "$hits" -ge 5 ]; then
-    echo "BLOCK: static body copy detected in $target (all AC-15 sentinel phrases present)"
+    echo "BLOCK: static body copy detected in $target (all five sentinel phrases present)"
     exit 1
   fi
   exit 0
@@ -100,16 +100,16 @@ fi
 arch_section="$(awk '/^## Architecture/{found=1; next} found && /^## /{found=0} found{print}' "$spec")"
 
 # Additive sentinel counts as zero ONLY when the section carries the EXACT
-# documented sentinel AND no normative SHALL marker alongside it. AC-14 means
+# documented sentinel AND no normative SHALL marker alongside it. This means
 # "zero NORMATIVE commitments": a section that asserts a SHALL commitment cannot
 # be zeroed by a waiver phrase. Fail closed — a contradictory section (exact
 # sentinel + a SHALL) is treated as commitment-bearing, so it still requires the
 # fragment reference. Matching the literal sentinel + detecting the SHALL marker
 # is commitment-PRESENCE detection (the floor's job); it never reads what a
-# commitment says (no honor judgment, no content parse — AC-7 honored).
+# commitment says (no honor judgment, no content parse — reference-presence only).
 if printf '%s' "$arch_section" | grep -qF "no structural commitment — additive" \
    && ! printf '%s' "$arch_section" | grep -qwE "SHALL"; then
-  # Explicit additive waiver, no commitment marker → zero commitments → vacuous pass (AC-14)
+  # Explicit additive waiver, no commitment marker → zero commitments → vacuous pass
   exit 0
 fi
 

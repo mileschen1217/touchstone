@@ -57,7 +57,7 @@ That is a distinct deferred increment. Do not over-claim.
 
 **Scope:** apply this arm to the spec document itself (not the code).
 
-**Depth-stakes decision rule (AC-10):** a component has depth stakes if it:
+**Depth-stakes decision rule:** a component has depth stakes if it:
 - hides a non-trivial implementation decision, OR
 - holds or mutates state, OR
 - sequences operations a caller could otherwise mis-order.
