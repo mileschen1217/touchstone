@@ -42,6 +42,10 @@ Use `/triage` and `/to-issues` skills to move work from local drafts to GitHub.
 - Plugin reload after edits: `/reload-plugins`
 - Smoke test: install plugin in a clean repo, run `/touchstone:init`, exercise stage skills.
 
+## Versioning (the plugin is the deliverable)
+
+The plugin is deployed from a **version-keyed cache** — an unchanged version string never reaches the user, no matter what merged. So **any PR that changes shipped surface (`skills/`, `agents/`, `commands/`, `.claude-plugin/`) MUST bump `version` in `.claude-plugin/plugin.json` AND `.claude-plugin/marketplace.json`** (keep the two in lockstep). Bump **in the feature PR itself**, not as a separate release commit that is easy to forget (the `#27` precedent; the standalone `chore(release)` commit is also acceptable but only when it actually happens). Minor bump for new feature/skill content, patch for fixes. This is a Ship-Gate item (`CLAUDE.local.md`), and a mechanization candidate (a pre-push check: diff touches shipped surface AND `plugin.json` version == `origin/main` → fail).
+
 ## Stage Routing
 
 Defer to global `~/.claude/CLAUDE.md`. The `touchstone:*` skills are this project's own subject matter — use them dogfood-style.
