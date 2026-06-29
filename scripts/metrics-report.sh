@@ -213,28 +213,57 @@ otel_diagnostics() {
   [ -z "$otel" ] && return 0
   local events; events="$(otel_scoped_events "$otel" "$sid" "$assert")"; [ $? -eq 2 ] && return 0
   local wins; wins="$(build_windows "$col")"
+  # pre-compute all markers via the single emitter — no literal in jq (DS-1)
+  local m_scope m_ts m_unat m_amb
+  m_scope="$(UNVERIFIED 'OTel events lack session scope')"
+  m_ts="$(UNVERIFIED 'malformed OTel timestamp')"
+  m_unat="$(UNVERIFIED 'unattributed OTel event')"
+  m_amb="$(UNVERIFIED 'ambiguous OTel run attribution')"
   local line ts who
   while IFS= read -r line; do
     [ -z "$line" ] && continue
     # AC-15 per-run treatment: an unscoped event is surfaced (not silently dropped) so the
     # reader can see WHICH events triggered the rollup's lack-session-scope verdict.
     if [ "$(echo "$line" | jq -r '._unscoped // false')" = true ]; then
-      echo "$line" | jq -c '{agent_name, ts, marker:"[unverified: OTel events lack session scope]"}'; continue
+      echo "$line" | jq -c --arg m "$m_scope" '{agent_name, ts, marker:$m}'; continue
     fi
     ts="$(echo "$line" | jq -r '.ts')"
     if ! [[ "$ts" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-      echo "$line" | jq -c '{agent_name, ts, marker:"[unverified: malformed OTel timestamp]"}'; continue
+      echo "$line" | jq -c --arg m "$m_ts" '{agent_name, ts, marker:$m}'; continue
     fi
     who="$(attribute_event "$ts" "$wins")"
     if [ "$who" = UNATTRIBUTED ]; then
-      echo "$line" | jq -c '{agent_name, ts, marker:"[unverified: unattributed OTel event]"}'
+      echo "$line" | jq -c --arg m "$m_unat" '{agent_name, ts, marker:$m}'
     elif [ "$who" = AMBIGUOUS ]; then
-      echo "$line" | jq -c '{agent_name, ts, marker:"[unverified: ambiguous OTel run attribution]"}'
+      echo "$line" | jq -c --arg m "$m_amb" '{agent_name, ts, marker:$m}'
     fi
   done <<< "$events"
 }
 
-UNVERIFIED() { echo "[unverified: $1]"; }
+UNVERIFIED() {
+  # Single sentinel emitter (DS-1). Produces the closed-list sentinel string.
+  # Closed list: 11 reasons; "malformed meta" accepts any field suffix.
+  # Off-list reason → loud stderr error + return 1.
+  local reason="$1" valid=0
+  case "$reason" in
+    "codex artifact absent")               valid=1 ;;
+    "model not in price table")            valid=1 ;;
+    "subagent usage requires OTel")        valid=1 ;;
+    "no OTel subagent events for run")     valid=1 ;;
+    "OTel events lack session scope")      valid=1 ;;
+    "unattributed OTel event")             valid=1 ;;
+    "ambiguous OTel run attribution")      valid=1 ;;
+    "malformed transcript timestamp")      valid=1 ;;
+    "malformed OTel timestamp")            valid=1 ;;
+    "costs aggregate lacks session scope") valid=1 ;;
+    "malformed meta "*)                    valid=1 ;;
+  esac
+  if [ "$valid" -eq 0 ]; then
+    echo "UNVERIFIED: off-list reason '$reason' — not on closed sentinel list" >&2
+    return 1
+  fi
+  echo "[unverified: $reason]"
+}
 
 # build_per_run_rows <collection> <prices> <otel> <session_id> <scope_assert>
 # SINGLE pass (bash-3.2-safe, no associative array): windows + scoped events are built ONCE up
@@ -290,7 +319,7 @@ build_per_run_rows() {
     else
       total="$(awk -v a="$codex_cost" -v b="$(echo "$cc_sub" | jq -r '.cost_usd')" 'BEGIN{printf "%.6f", a+b}')"
     fi
-    # emit the per-run row; cells that are real JSON parse back, [unverified: …] strings stay strings
+    # emit the per-run row; cells that are real JSON parse back, sentinel strings stay strings
     jq -nc --arg rid "$rid" --arg stage "$stage" --arg model "$model" \
       --arg codex "$codex" --arg cc "$cc_sub" --arg wc "$wc" --arg cc_cost "$codex_cost" --arg total "$total" \
       '{run_id:$rid, stage:$stage, model:$model,
@@ -317,14 +346,14 @@ build_session_summary() {
     unparse="$(echo "$agg_json" | awk '{print $2; exit}')"; unparse="${unparse:-0}"
   fi
   # by-agent rollup. Track groundedness with an EXPLICIT boolean — do NOT sniff the first
-  # char: an `[unverified: …]` sentinel ALSO starts with `[`, so a first-char test would
+  # char: a sentinel string ALSO starts with `[`, so a first-char test would
   # feed invalid JSON to --argjson and the whole summary would fail to emit. (round-2 Critical)
   # Split `local events`/assignment so $? captures the subshell, not `local` (always 0). (H3)
   local by_is_json=false
   if [ -z "$otel" ]; then
     by_agent="$(UNVERIFIED 'subagent usage requires OTel')"
   else
-    local events rc
+    local events rc m_ts_wall
     events="$(otel_scoped_events "$otel" "$sid" "$assert")"
     rc=$?
     if [ "$rc" -eq 2 ]; then
@@ -332,10 +361,11 @@ build_session_summary() {
     elif echo "$events" | jq -e 'select(._unscoped==true)' >/dev/null 2>&1; then
       by_agent="$(UNVERIFIED 'OTel events lack session scope')"
     else
-      # wall_span_s per agent.name = max(ts) - min(ts); [unverified: malformed OTel timestamp]
-      # when ANY of that agent's ts is non-numeric (AC-29). Derived from RAW scoped events
+      # wall_span_s per agent.name = max(ts) - min(ts); sentinel when any ts is non-numeric
+      # (AC-29). Derived from RAW scoped events
       # (the COMPLETE superset), INCLUDING events the per-run attribution drops. (AC-28)
-      by_agent="$(echo "$events" | jq -s '
+      m_ts_wall="$(UNVERIFIED 'malformed OTel timestamp')"
+      by_agent="$(echo "$events" | jq -s --arg mts "$m_ts_wall" '
         group_by(.agent_name) | map(
           ( [ .[] | .ts ] ) as $ts
           | { agent_name: .[0].agent_name,
@@ -344,7 +374,7 @@ build_session_summary() {
               event_count: length,
               wall_span_s: ( if ($ts | map(type=="number") | all)
                              then (($ts|max) - ($ts|min))
-                             else "[unverified: malformed OTel timestamp]" end ) } )')"
+                             else $mts end ) } )')"
       by_is_json=true
     fi
   fi

@@ -323,4 +323,29 @@ else
   echo "WARN - AC-23 live-bearing: OTel real capture not present → [unverified] carried to Evidence Reckoning"
 fi
 
+# --- DS-1 (regression): single sentinel home + closed-list guard ---
+# Test A: [unverified: appears ONLY inside UNVERIFIED() body — zero occurrences elsewhere in source.
+# awk tracks brace depth to find function boundaries (case/if use esac/fi, no braces).
+outside="$(awk '
+  /^UNVERIFIED\(\)/ { in_fn=1; depth=0 }
+  in_fn {
+    for (i=1; i<=length($0); i++) {
+      c=substr($0,i,1)
+      if (c=="{") depth++
+      if (c=="}") { depth--; if (depth==0) in_fn=0 }
+    }
+    next
+  }
+  /\[unverified:/ { print }
+' "$TOOL" | wc -l | tr -d ' ')"
+[ "$outside" -eq 0 ] \
+  && ok "DS-1 no [unverified: literals outside UNVERIFIED() function body" \
+  || fail "DS-1 $outside stray [unverified: literal(s) found outside emitter"
+
+# Test B: UNVERIFIED() rejects off-list reasons with non-zero exit + stderr message
+err="$(UNVERIFIED 'totally made up reason' 2>&1)"; rc=$?
+[ "$rc" -ne 0 ] && echo "$err" | grep -qi "off-list" \
+  && ok "DS-1 closed-list guard: off-list reason → non-zero exit + stderr note" \
+  || fail "DS-1 guard failed: rc=$rc err=[$err]"
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]
