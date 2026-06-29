@@ -286,4 +286,19 @@ echo "$diag" | grep -q "malformed OTel timestamp"       && ok "AC-20 malformed-t
 # AC-15 per-run: an unscoped event (no session_id, no scope assertion) is surfaced, not dropped
 echo "$diag" | grep -q "OTel events lack session scope" && ok "AC-15 unscoped event surfaced per-run" || fail "AC-15 unscoped: $diag"
 
+# --- AC-19: composites wire the owned writer with a real (uncommented, unfenced) invocation ---
+guard_wired() {  # <skill_md>
+  awk '
+    /^```/ { infence = !infence; next }       # toggle fenced blocks; skip the fence lines
+    infence { next }                           # ignore content inside ``` examples
+    /^[[:space:]]*#/ { next }                  # ignore comment lines
+    /persist-dispatch\.sh/ { found=1 }
+    END { exit (found?0:1) }
+  ' "$1"
+}
+for sk in cross-provider-reviewer cross-provider-architect; do
+  f="$REPO_ROOT/skills/$sk/SKILL.md"
+  if guard_wired "$f"; then ok "AC-19 $sk wires persist-dispatch.sh (real line)"; else fail "AC-19 $sk missing real persist-dispatch.sh line"; fi
+done
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]

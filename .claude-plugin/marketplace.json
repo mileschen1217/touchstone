@@ -3,6 +3,6 @@
   "description": "Marketplace for the touchstone plugin.",
   "owner": { "name": "miles_chen", "email": "mileschen1217@gmail.com" },
   "plugins": [
-    { "name": "touchstone", "source": "./", "version": "0.8.0" }
+    { "name": "touchstone", "source": "./", "version": "0.9.0" }
   ]
 }

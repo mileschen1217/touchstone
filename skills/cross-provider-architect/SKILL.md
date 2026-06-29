@@ -84,6 +84,21 @@ Skill body's final assistant text: the synthesized review.md content.
 
 Pattern A — ~2× tokens. Reserved for highest-leverage gates: `/touchstone:keystone` and `/touchstone:design-spec` (architect-review stage).
 
+## Metrics capture (owned writer)
+
+Bracket the dispatch and persist it so `scripts/metrics-report.sh` can attribute its cost.
+Immediately before the parallel Agent calls, capture `started_at`; immediately after all legs return, capture `ended_at`; then call the writer and forward its printed `collection_dir` to the report tool:
+
+started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+...issue the parallel CC + Codex Agent calls, await all legs...
+ended_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+collection_dir="/tmp/metrics-${CLAUDE_SESSION_ID:-$$}"
+scripts/metrics/persist-dispatch.sh "$raw_codex_path" "$collection_dir" "arch-review" "$model" "$started_at" "$ended_at"
+# On CC-only fallback (codex_healthy=0): use the --no-codex form:
+# scripts/metrics/persist-dispatch.sh --no-codex --fallback-reason "<reason>" "$collection_dir" "arch-review" "$model" "$started_at" "$ended_at"
+
+Honest ceiling: SKILL.md is AI-dispatch instruction, not an executable; the static guard proves the wired line is present and uncommented — the strongest offline evidence. Whether the dispatching agent runs it at runtime is an instruction-following property, discharged separately by the writer's own AC-16/17/18 tests.
+
 ## Dependencies
 
 - `everything-claude-code:architect` (ECC, EXTERNAL) — CC validation backend. Epic B vendors or makes optional.
