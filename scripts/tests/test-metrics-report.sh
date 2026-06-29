@@ -135,4 +135,23 @@ note="$(costs_aggregate "$co2" S1 2>&1 >/dev/null)"; rc=$?
 co3="$TMP/costs3.jsonl"; printf '%s\n' '{"session_id":"S1","input_tokens":1,"output_tokens":1}' '{"input_tokens":1,"output_tokens":1}' > "$co3"
 if costs_aggregate "$co3" S1 >/dev/null 2>&1; then fail "AC-6 mixed-schema should be NOSCOPE"; else ok "AC-6 mixed-schema → NOSCOPE"; fi
 
+# --- AC-15: OTel scoping — matching included, foreign excluded, unscoped marked ---
+ot="$TMP/otel.jsonl"
+printf '%s\n' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":100,"cost_usd":0.1,"ts":1000}' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"OTHER","agent_name":"reviewer","tokens":900,"cost_usd":0.9,"ts":1000}' \
+ '{"name":"claude_code.api_request","query_source":"main","session_id":"SES","agent_name":"orchestrator","tokens":50,"cost_usd":0.05,"ts":1000}' > "$ot"
+n="$(otel_scoped_events "$ot" SES "" | wc -l | tr -d ' ')"
+[ "$n" = 1 ] && ok "AC-15 only matching-session subagent event included" || fail "AC-15 got n=$n"
+# unscoped event marked _unscoped without an --otel-session-scope assertion
+ot2="$TMP/otel2.jsonl"; printf '%s\n' '{"name":"claude_code.api_request","query_source":"subagent","agent_name":"r","tokens":1,"cost_usd":0.01,"ts":1}' > "$ot2"
+u="$(otel_scoped_events "$ot2" SES "")"
+[ "$(echo "$u" | jq -r '._unscoped')" = true ] && ok "AC-15 unscoped event marked" || fail "AC-15 unscoped got=$u"
+# with scope assertion, unscoped event is included as scoped
+u2="$(otel_scoped_events "$ot2" SES SES)"
+[ "$(echo "$u2" | jq -r '._unscoped // false')" = false ] && ok "AC-15 scope assertion includes unscoped" || fail "AC-15 assert got=$u2"
+# absent file → typed no-data (return 2)
+otel_scoped_events "$TMP/nofile" SES "" >/dev/null 2>&1; rc=$?
+[ "$rc" -eq 2 ] && ok "AC-9 absent OTel → typed no-data" || fail "AC-9 no-data rc wrong"
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]

@@ -134,6 +134,20 @@ costs_aggregate() {
   esac
 }
 
+# otel_scoped_events <otel> <session_id> <scope_assert>
+# → one scoped subagent event JSON per line; return 2 if file absent (typed no-data)
+otel_scoped_events() {
+  local f="$1" sid="$2" assert="$3"
+  [ -r "$f" ] || return 2
+  jq -c --arg sid "$sid" --arg assert "$assert" '
+    select((.query_source // "") == "subagent")
+    | if (has("session_id")) then
+        ( if .session_id == $sid then . else empty end )
+      else
+        ( if ($assert | length) > 0 then . else (. + {"_unscoped": true}) end )
+      end' "$f" 2>/dev/null
+}
+
 main() {
   echo "metrics-report: not yet implemented" >&2
   return 0
