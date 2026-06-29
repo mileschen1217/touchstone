@@ -65,4 +65,17 @@ raw_out="$("$WRITER" "$TMP/raw.jsonl" "$TMP/c4" s claude-opus-4-8 2026-06-29T10:
 [ "$(printf '%s' "$raw_out" | jq -rc '[keys[]]|sort|join(",")')" = "collection_dir,run_id" ] \
   && ok "AC-22 stdout record carries exactly run_id+collection_dir" || fail "AC-22 stdout keys wrong: $raw_out"
 
+# --- AC-1: codex usage summed across turn.completed events ---
+cx="$TMP/c.jsonl"
+printf '%s\n' \
+ '{"type":"turn.completed","usage":{"input_tokens":100,"cached_input_tokens":10,"output_tokens":50,"reasoning_output_tokens":30}}' \
+ '{"type":"other","usage":{"input_tokens":999}}' \
+ '{"type":"turn.completed","usage":{"input_tokens":5,"cached_input_tokens":1,"output_tokens":2,"reasoning_output_tokens":1}}' > "$cx"
+u="$(codex_usage "$cx")"
+[ "$(echo "$u" | jq -r '.in')" = 105 ] && [ "$(echo "$u" | jq -r '.cached_in')" = 11 ] \
+  && [ "$(echo "$u" | jq -r '.out')" = 52 ] && [ "$(echo "$u" | jq -r '.reasoning')" = 31 ] \
+  && ok "AC-1 codex usage summed from turn.completed" || fail "AC-1 got=$u"
+# missing file → MISSING
+if codex_usage "$TMP/nope.jsonl" >/dev/null 2>&1; then fail "AC-10 missing codex should fail"; else ok "AC-10 missing codex → MISSING"; fi
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]

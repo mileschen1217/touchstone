@@ -22,6 +22,17 @@ compute_codex_cost() {
     'BEGIN{ printf "%.6f", (i*ir + c*cr + (o+r)*orr)/1000000 }'
 }
 
+# codex_usage <codex_path> → {in,cached_in,out,reasoning} OR prints MISSING + return 1
+codex_usage() {
+  local f="$1"
+  [ -r "$f" ] || { echo MISSING; return 1; }
+  jq -s '[ .[] | select(.type=="turn.completed") | .usage ]
+    | { in:        (map(.input_tokens // 0)            | add // 0),
+        cached_in: (map(.cached_input_tokens // 0)     | add // 0),
+        out:       (map(.output_tokens // 0)           | add // 0),
+        reasoning: (map(.reasoning_output_tokens // 0) | add // 0) }' "$f"
+}
+
 main() {
   echo "metrics-report: not yet implemented" >&2
   return 0
