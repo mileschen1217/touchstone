@@ -98,6 +98,42 @@ session_wallclock() {
   echo $(( le - fe ))
 }
 
+# costs_aggregate <costs_path> <session_id>
+# → {usd,unparseable_lines} (single-scope) OR prints NOSCOPE <unparseable> + stderr note + return 1
+# Reads line-by-line with `jq -R | fromjson?` so a single malformed line never aborts
+# the whole read (H2). `unparseable` = JSON-parse failure OR parses-but-missing token fields.
+costs_aggregate() {
+  local f="$1" sid="$2"
+  [ -r "$f" ] || { echo "NOSCOPE 0"; echo "costs.jsonl unreadable — aggregate omitted" >&2; return 1; }
+  # unparseable count: each non-blank line that fails fromjson, OR parses but lacks both token fields
+  local unparse
+  unparse="$(awk 'NF' "$f" | jq -R '(fromjson? // null) as $o
+      | if $o == null then 1
+        elif ($o|type)=="object" and ($o|has("input_tokens")) and ($o|has("output_tokens")) then empty
+        else 1 end' 2>/dev/null | jq -s 'length')"
+  # classify scope over PARSEABLE token-bearing rows only
+  local cls
+  cls="$(jq -R 'fromjson? // empty | select((.input_tokens? != null) and (.output_tokens? != null))' "$f" 2>/dev/null \
+    | jq -s '
+        ( [ .[] | has("session_id") ] ) as $flags
+        | if (length==0) then "NOSCOPE"
+          elif ($flags|all) then "SINGLE"
+          elif ($flags|any) then "MIXED"
+          else "NOSCOPE" end')"
+  cls="$(echo "$cls" | tr -d '"')"
+  case "$cls" in
+    SINGLE)
+      local usd; usd="$(jq -R --arg sid "$sid" 'fromjson? // empty
+        | select((.input_tokens? != null) and (.output_tokens? != null)) | select(.session_id==$sid) | (.cost_usd // 0)' "$f" \
+        | jq -s 'add // 0')"
+      jq -nc --argjson usd "$usd" --argjson u "$unparse" '{usd:$usd, unparseable_lines:$u}' ;;
+    MIXED)
+      echo "NOSCOPE $unparse"; echo "costs.jsonl mixed schema (session_id on some rows, absent on others) — aggregate omitted" >&2; return 1 ;;
+    *)
+      echo "NOSCOPE $unparse"; echo "costs.jsonl has no session scope — aggregate omitted" >&2; return 1 ;;
+  esac
+}
+
 main() {
   echo "metrics-report: not yet implemented" >&2
   return 0

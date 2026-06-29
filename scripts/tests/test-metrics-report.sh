@@ -116,4 +116,23 @@ sw="$(session_wallclock "$tr")"
 badtr="$TMP/badtr.jsonl"; printf '%s\n' '{"type":"assistant","message":{"usage":{}}}' '{"type":"assistant","timestamp":"nope","message":{"usage":{}}}' > "$badtr"
 if session_wallclock "$badtr" >/dev/null 2>&1; then fail "AC-21 malformed should fail"; else ok "AC-21 malformed transcript ts → MALFORMED"; fi
 
+# --- AC-6: costs.jsonl single-scope sums only target session ---
+co="$TMP/costs.jsonl"
+printf '%s\n' \
+ '{"session_id":"S1","input_tokens":100,"output_tokens":50,"cost_usd":0.5}' \
+ '{"session_id":"S2","input_tokens":999,"output_tokens":999,"cost_usd":9.9}' \
+ 'not json' \
+ '{"session_id":"S1","input_tokens":10,"output_tokens":5,"cost_usd":0.25}' > "$co"
+agg="$(costs_aggregate "$co" S1)"
+[ "$(echo "$agg" | jq -r .usd)" = 0.75 ] && ok "AC-6 single-scope sums only target" || fail "AC-6 got=$agg"
+# unparseable counts the 'not json' line, NOT the out-of-session S2 row
+[ "$(echo "$agg" | jq -r .unparseable_lines)" = 1 ] && ok "AC-6 scope-excluded row not unparseable" || fail "AC-6 unparseable wrong: $agg"
+# --- AC-6: no-scope file → NOSCOPE + stderr note ---
+co2="$TMP/costs2.jsonl"; printf '%s\n' '{"input_tokens":100,"output_tokens":50,"cost_usd":0.5}' > "$co2"
+note="$(costs_aggregate "$co2" S1 2>&1 >/dev/null)"; rc=$?
+[ "$rc" != 0 ] && echo "$note" | grep -qi "session scope" && ok "AC-6 no-scope → NOSCOPE + note" || fail "AC-6 noscope rc=$rc note=$note"
+# --- AC-6: mixed-schema → NOSCOPE ---
+co3="$TMP/costs3.jsonl"; printf '%s\n' '{"session_id":"S1","input_tokens":1,"output_tokens":1}' '{"input_tokens":1,"output_tokens":1}' > "$co3"
+if costs_aggregate "$co3" S1 >/dev/null 2>&1; then fail "AC-6 mixed-schema should be NOSCOPE"; else ok "AC-6 mixed-schema → NOSCOPE"; fi
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]
