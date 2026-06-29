@@ -125,7 +125,7 @@ Save `~/Library/LaunchAgents/com.otelcol.metrics.plist`:
   <key>Label</key>              <string>com.otelcol.metrics</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/local/bin/otelcol</string>
+    <string>/usr/local/bin/otelcol</string><!-- Apple Silicon Homebrew: /opt/homebrew/bin/otelcol-contrib -->
     <string>--config</string>
     <string>/Users/YOU/.config/otelcol/config.yaml</string>
   </array>

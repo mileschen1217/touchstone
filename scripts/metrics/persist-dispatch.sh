@@ -13,7 +13,7 @@ fi
 collection_dir="$1"; stage="$2"; model="$3"; started_at="$4"; ended_at="$5"
 
 mkdir -p "$collection_dir"
-run_id="$(date +%s%N)-$$-$RANDOM"
+run_id="$(date +%s%N)-$$-$RANDOM$RANDOM"   # $RANDOM$RANDOM (30 bits) hardens collision-resistance on hosts where BSD date lacks %N (literal N)
 
 # Build the meta with jq so quoted / newline-containing stage|model|fallback_reason
 # can never produce invalid JSON (no heredoc interpolation).
