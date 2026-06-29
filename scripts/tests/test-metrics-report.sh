@@ -301,4 +301,17 @@ for sk in cross-provider-reviewer cross-provider-architect; do
   if guard_wired "$f"; then ok "AC-19 $sk wires persist-dispatch.sh (real line)"; else fail "AC-19 $sk missing real persist-dispatch.sh line"; fi
 done
 
+# --- AC-23 (live-bearing): committed OTel fixture is a real capture with provenance ---
+OTEL_FIX="$FIX/otel-export.jsonl"
+if [ -f "$OTEL_FIX" ]; then
+  if head -20 "$OTEL_FIX" "$FIX/otel-export.provenance.txt" 2>/dev/null | grep -qiE 'otelcol|CLAUDE_CODE_ENABLE_TELEMETRY|capture date'; then
+    ok "AC-23 OTel fixture carries capture provenance"
+  else
+    fail "AC-23 OTel fixture lacks provenance header (real-capture unproven)"
+  fi
+  # ≥1 subagent event outside every committed meta window — exercised in Task 10 against this fixture
+else
+  echo "WARN - AC-23 live-bearing: OTel real capture not present → [unverified] carried to Evidence Reckoning"
+fi
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]
