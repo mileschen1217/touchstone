@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # capture-otel-fixture.sh — produce a REAL OpenTelemetry capture of a live
 # CLAUDE_CODE_ENABLE_TELEMETRY=1 Claude Code session that dispatches a subagent,
-# for the metrics-capture AC-23 fixture (and for re-binding the real CC telemetry
+# for the metrics-capture OTel real-capture fixture (and for re-binding the real CC telemetry
 # schema). Stands up otelcol once, runs a headless `claude -p` that launches one
 # subagent, stops the collector, scrubs PII, and writes a fixture + provenance file.
 #
@@ -13,7 +13,7 @@
 # keys are dotted (`session.id`, `agent.name`) with `query_source` of the form
 # `agent:<source>:<type>` for subagents (NOT the literal `subagent`). The synthetic
 # unit-test fixtures use a flattened shape; this script captures the ground truth so
-# the OTel reader can be re-pointed at the real schema. (Discharges AC-23.)
+# the OTel reader can be re-pointed at the real schema.
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -95,7 +95,7 @@ if grep -qiE '@(gmail|yahoo|anthropic)\.com' "$OUT"; then
   echo "error: PII survived scrub — refusing to write fixture" >&2; rm -f "$OUT"; exit 1
 fi
 
-# --- provenance sidecar (read by the AC-23 test; never inside the JSONL) ---
+# --- provenance sidecar (read by the OTel real-capture test; never inside the JSONL) ---
 sid="$(jq -r 'select(has("resourceLogs"))|.resourceLogs[]?.scopeLogs[]?.logRecords[]?|(.attributes//[])[]|select(.key=="session.id")|.value.stringValue' "$OUT" 2>/dev/null | head -1)"
 {
   echo "# metrics-capture OTel fixture — REAL otelcol capture"

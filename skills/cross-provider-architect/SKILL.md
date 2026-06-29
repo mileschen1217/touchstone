@@ -99,7 +99,7 @@ scripts/metrics/persist-dispatch.sh "$raw_codex_path" "$collection_dir" "$stage"
 # On CC-only fallback (codex_healthy=0): use the --no-codex form:
 # scripts/metrics/persist-dispatch.sh --no-codex --fallback-reason "<reason>" "$collection_dir" "$stage" "$model" "$started_at" "$ended_at"
 
-Honest ceiling: SKILL.md is AI-dispatch instruction, not an executable; the static guard proves the wired line is present and uncommented — the strongest offline evidence. Whether the dispatching agent runs it at runtime is an instruction-following property, discharged separately by the writer's own AC-16/17/18 tests.
+Honest ceiling: SKILL.md is AI-dispatch instruction, not an executable; the static guard proves the wired line is present and uncommented — the strongest offline evidence. Whether the dispatching agent runs it at runtime is an instruction-following property, discharged separately by the writer's own end-to-end writer tests.
 
 ## Dependencies
 

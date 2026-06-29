@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # metrics-report.sh — on-demand OTel-aware token/cost/time report for a touchstone session.
-# Reads collected artifacts only; dispatches no LLM (AC-5).
+# Reads collected artifacts only; dispatches no LLM.
 set -uo pipefail
 # NB: bash 3.2 target — NO associative arrays anywhere (see Global Constraints).
 
@@ -86,7 +86,7 @@ mainloop_usage() {
 }
 
 # session_wallclock <transcript> → integer seconds OR prints MALFORMED + return 1
-# AC-21 is literal: the FIRST and LAST transcript ENTRY must each carry a parseable
+# The FIRST and LAST transcript ENTRY must each carry a parseable
 # `timestamp`. A boundary entry lacking/malforming it → MALFORMED (honest degradation:
 # the tool will not claim a span it cannot bound). iso_to_epoch rejects "ABSENT"/"nope".
 session_wallclock() {
@@ -101,7 +101,7 @@ session_wallclock() {
 # costs_aggregate <costs_path> <session_id>
 # → {usd,unparseable_lines} (single-scope) OR prints NOSCOPE <unparseable> + stderr note + return 1
 # Reads line-by-line with `jq -R | fromjson?` so a single malformed line never aborts
-# the whole read (H2). `unparseable` = JSON-parse failure OR parses-but-missing token fields.
+# the whole read. `unparseable` = JSON-parse failure OR parses-but-missing token fields.
 costs_aggregate() {
   local f="$1" sid="$2"
   [ -r "$f" ] || { echo "NOSCOPE 0"; echo "costs.jsonl unreadable — aggregate omitted" >&2; return 1; }
@@ -138,7 +138,7 @@ costs_aggregate() {
 # Reads nested OTLP (resourceLogs[].scopeLogs[].logRecords[]); emits flat shape:
 #   { query_source, session_id, agent_name, tokens, cost_usd, ts }
 # ts = floor(timeUnixNano / 1e9) via string-slice (avoids IEEE-754 precision loss on 64-bit ns).
-# intValue attributes in OTLP proto-JSON are encoded as strings; tonumber converts them. (AC-23)
+# intValue attributes in OTLP proto-JSON are encoded as strings; tonumber converts them.
 otel_normalize() {
   local f="$1"
   jq -c '
@@ -160,7 +160,7 @@ otel_normalize() {
 # otel_scoped_events <otel> <session_id> <scope_assert>
 # → one scoped subagent event JSON per line; return 2 if file absent (typed no-data)
 # Auto-detects nested OTLP (first line has .resourceLogs/.resourceMetrics) and normalizes;
-# flat files pass through unchanged. Subagent predicate: query_source starts with "agent:". (AC-23)
+# flat files pass through unchanged. Subagent predicate: query_source starts with "agent:".
 otel_scoped_events() {
   local f="$1" sid="$2" assert="$3" is_otlp=0 first_line
   [ -r "$f" ] || return 2
@@ -182,7 +182,7 @@ otel_scoped_events() {
 
 # attribute_event <ts> <windows_tsv> → run_id | UNATTRIBUTED | AMBIGUOUS (half-open [start,end))
 # Uses awk for the comparison so FLOAT/ms epoch timestamps work (a real otelcol export
-# may emit fractional seconds — integer-only `[ -ge ]` would error → spurious UNATTRIBUTED). (H8)
+# may emit fractional seconds — integer-only `[ -ge ]` would error → spurious UNATTRIBUTED).
 attribute_event() {
   local ts="$1" wins="$2" match="" count=0 rid s e
   # a non-numeric ts can never be attributed — awk would coerce "abc"/"1.2.3"→a number and
@@ -202,9 +202,9 @@ attribute_event() {
 
 # cc_subagent_cell <run_id> <events_json_lines> <windows_tsv> → {tokens,cost_usd} OR NOEVENTS (return 1)
 # Counts MATCHED EVENTS, not token sum, for the NOEVENTS guard (a real zero-token event is
-# still an event — AC-12 means "no events", not "zero tokens"). (H6)
+# still an event — "no OTel subagent events" means no events, not zero tokens.
 # SKIPS events marked `_unscoped:true` — an unscoped event must never be silently attributed
-# to a run even if its ts lands in a window (AC-15); the rollup marks them unverified. (H1)
+# to a run even if its ts lands in a window; the rollup marks them unverified.
 cc_subagent_cell() {
   local rid="$1" events="$2" wins="$3" line ts who matched=0
   local toks=0 cost="0"
@@ -239,7 +239,7 @@ build_windows() {
 
 # otel_diagnostics <collection> <otel> <sid> <assert> → per-event closed-list markers for the
 # events that DON'T land in exactly one run window — so the per-run-reporting honesty requirement
-# (AC-20) is met. Emits one JSON line per flagged event: malformed-ts, unattributed, or ambiguous.
+# is met. Emits one JSON line per flagged event: malformed-ts, unattributed, or ambiguous.
 otel_diagnostics() {
   local col="$1" otel="$2" sid="$3" assert="$4"
   [ -z "$otel" ] && return 0
@@ -254,7 +254,7 @@ otel_diagnostics() {
   local line ts who
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    # AC-15 per-run treatment: an unscoped event is surfaced (not silently dropped) so the
+    # Per-run treatment: an unscoped event is surfaced (not silently dropped) so the
     # reader can see WHICH events triggered the rollup's lack-session-scope verdict.
     if [ "$(echo "$line" | jq -r '._unscoped // false')" = true ]; then
       echo "$line" | jq -c --arg m "$m_scope" '{agent_name, ts, marker:$m}'; continue
@@ -313,7 +313,7 @@ build_per_run_rows() {
   # Build attribution windows once (DRY — otel_diagnostics reuses build_windows). A run with a
   # malformed/absent bounding timestamp contributes NO window: the tool cannot bound it, so OTel
   # events in its real range fall to UNATTRIBUTED rather than being mis-attributed — honest
-  # degradation; the run's wallclock cell is already [unverified] and its cc_subagent → NOEVENTS. (M6)
+  # degradation; the run's wallclock cell is already [unverified] and its cc_subagent → NOEVENTS.
   local wins; wins="$(build_windows "$col")"
   local m rid stage model codex codex_cost wc cc_sub total cpath cabs usage cell badf
   while IFS= read -r m; do
@@ -369,7 +369,7 @@ build_session_summary() {
   local cc_main sw agg unparse by_agent
   cc_main="$(mainloop_usage "$tr" 2>/dev/null || echo '{"in":0,"out":0}')"
   if sw="$(session_wallclock "$tr" 2>/dev/null)"; then :; else sw="$(UNVERIFIED 'malformed transcript timestamp')"; fi
-  # costs aggregate (single correct assignment — H4)
+  # costs aggregate (single correct assignment)
   local agg_json
   if agg_json="$(costs_aggregate "$costs" "$sid")"; then
     agg="$(echo "$agg_json" | jq -r .usd)"; unparse="$(echo "$agg_json" | jq -r .unparseable_lines)"
@@ -380,7 +380,7 @@ build_session_summary() {
   # by-agent rollup. Track groundedness with an EXPLICIT boolean — do NOT sniff the first
   # char: a sentinel string ALSO starts with `[`, so a first-char test would
   # feed invalid JSON to --argjson and the whole summary would fail to emit. (round-2 Critical)
-  # Split `local events`/assignment so $? captures the subshell, not `local` (always 0). (H3)
+  # Split `local events`/assignment so $? captures the subshell, not `local` (always 0).
   local by_is_json=false
   if [ -z "$otel" ]; then
     by_agent="$(UNVERIFIED 'subagent usage requires OTel')"
@@ -393,9 +393,9 @@ build_session_summary() {
     elif echo "$events" | jq -e 'select(._unscoped==true)' >/dev/null 2>&1; then
       by_agent="$(UNVERIFIED 'OTel events lack session scope')"
     else
-      # wall_span_s per agent.name = max(ts) - min(ts); sentinel when any ts is non-numeric
-      # (AC-29). Derived from RAW scoped events
-      # (the COMPLETE superset), INCLUDING events the per-run attribution drops. (AC-28)
+      # wall_span_s per agent.name = max(ts) - min(ts); sentinel when any ts is non-numeric.
+      # Derived from RAW scoped events
+      # (the COMPLETE superset), INCLUDING events the per-run attribution drops.
       m_ts_wall="$(UNVERIFIED 'malformed OTel timestamp')"
       by_agent="$(echo "$events" | jq -s --arg mts "$m_ts_wall" '
         group_by(.agent_name) | map(
@@ -455,7 +455,7 @@ main() {
   fi
   echo "$rows"
   # per-run-reporting honesty: events that match zero / multiple windows (or carry a bad ts)
-  # are surfaced with their distinct closed-list markers — never silently dropped. (AC-20)
+  # are surfaced with their distinct closed-list markers — never silently dropped.
   local diag
   diag="$(otel_diagnostics "$collection" "$otel" "$sid" "$scope")"
   if [ -n "$diag" ]; then echo "=== OTEL EVENT DIAGNOSTICS ==="; echo "$diag"; fi
