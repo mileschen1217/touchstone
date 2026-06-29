@@ -78,4 +78,27 @@ u="$(codex_usage "$cx")"
 # missing file → MISSING
 if codex_usage "$TMP/nope.jsonl" >/dev/null 2>&1; then fail "AC-10 missing codex should fail"; else ok "AC-10 missing codex → MISSING"; fi
 
+# --- AC-2: one meta path per sidecar; meta set is the run index ---
+col="$TMP/runs"; mkdir -p "$col"
+"$WRITER" "$TMP/raw.jsonl" "$col" pass1 claude-opus-4-8 2026-06-29T10:00:00Z 2026-06-29T10:01:00Z >/dev/null
+"$WRITER" "$TMP/raw.jsonl" "$col" pass2 claude-opus-4-8 2026-06-29T10:02:00Z 2026-06-29T10:03:30Z >/dev/null
+n="$(resolve_runs "$col" | wc -l | tr -d ' ')"
+[ "$n" = 2 ] && ok "AC-2 two metas → two runs" || fail "AC-2 got n=$n"
+
+# --- AC-25: duplicate run_id is a deterministic hard error naming both paths ---
+dcol="$TMP/dup"; mkdir -p "$dcol"
+printf '{"run_id":"X","codex_artifact_path":null,"stage":"a","model":"m","started_at":"t","ended_at":"t","providers_used":["cc"],"fallback_reason":null}' > "$dcol/a.meta.json"
+printf '{"run_id":"X","codex_artifact_path":null,"stage":"b","model":"m","started_at":"t","ended_at":"t","providers_used":["cc"],"fallback_reason":null}' > "$dcol/b.meta.json"
+err="$(resolve_runs "$dcol" 2>&1 >/dev/null)"; rc=$?
+[ "$rc" != 0 ] && echo "$err" | grep -q a.meta.json && echo "$err" | grep -q b.meta.json \
+  && ok "AC-25 duplicate run_id hard error names both" || fail "AC-25 rc=$rc err=$err"
+
+# --- AC-4: per-run wall-clock from meta (exact, non-vacuous); malformed names the field ---
+firstmeta="$(resolve_runs "$col" | head -1)"   # pass1: 10:00:00 → 10:01:00 = 60s
+wc4="$(meta_wallclock "$firstmeta")"
+[ "$wc4" = 60 ] && ok "AC-4 wallclock = ended-started (exact 60s)" || fail "AC-4 got=$wc4 want=60"
+bad="$TMP/bad.meta.json"; printf '{"run_id":"Y","started_at":"2026-06-29T10:00:00Z"}' > "$bad"
+w="$(meta_wallclock "$bad" 2>&1)"; rc=$?
+[ "$rc" != 0 ] && echo "$w" | grep -q ended_at && ok "AC-4 malformed names offending field" || fail "AC-4 got=$w rc=$rc"
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]

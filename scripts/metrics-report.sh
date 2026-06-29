@@ -33,6 +33,51 @@ codex_usage() {
         reasoning: (map(.reasoning_output_tokens // 0) | add // 0) }' "$f"
 }
 
+# resolve_runs <collection_dir> → meta paths, one per line; duplicate run_id → hard error (return 1)
+# bash-3.2-safe: no associative array — duplicate detection via sort|uniq -d. (portability)
+resolve_runs() {
+  local dir="$1" m rid dup
+  shopt -s nullglob
+  local metas=("$dir"/*.meta.json)
+  shopt -u nullglob
+  # find a duplicated run_id, if any
+  dup="$(for m in "${metas[@]}"; do jq -r '.run_id // empty' "$m" 2>/dev/null; done | sort | uniq -d | head -1)"
+  if [ -n "$dup" ]; then
+    # name ALL paths sharing the duplicated run_id (handles 3+ duplicates, not just the first two)
+    local paths=""
+    for m in "${metas[@]}"; do
+      rid="$(jq -r '.run_id // empty' "$m" 2>/dev/null)"
+      [ "$rid" = "$dup" ] && paths="$paths $m"
+    done
+    echo "DUPLICATE run_id=$dup:$paths" >&2
+    return 1
+  fi
+  for m in "${metas[@]}"; do echo "$m"; done
+}
+
+# meta_field <meta> <field> → value OR prints MALFORMED + return 1
+meta_field() {
+  local v; v="$(jq -er --arg k "$2" '.[$k] // empty' "$1" 2>/dev/null)" || { echo MALFORMED; return 1; }
+  [ -z "$v" ] && { echo MALFORMED; return 1; }
+  echo "$v"
+}
+
+# meta_wallclock <meta> → integer seconds OR prints MALFORMED:<field> + return 1
+meta_wallclock() {
+  local m="$1" s e si ei
+  s="$(jq -r '.started_at // empty' "$m" 2>/dev/null)"
+  e="$(jq -r '.ended_at // empty' "$m" 2>/dev/null)"
+  si="$(iso_to_epoch "$s")" || { echo "MALFORMED:started_at"; return 1; }
+  ei="$(iso_to_epoch "$e")" || { echo "MALFORMED:ended_at"; return 1; }
+  echo $(( ei - si ))
+}
+
+# iso_to_epoch <iso8601> → epoch seconds OR return 1 (BSD/GNU date tolerant)
+iso_to_epoch() {
+  local t="$1"; [ -z "$t" ] && return 1
+  date -u -d "$t" +%s 2>/dev/null || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$t" +%s 2>/dev/null
+}
+
 main() {
   echo "metrics-report: not yet implemented" >&2
   return 0
