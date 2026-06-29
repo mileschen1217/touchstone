@@ -148,6 +148,92 @@ otel_scoped_events() {
       end' "$f" 2>/dev/null
 }
 
+# attribute_event <ts> <windows_tsv> → run_id | UNATTRIBUTED | AMBIGUOUS (half-open [start,end))
+# Uses awk for the comparison so FLOAT/ms epoch timestamps work (a real otelcol export
+# may emit fractional seconds — integer-only `[ -ge ]` would error → spurious UNATTRIBUTED). (H8)
+attribute_event() {
+  local ts="$1" wins="$2" match="" count=0 rid s e
+  # a non-numeric ts can never be attributed — awk would coerce "abc"/"1.2.3"→a number and
+  # falsely match a window. Require a STRICT decimal (no multi-dot, no bare "."). Return
+  # UNATTRIBUTED; otel_diagnostics marks such an event malformed. (M-new-2)
+  [[ "$ts" =~ ^[0-9]+([.][0-9]+)?$ ]] || { echo UNATTRIBUTED; return; }
+  while IFS=$'\t' read -r rid s e; do
+    [ -z "$rid" ] && continue
+    if awk -v t="$ts" -v a="$s" -v b="$e" 'BEGIN{ exit !(t>=a && t<b) }'; then
+      match="$rid"; count=$((count+1))
+    fi
+  done <<< "$wins"
+  if   [ "$count" -eq 0 ]; then echo UNATTRIBUTED
+  elif [ "$count" -eq 1 ]; then echo "$match"
+  else echo AMBIGUOUS; fi
+}
+
+# cc_subagent_cell <run_id> <events_json_lines> <windows_tsv> → {tokens,cost_usd} OR NOEVENTS (return 1)
+# Counts MATCHED EVENTS, not token sum, for the NOEVENTS guard (a real zero-token event is
+# still an event — AC-12 means "no events", not "zero tokens"). (H6)
+# SKIPS events marked `_unscoped:true` — an unscoped event must never be silently attributed
+# to a run even if its ts lands in a window (AC-15); the rollup marks them unverified. (H1)
+cc_subagent_cell() {
+  local rid="$1" events="$2" wins="$3" line ts who matched=0
+  local toks=0 cost="0"
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    [ "$(echo "$line" | jq -r '._unscoped // false')" = true ] && continue
+    ts="$(echo "$line" | jq -r '.ts')"
+    who="$(attribute_event "$ts" "$wins")"
+    if [ "$who" = "$rid" ]; then
+      matched=$((matched+1))
+      toks=$(( toks + $(echo "$line" | jq -r '.tokens // 0') ))
+      cost="$(awk -v a="$cost" -v b="$(echo "$line" | jq -r '.cost_usd // 0')" 'BEGIN{printf "%.6f", a+b}')"
+    fi
+  done <<< "$events"
+  [ "$matched" -eq 0 ] && { echo NOEVENTS; return 1; }
+  jq -nc --argjson t "$toks" --argjson c "$cost" '{tokens:$t, cost_usd:$c}'
+}
+
+# build_windows <collection_dir> → TSV `run_id<TAB>start_epoch<TAB>end_epoch`, one per run
+# whose meta carries parseable bounds. The single home of window construction (reused by
+# build_per_run_rows AND otel_diagnostics). Assumes duplicate run_id already rejected by main.
+build_windows() {
+  local col="$1" m rid s e se ee
+  while IFS= read -r m; do
+    [ -z "$m" ] && continue
+    rid="$(jq -r '.run_id' "$m")"
+    s="$(jq -r '.started_at // empty' "$m")"; e="$(jq -r '.ended_at // empty' "$m")"
+    se="$(iso_to_epoch "$s" 2>/dev/null || echo "")"; ee="$(iso_to_epoch "$e" 2>/dev/null || echo "")"
+    [ -n "$se" ] && [ -n "$ee" ] && printf '%s\t%s\t%s\n' "$rid" "$se" "$ee"
+  done < <(resolve_runs "$col" 2>/dev/null)
+}
+
+# otel_diagnostics <collection> <otel> <sid> <assert> → per-event closed-list markers for the
+# events that DON'T land in exactly one run window — so the per-run-reporting honesty requirement
+# (AC-20) is met. Emits one JSON line per flagged event: malformed-ts, unattributed, or ambiguous.
+otel_diagnostics() {
+  local col="$1" otel="$2" sid="$3" assert="$4"
+  [ -z "$otel" ] && return 0
+  local events; events="$(otel_scoped_events "$otel" "$sid" "$assert")"; [ $? -eq 2 ] && return 0
+  local wins; wins="$(build_windows "$col")"
+  local line ts who
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    # AC-15 per-run treatment: an unscoped event is surfaced (not silently dropped) so the
+    # reader can see WHICH events triggered the rollup's lack-session-scope verdict.
+    if [ "$(echo "$line" | jq -r '._unscoped // false')" = true ]; then
+      echo "$line" | jq -c '{agent_name, ts, marker:"[unverified: OTel events lack session scope]"}'; continue
+    fi
+    ts="$(echo "$line" | jq -r '.ts')"
+    if ! [[ "$ts" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+      echo "$line" | jq -c '{agent_name, ts, marker:"[unverified: malformed OTel timestamp]"}'; continue
+    fi
+    who="$(attribute_event "$ts" "$wins")"
+    if [ "$who" = UNATTRIBUTED ]; then
+      echo "$line" | jq -c '{agent_name, ts, marker:"[unverified: unattributed OTel event]"}'
+    elif [ "$who" = AMBIGUOUS ]; then
+      echo "$line" | jq -c '{agent_name, ts, marker:"[unverified: ambiguous OTel run attribution]"}'
+    fi
+  done <<< "$events"
+}
+
 main() {
   echo "metrics-report: not yet implemented" >&2
   return 0

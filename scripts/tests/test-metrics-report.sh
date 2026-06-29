@@ -154,4 +154,34 @@ u2="$(otel_scoped_events "$ot2" SES SES)"
 otel_scoped_events "$TMP/nofile" SES "" >/dev/null 2>&1; rc=$?
 [ "$rc" -eq 2 ] && ok "AC-9 absent OTel → typed no-data" || fail "AC-9 no-data rc wrong"
 
+# --- AC-20: half-open containment, touching → later run, zero/multi distinguished ---
+# windows: r1 [100,200)  r2 [200,300)  (touch at 200);  r3 [150,250) overlaps r2 for genuine ambiguity
+win="$(printf 'r1\t100\t200\nr2\t200\t300\n')"
+[ "$(attribute_event 150 "$win")" = r1 ] && ok "AC-20 inside r1" || fail "AC-20 inside r1"
+[ "$(attribute_event 200 "$win")" = r2 ] && ok "AC-20 touching boundary → later run" || fail "AC-20 boundary"
+[ "$(attribute_event 50  "$win")" = UNATTRIBUTED ] && ok "AC-20 no window → UNATTRIBUTED" || fail "AC-20 zero"
+win2="$(printf 'r2\t200\t300\nr3\t150\t250\n')"
+[ "$(attribute_event 220 "$win2")" = AMBIGUOUS ] && ok "AC-20 overlap → AMBIGUOUS" || fail "AC-20 multi"
+# --- AC-14: cc_subagent cell sums attributed events across agent.names ---
+ev="$(printf '%s\n' \
+ '{"agent_name":"reviewer","tokens":100,"cost_usd":0.10,"ts":150}' \
+ '{"agent_name":"architect","tokens":40,"cost_usd":0.04,"ts":160}' \
+ '{"agent_name":"reviewer","tokens":5,"cost_usd":0.005,"ts":50}')"
+cell="$(cc_subagent_cell r1 "$ev" "$win")"
+[ "$(echo "$cell" | jq -r .tokens)" = 140 ] && ok "AC-14 cc_subagent summed over names" || fail "AC-14 got=$cell"
+# --- AC-12: OTel present but run has zero subagent events → NOEVENTS ---
+if cc_subagent_cell r2 "$ev" "$win" >/dev/null 2>&1; then fail "AC-12 should be NOEVENTS"; else ok "AC-12 zero events → NOEVENTS"; fi
+# --- H8: float/ms epoch timestamp attributes correctly (not a spurious UNATTRIBUTED) ---
+[ "$(attribute_event 150.5 "$win")" = r1 ] && ok "H8 float ts attributes to r1" || fail "H8 float ts"
+# malformed numeric edges ('.', multi-dot) must NOT coerce into a window
+[ "$(attribute_event . "$win")" = UNATTRIBUTED ] && [ "$(attribute_event 1.2.3 "$win")" = UNATTRIBUTED ] \
+  && ok "H8 malformed numeric ts rejected (., 1.2.3)" || fail "H8 malformed numeric not rejected"
+# --- H6: a real zero-token matched event is NOT NOEVENTS ---
+zev='{"agent_name":"reviewer","tokens":0,"cost_usd":0,"ts":150}'
+zc="$(cc_subagent_cell r1 "$zev" "$win")"
+[ "$(echo "$zc" | jq -r .tokens)" = 0 ] && ok "H6 zero-token event still counted (not NOEVENTS)" || fail "H6 got=$zc"
+# --- H1: an _unscoped event is never attributed to a run even if ts lands in a window ---
+uev='{"agent_name":"reviewer","tokens":99,"cost_usd":0.99,"ts":150,"_unscoped":true}'
+if cc_subagent_cell r1 "$uev" "$win" >/dev/null 2>&1; then fail "H1 unscoped event leaked into run"; else ok "H1 unscoped event excluded from run total"; fi
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]
