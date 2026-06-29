@@ -209,4 +209,45 @@ rowA="$(echo "$rows" | jq -c 'select(.stage=="passA")')"
 rowB="$(echo "$rows" | jq -c 'select(.stage=="passB")')"
 [ "$(echo "$rowB" | jq -r '.codex')" = "[unverified: codex artifact absent]" ] && ok "AC-10 missing codex → row kept, cell unverified" || fail "AC-10 codex=$(echo "$rowB" | jq -r .codex)"
 
+# --- AC-27/28/29: by-agent rollup is a complete superset incl. non-composite subagents ---
+sumcol_otel="$TMP/otel_roll.jsonl"
+printf '%s\n' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":100,"cost_usd":0.10,"ts":1000}' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":50,"cost_usd":0.05,"ts":1200}' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"sdd-task","tokens":400,"cost_usd":0.40,"ts":9999}' \
+ '{"name":"claude_code.api_request","query_source":"main","session_id":"SES","agent_name":"orch","tokens":1,"cost_usd":0.01,"ts":1000}' > "$sumcol_otel"
+sum="$(build_session_summary "$tr" "$co" "$sumcol_otel" SES "")"
+# sdd-task (outside any composite window) is present → no session-level gap
+echo "$sum" | jq -e '.by_agent[] | select(.agent_name=="sdd-task")' >/dev/null && ok "AC-27 rollup captures non-composite subagent" || fail "AC-27 missing sdd-task"
+# reviewer aggregated: tokens 150, event_count 2, wall_span_s 200
+rv="$(echo "$sum" | jq -c '.by_agent[] | select(.agent_name=="reviewer")')"
+[ "$(echo "$rv" | jq -r .tokens)" = 150 ] && [ "$(echo "$rv" | jq -r .event_count)" = 2 ] && [ "$(echo "$rv" | jq -r .wall_span_s)" = 200 ] \
+  && ok "AC-29 per-agent envelope span + count" || fail "AC-29 got=$rv"
+# query_source=main excluded
+echo "$sum" | jq -e '.by_agent[] | select(.agent_name=="orch")' >/dev/null && fail "AC-27 main leaked into rollup" || ok "AC-27 main excluded from rollup"
+# no OTel → whole rollup unverified
+sum2="$(build_session_summary "$tr" "$co" "" SES "")"
+echo "$sum2" | jq -r '.by_agent' | grep -q "subagent usage requires OTel" && ok "AC-27 no sink → rollup unverified" || fail "AC-27 no-sink leak"
+# --- AC-28: rollup is a COMPLETE superset of the window-bounded per-run subset, never summed ---
+# windows that bound only the reviewer events (1000,1200); sdd-task (ts 9999) is OUTSIDE.
+acol28="$TMP/asm28"; mkdir -p "$acol28"
+printf '{"run_id":"R1","codex_artifact_path":null,"stage":"s","model":"claude-opus-4-8","started_at":"1970-01-01T00:16:40Z","ended_at":"1970-01-01T00:20:01Z","providers_used":["cc"],"fallback_reason":null}' > "$acol28/R1.meta.json"
+rows28="$(build_per_run_rows "$acol28" "$PRICES" "$sumcol_otel" SES "")"
+perrun_tok="$(echo "$rows28" | jq -s '[ .[] | .cc_subagent | if type=="object" then .tokens else 0 end ] | add')"
+rollup_tok="$(echo "$sum" | jq '[ .by_agent[].tokens ] | add')"
+# rollup (150 reviewer + 400 sdd-task = 550) is a strict superset of the window subset (150)
+[ "$rollup_tok" -ge "$perrun_tok" ] && [ "$rollup_tok" = 550 ] \
+  && ok "AC-28 rollup is complete superset (>= window-bounded subset)" || fail "AC-28 rollup=$rollup_tok perrun=$perrun_tok"
+# no per-run dispatch_total silently absorbs a rollup addend (it is [unverified] here — a leg is)
+echo "$rows28" | jq -e '.dispatch_total_cost_usd | type=="string" and startswith("[unverified")' >/dev/null \
+  && ok "AC-28 per-run total never includes a rollup addend" || fail "AC-28 total absorbed rollup"
+# --- AC-29: a non-numeric ts → that agent's wall_span_s is [unverified: malformed OTel timestamp] ---
+badts="$TMP/otel_badts.jsonl"
+printf '%s\n' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":10,"cost_usd":0.01,"ts":"not-a-number"}' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":10,"cost_usd":0.01,"ts":1000}' > "$badts"
+sum3="$(build_session_summary "$tr" "$co" "$badts" SES "")"
+[ "$(echo "$sum3" | jq -r '.by_agent[] | select(.agent_name=="reviewer") | .wall_span_s')" = "[unverified: malformed OTel timestamp]" ] \
+  && ok "AC-29 malformed OTel ts → wall_span_s unverified" || fail "AC-29 got=$(echo "$sum3" | jq -rc '.by_agent')"
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]

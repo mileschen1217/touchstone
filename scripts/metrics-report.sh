@@ -302,6 +302,58 @@ build_per_run_rows() {
   done <<< "$metas"
 }
 
+# build_session_summary <transcript> <costs> <otel> <session_id> <scope_assert>
+build_session_summary() {
+  local tr="$1" costs="$2" otel="$3" sid="$4" assert="$5"
+  local cc_main sw agg unparse by_agent
+  cc_main="$(mainloop_usage "$tr" 2>/dev/null || echo '{"in":0,"out":0}')"
+  if sw="$(session_wallclock "$tr" 2>/dev/null)"; then :; else sw="$(UNVERIFIED 'malformed transcript timestamp')"; fi
+  # costs aggregate (single correct assignment — H4)
+  local agg_json
+  if agg_json="$(costs_aggregate "$costs" "$sid" 2>/dev/null)"; then
+    agg="$(echo "$agg_json" | jq -r .usd)"; unparse="$(echo "$agg_json" | jq -r .unparseable_lines)"
+  else
+    agg="$(UNVERIFIED 'costs aggregate lacks session scope')"; unparse=0
+  fi
+  # by-agent rollup. Track groundedness with an EXPLICIT boolean — do NOT sniff the first
+  # char: an `[unverified: …]` sentinel ALSO starts with `[`, so a first-char test would
+  # feed invalid JSON to --argjson and the whole summary would fail to emit. (round-2 Critical)
+  # Split `local events`/assignment so $? captures the subshell, not `local` (always 0). (H3)
+  local by_is_json=false
+  if [ -z "$otel" ]; then
+    by_agent="$(UNVERIFIED 'subagent usage requires OTel')"
+  else
+    local events rc
+    events="$(otel_scoped_events "$otel" "$sid" "$assert")"
+    rc=$?
+    if [ "$rc" -eq 2 ]; then
+      by_agent="$(UNVERIFIED 'subagent usage requires OTel')"
+    elif echo "$events" | jq -e 'select(._unscoped==true)' >/dev/null 2>&1; then
+      by_agent="$(UNVERIFIED 'OTel events lack session scope')"
+    else
+      # wall_span_s per agent.name = max(ts) - min(ts); [unverified: malformed OTel timestamp]
+      # when ANY of that agent's ts is non-numeric (AC-29). Derived from RAW scoped events
+      # (the COMPLETE superset), INCLUDING events the per-run attribution drops. (AC-28)
+      by_agent="$(echo "$events" | jq -s '
+        group_by(.agent_name) | map(
+          ( [ .[] | .ts ] ) as $ts
+          | { agent_name: .[0].agent_name,
+              tokens: (map(.tokens // 0) | add),
+              cost_usd: (map(.cost_usd // 0) | add),
+              event_count: length,
+              wall_span_s: ( if ($ts | map(type=="number") | all)
+                             then (($ts|max) - ($ts|min))
+                             else "[unverified: malformed OTel timestamp]" end ) } )')"
+      by_is_json=true
+    fi
+  fi
+  local by_json
+  if "$by_is_json"; then by_json="$by_agent"; else by_json="$(jq -nc --arg s "$by_agent" '$s')"; fi
+  jq -nc --argjson cc "$cc_main" --arg agg "$agg" --arg sw "$sw" --argjson un "${unparse:-0}" \
+    --argjson by "$by_json" \
+    '{cc_main:$cc, costs_aggregate_usd:$agg, session_wallclock_s:$sw, by_agent:$by, unparseable_lines:$un}'
+}
+
 main() {
   echo "metrics-report: not yet implemented" >&2
   return 0
