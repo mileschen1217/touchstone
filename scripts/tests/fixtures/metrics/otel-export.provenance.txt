@@ -1,0 +1,14 @@
+# metrics-capture OTel fixture — REAL otelcol capture
+capture date: 2026-06-30
+otelcol version: otelcol-contrib version 0.155.0
+CC version: 2.1.195 (Claude Code)
+produced by: scripts/metrics/capture-otel-fixture.sh (CLAUDE_CODE_ENABLE_TELEMETRY=1 OTLP/http; headless claude -p launched one general-purpose subagent)
+
+## Real CC telemetry schema bound by this capture (vs the synthetic flat fixtures)
+shape:           nested OTLP — resourceLogs[].scopeLogs[].logRecords[]; event name in .body.stringValue; ts = .timeUnixNano (ns)
+session-id key:  session.id   (dotted, NOT session_id)
+agent-name key:  agent.name   (dotted, NOT agent_name)
+subagent filter: query_source = 'agent:<source>:<type>' (e.g. agent:builtin:general-purpose); literal 'subagent' never appears
+main-loop:       query_source = 'sdk' (headless) / 'user' (interactive)
+token/cost keys: input_tokens,output_tokens,cache_read_tokens,cache_creation_tokens (intValue); cost_usd (doubleValue)
+captured session.id: 8211ec02-5d02-4b22-b4be-4433805cef30 (PII attrs redacted)
