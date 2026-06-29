@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Deterministic tests for the metrics-capture report tool + owned writer.
 # Covers AC-1..AC-29 except AC-23 (live-bearing — see test note in that task).
+# SC2015: && ok || fail idiom is intentional (ok/fail are counter+echo, not exit-zero guards).
+# SC2034: WRITER/FIX/PRICES are scaffolded for later tasks (Task 2+), not yet referenced.
+# shellcheck disable=SC2015,SC2034
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TOOL="$REPO_ROOT/scripts/metrics-report.sh"
