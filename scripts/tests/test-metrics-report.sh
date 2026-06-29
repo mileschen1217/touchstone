@@ -147,13 +147,13 @@ sum_ns="$(build_session_summary "$tr" "$co_ns_bad" "" SES "" 2>/dev/null)"
 # --- AC-15: OTel scoping — matching included, foreign excluded, unscoped marked ---
 ot="$TMP/otel.jsonl"
 printf '%s\n' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":100,"cost_usd":0.1,"ts":1000}' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"OTHER","agent_name":"reviewer","tokens":900,"cost_usd":0.9,"ts":1000}' \
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:reviewer","session_id":"SES","agent_name":"reviewer","tokens":100,"cost_usd":0.1,"ts":1000}' \
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:reviewer","session_id":"OTHER","agent_name":"reviewer","tokens":900,"cost_usd":0.9,"ts":1000}' \
  '{"name":"claude_code.api_request","query_source":"main","session_id":"SES","agent_name":"orchestrator","tokens":50,"cost_usd":0.05,"ts":1000}' > "$ot"
 n="$(otel_scoped_events "$ot" SES "" | wc -l | tr -d ' ')"
 [ "$n" = 1 ] && ok "AC-15 only matching-session subagent event included" || fail "AC-15 got n=$n"
 # unscoped event marked _unscoped without an --otel-session-scope assertion
-ot2="$TMP/otel2.jsonl"; printf '%s\n' '{"name":"claude_code.api_request","query_source":"subagent","agent_name":"r","tokens":1,"cost_usd":0.01,"ts":1}' > "$ot2"
+ot2="$TMP/otel2.jsonl"; printf '%s\n' '{"name":"claude_code.api_request","query_source":"agent:builtin:r","agent_name":"r","tokens":1,"cost_usd":0.01,"ts":1}' > "$ot2"
 u="$(otel_scoped_events "$ot2" SES "")"
 [ "$(echo "$u" | jq -r '._unscoped')" = true ] && ok "AC-15 unscoped event marked" || fail "AC-15 unscoped got=$u"
 # with scope assertion, unscoped event is included as scoped
@@ -221,9 +221,9 @@ rowB="$(echo "$rows" | jq -c 'select(.stage=="passB")')"
 # --- AC-27/28/29: by-agent rollup is a complete superset incl. non-composite subagents ---
 sumcol_otel="$TMP/otel_roll.jsonl"
 printf '%s\n' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":100,"cost_usd":0.10,"ts":1000}' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":50,"cost_usd":0.05,"ts":1200}' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"sdd-task","tokens":400,"cost_usd":0.40,"ts":9999}' \
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:reviewer","session_id":"SES","agent_name":"reviewer","tokens":100,"cost_usd":0.10,"ts":1000}' \
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:reviewer","session_id":"SES","agent_name":"reviewer","tokens":50,"cost_usd":0.05,"ts":1200}' \
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:sdd-task","session_id":"SES","agent_name":"sdd-task","tokens":400,"cost_usd":0.40,"ts":9999}' \
  '{"name":"claude_code.api_request","query_source":"main","session_id":"SES","agent_name":"orch","tokens":1,"cost_usd":0.01,"ts":1000}' > "$sumcol_otel"
 sum="$(build_session_summary "$tr" "$co" "$sumcol_otel" SES "")"
 # sdd-task (outside any composite window) is present → no session-level gap
@@ -253,8 +253,8 @@ echo "$rows28" | jq -e '.dispatch_total_cost_usd | type=="string" and startswith
 # --- AC-29: a non-numeric ts → that agent's wall_span_s is [unverified: malformed OTel timestamp] ---
 badts="$TMP/otel_badts.jsonl"
 printf '%s\n' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":10,"cost_usd":0.01,"ts":"not-a-number"}' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"reviewer","tokens":10,"cost_usd":0.01,"ts":1000}' > "$badts"
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:reviewer","session_id":"SES","agent_name":"reviewer","tokens":10,"cost_usd":0.01,"ts":"not-a-number"}' \
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:reviewer","session_id":"SES","agent_name":"reviewer","tokens":10,"cost_usd":0.01,"ts":1000}' > "$badts"
 sum3="$(build_session_summary "$tr" "$co" "$badts" SES "")"
 [ "$(echo "$sum3" | jq -r '.by_agent[] | select(.agent_name=="reviewer") | .wall_span_s')" = "[unverified: malformed OTel timestamp]" ] \
   && ok "AC-29 malformed OTel ts → wall_span_s unverified" || fail "AC-29 got=$(echo "$sum3" | jq -rc '.by_agent')"
@@ -284,10 +284,10 @@ printf '{"run_id":"D1","codex_artifact_path":null,"stage":"s","model":"m","start
 printf '{"run_id":"D2","codex_artifact_path":null,"stage":"s","model":"m","started_at":"1970-01-01T00:01:00Z","ended_at":"1970-01-01T00:05:00Z","providers_used":["cc"],"fallback_reason":null}' > "$dcol2/D2.meta.json"
 dotel="$TMP/diag_otel.jsonl"
 printf '%s\n' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"x","tokens":1,"cost_usd":0.01,"ts":50}' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"z","tokens":1,"cost_usd":0.01,"ts":150}' \
- '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"y","tokens":1,"cost_usd":0.01,"ts":"bad"}' \
- '{"name":"claude_code.api_request","query_source":"subagent","agent_name":"u","tokens":1,"cost_usd":0.01,"ts":150}' > "$dotel"
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:x","session_id":"SES","agent_name":"x","tokens":1,"cost_usd":0.01,"ts":50}' \
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:z","session_id":"SES","agent_name":"z","tokens":1,"cost_usd":0.01,"ts":150}' \
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:y","session_id":"SES","agent_name":"y","tokens":1,"cost_usd":0.01,"ts":"bad"}' \
+ '{"name":"claude_code.api_request","query_source":"agent:builtin:u","agent_name":"u","tokens":1,"cost_usd":0.01,"ts":150}' > "$dotel"
 diag="$(otel_diagnostics "$dcol2" "$dotel" SES "")"
 echo "$diag" | grep -q "unattributed OTel event"        && ok "AC-20 unattributed event surfaced"   || fail "AC-20 unattributed: $diag"
 echo "$diag" | grep -q "ambiguous OTel run attribution" && ok "AC-20 ambiguous event surfaced"      || fail "AC-20 ambiguous: $diag"
@@ -321,6 +321,48 @@ if [ -f "$OTEL_FIX" ]; then
   # ≥1 subagent event outside every committed meta window — exercised in Task 10 against this fixture
 else
   echo "WARN - AC-23 live-bearing: OTel real capture not present → [unverified] carried to Evidence Reckoning"
+fi
+
+# --- REAL-DATA FIDELITY: otel_normalize + auto-detect + end-to-end with committed real fixture ---
+# These tests exercise AC-23's obligation: the reader must work on REAL nested-OTLP CC telemetry,
+# not just synthetic flat fixtures. Session id from scripts/tests/fixtures/metrics/otel-export.provenance.txt.
+REAL_SID="8211ec02-5d02-4b22-b4be-4433805cef30"
+if [ -f "$OTEL_FIX" ]; then
+  # REAL-1: otel_normalize extracts >= 1 api_request event with query_source starting "agent:"
+  norm_out="$(otel_normalize "$OTEL_FIX")"
+  sub_ev="$(printf '%s\n' "$norm_out" | jq -c 'select(.query_source | startswith("agent:"))' | head -1)"
+  [ -n "$sub_ev" ] \
+    && ok "REAL-1 otel_normalize emits >= 1 subagent event from real OTLP fixture" \
+    || fail "REAL-1 otel_normalize found no subagent event in real fixture"
+  # REAL-2: ts is epoch SECONDS (~1.78e9), NOT nanoseconds (~1.78e18)
+  ts_real="$(printf '%s' "$sub_ev" | jq -r '.ts')"
+  awk -v t="$ts_real" 'BEGIN{ exit !(t > 1000000000 && t < 2000000000) }' \
+    && ok "REAL-2 normalized ts is epoch seconds (~1.78e9 not ~1.78e18); got=$ts_real" \
+    || fail "REAL-2 ts outside seconds range: ts=$ts_real (expected ~1.78e9 seconds)"
+  # REAL-3: agent_name is non-null and non-empty
+  an_real="$(printf '%s' "$sub_ev" | jq -r '.agent_name')"
+  [ -n "$an_real" ] && [ "$an_real" != "null" ] \
+    && ok "REAL-3 normalized event has non-null agent_name: $an_real" \
+    || fail "REAL-3 agent_name null or empty: $an_real"
+  # REAL-4: tokens and cost_usd are numeric (>= 0)
+  printf '%s' "$sub_ev" | jq -e '(.tokens | type) == "number" and (.cost_usd | type) == "number"' >/dev/null 2>&1 \
+    && ok "REAL-4 normalized event tokens/cost_usd are numeric" \
+    || fail "REAL-4 tokens or cost_usd not numeric: $sub_ev"
+  # REAL-5: otel_scoped_events auto-detects OTLP, scopes to real session, returns events
+  scoped_real="$(otel_scoped_events "$OTEL_FIX" "$REAL_SID" "")"
+  [ -n "$scoped_real" ] \
+    && ok "REAL-5 otel_scoped_events auto-detects OTLP + returns scoped events for real session" \
+    || fail "REAL-5 otel_scoped_events returned no events for session $REAL_SID"
+  # REAL-6: end-to-end build_session_summary -> by_agent is a real JSON array (not [unverified])
+  sum_real="$(build_session_summary "$tr" "$co" "$OTEL_FIX" "$REAL_SID" "")"
+  printf '%s' "$sum_real" | jq -e '.by_agent | type == "array"' >/dev/null 2>&1 \
+    && ok "REAL-6 by_agent is a JSON array (real data, not [unverified] sentinel)" \
+    || fail "REAL-6 by_agent not an array: $(printf '%s' "$sum_real" | jq -r '.by_agent')"
+  # REAL-6b: by_agent contains the real subagent (agent_name non-empty)
+  real_agent="$(printf '%s' "$sum_real" | jq -r '.by_agent[0].agent_name // empty')"
+  [ -n "$real_agent" ] \
+    && ok "REAL-6b by_agent[0].agent_name=$real_agent (real subagent captured end-to-end)" \
+    || fail "REAL-6b by_agent has no agent_name entry"
 fi
 
 # --- DS-1 (regression): single sentinel home + closed-list guard ---

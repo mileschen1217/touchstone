@@ -134,18 +134,50 @@ costs_aggregate() {
   esac
 }
 
+# otel_normalize <otlp_file> → one flat event JSON per line (only claude_code.api_request records)
+# Reads nested OTLP (resourceLogs[].scopeLogs[].logRecords[]); emits flat shape:
+#   { query_source, session_id, agent_name, tokens, cost_usd, ts }
+# ts = floor(timeUnixNano / 1e9) via string-slice (avoids IEEE-754 precision loss on 64-bit ns).
+# intValue attributes in OTLP proto-JSON are encoded as strings; tonumber converts them. (AC-23)
+otel_normalize() {
+  local f="$1"
+  jq -c '
+    select(has("resourceLogs"))
+    | .resourceLogs[].scopeLogs[].logRecords[]
+    | select(.body.stringValue == "claude_code.api_request")
+    | . as $rec
+    | ([ $rec.attributes[] | {(.key): .value} ] | add // {}) as $attrs
+    | { query_source: ($attrs["query_source"].stringValue // ""),
+        session_id:   ($attrs["session.id"].stringValue // null),
+        agent_name:   ($attrs["agent.name"].stringValue // null),
+        tokens:       (($attrs["input_tokens"].intValue  // "0" | tonumber)
+                     + ($attrs["output_tokens"].intValue // "0" | tonumber)),
+        cost_usd:     ($attrs["cost_usd"].doubleValue // 0),
+        ts:           ($rec.timeUnixNano[0:(($rec.timeUnixNano | length) - 9)] | tonumber) }
+  ' "$f" 2>/dev/null
+}
+
 # otel_scoped_events <otel> <session_id> <scope_assert>
 # → one scoped subagent event JSON per line; return 2 if file absent (typed no-data)
+# Auto-detects nested OTLP (first line has .resourceLogs/.resourceMetrics) and normalizes;
+# flat files pass through unchanged. Subagent predicate: query_source starts with "agent:". (AC-23)
 otel_scoped_events() {
-  local f="$1" sid="$2" assert="$3"
+  local f="$1" sid="$2" assert="$3" is_otlp=0 first_line
   [ -r "$f" ] || return 2
-  jq -c --arg sid "$sid" --arg assert "$assert" '
-    select((.query_source // "") == "subagent")
+  first_line="$(grep -m1 '.' "$f")"
+  printf '%s' "$first_line" | jq -e 'has("resourceLogs") or has("resourceMetrics")' >/dev/null 2>&1 \
+    && is_otlp=1
+  if [ "$is_otlp" -eq 1 ]; then
+    otel_normalize "$f"
+  else
+    cat "$f"
+  fi | jq -c --arg sid "$sid" --arg assert "$assert" '
+    select((.query_source // "") | startswith("agent:"))
     | if (has("session_id")) then
         ( if .session_id == $sid then . else empty end )
       else
         ( if ($assert | length) > 0 then . else (. + {"_unscoped": true}) end )
-      end' "$f" 2>/dev/null
+      end' 2>/dev/null
 }
 
 # attribute_event <ts> <windows_tsv> → run_id | UNATTRIBUTED | AMBIGUOUS (half-open [start,end))
