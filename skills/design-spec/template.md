@@ -133,7 +133,26 @@ Then <observable outcome>
 
 ## Architecture
 
-System shape — structure, components, data flow. Skip if the feature is purely additive within an existing module. Include a Mermaid diagram for non-trivial flows.
+> Normative per-component structural commitments, graded against
+> `skills/keystone/references/arch-rubric.md` (load, do not restate the force text).
+>
+> **Depth-stakes decision rule:** a component has **depth-stakes** — and REQUIRES a
+> commitment here — if it: hides a non-trivial implementation decision, holds or mutates state,
+> or sequences operations a caller could otherwise mis-order. Answer this question for every
+> component; the `no structural commitment — additive` escape below requires a deliberate answer,
+> not a silent skip.
+>
+> **For each component with depth stakes,** author SHALL-form commitments, e.g.:
+> "Module M SHALL be deep — it SHALL hide X; it SHALL NOT leak its orchestration sequence to
+> callers." Ground each commitment in the arch-rubric forces (interface economy, cohesion,
+> coupling, YAGNI).
+>
+> **For purely additive components** (adds behaviour within an existing module's established
+> interface, no depth stakes), state explicitly:
+> `no structural commitment — additive within existing module`
+>
+> The prior silent "skip if additive" escape is removed. Every feature either states commitments
+> or explicitly declares zero. Include a Mermaid diagram for non-trivial flows.
 
 ## Interfaces / Contracts
 

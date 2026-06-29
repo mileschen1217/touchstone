@@ -57,6 +57,15 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    discipline — inject regardless of which disciplines are adopted (do NOT gate it on
    `source-as-truth`).
 
+   Also read and inject verbatim
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`
+   into the reviewer envelope (append to task prompt). This is the **feedback arm (FB)**:
+   applied to the **whole deliverable** vs the **whole ## Architecture** section of the
+   governing spec. The cold reviewer applies the honor-judgment rule from the injected
+   fragment — enumerate the spec's SHALL commitments, judge each as honored / violated /
+   `[unverified: reason]`, raise one finding per violated commitment. This is subsystem
+   scope (not per-diff). Single home: load by path; never restate the body inline.
+
    **(b) The `code-review batch` feedback delta** — prepend this, after the injected doctrine:
 
    > Read the governing spec's ACs and the test source. For each AC, judge whether a

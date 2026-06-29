@@ -70,6 +70,14 @@ fires regardless of which disciplines are adopted (do NOT gate it on `source-as-
 Item 7 of the doc-review prompt applies this injected doctrine as its feedforward
 (declaration) stage. Also inject `ground-and-sweep.md` per the feedback arm section below.
 
+**Design-soundness fragment (unconditional — FF arm).** Read and inject verbatim
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`
+into the doc-review `system_prompt` (prepend before the doc-review prompt block below).
+This is the **feedforward arm** of the design-soundness lens: the cold reviewer applies
+the feedforward duty (depth-stakes test + descriptive-only detection on the spec document),
+not the feedback duty (code vs spec, which lives at the deliverable-review surfaces).
+Single home: load by path, never restate the body inline.
+
 ### Validate input scope
 
 Read the target file(s). Check frontmatter `type:` field if present, or path:
@@ -112,7 +120,10 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 
 > You are reviewing an authored design document (spec, plan, or ADR). Apply TWO lens-sets (UNION, not substitution): **(i) design-soundness** and **(ii) verification-honesty**. Passing one lens **NEVER** discharges the other.
 >
-> Check (design-soundness lens) — is the approach / architecture sound? Score against the architecture rubric (single home: `skills/keystone/references/arch-rubric.md`) — its forces: **interface economy / information-hiding** (minimize what a consumer must know to use or change a unit), **cohesion** (one reason-to-change per unit), **coupling** (minimize, keep acyclic, what must change together), **speculative cost / YAGNI** (no complexity for improbable futures) — plus structural validity, unhandled failure modes, and missed edge cases. Flag a design that violates a force or leaves a failure mode unhandled. (This is the architecture lens the former author-time critique carried; it now lives here as one half of the gate.)
+> **Design-soundness lens — feedforward arm (FF):** apply the feedforward duty from
+> the design-soundness fragment injected verbatim above (subject = the spec document,
+> not code). Additionally assess structural validity, unhandled failure modes, and
+> missed edge cases against the architecture rubric.
 >
 > Check (verification-honesty lens):
 > 1. Problem / Scope / Non-goals are concrete and falsifiable

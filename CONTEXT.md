@@ -303,6 +303,8 @@ Terms shipped by the `testing-strategy` epic (closed 2026-05-27). The evidence-h
 
 **ground-and-sweep doctrine** — two orthogonal per-unit tests (ground-before-assert + sweep-to-dry) applied on both the feedforward (design-spec) and feedback (design-review) arms. **Single home:** `skills/_shared/ground-and-sweep.md` (dual-use carve-out — see § Template co-location and ADR-0017).
 
+**design-soundness lens (two-arm)** — the design-quality arm of the review spine: a **feedforward arm** at `design-review` (judges whether a depth-stakes component's `## Architecture` carries normative commitments) and a **feedback arm** at deliverable review (`anvil` final review + `code-review batch`, judging delivered code against those commitments). Subsystem scope, not per-diff. **Single home:** `skills/_shared/inject/design-soundness-honor-check.md` — consumers load it by path; the procedural definition and the avoid-list live there, not here.
+
 ## Epic-tracker projection vocabulary
 
 The `epic-driven-roadmap` skill keeps its work-content in a local markdown index (`.touchstone/epics/<slug>/index.md`) as the single source of truth. Shared trackers (GitHub / GitLab Issues, Jira, Linear) are downstream **projections** of that index, never a second home. (Supersedes the storage-adapter model of ADR-0012 — the bidirectional code adapter solved a non-problem for an LLM substrate; the agent is the shim.)

@@ -24,7 +24,7 @@ Each dispatched stage produces a `stage-return/v1` artifact via `normalize-stage
 
 ---
 
-## Stage 1 — Entry precondition (dispatched; structured-return required)
+## Entry precondition (dispatched; structured-return required)
 
 Run the Phase-3.1 spine-integrity gate on the accepted contract. Capture native output FIRST, then normalize:
 
@@ -35,7 +35,7 @@ bash scripts/normalize-stage-return.sh entry-precondition "$task_dir"
 ```
 
 **Structured-return handling:**
-- `status=DONE` → proceed to Stage 2.
+- `status=DONE` → proceed to writing-plans.
 - `status=BLOCKED` → surface the BLOCK line to the human; halt. Run **no downstream stage**.
 - `status=NEEDS_HUMAN` → surface the reason; halt for ack before any downstream stage.
 
@@ -43,7 +43,7 @@ Stale digest, unmet structural floor, or script non-zero → adapter emits `BLOC
 
 ---
 
-## Stage 2 — writing-plans (in-session)
+## writing-plans (in-session)
 
 Invoke `/superpowers:writing-plans` in-session (inherits session context; authoring independence is supplied by the downstream `plan-review` dispatch). Output: a plan file at a known path.
 
@@ -58,7 +58,7 @@ If any check fails: halt and surface to the human. Do NOT dispatch plan-review o
 
 ---
 
-## Stage 3 — plan-review (dispatched; structured-return required)
+## plan-review (dispatched; structured-return required)
 
 Dispatch `touchstone:cross-provider-reviewer` on the plan. The dispatch prompt MUST ask the reviewer to end its output with the sentinel:
 
@@ -73,26 +73,34 @@ bash scripts/normalize-stage-return.sh plan-review "$task_dir"
 ```
 
 **Structured-return handling:**
-- `status=DONE` → proceed to Stage 4.
+- `status=DONE` → proceed to SDD.
 - `status=BLOCKED` → surface findings; halt. Human resolves; re-invoke anvil or this stage.
 - `status=NEEDS_HUMAN` → surface degraded/partial provenance reason; halt for explicit ack.
 
 ---
 
-## Stage 4 — SDD (in-session)
+## SDD (in-session)
 
 Invoke `/superpowers:subagent-driven-development` in-session. SDD is designed for continuous in-session execution (no routine human stops). After SDD's run, read `.superpowers/sdd/progress.md` for terminal state:
 
-- All tasks complete → proceed to Stage 5.
+- All tasks complete → proceed to the final review.
 - A task is BLOCKED → surface directly to the present human (SDD runs in-session; no envelope needed — REQ-7 scope is dispatched stages only). Resume after resolution.
 
 SDD per-task token/cost is `[unverified: token capture]` for v1 (SDD's ledger records commits, not model/token — observing it requires re-owning the loop, which is Level-B deferred).
 
 ---
 
-## Stage 5 — Final cross-vendor review (dispatched; structured-return required)
+## Final cross-vendor review (dispatched; structured-return required)
 
-Dispatch `touchstone:cross-provider-reviewer` on the deliverable. Same capture-then-normalize two-step as Stage 3 (write `review.result.json` + `review.md` into `$task_dir`):
+**Design-soundness feedback arm (FB).** Before dispatching the reviewer, read and inject
+verbatim `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`
+into the reviewer prompt (append to `system_prompt`). This is the **feedback arm** applied
+to the **whole deliverable** vs the **whole ## Architecture** section of the governing spec
+(subsystem scope, not per-diff). The cold reviewer applies the honor-judgment rule: enumerate
+the spec's SHALL commitments and judge each as honored, violated, or `[unverified: reason]`.
+Single home: load by path; never restate the body inline.
+
+Dispatch `touchstone:cross-provider-reviewer` on the deliverable. Same capture-then-normalize two-step as plan-review (write `review.result.json` + `review.md` into `$task_dir`):
 
 ```bash
 bash scripts/normalize-stage-return.sh final-review "$task_dir"
@@ -126,7 +134,7 @@ Present the branch name and the final-review result to the human for their final
 
 anvil claims exactly:
 - **Deterministic stage sequencing** — the procedure specifies a fixed order; no stage may be skipped to reach a later one.
-- **Independent cross-vendor FINAL review** — the Stage-5 final review is cross-vendor staffed (CC builds, Codex reviews or vice-versa).
+- **Independent cross-vendor FINAL review** — the final review is cross-vendor staffed (CC builds, Codex reviews or vice-versa).
 
 Per-task builder≠reviewer swap remains SDD's soft internal loop (Level-B deferred — re-owning SDD's loop requires the Workflow-tool substrate anvil deliberately avoids). anvil does NOT claim: sweep-verification, per-task program-enforced independence, or anything stronger than the two buys above.
 
