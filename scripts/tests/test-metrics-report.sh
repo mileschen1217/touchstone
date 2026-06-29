@@ -135,6 +135,15 @@ note="$(costs_aggregate "$co2" S1 2>&1 >/dev/null)"; rc=$?
 co3="$TMP/costs3.jsonl"; printf '%s\n' '{"session_id":"S1","input_tokens":1,"output_tokens":1}' '{"input_tokens":1,"output_tokens":1}' > "$co3"
 if costs_aggregate "$co3" S1 >/dev/null 2>&1; then fail "AC-6 mixed-schema should be NOSCOPE"; else ok "AC-6 mixed-schema → NOSCOPE"; fi
 
+# --- G-2 (regression): unparseable_lines preserved through build_session_summary when costs NOSCOPE ---
+# A NOSCOPE costs file WITH malformed lines: the count must survive the NOSCOPE else-branch.
+co_ns_bad="$TMP/costs_ns_bad.jsonl"
+printf '%s\n' '{"input_tokens":100,"output_tokens":50,"cost_usd":0.5}' 'not json' > "$co_ns_bad"
+sum_ns="$(build_session_summary "$tr" "$co_ns_bad" "" SES "" 2>/dev/null)"
+[ "$(echo "$sum_ns" | jq -r .unparseable_lines)" = 1 ] \
+  && ok "G-2 unparseable_lines=1 preserved through NOSCOPE else-branch" \
+  || fail "G-2 unparseable_lines wrong: $(echo "$sum_ns" | jq -r .unparseable_lines)"
+
 # --- AC-15: OTel scoping — matching included, foreign excluded, unscoped marked ---
 ot="$TMP/otel.jsonl"
 printf '%s\n' \

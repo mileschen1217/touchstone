@@ -161,6 +161,8 @@ scripts/metrics-report.sh \
 
 The `--session-id` flag must match the `session_id` attribute key in your otelcol export. Run one short session, inspect a line with `jq -r '.resourceSpans[].scopeSpans[].spans[].attributes[] | select(.key | test("session")) | .key' otel-export.jsonl` to confirm the attribute name before committing it.
 
+> **Current limitation — OTLP shape mismatch:** `metrics-report.sh` (`otel_scoped_events`) consumes a **flat** JSONL event shape — one object per line with top-level fields `query_source`, `session_id`, `agent_name`, `tokens`, `cost_usd`, `ts`. A raw `otelcol` file-exporter produces **nested OTLP JSON** (`resourceSpans[].scopeSpans[].spans[].attributes[]`). The OTLP→flat normalization step — including resolving the correct `session_id` attribute key — is part of discharging the live-bearing AC-23 capture and is **not yet implemented**. Feeding a raw otelcol export directly into `--otel` will not match any events until that normalization lands. The collector setup instructions above remain accurate; this note clarifies what is missing in the end-to-end path today.
+
 ## Status
 
 `0.2.0`. Experimental. Used by the author on one project across ~30 sessions. Cross-project portability is unverified — see `docs/comparisons.md` for scope boundaries.

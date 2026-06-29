@@ -310,10 +310,11 @@ build_session_summary() {
   if sw="$(session_wallclock "$tr" 2>/dev/null)"; then :; else sw="$(UNVERIFIED 'malformed transcript timestamp')"; fi
   # costs aggregate (single correct assignment — H4)
   local agg_json
-  if agg_json="$(costs_aggregate "$costs" "$sid" 2>/dev/null)"; then
+  if agg_json="$(costs_aggregate "$costs" "$sid")"; then
     agg="$(echo "$agg_json" | jq -r .usd)"; unparse="$(echo "$agg_json" | jq -r .unparseable_lines)"
   else
-    agg="$(UNVERIFIED 'costs aggregate lacks session scope')"; unparse=0
+    agg="$(UNVERIFIED 'costs aggregate lacks session scope')"
+    unparse="$(echo "$agg_json" | awk '{print $2; exit}')"; unparse="${unparse:-0}"
   fi
   # by-agent rollup. Track groundedness with an EXPLICIT boolean — do NOT sniff the first
   # char: an `[unverified: …]` sentinel ALSO starts with `[`, so a first-char test would
