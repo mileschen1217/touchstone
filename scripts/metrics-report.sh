@@ -354,8 +354,53 @@ build_session_summary() {
     '{cc_main:$cc, costs_aggregate_usd:$agg, session_wallclock_s:$sw, by_agent:$by, unparseable_lines:$un}'
 }
 
+usage() { echo "usage: metrics-report.sh --session <id|path> --collection <dir> [--session-id <id>] [--otel <p>] [--otel-session-scope <s>] [--prices <p>] [--costs <p>]" >&2; }
+
 main() {
-  echo "metrics-report: not yet implemented" >&2
+  local session="" collection="" otel="" scope="" prices="" costs="" sid_override=""
+  # every value-taking flag guards that an operand exists BEFORE reading $2, so
+  # `metrics-report.sh --session` returns the usage code 2, not an `unbound variable`
+  # abort under `set -u`. (M-new-1)
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --session)             [ $# -ge 2 ] || { usage; return 2; }; session="$2"; shift 2;;
+      --session-id)          [ $# -ge 2 ] || { usage; return 2; }; sid_override="$2"; shift 2;;
+      --collection)          [ $# -ge 2 ] || { usage; return 2; }; collection="$2"; shift 2;;
+      --otel)                [ $# -ge 2 ] || { usage; return 2; }; otel="$2"; shift 2;;
+      --otel-session-scope)  [ $# -ge 2 ] || { usage; return 2; }; scope="$2"; shift 2;;
+      --prices)              [ $# -ge 2 ] || { usage; return 2; }; prices="$2"; shift 2;;
+      --costs)               [ $# -ge 2 ] || { usage; return 2; }; costs="$2"; shift 2;;
+      *) usage; return 2;;
+    esac
+  done
+  if [ -z "$collection" ] || [ ! -d "$collection" ]; then
+    echo "error: --collection dir missing/empty" >&2; return 2
+  fi
+  if [ -z "$session" ] || [ ! -f "$session" ]; then
+    echo "error: --session transcript not found" >&2; return 2
+  fi
+  [ -z "$prices" ] && prices="$(dirname "$0")/metrics/model-prices.json"
+  [ -z "$costs" ] && costs="$HOME/.claude/metrics/costs.jsonl"
+  # session id: explicit --session-id wins (it must match the OTel sink's real session UUID);
+  # else fall back to the transcript filename stem (best-effort — see Risks).
+  local sid
+  if [ -n "$sid_override" ]; then sid="$sid_override"; else sid="$(basename "$session" | sed 's/\.[^.]*$//')"; fi
+  # per-run rows (propagates duplicate run_id hard error → exit 1)
+  local rows
+  if ! rows="$(build_per_run_rows "$collection" "$prices" "$otel" "$sid" "$scope")"; then
+    echo "error: duplicate run_id in collection" >&2; return 1
+  fi
+  echo "$rows"
+  # per-run-reporting honesty: events that match zero / multiple windows (or carry a bad ts)
+  # are surfaced with their distinct closed-list markers — never silently dropped. (AC-20)
+  local diag
+  diag="$(otel_diagnostics "$collection" "$otel" "$sid" "$scope")"
+  if [ -n "$diag" ]; then echo "=== OTEL EVENT DIAGNOSTICS ==="; echo "$diag"; fi
+  echo "=== SESSION SUMMARY ==="
+  build_session_summary "$session" "$costs" "$otel" "$sid" "$scope"
+  if [ -z "$otel" ]; then
+    echo "WARNING: CC-subagent figures are [unverified] — no OTel sink supplied. See README § OTel setup." >&2
+  fi
   return 0
 }
 

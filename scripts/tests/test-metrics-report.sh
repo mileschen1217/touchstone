@@ -250,4 +250,40 @@ sum3="$(build_session_summary "$tr" "$co" "$badts" SES "")"
 [ "$(echo "$sum3" | jq -r '.by_agent[] | select(.agent_name=="reviewer") | .wall_span_s')" = "[unverified: malformed OTel timestamp]" ] \
   && ok "AC-29 malformed OTel ts → wall_span_s unverified" || fail "AC-29 got=$(echo "$sum3" | jq -rc '.by_agent')"
 
+# --- AC-22: writer→report seam (forward the printed collection_dir verbatim) ---
+seamrec="$("$WRITER" "$TMP/rawA.jsonl" "$TMP/seam" stageS claude-opus-4-8 2026-06-29T10:00:00Z 2026-06-29T10:01:00Z)"
+seamdir="$(echo "$seamrec" | jq -r .collection_dir)"
+out="$(bash "$TOOL" --session "$tr" --collection "$seamdir" 2>/dev/null)"
+echo "$out" | grep -q stageS && ok "AC-22 report enumerates writer-persisted run via printed dir" || fail "AC-22 seam"
+# --- AC-11: no --otel → visible warning pointing to README ---
+warn="$(bash "$TOOL" --session "$tr" --collection "$seamdir" 2>&1 >/dev/null)"
+echo "$warn" | grep -qi "OTel" && echo "$warn" | grep -qi "README" && ok "AC-11 missing-OTel warning → README" || fail "AC-11 warning"
+# --- AC-25 wiring: duplicate run_id → exit 1 ---
+bash "$TOOL" --session "$tr" --collection "$dcol" >/dev/null 2>&1; [ $? -eq 1 ] && ok "AC-25 duplicate → exit 1" || fail "AC-25 exit code"
+# --- usage errors ---
+bash "$TOOL" --session "$tr" >/dev/null 2>&1; [ $? -eq 2 ] && ok "usage: missing --collection → exit 2" || fail "exit 2 missing collection"
+bash "$TOOL" --session /no/such --collection "$seamdir" >/dev/null 2>&1; [ $? -eq 2 ] && ok "usage: missing transcript → exit 2" || fail "exit 2 missing transcript"
+# --- AC-5: tool dispatches no LLM (no Agent/claude call in source) ---
+# Pattern requires Agent as a call (Agent\() to avoid false-positives on agent_name/by_agent identifiers.
+grep -qE '(^|[^a-zA-Z0-9_])(Agent\(|claude -p|claude --print)' "$TOOL" && fail "AC-5 tool references an LLM dispatch" || ok "AC-5 no LLM dispatch in tool"
+# --- M-new-1: a value-taking flag with no operand → clean exit 2 (not unbound-variable abort) ---
+bash "$TOOL" --session >/dev/null 2>&1; [ $? -eq 2 ] && ok "usage: dangling --session → exit 2" || fail "dangling flag not exit 2"
+# --- AC-20 surfacing: unattributed / ambiguous / malformed-ts events get closed-list markers ---
+dcol2="$TMP/diag"; mkdir -p "$dcol2"
+# D1 window [100,200)  (1970-01-01T00:01:40Z=100, 00:03:20Z=200);  D2 [60,300) overlaps D1
+printf '{"run_id":"D1","codex_artifact_path":null,"stage":"s","model":"m","started_at":"1970-01-01T00:01:40Z","ended_at":"1970-01-01T00:03:20Z","providers_used":["cc"],"fallback_reason":null}' > "$dcol2/D1.meta.json"
+printf '{"run_id":"D2","codex_artifact_path":null,"stage":"s","model":"m","started_at":"1970-01-01T00:01:00Z","ended_at":"1970-01-01T00:05:00Z","providers_used":["cc"],"fallback_reason":null}' > "$dcol2/D2.meta.json"
+dotel="$TMP/diag_otel.jsonl"
+printf '%s\n' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"x","tokens":1,"cost_usd":0.01,"ts":50}' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"z","tokens":1,"cost_usd":0.01,"ts":150}' \
+ '{"name":"claude_code.api_request","query_source":"subagent","session_id":"SES","agent_name":"y","tokens":1,"cost_usd":0.01,"ts":"bad"}' \
+ '{"name":"claude_code.api_request","query_source":"subagent","agent_name":"u","tokens":1,"cost_usd":0.01,"ts":150}' > "$dotel"
+diag="$(otel_diagnostics "$dcol2" "$dotel" SES "")"
+echo "$diag" | grep -q "unattributed OTel event"        && ok "AC-20 unattributed event surfaced"   || fail "AC-20 unattributed: $diag"
+echo "$diag" | grep -q "ambiguous OTel run attribution" && ok "AC-20 ambiguous event surfaced"      || fail "AC-20 ambiguous: $diag"
+echo "$diag" | grep -q "malformed OTel timestamp"       && ok "AC-20 malformed-ts event surfaced"   || fail "AC-20 malformed ts: $diag"
+# AC-15 per-run: an unscoped event (no session_id, no scope assertion) is surfaced, not dropped
+echo "$diag" | grep -q "OTel events lack session scope" && ok "AC-15 unscoped event surfaced per-run" || fail "AC-15 unscoped: $diag"
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]
