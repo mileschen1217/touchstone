@@ -22,11 +22,16 @@ if [ -n "$reqs" ]; then
     echo "BLOCK: challenge-result pre-check failed"; echo "$out"; exit 1
   fi
 fi
-# 3. live-bearing structural check (additive; echo UNCONDITIONALLY so advisory
-#    candidates emitted on exit 0 are not swallowed by a capture-on-failure pattern).
-lb_out="$(bash "$here/check-live-bearing.sh" "$spec" 2>&1)"; lb_rc=$?
-[ -n "$lb_out" ] && echo "$lb_out"
-if [ "$lb_rc" -ne 0 ]; then
-  echo "BLOCK: live-bearing structural check failed"; exit 1
+# 3. live-bearing structural check (requirement-bearing specs only). A contained
+#    requirement-free spec legitimately carries no Verification Strategy (design-spec:
+#    "VS attaches to full specs only"), so gating it on VS here would over-reach.
+#    Echo UNCONDITIONALLY within the branch so advisory candidates emitted on exit 0
+#    are not swallowed by a capture-on-failure pattern.
+if [ -n "$reqs" ]; then
+  lb_out="$(bash "$here/check-live-bearing.sh" "$spec" 2>&1)"; lb_rc=$?
+  [ -n "$lb_out" ] && echo "$lb_out"
+  if [ "$lb_rc" -ne 0 ]; then
+    echo "BLOCK: live-bearing structural check failed"; exit 1
+  fi
 fi
 echo "PRE-CHECK OK → dispatch"; exit 0
