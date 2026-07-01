@@ -157,7 +157,7 @@ toggle. Codex cost is harvested from `~/.codex/sessions` rollouts. Read the repo
 
 ```bash
 # via the skill — also bounds the last still-open run at report time
-/touchstone:metrics
+/touchstone:insight
 
 # or directly
 scripts/metrics-report.sh \
