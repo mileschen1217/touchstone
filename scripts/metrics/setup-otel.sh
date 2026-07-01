@@ -19,7 +19,15 @@ CONFIG="${SETUP_CONFIG:-$HOME/.config/otelcol/config.yaml}"; CONFIG_DIR="$(dirna
 SINK="${SETUP_SINK:-$HOME/.claude/metrics/otel-export.jsonl}"; SINK_DIR="$(dirname "$SINK")"
 PLIST="${SETUP_PLIST:-$HOME/Library/LaunchAgents/com.touchstone.otel.plist}"
 LABEL="com.touchstone.otel"
-PROFILE_FILE="${PROFILE_FILE:-$HOME/.zshrc}"
+# Pick the profile the user's LOGIN shell actually sources (so new terminals inherit the env),
+# unless PROFILE_FILE is set explicitly. zsh → ~/.zshrc, bash → ~/.bashrc, else ~/.profile.
+if [ -z "${PROFILE_FILE:-}" ]; then
+  case "${SHELL:-}" in
+    */zsh)  PROFILE_FILE="$HOME/.zshrc" ;;
+    */bash) PROFILE_FILE="$HOME/.bashrc" ;;
+    *)      PROFILE_FILE="$HOME/.profile" ;;
+  esac
+fi
 M0="# >>> touchstone otel >>>"
 M1="# <<< touchstone otel <<<"
 
@@ -100,8 +108,26 @@ PLIST
   launchctl unload "$PLIST" 2>/dev/null || true
   launchctl load "$PLIST" 2>/dev/null || die "launchctl load failed — check /tmp/touchstone-otel.err"
   say "launchd agent $LABEL loaded (logs: /tmp/touchstone-otel.log)"
+elif command -v systemctl >/dev/null 2>&1; then
+  # Linux: a systemd --user service is the launchd equivalent (per-user, restarts, starts at login).
+  UNIT_DIR="${SETUP_UNIT_DIR:-$HOME/.config/systemd/user}"; mkdir -p "$UNIT_DIR"
+  cat > "$UNIT_DIR/touchstone-otel.service" <<UNIT
+[Unit]
+Description=touchstone OpenTelemetry collector
+After=network.target
+[Service]
+ExecStart=${OTELCOL} --config ${CONFIG}
+Restart=always
+[Install]
+WantedBy=default.target
+UNIT
+  systemctl --user daemon-reload 2>/dev/null || true
+  systemctl --user enable --now touchstone-otel.service 2>/dev/null \
+    || die "systemctl --user enable failed — check 'systemctl --user status touchstone-otel.service'"
+  say "systemd --user service touchstone-otel enabled + started"
+  say "  (run 'loginctl enable-linger $USER' to keep it running after you log out)"
 else
-  say "non-macOS: run the collector yourself → $OTELCOL --config $CONFIG"
+  say "no launchd or systemctl — start the collector yourself: $OTELCOL --config $CONFIG"
 fi
 
 # --- 4. env vars (idempotent block in the shell profile) ------------------------------------------

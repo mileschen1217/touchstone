@@ -45,4 +45,16 @@ run; run
 n="$(grep -c 'touchstone otel >>>' "$TMP/zshrc")"
 [ "$n" = 1 ] && ok "SU-7 profile env block idempotent (exactly one after 3 runs)" || fail "SU-7 $n blocks"
 
+# SU-8/9: profile file follows the LOGIN shell ($SHELL); HOME override contains everything to $h
+det() { # <shell-path> → basename of the rc file that received the env block
+  local h; h="$(mktemp -d)"
+  HOME="$h" SHELL="$1" OTELCOL_BIN="$STUB" SETUP_SKIP_AGENT=1 \
+    SETUP_CONFIG="$h/config.yaml" SETUP_SINK="$h/sink.jsonl" OTEL_HTTP_PORT=14318 \
+    bash "$SETUP" >/dev/null 2>&1
+  grep -l "TOUCHSTONE_OTEL_EXPORT" "$h"/.zshrc "$h"/.bashrc "$h"/.profile 2>/dev/null | sed "s#$h/##" | head -1
+  rm -rf "$h"
+}
+[ "$(det /bin/zsh)"      = ".zshrc" ]  && ok "SU-8 login shell zsh → env block in ~/.zshrc"   || fail "SU-8 got=$(det /bin/zsh)"
+[ "$(det /usr/bin/bash)" = ".bashrc" ] && ok "SU-9 login shell bash → env block in ~/.bashrc" || fail "SU-9 got=$(det /usr/bin/bash)"
+
 echo ""; echo "PASS=$pass FAIL=$fail"; [ "$fail" -eq 0 ]

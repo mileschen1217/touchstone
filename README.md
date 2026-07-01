@@ -77,7 +77,7 @@ The full workflow lives in your global `~/.claude/CLAUDE.md` (touchstone integra
 
 `/touchstone:insight` attributes CC-subagent token/cost per agent, but only when an OpenTelemetry collector funnels Claude Code telemetry into a local JSONL sink. Without it, CC-subagent cells are `[unverified]` (Codex figures do not need it — they come from `~/.codex/sessions`).
 
-**One-shot setup.** This installs/locates `otelcol-contrib`, writes the collector config (the **logs** pipeline the reader consumes), loads a persistent launchd agent (macOS), and appends the telemetry env vars — including `TOUCHSTONE_OTEL_EXPORT` — to your shell profile. Idempotent; re-running is safe:
+**One-shot setup.** This installs/locates `otelcol-contrib`, writes the collector config (the **logs** pipeline the reader consumes), loads a persistent collector service (**macOS** launchd / **Linux** systemd `--user`), and appends the telemetry env vars — including `TOUCHSTONE_OTEL_EXPORT` — to the profile your login shell sources (`~/.zshrc`, `~/.bashrc`, or `~/.profile`). Idempotent; re-running is safe:
 
 ```bash
 scripts/metrics/setup-otel.sh
