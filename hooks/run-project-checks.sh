@@ -58,3 +58,69 @@ classify_command() {
   IFS="$oldIFS"; set +f
   echo "$matched"; return
 }
+
+# effective_git_dir <cmd> <payload_cwd> -> echoes the dir to resolve the repo from.
+# Honours `git -C <path>`; a RELATIVE -C path joins to payload cwd (NOT the hook's
+# own process cwd, which is the plugin root). Falls back to payload cwd.
+effective_git_dir() {
+  cmd="$1"; pcwd="$2"
+  # shellcheck disable=SC2086  # intentional: unquoted $cmd for word-splitting to parse tokens
+  set -- $cmd
+  # find `git` head then a -C value
+  while [ $# -gt 0 ]; do [ "$1" = "git" ] && break; shift; done
+  [ "${1:-}" = "git" ] && shift
+  cdir=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -C) cdir="${2:-}"; shift 2 ;;
+      -c) shift 2 ;;
+      *) break ;;
+    esac
+  done
+  if [ -n "$cdir" ]; then
+    case "$cdir" in
+      /*) echo "$cdir" ;;                 # absolute
+      *)  echo "$pcwd/$cdir" ;;           # relative → join payload cwd
+    esac
+  else
+    echo "$pcwd"
+  fi
+}
+
+main() {
+  command -v jq  >/dev/null 2>&1 || exit 0
+  command -v git >/dev/null 2>&1 || exit 0
+  payload="$(cat 2>/dev/null || true)"; [ -n "$payload" ] || exit 0
+  cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+  [ -n "$cmd" ] || exit 0
+  stage="$(classify_command "$cmd")"
+  [ "$stage" = none ] && exit 0
+  pcwd="$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null || true)"
+  [ -n "$pcwd" ] || pcwd="$PWD"
+  gdir="$(effective_git_dir "$cmd" "$pcwd")"
+  root="$(git -C "$gdir" rev-parse --show-toplevel 2>/dev/null || true)"
+  [ -n "$root" ] || exit 0                 # not a repo / infra → passthrough
+  dir="$root/.touchstone/checker/$stage"
+  [ -d "$dir" ] || exit 0                   # absent stage → passthrough
+  for chk in "$dir"/check-*.sh; do
+    [ -e "$chk" ] || continue               # zero-glob → literal, skip
+    # Honour the +x contract: a non-executable check is a MISCONFIGURED check, not
+    # an infra fault — surface it as a named block (the structure meta-check AC-22
+    # flags it pre-emptively, but the runtime must not silently run it via `bash`).
+    if [ ! -x "$chk" ]; then
+      printf '[touchstone-checker] FAIL: %s is not executable (chmod +x it)\n' "$chk" >&2
+      exit 2
+    fi
+    if ! out="$("$chk" 2>&1)"; then         # execute directly, honouring the +x bit
+      printf '[touchstone-checker] FAIL: %s\n%s\n' "$chk" "$out" >&2
+      exit 2                                # fail-fast: first failure blocks
+    fi
+  done
+  exit 0                                     # all passed / zero-glob
+}
+
+# source-guard: tests source this file for classify_command/effective_git_dir
+# without running main. Only run main when executed directly (stdin is the payload).
+case "${BASH_SOURCE[0]}" in
+  "$0") main ;;
+esac
