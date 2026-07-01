@@ -1,22 +1,17 @@
 {
   "hooks": {
-    "UserPromptExpansion": [
+    "UserPromptSubmit": [
       {
-        "matcher": "anvil",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh anvil" }
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh" }
         ]
-      },
+      }
+    ],
+    "PreToolUse": [
       {
-        "matcher": "design-spec",
+        "matcher": "Skill",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh design-spec" }
-        ]
-      },
-      {
-        "matcher": "design-review",
-        "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh design-review" }
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh" }
         ]
       }
     ]

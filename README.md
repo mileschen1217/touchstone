@@ -89,7 +89,9 @@ Then open a new shell (so the env vars load) and run your touchstone gates. If `
 
 Run-manifests are stamped automatically by a plugin hook on every **design-spec / design-review /
 anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs`) — no setup, no mode
-toggle. Codex cost is harvested from `~/.codex/sessions` rollouts. Read the report on demand:
+toggle. The hook catches both invoke paths: `UserPromptSubmit` when you type the gate command, and
+`PreToolUse`/`Skill` when a composite (e.g. crucible) auto-invokes design-spec / design-review
+internally. Codex cost is harvested from `~/.codex/sessions` rollouts. Read the report on demand:
 
 ```bash
 # via the skill — also bounds the last still-open run at report time
@@ -111,6 +113,13 @@ comes from OTel, Codex cost from `~/.codex/sessions`, and any cell that can't be
 > cwd at a time**. Separate git worktrees have distinct cwds and are fine; two concurrent sessions in
 > the *same directory path* are out of scope and their Codex costs may cross-attribute. CC-subagent
 > figures (OTel, keyed by `session.id`) are unaffected.
+>
+> **Accuracy limit — a stamp is a gate *invocation*, not a guaranteed completion.** When you TYPE a
+> leading `/anvil` (or `/design-spec` / `/design-review`), it is stamped at submit time; if you then
+> abandon or retry the run, that window is spurious or misattributed. The match is anchored to a
+> leading slash command, so discussing a gate in prose never stamps — only running the command does.
+> Gates auto-invoked by a composite (crucible → design-spec / design-review) are stamped via the Skill
+> tool and are completion-faithful. Filtering abandoned windows is left to the reader.
 
 ## Status
 

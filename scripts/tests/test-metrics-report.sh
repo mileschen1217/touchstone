@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deterministic tests for the metrics-capture v2 report tool + START hook.
 #
-# v2 contract: a UserPromptExpansion hook (hooks/stamp-run.sh) stamps a run-manifest per auto-run
+# v2 contract: a UserPromptSubmit + PreToolUse/Skill hook (hooks/stamp-run.sh) stamps a run-manifest per auto-run
 # gate; the reporter windows those manifests by next-START (last run bounded at report-time `now`)
 # and harvests each window from DURABLE logs — OTel for CC subagents, ~/.codex/sessions rollouts for
 # Codex. No owned-writer, no meta sidecars, no --collection. Windows are contiguous/disjoint by
@@ -300,29 +300,84 @@ echo "$diag" | grep -q "OTel events lack session scope" && ok "DG-3 unscoped eve
 # ==================================================================================
 # V2 NEW — START hook (hooks/stamp-run.sh) + hooks.json
 # ==================================================================================
-# HK-1: valid payload → manifest with all fields, under TOUCHSTONE_METRICS_DIR, NOT the project tree
+# The gate name is DERIVED from the payload (event-shape aware), never passed as an arg — the two
+# live paths are UserPromptSubmit (user types the slash command) and PreToolUse/Skill (assistant
+# auto-invokes, e.g. crucible → design-spec/design-review). Manifests land under
+# TOUCHSTONE_METRICS_DIR, off the project tree.
 HKD="$TMP/hk"
-printf '{"session_id":"hk-sess","cwd":"/some/proj","hook_event_name":"UserPromptExpansion"}' \
-  | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK" design-review
-hm="$(find "$HKD/runs" -name '*.json' 2>/dev/null | head -1)"
+mkfresh() { rm -rf "$HKD"; }   # isolate each stamp assertion so `find … | head -1` sees only its manifest
+manifest() { find "$HKD/runs" -name '*.json' 2>/dev/null | head -1; }
+
+# HK-1: UserPromptSubmit, user TYPES a leading slash gate (short form `/design-review`) → manifest
+mkfresh
+printf '{"session_id":"hk-sess","cwd":"/some/proj","hook_event_name":"UserPromptSubmit","prompt":"/design-review"}' \
+  | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+hm="$(manifest)"
 [ -n "$hm" ] && [ "$(jq -r .skill "$hm")" = design-review ] && [ "$(jq -r .session_id "$hm")" = hk-sess ] \
   && [ "$(jq -r .cwd "$hm")" = /some/proj ] && [ "$(jq -r .schema "$hm")" = run-manifest/v1 ] \
-  && ok "HK-1 hook stamps run-manifest with session_id+cwd+skill" || fail "HK-1 manifest wrong: $(cat "$hm" 2>/dev/null)"
-# HK-2: SAFETY — empty stdin / missing skill / never blocks (always exit 0)
-printf '' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK" anvil; [ $? -eq 0 ] && ok "HK-2 empty payload → exit 0 (never blocks the gate)" || fail "HK-2 empty payload nonzero exit"
-printf '{"cwd":"/x"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"; [ $? -eq 0 ] && ok "HK-3 missing skill arg → exit 0, no write" || fail "HK-3 missing skill nonzero"
+  && ok "HK-1 UserPromptSubmit typed gate → run-manifest with session_id+cwd+skill" || fail "HK-1 manifest wrong: $(cat "$hm" 2>/dev/null)"
+
+# HK-1b: namespaced form + trailing args (`/touchstone:design-spec specs/x.md`) still matches
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/touchstone:design-spec specs/x.md"}' \
+  | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ "$(jq -r .skill "$(manifest)" 2>/dev/null)" = design-spec ] \
+  && ok "HK-1b namespaced + args (/touchstone:design-spec …) → stamps design-spec" || fail "HK-1b did not stamp"
+
+# HK-8: PreToolUse/Skill, assistant AUTO-INVOKES the gate → derive skill from .tool_input.skill
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"PreToolUse","tool_name":"Skill","tool_input":{"skill":"touchstone:anvil"}}' \
+  | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ "$(jq -r .skill "$(manifest)" 2>/dev/null)" = anvil ] \
+  && ok "HK-8 PreToolUse auto-invoke (crucible-style) → stamps anvil from tool_input.skill" || fail "HK-8 auto-invoke not stamped"
+
+# HK-9: NON-gate prompt (mid-sentence "/anvil", not a leading command) → no stamp, exit 0
+mkfresh
+printf '{"cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"測試 /anvil 一下"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"; rc=$?
+[ "$rc" -eq 0 ] && [ -z "$(manifest)" ] && ok "HK-9 mid-sentence /anvil (not leading command) → no stamp" || fail "HK-9 false-stamped a chat mention (rc=$rc)"
+
+# HK-10: word-boundary — "/anvilx" must NOT match the anvil gate
+mkfresh
+printf '{"cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvilx"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ -z "$(manifest)" ] && ok "HK-10 /anvilx (word-boundary) → no stamp" || fail "HK-10 matched a non-gate command"
+
+# HK-11: PreToolUse for a NON-gate skill (a composite reviewer) → no stamp
+mkfresh
+printf '{"cwd":"/p","hook_event_name":"PreToolUse","tool_name":"Skill","tool_input":{"skill":"touchstone:cross-provider-reviewer"}}' \
+  | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ -z "$(manifest)" ] && ok "HK-11 auto-invoked non-gate skill → no stamp" || fail "HK-11 stamped a non-gate skill"
+
+# HK-12: multi-line prompt — a gate at the start of a LATER line must NOT stamp (only the first
+# line is a command). Regression for the grep-anchors-every-line false-stamp.
+mkfresh
+# jq builds the payload so the embedded newline is properly \n-escaped inside the JSON string
+# (a raw newline from printf would be invalid JSON → jq-parse-fail → a FALSE pass here).
+jq -nc '{cwd:"/p",hook_event_name:"UserPromptSubmit",prompt:"some context\n/anvil"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ -z "$(manifest)" ] && ok "HK-12 gate on line 2 of a multi-line prompt → no stamp" || fail "HK-12 false-stamped a non-leading line"
+# HK-13: multi-line prompt whose FIRST line IS the command still stamps (trailing lines don't break it)
+mkfresh
+jq -nc '{cwd:"/p",hook_event_name:"UserPromptSubmit",prompt:"/anvil specs/x.md\nplease run this"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ "$(jq -r .skill "$(manifest)" 2>/dev/null)" = anvil ] && ok "HK-13 command on line 1 of a multi-line prompt → stamps anvil" || fail "HK-13 missed a leading multi-line command"
+
+# HK-2: SAFETY — empty stdin → exit 0 (never blocks the command)
+mkfresh
+printf '' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"; [ $? -eq 0 ] && ok "HK-2 empty payload → exit 0 (never blocks the command)" || fail "HK-2 empty payload nonzero exit"
+# HK-3: unknown event / no gate derivable → exit 0, no write
+mkfresh
+printf '{"cwd":"/x","hook_event_name":"SessionStart"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"; [ $? -eq 0 ] && ok "HK-3 non-gate event → exit 0" || fail "HK-3 nonzero"
 # HK-7 (Codex M2): SECURITY — pre-existing symlink runs dir → hook bails, never writes THROUGH it
 SL="$TMP/sl"; mkdir -p "$SL" "$TMP/sl-target"; ln -s "$TMP/sl-target" "$SL/runs"
-printf '{"session_id":"x","cwd":"/p"}' | TOUCHSTONE_METRICS_DIR="$SL" bash "$HOOK" anvil; rc=$?
+printf '{"session_id":"x","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvil"}' | TOUCHSTONE_METRICS_DIR="$SL" bash "$HOOK"; rc=$?
 [ "$rc" -eq 0 ] && [ -z "$(find "$TMP/sl-target" -name '*.json' 2>/dev/null)" ] \
   && ok "HK-7 symlinked runs dir → hook bails (exit 0, nothing written through symlink)" || fail "HK-7 wrote through symlink or nonzero (rc=$rc)"
-# HK-4: hooks.json is valid + registers UserPromptExpansion for the 3 auto-run gates only
+# HK-4: hooks.json valid + registers exactly the two LIVE paths (UserPromptSubmit + PreToolUse/Skill)
 HJ="$REPO_ROOT/hooks/hooks.json"
 jq empty "$HJ" 2>/dev/null && ok "HK-4 hooks.json is valid JSON" || fail "HK-4 hooks.json invalid"
-matchers="$(jq -r '.hooks.UserPromptExpansion[].matcher' "$HJ" | sort | tr '\n' ',')"
-[ "$matchers" = "anvil,design-review,design-spec," ] && ok "HK-5 hooks match exactly the 3 auto-run gates" || fail "HK-5 matchers=$matchers"
-jq -e '[.hooks.UserPromptExpansion[].hooks[].command | test("stamp-run.sh")] | all' "$HJ" >/dev/null \
-  && ok "HK-6 every gate entry invokes stamp-run.sh" || fail "HK-6 command wiring"
+events="$(jq -r '.hooks | keys[]' "$HJ" | sort | tr '\n' ',')"
+[ "$events" = "PreToolUse,UserPromptSubmit," ] && ok "HK-5 registers UserPromptSubmit + PreToolUse only (no dead UserPromptExpansion)" || fail "HK-5 events=$events"
+[ "$(jq -r '.hooks.PreToolUse[0].matcher' "$HJ")" = Skill ] && ok "HK-5b PreToolUse matcher=Skill (auto-invoke path)" || fail "HK-5b wrong matcher"
+jq -e '[.. | objects | select(has("command")) | .command | test("stamp-run.sh")] | all' "$HJ" >/dev/null \
+  && ok "HK-6 every hook command invokes stamp-run.sh" || fail "HK-6 command wiring"
 
 # ==================================================================================
 # AC-23 (live-bearing) + REAL-DATA FIDELITY — committed real OTel fixture
