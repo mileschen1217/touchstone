@@ -73,6 +73,54 @@ Without `everything-claude-code`, the language-specific code reviewers and the `
 
 The full workflow lives in your global `~/.claude/CLAUDE.md` (touchstone integrates as routing). See `docs/comparisons.md` for scope and `CONTEXT.md` for vocabulary.
 
+## OTel setup (for CC-subagent figures)
+
+`/touchstone:insight` attributes CC-subagent token/cost per agent, but only when an OpenTelemetry collector funnels Claude Code telemetry into a local JSONL sink. Without it, CC-subagent cells are `[unverified]` (Codex figures do not need it — they come from `~/.codex/sessions`).
+
+**One-shot setup.** This installs/locates `otelcol-contrib`, writes the collector config (the **logs** pipeline the reader consumes), loads a persistent collector service (**macOS** launchd / **Linux** systemd `--user`), and appends the telemetry env vars — including `TOUCHSTONE_OTEL_EXPORT` — to the profile your login shell sources (`~/.zshrc`, `~/.bashrc`, or `~/.profile`). Idempotent; re-running is safe:
+
+```bash
+scripts/metrics/setup-otel.sh
+```
+
+Then open a new shell (so the env vars load) and run your touchstone gates. If `otelcol-contrib` isn't already present it is downloaded from the official GitHub releases for your OS/arch (there is no Homebrew formula — the `file` exporter is contrib-only). Overrides: `OTELCOL_BIN` (use an existing binary), `SETUP_SKIP_AGENT=1` (don't load launchd — Linux/CI, or run the collector yourself), `PROFILE_FILE`, `OTEL_HTTP_PORT`.
+
+### Read the report
+
+Run-manifests are stamped automatically by a plugin hook on every **design-spec / design-review /
+anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs`) — no setup, no mode
+toggle. The hook catches both invoke paths: `UserPromptSubmit` when you type the gate command, and
+`PreToolUse`/`Skill` when a composite (e.g. crucible) auto-invokes design-spec / design-review
+internally. Codex cost is harvested from `~/.codex/sessions` rollouts. Read the report on demand:
+
+```bash
+# via the skill — also bounds the last still-open run at report time
+/touchstone:insight
+
+# or directly (TOUCHSTONE_OTEL_EXPORT is set by setup-otel.sh)
+scripts/metrics-report.sh --session-id <session-uuid> \
+  ${TOUCHSTONE_OTEL_EXPORT:+--otel "$TOUCHSTONE_OTEL_EXPORT"} \
+  [--session ~/.claude/projects/<slug>/<session-uuid>.jsonl]   # optional: adds main-loop + session-wallclock summary
+```
+
+`--session-id` must match your otelcol export's `session.id` attribute. The reader auto-detects the
+nested OTLP shape (`resourceLogs[].scopeLogs[].logRecords[]`) and normalizes it; CC-subagent cost
+comes from OTel, Codex cost from `~/.codex/sessions`, and any cell that can't be grounded prints a
+`[unverified: <reason>]` marker rather than a fabricated number.
+
+> **Scope limit — read before trusting the Codex numbers.** Codex cost is attributed by working
+> directory + time window, so it is reliable only when **at most one active session runs per literal
+> cwd at a time**. Separate git worktrees have distinct cwds and are fine; two concurrent sessions in
+> the *same directory path* are out of scope and their Codex costs may cross-attribute. CC-subagent
+> figures (OTel, keyed by `session.id`) are unaffected.
+>
+> **Accuracy limit — a stamp is a gate *invocation*, not a guaranteed completion.** When you TYPE a
+> leading `/anvil` (or `/design-spec` / `/design-review`), it is stamped at submit time; if you then
+> abandon or retry the run, that window is spurious or misattributed. The match is anchored to a
+> leading slash command, so discussing a gate in prose never stamps — only running the command does.
+> Gates auto-invoked by a composite (crucible → design-spec / design-review) are stamped via the Skill
+> tool and are completion-faithful. Filtering abandoned windows is left to the reader.
+
 ## Status
 
 `0.2.0`. Experimental. Used by the author on one project across ~30 sessions. Cross-project portability is unverified — see `docs/comparisons.md` for scope boundaries.
