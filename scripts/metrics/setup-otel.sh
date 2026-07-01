@@ -122,10 +122,15 @@ Restart=always
 WantedBy=default.target
 UNIT
   systemctl --user daemon-reload 2>/dev/null || true
-  systemctl --user enable --now touchstone-otel.service 2>/dev/null \
-    || die "systemctl --user enable failed — check 'systemctl --user status touchstone-otel.service'"
-  say "systemd --user service touchstone-otel enabled + started"
-  say "  (run 'loginctl enable-linger $USER' to keep it running after you log out)"
+  if systemctl --user enable --now touchstone-otel.service 2>/dev/null; then
+    say "systemd --user service touchstone-otel enabled + started"
+    say "  (run 'loginctl enable-linger $USER' to keep it running after you log out)"
+  else
+    # systemctl present but no running user manager (containers, WSL, no login session): the config +
+    # env are still set up — don't abort, just tell the user to start the collector themselves.
+    say "systemd present but 'systemctl --user' unavailable (container / WSL / no user session);"
+    say "  wrote $UNIT_DIR/touchstone-otel.service — start the collector yourself: $OTELCOL --config $CONFIG"
+  fi
 else
   say "no launchd or systemctl — start the collector yourself: $OTELCOL --config $CONFIG"
 fi
