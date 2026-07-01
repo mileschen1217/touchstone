@@ -7,17 +7,17 @@
 # LOGS pipeline the reader actually consumes; (3) install + load a launchd agent (macOS) so the
 # collector runs persistently; (4) append an idempotent env-var block to your shell profile.
 #
-# Env overrides: OTELCOL_BIN (collector binary), PROFILE_FILE (shell rc to edit), OTEL_HTTP_PORT.
-# Idempotent: managed files are overwritten in place, the profile block is replaced between markers.
+# Env overrides: OTELCOL_BIN (collector binary), PROFILE_FILE (shell rc to edit), OTEL_HTTP_PORT,
+# SETUP_CONFIG / SETUP_SINK / SETUP_PLIST (managed file paths), SETUP_SKIP_AGENT=1 (skip the launchd
+# load — for Linux, CI, or "I'll run the collector myself"). Idempotent: managed files are overwritten
+# in place; the profile block is replaced between markers.
 set -uo pipefail
 
 OTEL_HTTP_PORT="${OTEL_HTTP_PORT:-4318}"
-GRPC_PORT=4317
-CONFIG_DIR="$HOME/.config/otelcol"
-CONFIG="$CONFIG_DIR/config.yaml"
-SINK_DIR="$HOME/.claude/metrics"
-SINK="$SINK_DIR/otel-export.jsonl"
-PLIST="$HOME/Library/LaunchAgents/com.touchstone.otel.plist"
+GRPC_PORT="${OTEL_GRPC_PORT:-4317}"
+CONFIG="${SETUP_CONFIG:-$HOME/.config/otelcol/config.yaml}"; CONFIG_DIR="$(dirname "$CONFIG")"
+SINK="${SETUP_SINK:-$HOME/.claude/metrics/otel-export.jsonl}"; SINK_DIR="$(dirname "$SINK")"
+PLIST="${SETUP_PLIST:-$HOME/Library/LaunchAgents/com.touchstone.otel.plist}"
 LABEL="com.touchstone.otel"
 PROFILE_FILE="${PROFILE_FILE:-$HOME/.zshrc}"
 M0="# >>> touchstone otel >>>"
@@ -26,18 +26,30 @@ M1="# <<< touchstone otel <<<"
 say() { printf '[setup-otel] %s\n' "$*"; }
 die() { printf '[setup-otel] error: %s\n' "$*" >&2; exit 1; }
 
-# --- 1. resolve otelcol ---------------------------------------------------------------------------
-OTELCOL="${OTELCOL_BIN:-$(command -v otelcol-contrib || command -v otelcol || true)}"
+# --- 1. resolve otelcol -------------------------------------------------------------------------
+# We need otelcol-CONTRIB specifically: the `file` exporter is a contrib-only component, and there
+# is no Homebrew formula for it — so if it isn't already present we download the release binary for
+# this OS/arch. (SETUP_BIN_DIR overrides where it lands; default ~/.local/bin.)
+RELEASES=https://github.com/open-telemetry/opentelemetry-collector-releases/releases
+OTELCOL="${OTELCOL_BIN:-$(command -v otelcol-contrib || true)}"
+for cand in /opt/homebrew/bin/otelcol-contrib /usr/local/bin/otelcol-contrib "$HOME/.local/bin/otelcol-contrib"; do
+  [ -n "$OTELCOL" ] && break
+  [ -x "$cand" ] && OTELCOL="$cand"
+done
 if [ -z "$OTELCOL" ]; then
-  if command -v brew >/dev/null 2>&1; then
-    say "otelcol not found — installing via brew (otelcol-contrib)…"
-    brew install otelcol-contrib || die "brew install otelcol-contrib failed — install manually, then re-run"
-    OTELCOL="$(command -v otelcol-contrib || command -v otelcol || true)"
-  fi
+  os="$(uname | tr '[:upper:]' '[:lower:]')"
+  case "$(uname -m)" in arm64|aarch64) arch=arm64;; x86_64|amd64) arch=amd64;; *) die "unsupported arch $(uname -m) — download otelcol-contrib manually from $RELEASES and set OTELCOL_BIN";; esac
+  ver="$(curl -fsSL "https://api.github.com/repos/open-telemetry/opentelemetry-collector-releases/releases/latest" 2>/dev/null | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p' | head -1)"
+  [ -n "$ver" ] || die "could not resolve latest otelcol-contrib version (network?). Download manually from $RELEASES, set OTELCOL_BIN, re-run."
+  bindir="${SETUP_BIN_DIR:-$HOME/.local/bin}"; mkdir -p "$bindir"
+  tgz="$(mktemp)"
+  say "otelcol-contrib not found — downloading v${ver} (${os}/${arch}) → $bindir …"
+  curl -fsSL "$RELEASES/download/v${ver}/otelcol-contrib_${ver}_${os}_${arch}.tar.gz" -o "$tgz" \
+    || die "download failed — get it manually from $RELEASES, set OTELCOL_BIN, re-run."
+  tar -xzf "$tgz" -C "$bindir" otelcol-contrib || die "extract failed"
+  rm -f "$tgz"; chmod +x "$bindir/otelcol-contrib"; OTELCOL="$bindir/otelcol-contrib"
 fi
-[ -n "$OTELCOL" ] || die "otelcol-contrib not found and brew unavailable. Download the darwin build from
-  https://github.com/open-telemetry/opentelemetry-collector-releases/releases
-  put it on PATH (or set OTELCOL_BIN=/path/to/otelcol-contrib), then re-run."
+[ -x "$OTELCOL" ] || die "otelcol resolved to '$OTELCOL' but it is not executable"
 say "otelcol: $OTELCOL ($("$OTELCOL" --version 2>&1 | head -1))"
 
 # --- 2. write config (LOGS pipeline is what metrics-report.sh reads; metrics/traces harmless) ------
@@ -62,7 +74,9 @@ YAML
 say "wrote $CONFIG (sink → $SINK)"
 
 # --- 3. launchd agent (macOS) -> persistent collector ---------------------------------------------
-if [ "$(uname)" = Darwin ]; then
+if [ -n "${SETUP_SKIP_AGENT:-}" ]; then
+  say "SETUP_SKIP_AGENT set — not loading launchd. Start the collector yourself: $OTELCOL --config $CONFIG"
+elif [ "$(uname)" = Darwin ]; then
   mkdir -p "$HOME/Library/LaunchAgents"
   cat > "$PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

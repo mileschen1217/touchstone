@@ -83,7 +83,7 @@ The full workflow lives in your global `~/.claude/CLAUDE.md` (touchstone integra
 scripts/metrics/setup-otel.sh
 ```
 
-Then open a new shell (so the env vars load) and run your touchstone gates. Overrides: `OTELCOL_BIN` (collector binary), `PROFILE_FILE` (shell rc to edit), `OTEL_HTTP_PORT`.
+Then open a new shell (so the env vars load) and run your touchstone gates. If `otelcol-contrib` isn't already present it is downloaded from the official GitHub releases for your OS/arch (there is no Homebrew formula — the `file` exporter is contrib-only). Overrides: `OTELCOL_BIN` (use an existing binary), `SETUP_SKIP_AGENT=1` (don't load launchd — Linux/CI, or run the collector yourself), `PROFILE_FILE`, `OTEL_HTTP_PORT`.
 
 ### Read the report
 
