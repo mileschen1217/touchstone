@@ -149,19 +149,33 @@ export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
 export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 ```
 
-### 5. Pass the sink to the report tool
+### 5. Read the report
+
+Run-manifests are stamped automatically by a plugin hook on every **design-spec / design-review /
+anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs`) — no setup, no mode
+toggle. Codex cost is harvested from `~/.codex/sessions` rollouts. Read the report on demand:
 
 ```bash
+# via the skill — also bounds the last still-open run at report time
+/touchstone:metrics
+
+# or directly
 scripts/metrics-report.sh \
-  --session ~/.claude/projects/<slug>/transcript.jsonl \
-  --collection ~/.claude/metrics/runs \
+  --session-id <session-uuid> \
   --otel ~/.claude/metrics/otel-export.jsonl \
-  --session-id <session-uuid>   # explicit beats filename-stem heuristic
+  [--session ~/.claude/projects/<slug>/<session-uuid>.jsonl]   # optional: adds main-loop + session-wallclock summary
 ```
 
-The `--session-id` flag must match the `session_id` attribute key in your otelcol export. Run one short session, inspect a line with `jq -r '.resourceSpans[].scopeSpans[].spans[].attributes[] | select(.key | test("session")) | .key' otel-export.jsonl` to confirm the attribute name before committing it.
+`--session-id` must match your otelcol export's `session.id` attribute. The reader auto-detects the
+nested OTLP shape (`resourceLogs[].scopeLogs[].logRecords[]`) and normalizes it; CC-subagent cost
+comes from OTel, Codex cost from `~/.codex/sessions`, and any cell that can't be grounded prints a
+`[unverified: <reason>]` marker rather than a fabricated number.
 
-> **Current limitation — OTLP shape mismatch:** `metrics-report.sh` (`otel_scoped_events`) consumes a **flat** JSONL event shape — one object per line with top-level fields `query_source`, `session_id`, `agent_name`, `tokens`, `cost_usd`, `ts`. A raw `otelcol` file-exporter produces **nested OTLP JSON** (`resourceSpans[].scopeSpans[].spans[].attributes[]`). The OTLP→flat normalization step — including resolving the correct `session_id` attribute key — is part of the live-bearing OTel real-capture normalization and is **not yet implemented**. Feeding a raw otelcol export directly into `--otel` will not match any events until that normalization lands. The collector setup instructions above remain accurate; this note clarifies what is missing in the end-to-end path today.
+> **Scope limit — read before trusting the Codex numbers.** Codex cost is attributed by working
+> directory + time window, so it is reliable only when **at most one active session runs per literal
+> cwd at a time**. Separate git worktrees have distinct cwds and are fine; two concurrent sessions in
+> the *same directory path* are out of scope and their Codex costs may cross-attribute. CC-subagent
+> figures (OTel, keyed by `session.id`) are unaffected.
 
 ## Status
 

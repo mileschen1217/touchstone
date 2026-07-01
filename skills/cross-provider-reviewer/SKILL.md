@@ -96,23 +96,6 @@ Skill body's final assistant text: the synthesized review.md content. The orches
 
 Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/touchstone:design-review`), structural commitment (`/touchstone:keystone`), design spec (`/touchstone:design-spec`), or ad-hoc opt-in for high-risk diffs.
 
-## Metrics capture (owned writer)
-
-Bracket the dispatch and persist it so `scripts/metrics-report.sh` can attribute its cost.
-Set `stage` to the ACTUAL calling gate's name (this composite serves several — `design-review`, `keystone`, `design-spec`, or `code-review`) so the by-stage rollup is not misattributed.
-Immediately before the parallel Agent calls, capture `started_at`; immediately after all legs return, capture `ended_at`; then call the writer and forward its printed `collection_dir` to the report tool:
-
-stage="<the calling gate: design-review | keystone | design-spec | code-review>"
-started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-...issue the parallel CC + Codex Agent calls, await all legs...
-ended_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-collection_dir="/tmp/metrics-${CLAUDE_SESSION_ID:-$$}"
-scripts/metrics/persist-dispatch.sh "$raw_codex_path" "$collection_dir" "$stage" "$model" "$started_at" "$ended_at"
-# On CC-only fallback (codex_healthy=0): use the --no-codex form:
-# scripts/metrics/persist-dispatch.sh --no-codex --fallback-reason "<reason>" "$collection_dir" "$stage" "$model" "$started_at" "$ended_at"
-
-Honest ceiling: SKILL.md is AI-dispatch instruction, not an executable; the static guard proves the wired line is present and uncommented — the strongest offline evidence. Whether the dispatching agent runs it at runtime is an instruction-following property, discharged separately by the writer's own end-to-end writer tests.
-
 ## Dependencies
 
 - `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — CC review backend. Epic B vendors or makes optional.

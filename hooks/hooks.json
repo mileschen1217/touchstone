@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "UserPromptExpansion": [
+      {
+        "matcher": "anvil",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh anvil" }
+        ]
+      },
+      {
+        "matcher": "design-spec",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh design-spec" }
+        ]
+      },
+      {
+        "matcher": "design-review",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh design-review" }
+        ]
+      }
+    ]
+  }
+}
