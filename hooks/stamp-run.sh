@@ -35,8 +35,14 @@ session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null 
 cwd="$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null || true)"
 [ -n "$cwd" ] || cwd="$PWD"
 
-runs_dir="${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs"
+base="${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}"
+runs_dir="$base/runs"
+# Never write THROUGH a pre-existing symlink (classic /tmp symlink attack): if the base or the runs
+# dir is a symlink, bail. Observability must never become a write-primitive to an arbitrary path.
+[ -L "$base" ] && exit 0
+[ -L "$runs_dir" ] && exit 0
 mkdir -p "$runs_dir" 2>/dev/null || exit 0
+[ -L "$runs_dir" ] && exit 0
 
 # run_id: %s%N first (Linux); $RANDOM$RANDOM (30 bits) hardens collision-resistance on
 # BSD/macOS date, which lacks %N and emits a literal "N".

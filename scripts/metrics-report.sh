@@ -88,10 +88,19 @@ codex_rollouts_in_window() {
 # accumulates in THIS shell (a pipe would subshell the sums away).
 codex_window_aggregate() {
   local cwd="$1" start="$2" end="$3" prices="$4"
+  local root="${CODEX_SESSIONS_DIR:-$HOME/.codex/sessions}"
+  local zero; zero="$(jq -nc '{in:0,cached_in:0,out:0,reasoning:0}')"
+  # Absent/unreadable scan root ≠ "scanned, found none". We cannot claim a grounded zero when the
+  # durable source itself is missing — that would fabricate zero over ungrounded state. (Codex H1)
+  if [ ! -d "$root" ] || [ ! -r "$root" ] || [ ! -x "$root" ]; then
+    printf '%s\t%s\n' "$zero" "$(UNVERIFIED 'codex artifact absent')"; return 0
+  fi
   local in=0 cached=0 out=0 reason=0 cost=0 unv="" f u m c
   while IFS= read -r f; do
     [ -z "$f" ] && continue
-    u="$(codex_rollout_usage "$f" 2>/dev/null)" || continue
+    # A rollout matched the window (a codex exec DID run here) but is unreadable/malformed → we
+    # cannot drop it silently (that understates the total). Poison the whole leg. (Codex H2)
+    if ! u="$(codex_rollout_usage "$f" 2>/dev/null)"; then unv="$(UNVERIFIED 'malformed meta codex-rollout')"; continue; fi
     in=$((     in     + $(echo "$u" | jq -r '.in // 0') ))
     cached=$(( cached + $(echo "$u" | jq -r '.cached_in // 0') ))
     out=$((    out    + $(echo "$u" | jq -r '.out // 0') ))
@@ -288,10 +297,17 @@ build_windows_v2() {
   [ -n "$sorted" ] || return 0
   local -a lines=()
   while IFS= read -r ln; do [ -n "$ln" ] && lines+=("$ln"); done <<< "$sorted"
-  local n=${#lines[@]} i endep nep rest
+  local n=${#lines[@]} i j endep nep rest
   for (( i=0; i<n; i++ )); do
     IFS=$'\t' read -r ep rid cwd skill <<< "${lines[$i]}"
-    if (( i+1 < n )); then IFS=$'\t' read -r nep rest <<< "${lines[$((i+1))]}"; endep="$nep"; else endep="$now"; fi
+    # END = the next STRICTLY-GREATER start (not merely the next line). Two gates stamped in the same
+    # whole second thus get overlapping [T, next_distinct) windows → events attribute AMBIGUOUS and are
+    # surfaced as [unverified], never silently handed to the second run via a zero-length first. (Codex M1)
+    endep="$now"
+    for (( j=i+1; j<n; j++ )); do
+      IFS=$'\t' read -r nep rest <<< "${lines[$j]}"
+      if [ "$nep" -gt "$ep" ]; then endep="$nep"; break; fi
+    done
     printf '%s\t%s\t%s\t%s\t%s\n' "$rid" "$ep" "$endep" "$cwd" "$skill"
   done
 }

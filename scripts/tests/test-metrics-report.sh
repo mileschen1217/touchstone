@@ -153,6 +153,31 @@ printf '%s\n' \
 upa="$(CODEX_SESSIONS_DIR="$TMP/codex" codex_window_aggregate /unpriced/proj "$s0" "$e0" "$PRICES")"
 [ "$(printf '%s' "$upa" | cut -f2)" = "[unverified: model not in price table]" ] \
   && ok "CX-8 unpriced-model rollout → cost propagates closed-list sentinel" || fail "CX-8 got=$(printf '%s' "$upa" | cut -f2)"
+# CX-9 (Codex H1): absent scan root ≠ scanned-empty → [unverified], NOT grounded zero
+a9="$(CODEX_SESSIONS_DIR="$TMP/does-not-exist" codex_window_aggregate /synthetic/project "$s0" "$e0" "$PRICES")"
+[ "$(printf '%s' "$a9" | cut -f2)" = "[unverified: codex artifact absent]" ] \
+  && ok "CX-9 absent CODEX_SESSIONS_DIR → [unverified] (not fabricated grounded zero)" || fail "CX-9 got=$(printf '%s' "$a9" | cut -f2)"
+# CX-10 (Codex H2): matched-but-malformed rollout (no token_count) → poisons the leg
+BADR="$TMP/badroll/2026/07/01"; mkdir -p "$BADR"
+printf '%s\n' \
+ '{"type":"session_meta","payload":{"cwd":"/bad/proj","originator":"codex_exec","timestamp":"2026-07-01T10:00:00.000Z"}}' \
+ '{"type":"turn_context","model":"gpt-5-codex"}' > "$BADR/rollout-2026-07-01T10-00-00-nomcount.jsonl"
+a10="$(CODEX_SESSIONS_DIR="$TMP/badroll" codex_window_aggregate /bad/proj "$s0" "$e0" "$PRICES")"
+[ "$(printf '%s' "$a10" | cut -f2)" = "[unverified: malformed meta codex-rollout]" ] \
+  && ok "CX-10 matched-but-malformed rollout → poisons codex leg [unverified]" || fail "CX-10 got=$(printf '%s' "$a10" | cut -f2)"
+# CX-11 (Codex H2): good + bad rollout mix → poisoned total, never a partial sum
+MIX="$TMP/mixroll/2026/07/01"; mkdir -p "$MIX"
+printf '%s\n' \
+ '{"type":"session_meta","payload":{"cwd":"/mix/proj","originator":"codex_exec","timestamp":"2026-07-01T10:00:00.000Z"}}' \
+ '{"type":"turn_context","model":"gpt-5-codex"}' \
+ '{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":10,"cached_input_tokens":0,"output_tokens":10,"reasoning_output_tokens":0}}}}' \
+ > "$MIX/rollout-2026-07-01T10-00-00-good.jsonl"
+printf '%s\n' \
+ '{"type":"session_meta","payload":{"cwd":"/mix/proj","originator":"codex_exec","timestamp":"2026-07-01T10:00:05.000Z"}}' \
+ '{"type":"turn_context","model":"gpt-5-codex"}' > "$MIX/rollout-2026-07-01T10-00-05-bad.jsonl"
+a11="$(CODEX_SESSIONS_DIR="$TMP/mixroll" codex_window_aggregate /mix/proj "$s0" "$e0" "$PRICES")"
+[ "$(printf '%s' "$a11" | cut -f2)" = "[unverified: malformed meta codex-rollout]" ] \
+  && ok "CX-11 good+bad rollout mix → poisoned (no partial sum claimed)" || fail "CX-11 got=$(printf '%s' "$a11" | cut -f2)"
 
 # ==================================================================================
 # V2 NEW — run-manifest windows (build_windows_v2)
@@ -173,6 +198,19 @@ durB="$(printf '%s\n' "$wins" | awk -F'\t' '$1=="B"{print $3-$2}')"
 durC="$(printf '%s\n' "$wins" | awk -F'\t' '$1=="C"{print $3-$2}')"
 [ "$durA" = 1800 ] && [ "$durB" = 1800 ] && ok "BW-2 non-last run ends at next START (A,B = 1800s)" || fail "BW-2 durA=$durA durB=$durB"
 [ "$durC" = 900 ]  && ok "BW-3 last run ends at report-time now (C = 900s)" || fail "BW-3 durC=$durC"
+# BW-4/5 (Codex M1): two same-second manifests → overlapping non-zero windows; overlap event → AMBIGUOUS
+SS="$TMP/samesec"; mkdir -p "$SS/runs"
+mkmani "$SS" P design-review sess-1 /proj 2026-07-01T10:00:00Z
+mkmani "$SS" Q anvil         sess-1 /proj 2026-07-01T10:00:00Z
+mkmani "$SS" R design-spec   sess-1 /proj 2026-07-01T10:05:00Z
+nowSS=$(iso_to_epoch 2026-07-01T10:10:00Z)
+wss="$(TOUCHSTONE_METRICS_DIR="$SS" build_windows_v2 sess-1 "$nowSS")"
+pdur="$(printf '%s\n' "$wss" | awk -F'\t' '$1=="P"{print $3-$2}')"
+qdur="$(printf '%s\n' "$wss" | awk -F'\t' '$1=="Q"{print $3-$2}')"
+[ "$pdur" = 300 ] && [ "$qdur" = 300 ] && ok "BW-4 same-second runs → overlapping non-zero windows (no silent zero-length)" || fail "BW-4 pdur=$pdur qdur=$qdur"
+w3="$(printf '%s\n' "$wss" | awk -F'\t' 'NF>=3{print $1"\t"$2"\t"$3}')"
+mid=$(( $(iso_to_epoch 2026-07-01T10:00:00Z) + 100 ))
+[ "$(attribute_event "$mid" "$w3")" = AMBIGUOUS ] && ok "BW-5 event in same-second overlap → AMBIGUOUS (surfaced, not silently one run)" || fail "BW-5 not ambiguous"
 
 # ==================================================================================
 # V2 NEW — per-run rows (build_per_run_rows_v2) end-to-end + honesty spine
@@ -273,6 +311,11 @@ hm="$(find "$HKD/runs" -name '*.json' 2>/dev/null | head -1)"
 # HK-2: SAFETY — empty stdin / missing skill / never blocks (always exit 0)
 printf '' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK" anvil; [ $? -eq 0 ] && ok "HK-2 empty payload → exit 0 (never blocks the gate)" || fail "HK-2 empty payload nonzero exit"
 printf '{"cwd":"/x"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"; [ $? -eq 0 ] && ok "HK-3 missing skill arg → exit 0, no write" || fail "HK-3 missing skill nonzero"
+# HK-7 (Codex M2): SECURITY — pre-existing symlink runs dir → hook bails, never writes THROUGH it
+SL="$TMP/sl"; mkdir -p "$SL" "$TMP/sl-target"; ln -s "$TMP/sl-target" "$SL/runs"
+printf '{"session_id":"x","cwd":"/p"}' | TOUCHSTONE_METRICS_DIR="$SL" bash "$HOOK" anvil; rc=$?
+[ "$rc" -eq 0 ] && [ -z "$(find "$TMP/sl-target" -name '*.json' 2>/dev/null)" ] \
+  && ok "HK-7 symlinked runs dir → hook bails (exit 0, nothing written through symlink)" || fail "HK-7 wrote through symlink or nonzero (rc=$rc)"
 # HK-4: hooks.json is valid + registers UserPromptExpansion for the 3 auto-run gates only
 HJ="$REPO_ROOT/hooks/hooks.json"
 jq empty "$HJ" 2>/dev/null && ok "HK-4 hooks.json is valid JSON" || fail "HK-4 hooks.json invalid"
