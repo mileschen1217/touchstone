@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SC2015: the `[ ] && ok || fail` idiom is intentional (ok never fails).
+# shellcheck disable=SC2015
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FIX="$REPO_ROOT/scripts/tests/fixtures/checker/command-forms.txt"
