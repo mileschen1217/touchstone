@@ -73,83 +73,19 @@ Without `everything-claude-code`, the language-specific code reviewers and the `
 
 The full workflow lives in your global `~/.claude/CLAUDE.md` (touchstone integrates as routing). See `docs/comparisons.md` for scope and `CONTEXT.md` for vocabulary.
 
-## OTel setup (for metrics-capture CC-subagent figures)
+## OTel setup (for CC-subagent figures)
 
-`metrics-report.sh` can attribute CC-subagent token/cost usage per agent name, but only when an OpenTelemetry collector is running and funnelling Claude Code spans into a local JSONL sink. Without it, CC-subagent cells are `[unverified]`. The user owns the collector lifecycle — the report tool reads the sink file passively; it never starts or stops the collector.
+`/touchstone:insight` attributes CC-subagent token/cost per agent, but only when an OpenTelemetry collector funnels Claude Code telemetry into a local JSONL sink. Without it, CC-subagent cells are `[unverified]` (Codex figures do not need it — they come from `~/.codex/sessions`).
 
-### 1. Install otelcol
-
-```bash
-brew install opentelemetry-collector
-# or download the contrib binary:
-# https://github.com/open-telemetry/opentelemetry-collector-releases/releases
-```
-
-### 2. Write `~/.config/otelcol/config.yaml`
-
-```yaml
-receivers:
-  otlp:
-    protocols:
-      http:
-        endpoint: "localhost:4318"   # CC sends OTLP/HTTP here
-
-processors:
-  batch: {}
-
-exporters:
-  file:
-    path: "${env:HOME}/.claude/metrics/otel-export.jsonl"
-    rotation:
-      max_megabytes: 50
-    format: json             # one JSON object per line (JSONL)
-
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [file]
-```
-
-### 3. Start the collector (launchd on macOS)
-
-Save `~/Library/LaunchAgents/com.otelcol.metrics.plist`:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>              <string>com.otelcol.metrics</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/usr/local/bin/otelcol</string><!-- Apple Silicon Homebrew: /opt/homebrew/bin/otelcol-contrib -->
-    <string>--config</string>
-    <string>/Users/YOU/.config/otelcol/config.yaml</string>
-  </array>
-  <key>RunAtLoad</key>          <true/>
-  <key>KeepAlive</key>          <true/>
-  <key>StandardOutPath</key>    <string>/tmp/otelcol.log</string>
-  <key>StandardErrorPath</key>  <string>/tmp/otelcol.err</string>
-</dict>
-</plist>
-```
-
-Load it: `launchctl load ~/Library/LaunchAgents/com.otelcol.metrics.plist`
-
-### 4. Set env vars for Claude Code sessions
-
-Add to your shell profile:
+**One-shot setup.** This installs/locates `otelcol-contrib`, writes the collector config (the **logs** pipeline the reader consumes), loads a persistent launchd agent (macOS), and appends the telemetry env vars — including `TOUCHSTONE_OTEL_EXPORT` — to your shell profile. Idempotent; re-running is safe:
 
 ```bash
-export CLAUDE_CODE_ENABLE_TELEMETRY=1
-export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
-export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+scripts/metrics/setup-otel.sh
 ```
 
-### 5. Read the report
+Then open a new shell (so the env vars load) and run your touchstone gates. Overrides: `OTELCOL_BIN` (collector binary), `PROFILE_FILE` (shell rc to edit), `OTEL_HTTP_PORT`.
+
+### Read the report
 
 Run-manifests are stamped automatically by a plugin hook on every **design-spec / design-review /
 anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs`) — no setup, no mode
@@ -159,10 +95,9 @@ toggle. Codex cost is harvested from `~/.codex/sessions` rollouts. Read the repo
 # via the skill — also bounds the last still-open run at report time
 /touchstone:insight
 
-# or directly
-scripts/metrics-report.sh \
-  --session-id <session-uuid> \
-  --otel ~/.claude/metrics/otel-export.jsonl \
+# or directly (TOUCHSTONE_OTEL_EXPORT is set by setup-otel.sh)
+scripts/metrics-report.sh --session-id <session-uuid> \
+  ${TOUCHSTONE_OTEL_EXPORT:+--otel "$TOUCHSTONE_OTEL_EXPORT"} \
   [--session ~/.claude/projects/<slug>/<session-uuid>.jsonl]   # optional: adds main-loop + session-wallclock summary
 ```
 
