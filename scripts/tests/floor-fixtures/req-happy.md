@@ -24,5 +24,9 @@ Given p
 When q
 Then r
 ```
+## Verification Strategy
+
+- **Live-bearing AC IDs:** none
+
 ## Architecture
 ### A heading that must NOT be parsed as a requirement

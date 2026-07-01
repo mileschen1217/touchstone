@@ -19,4 +19,8 @@ Given p
 When q
 Then r
 ```
+## Verification Strategy
+
+- **Live-bearing AC IDs:** none
+
 ## End
