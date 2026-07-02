@@ -23,9 +23,11 @@ d="$(mk)"; bash "$BOOT" "$d"; { [ -f "$d/.gitignore" ] && trackable "$d" && carv
 
 # AC-36: idempotent from fully bootstrapped → no dup of any of the 3 lines
 d="$(mk)"; bash "$BOOT" "$d"; bash "$BOOT" "$d"
+fail36=0
 for pat in '.touchstone/\*' '!.touchstone/checker/$' '!.touchstone/checker/\*\*'; do
-  n="$(grep -cE "^$pat" "$d/.gitignore")"; [ "$n" -eq 1 ] || fail "AC-36 line '$pat' x$n"
-done; ok "AC-36 idempotent no dup"
+  n="$(grep -cE "^$pat" "$d/.gitignore")"; [ "$n" -eq 1 ] || { fail "AC-36 line '$pat' x$n"; fail36=1; }
+done
+[ "$fail36" -eq 0 ] && ok "AC-36 idempotent no dup"
 
 # AC-37: missing .gitkeep re-added
 d="$(mk)"; bash "$BOOT" "$d"; rm "$d/.touchstone/checker/pre-commit/.gitkeep"; bash "$BOOT" "$d"
