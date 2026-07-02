@@ -317,10 +317,18 @@ If a chunk's dispatch errors, times out, or returns no usable output:
 append the EXACT line `sweep incomplete: l1` to
 `$TOUCHSTONE_LEDGER_DIR/.sweep-incomplete` yourself (the sequencing guard
 matches exact strings — improvised wording is invisible to it), then skip
-that chunk and continue dispatching the remaining chunks. After every
-chunk has been attempted: proceed to Step 3 only if at least one chunk
-succeeded; if every chunk failed, abort the sweep (do not proceed to
-Step 3).
+that chunk and continue dispatching the remaining chunks so the candidates
+log captures as much signal as possible. But note: once ANY chunk has
+failed, `.sweep-incomplete` carries the `l1` line for the rest of this
+collect cycle (nothing clears it before the next `collect`), and
+`finalize` will refuse no matter what Steps 3-4 produce. So after every
+chunk has been attempted, check `$TOUCHSTONE_LEDGER_DIR/.sweep-incomplete`:
+if it contains a `sweep incomplete: l1` line, skip Steps 3 and 4 entirely
+and go straight to Step 5's `report` command only (do NOT run `finalize`,
+do NOT spend the L2 dispatch); proceed to Step 3 only if the file is
+absent or empty. The un-swept signal is not lost — cursor commit happens
+only in a successful `finalize`, so the next close's sweep re-extracts the
+same range.
 
 ### Step 3 — validate
 
