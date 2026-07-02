@@ -73,6 +73,40 @@ Without `everything-claude-code`, the language-specific code reviewers and the `
 
 The full workflow lives in your global `~/.claude/CLAUDE.md` (touchstone integrates as routing). See `docs/comparisons.md` for scope and `CONTEXT.md` for vocabulary.
 
+## Project-registered checks
+
+Touchstone's `PreToolUse(Bash)` hook intercepts the agent's `git commit` and `git push` calls and runs your project's own deterministic checks before the command executes — no per-repo setup required.
+
+### Convention
+
+Add check scripts at `.touchstone/checker/<stage>/check-*.sh` (e.g. `pre-commit/check-adr-cite.sh`), where `<stage>` is `pre-commit` or `pre-push`. Scripts are:
+
+- **Project-owned and committed** — the canonical `.gitignore` carve (written by `/touchstone:init`) excludes most of `.touchstone/` but includes `checker/`, so checks enter git normally.
+- **Locus-agnostic** — a check does not know what invokes it. The same script works under the CC hook today and as a native `git commit` hook tomorrow, with zero changes.
+- **Stage-keyed, not gate-keyed** — directories are named by stable git-hook stage (`pre-commit` / `pre-push`), not by touchstone gate name. Gate-name coupling is the silent-dead-check trap: a renamed gate makes a check silently never run.
+
+Bootstrap with `/touchstone:init`, which creates the scaffold and applies the carve idempotently.
+
+### Enforcement
+
+The plugin registers a single `PreToolUse(Bash)` hook. It fires in **every repo the agent touches** — zero per-repo install. When the agent runs a covered command:
+
+1. The hook classifies the command (`git commit` → `pre-commit`; `git push` → `pre-push`).
+2. It resolves the repo root from the command's effective working directory (honouring `git -C <path>`).
+3. It runs every `check-*.sh` under `.touchstone/checker/<stage>/` in that repo.
+4. Any check that exits non-zero **blocks the command** (hook exits 2); clean checks are transparent.
+
+### Honest ceiling
+
+The CC hook catches **only agent commits/pushes made via the Bash tool**. A human committing manually in their own terminal is not intercepted — this is acceptable for an agent-driven workflow. Universal coverage (catching human commits too) is a future option: install the same locus-agnostic check scripts as native `git` hooks; no check changes required.
+
+Command classification is best-effort regex on the command string. **KNOWN-LIMITATION forms that classify as `none` (not checked):**
+
+- `cd <path> && git commit …` — the pre-command `cd` prefix prevents reliable repo-root resolution.
+- `git cherry-pick`, `git revert`, `git merge` — excluded by design (not standard commit/push forms).
+
+An unrecognised commit variant silently skips its checks, so the covered command forms are enumerated in the hook and a meta-check guards the classifier itself. See [ADR-0029](docs/adr/0029-review-catch-mechanisation-enforcement-locus.md) for the full decision and alternatives considered.
+
 ## OTel setup (for CC-subagent figures)
 
 `/touchstone:insight` attributes CC-subagent token/cost per agent, but only when an OpenTelemetry collector funnels Claude Code telemetry into a local JSONL sink. Without it, CC-subagent cells are `[unverified]` (Codex figures do not need it — they come from `~/.codex/sessions`).
