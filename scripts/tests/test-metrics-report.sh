@@ -211,6 +211,19 @@ qdur="$(printf '%s\n' "$wss" | awk -F'\t' '$1=="Q"{print $3-$2}')"
 w3="$(printf '%s\n' "$wss" | awk -F'\t' 'NF>=3{print $1"\t"$2"\t"$3}')"
 mid=$(( $(iso_to_epoch 2026-07-01T10:00:00Z) + 100 ))
 [ "$(attribute_event "$mid" "$w3")" = AMBIGUOUS ] && ok "BW-5 event in same-second overlap → AMBIGUOUS (surfaced, not silently one run)" || fail "BW-5 not ambiguous"
+# BW-6: malformed manifests (missing run_id / unparseable started_at / non-JSON) are silently
+# excluded from windowing — the good manifest still windows, and the builder exits 0.
+MF="$TMP/malformed"; mkdir -p "$MF/runs"
+mkmani "$MF" GOOD anvil sess-1 /proj 2026-07-01T10:00:00Z
+jq -nc '{schema:"run-manifest/v1",skill:"anvil",session_id:"sess-1",cwd:"/proj",started_at:"2026-07-01T10:01:00Z"}' > "$MF/runs/norunid.json"
+jq -nc '{schema:"run-manifest/v1",run_id:"BADTS",skill:"anvil",session_id:"sess-1",cwd:"/proj",started_at:"not-a-date"}' > "$MF/runs/BADTS.json"
+printf 'not json at all' > "$MF/runs/garbage.json"
+nowMF=$(iso_to_epoch 2026-07-01T10:10:00Z)
+wmf="$(TOUCHSTONE_METRICS_DIR="$MF" build_windows_v2 sess-1 "$nowMF")"; rcmf=$?
+{ [ "$rcmf" -eq 0 ] && [ "$(printf '%s\n' "$wmf" | grep -c .)" = 1 ] \
+  && [ "$(printf '%s\n' "$wmf" | awk -F'\t' '{print $1}')" = GOOD ]; } \
+  && ok "BW-6 malformed manifests (no run_id / bad started_at / non-JSON) silently excluded, good one windows" \
+  || fail "BW-6 rc=$rcmf windows=$wmf"
 
 # ==================================================================================
 # V2 NEW — per-run rows (build_per_run_rows_v2) end-to-end + honesty spine
@@ -358,6 +371,15 @@ jq -nc '{cwd:"/p",hook_event_name:"UserPromptSubmit",prompt:"some context\n/anvi
 mkfresh
 jq -nc '{cwd:"/p",hook_event_name:"UserPromptSubmit",prompt:"/anvil specs/x.md\nplease run this"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
 [ "$(jq -r .skill "$(manifest)" 2>/dev/null)" = anvil ] && ok "HK-13 command on line 1 of a multi-line prompt → stamps anvil" || fail "HK-13 missed a leading multi-line command"
+# HK-14: rapid back-to-back stamps → two manifests with DISTINCT run_ids (collision-resistance
+# exercised live, not just visible in the id formula; manifests are named <run_id>.json so a
+# collision would clobber to one file)
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvil"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvil"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+nman="$(find "$HKD/runs" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')"
+nids="$(find "$HKD/runs" -name '*.json' -exec jq -r .run_id {} \; 2>/dev/null | sort -u | grep -c .)"
+[ "$nman" = 2 ] && [ "$nids" = 2 ] && ok "HK-14 rapid double stamp → 2 manifests, distinct run_ids" || fail "HK-14 manifests=$nman distinct_ids=$nids"
 
 # HK-2: SAFETY — empty stdin → exit 0 (never blocks the command)
 mkfresh

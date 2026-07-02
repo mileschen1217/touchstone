@@ -284,9 +284,14 @@ build_windows_v2() {
   sorted="$(
     shopt -s nullglob
     for m in "$dir"/*.json; do
+      # Filter malformed manifests (empty run_id / started_at) INSIDE jq, before @tsv:
+      # an empty first/second field emits consecutive tabs, and bash `read` with tab-IFS
+      # COLLAPSES runs of whitespace-IFS delimiters — fields shift left, so a read-side
+      # `[ -n "$rid" ]` guard sees the NEXT column and passes garbage through as a window.
       jq -r --arg sid "$sid" \
         'select((.session_id // "") == $sid or ($sid == ""))
-         | [ (.started_at // ""), (.run_id // ""), (.cwd // ""), (.skill // "") ] | @tsv' \
+         | select(((.run_id // "") != "") and ((.started_at // "") != ""))
+         | [ .started_at, .run_id, (.cwd // ""), (.skill // "") ] | @tsv' \
         "$m" 2>/dev/null
     done | while IFS=$'\t' read -r sa rid cwd skill; do
       [ -n "$rid" ] || continue
