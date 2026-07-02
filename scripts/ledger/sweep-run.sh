@@ -31,12 +31,17 @@
 #                          candidate/v1 output to .candidates-log.jsonl —
 #                          RETAINED (never deleted) as the inspectable
 #                          per-run classification artifact. Every chunk
-#                          invocation's exit status is checked: if ANY chunk
-#                          fails, ".sweep incomplete: l1" is recorded and
-#                          classify exits non-zero — the same L1 STAGE
-#                          FAILURE outcome as a validate-candidates rejection
-#                          below, so finalize's phase-sequencing guard
-#                          refuses either way.
+#                          invocation is checked two ways: its exit status,
+#                          AND the count of lines it appended to
+#                          .candidates-log.jsonl against the chunk's input
+#                          line count (the L1 contract is one candidate line
+#                          per input record, so any shortfall — including an
+#                          exit-0-zero-output command — is a failure too). If
+#                          ANY chunk fails either check, ".sweep incomplete:
+#                          l1" is recorded and classify exits non-zero — the
+#                          same L1 STAGE FAILURE outcome as a
+#                          validate-candidates rejection below, so finalize's
+#                          phase-sequencing guard refuses either way.
 #   validate-candidates    jq shape check over .candidates-log.jsonl:
 #                          candidate/v1 shape, and — when is_miss:true —
 #                          caught_by/should_have present and gap_class in the
@@ -164,12 +169,21 @@ classify() {
     chunk_bytes=$((chunk_bytes + line_bytes))
   done < "$DIGEST_FILE"
 
-  local f rc had_failure=0
+  local f rc had_failure=0 in_lines out_before out_after out_delta
   for f in "$chunkdir"/chunk-*; do
     [ -s "$f" ] || continue
+    in_lines="$(grep -c . "$f" 2>/dev/null || true)"; [ -n "$in_lines" ] || in_lines=0
+    out_before="$(grep -c . "$CANDIDATES_FILE" 2>/dev/null || true)"; [ -n "$out_before" ] || out_before=0
     bash -c "$LEDGER_L1_CMD" < "$f" >> "$CANDIDATES_FILE"
     rc=$?
-    [ "$rc" -eq 0 ] || had_failure=1
+    out_after="$(grep -c . "$CANDIDATES_FILE" 2>/dev/null || true)"; [ -n "$out_after" ] || out_after=0
+    out_delta=$((out_after - out_before))
+    # the L1 contract is one candidate line per input record — an exit-0
+    # command that appends fewer lines than it was given is a shortfall
+    # (including the zero-output case), same failure class as a non-zero rc.
+    if [ "$rc" -ne 0 ] || [ "$out_delta" -lt "$in_lines" ]; then
+      had_failure=1
+    fi
   done
   rm -rf "$chunkdir"
   if [ "$had_failure" -ne 0 ]; then

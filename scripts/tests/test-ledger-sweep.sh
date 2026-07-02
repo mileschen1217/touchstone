@@ -13,6 +13,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SWEEP="$REPO_ROOT/scripts/ledger/sweep-run.sh"
 W="$REPO_ROOT/scripts/ledger/ledger-append.sh"
 L1="$REPO_ROOT/scripts/tests/fixtures/ledger/stub-l1.sh"
+L1_PARTIAL="$REPO_ROOT/scripts/tests/fixtures/ledger/stub-l1-partial.sh"
 L2="$REPO_ROOT/scripts/tests/fixtures/ledger/stub-l2.sh"
 FIXTURE="$REPO_ROOT/scripts/tests/fixtures/ledger/fixture-transcript.jsonl"
 pass=0; fail=0
@@ -377,6 +378,82 @@ if [ "$BEFORE_L1CMD" = "$AFTER_L1CMD" ]; then
   ok "F1 classify: scan-state byte-identical after the LEDGER_L1_CMD failure"
 else
   fail "F1 classify: scan-state mutated after the LEDGER_L1_CMD failure"
+fi
+
+# ============================================================
+# F2a — classify() checks output-line-count against input-line-count per
+# chunk, not just exit status: LEDGER_L1_CMD=true (a valid command, exit 0,
+# ZERO output) over a non-empty digest is an L1 shortfall failure (rc!=0),
+# records "sweep incomplete: l1", the subsequent finalize refuses, and
+# scan-state.json stays byte-identical throughout.
+# ============================================================
+
+LDIR="$(mkl l1zerooutput)"
+cat > "$LDIR/.digest.jsonl" <<'EOF'
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/z#1-2","ts":"t","payload":{"text":"whatever"}}
+EOF
+SEED_STATE_F2A='{"transcripts":{"/z":{"cursor":9}}}'
+printf '%s\n' "$SEED_STATE_F2A" > "$LDIR/scan-state.json"
+BEFORE_F2A="$(cat "$LDIR/scan-state.json")"
+
+TOUCHSTONE_LEDGER_DIR="$LDIR" LEDGER_L1_CMD=true bash "$SWEEP" classify >/dev/null 2>&1
+RC_F2A=$?
+
+if [ "$RC_F2A" -ne 0 ]; then
+  ok "F2a classify: LEDGER_L1_CMD=true (exit-0, zero output) over a non-empty digest returns non-zero"
+else
+  fail "F2a classify: exit-0 zero-output did not fail (rc=$RC_F2A)"
+fi
+if grep -qxF "sweep incomplete: l1" "$LDIR/.sweep-incomplete" 2>/dev/null; then
+  ok "F2a classify: exit-0 zero-output records 'sweep incomplete: l1'"
+else
+  fail "F2a classify: incomplete file missing the l1 line"
+fi
+
+TOUCHSTONE_LEDGER_DIR="$LDIR" bash "$SWEEP" finalize >/dev/null 2>&1
+RC_F2A_FIN=$?
+AFTER_F2A="$(cat "$LDIR/scan-state.json")"
+if [ "$RC_F2A_FIN" -ne 0 ]; then
+  ok "F2a classify: subsequent finalize refuses after the recorded l1 failure"
+else
+  fail "F2a classify: finalize did not refuse (rc=$RC_F2A_FIN)"
+fi
+if [ "$BEFORE_F2A" = "$AFTER_F2A" ]; then
+  ok "F2a classify: scan-state byte-identical after the exit-0 zero-output failure"
+else
+  fail "F2a classify: scan-state mutated after the exit-0 zero-output failure"
+fi
+
+# ============================================================
+# F2b — same output-shortfall check catches a PARTIAL-output command (emits
+# fewer candidate lines than input records, not just zero): classify rc!=0,
+# "sweep incomplete: l1" recorded.
+# ============================================================
+
+LDIR="$(mkl l1partialoutput)"
+cat > "$LDIR/.digest.jsonl" <<'EOF'
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/p#1-2","ts":"t","payload":{"text":"line one"}}
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/p#3-4","ts":"t","payload":{"text":"line two"}}
+EOF
+
+TOUCHSTONE_LEDGER_DIR="$LDIR" LEDGER_L1_CMD="$L1_PARTIAL" bash "$SWEEP" classify >/dev/null 2>&1
+RC_F2B=$?
+
+if [ "$RC_F2B" -ne 0 ]; then
+  ok "F2b classify: partial-output stub (1 line for a 2-line chunk) returns non-zero"
+else
+  fail "F2b classify: partial-output shortfall did not fail (rc=$RC_F2B)"
+fi
+if grep -qxF "sweep incomplete: l1" "$LDIR/.sweep-incomplete" 2>/dev/null; then
+  ok "F2b classify: partial-output shortfall records 'sweep incomplete: l1'"
+else
+  fail "F2b classify: incomplete file missing the l1 line"
+fi
+CANDLC_F2B="$(lc "$LDIR/.candidates-log.jsonl")"
+if [ "$CANDLC_F2B" = 1 ]; then
+  ok "F2b classify: the one candidate line the stub DID emit is still retained (inspectable artifact)"
+else
+  fail "F2b classify: candidates-log line count unexpected (lc=$CANDLC_F2B)"
 fi
 
 # ============================================================
