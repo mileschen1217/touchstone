@@ -7,3 +7,4 @@ agents/
 commands/
 .claude-plugin/
 hooks/
+scripts/
