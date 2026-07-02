@@ -123,16 +123,23 @@ LOG="$R/.touchstone/ledger/fire-log.jsonl"
   && jq -e '.schema=="fire-event/v1" and .check=="check-fl1.sh" and .stage=="pre-commit" and (.ts|length>0) and (.repo|length>0)' "$LOG" >/dev/null 2>&1; } \
   && ok "FL-1 blocked commit → 1 parseable fire event naming check+stage" || fail "FL-1 log=$(cat "$LOG" 2>/dev/null)"
 
-# FL-2: unwritable ledger dir (parent .touchstone chmod 555) → block still exit 2 named,
-# passing check still exit 0, zero fire-log stderr (AC-12)
+# FL-2a: ledger dir NEVER created (parent .touchstone chmod 555 before the first fire)
+# → block still exit 2 named, no fire-log file, zero fire-log stderr (AC-12)
 R="$TMP/fl2a"; mkrepo "$R"; addcheck "$R" pre-commit check-fl2.sh 1
-fire "$R" 'git commit -m x'; capA="$CAP"; rcA="$RC"
 chmod 555 "$R/.touchstone"
 fire "$R" 'git commit -m x'; capB="$CAP"; rcB="$RC"
 chmod 755 "$R/.touchstone"   # restore before trap cleanup
-{ [ "$rcA" -eq 2 ] && [ "$rcB" -eq 2 ] && [ "$capA" = "$capB" ] \
-  && ! printf '%s' "$capB" | grep -qi "permission denied\|mkdir"; } \
-  && ok "FL-2 unwritable ledger dir → block unaffected, zero fire-log stderr" || fail "FL-2 rcA=$rcA rcB=$rcB capA=$capA capB=$capB"
+LOG="$R/.touchstone/ledger/fire-log.jsonl"
+# exact-shape check: capB must be ONLY the 2 lines the check emits (FAIL header + check
+# stdout) — nothing more. A loose substring grep (e.g. "permission denied|mkdir") misses
+# other leaked fire_log stderr shapes, such as a bare append-redirect failure
+# ("...: No such file or directory"); line-count pins the whole unwritable branch silent.
+{ [ "$rcB" -eq 2 ] \
+  && [ "$(printf '%s' "$capB" | grep -c '^')" -eq 2 ] \
+  && printf '%s' "$capB" | sed -n '1p' | grep -q "check-fl2.sh" \
+  && printf '%s' "$capB" | sed -n '2p' | grep -qx "check-fl2.sh ran" \
+  && [ ! -f "$LOG" ]; } \
+  && ok "FL-2a unwritable ledger dir never created → block still 2 named, no fire-log file, zero fire-log stderr" || fail "FL-2a rcB=$rcB capB=$capB log=$([ -f "$LOG" ] && echo present || echo absent)"
 
 R="$TMP/fl2b"; mkrepo "$R"; addcheck "$R" pre-commit check-fl2p.sh 0
 chmod 555 "$R/.touchstone"
