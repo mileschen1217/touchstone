@@ -373,9 +373,109 @@ else
 fi
 
 # ============================================================
+# Visible-skip semantics — collect() records unconfigured sources (not
+# just silently omitting them), and report() names them
+# ============================================================
+
+LDIR="$(mkl skipvis)"
+sw "$LDIR" collect >/dev/null
+REPORT_SKIP="$(sw "$LDIR" report)"
+case "$REPORT_SKIP" in
+  *"sources skipped (unconfigured): transcript git reckoning"*)
+    ok "visible-skip: report names transcript/git/reckoning as unconfigured-skipped when only firelog is configured" ;;
+  *) fail "visible-skip report missing skipped line (got: $REPORT_SKIP)" ;;
+esac
+
+# ============================================================
+# Phase-sequencing guard — stage refuses to run when this run's
+# .sweep-incomplete already carries an l1 (validate-candidates) failure
+# ============================================================
+
+LDIR="$(mkl seqguard)"
+cat > "$LDIR/.candidates-log.jsonl" <<'EOF'
+{"schema":"candidate/v1","ref":"transcript:/x#1-2","is_miss":true,"caught_by":"live-probe","should_have":"design-review"}
+EOF
+SEED_STATE_SEQ='{"transcripts":{"/x":{"cursor":9}}}'
+printf '%s\n' "$SEED_STATE_SEQ" > "$LDIR/scan-state.json"
+BEFORE_SEQ="$(cat "$LDIR/scan-state.json")"
+
+TOUCHSTONE_LEDGER_DIR="$LDIR" bash "$SWEEP" validate-candidates >/dev/null 2>&1
+TOUCHSTONE_LEDGER_DIR="$LDIR" bash "$SWEEP" stage >/dev/null 2>&1
+RC_SEQ=$?
+AFTER_SEQ="$(cat "$LDIR/scan-state.json")"
+
+if [ "$RC_SEQ" -ne 0 ] && [ ! -e "$LDIR/.staging.jsonl" ]; then
+  ok "phase-sequencing: stage refuses to run after a recorded l1 failure"
+else
+  fail "phase-sequencing stage refusal (rc=$RC_SEQ staging_exists=$([ -e "$LDIR/.staging.jsonl" ] && echo yes || echo no))"
+fi
+if [ ! -e "$LDIR/entries.jsonl" ] || [ ! -s "$LDIR/entries.jsonl" ]; then
+  ok "phase-sequencing: ledger untouched after refused stage"
+else
+  fail "phase-sequencing: ledger written unexpectedly after refused stage"
+fi
+if [ "$BEFORE_SEQ" = "$AFTER_SEQ" ]; then
+  ok "phase-sequencing: scan-state untouched after refused stage"
+else
+  fail "phase-sequencing: scan-state mutated after refused stage"
+fi
+
+# ============================================================
+# merge_cursor_proposals POSITIVE coverage — one successful full sweep
+# (real firelog extraction) plus seeded propose files for two more sources
+# merges all of them into scan-state.json, leaving a pre-existing sibling
+# section untouched
+# ============================================================
+
+LDIR="$(mkl mergepos)"
+cat > "$LDIR/fire-log.jsonl" <<'EOF'
+{"schema":"fire-event/v1","check":"c1","ts":"2026-07-01T00:00:00Z"}
+EOF
+PRE_MERGE_STATE='{"unrelated":{"marker":"stays"}}'
+printf '%s\n' "$PRE_MERGE_STATE" > "$LDIR/scan-state.json"
+
+sw "$LDIR" collect >/dev/null
+sw "$LDIR" classify >/dev/null
+sw "$LDIR" validate-candidates >/dev/null
+sw "$LDIR" stage >/dev/null
+
+# synthetic propose files for transcript+git — these two sources weren't
+# actually configured for this sweep (no TESTHINT in the firelog fixture
+# either, so nothing is is_miss:true), but merge_cursor_proposals commits
+# by FILE PRESENCE, not by which sources ran this sweep; seeding them here
+# exercises the >=2-source merge path without a real transcript/git corpus.
+echo '{"/synthetic/transcript/path":{"cursor":123}}' > "$LDIR/.propose-transcript.json"
+echo '{"/synthetic/git/repo":{"cursor":456}}' > "$LDIR/.propose-git.json"
+
+sw "$LDIR" finalize >/dev/null
+RC_MERGE=$?
+
+TRANSCRIPTS_SECTION="$(jq -c '.transcripts // {}' "$LDIR/scan-state.json")"
+GIT_SECTION="$(jq -c '.git // {}' "$LDIR/scan-state.json")"
+FIRELOG_NONEMPTY="$(jq -r '(.firelog // {}) | length > 0' "$LDIR/scan-state.json")"
+UNRELATED_SECTION="$(jq -c '.unrelated // {}' "$LDIR/scan-state.json")"
+
+if [ "$RC_MERGE" -eq 0 ] \
+  && [ "$TRANSCRIPTS_SECTION" = '{"/synthetic/transcript/path":{"cursor":123}}' ] \
+  && [ "$GIT_SECTION" = '{"/synthetic/git/repo":{"cursor":456}}' ] \
+  && [ "$FIRELOG_NONEMPTY" = "true" ]; then
+  ok "merge-proposals: finalize merges transcript+git+firelog proposals into scan-state.json"
+else
+  fail "merge-proposals: sections wrong (rc=$RC_MERGE transcripts=$TRANSCRIPTS_SECTION git=$GIT_SECTION firelog_nonempty=$FIRELOG_NONEMPTY)"
+fi
+if [ "$UNRELATED_SECTION" = '{"marker":"stays"}' ]; then
+  ok "merge-proposals: pre-existing sibling section untouched by the merge"
+else
+  fail "merge-proposals: sibling section disturbed (got: $UNRELATED_SECTION)"
+fi
+
+# ============================================================
 # MIXED-batch writer test (Task-2 carried item) — staging with one valid +
 # one invalid line: finalize fails the WHOLE batch at the real caller
-# (ledger-append.sh's two-pass validation), ledger unchanged.
+# (ledger-append.sh's two-pass validation), ledger unchanged. Also seeds
+# propose files + a pre-existing scan-state (merge_cursor_proposals
+# NEGATIVE coverage) so the byte-identical assertion actually exercises
+# that a rejected batch never reaches the cursor-commit step.
 # ============================================================
 
 LDIR="$(mkl mixedbatch)"
@@ -385,13 +485,19 @@ LDIR="$(mkl mixedbatch)"
   jq -nc '{schema:"catch-miss/v1", caught_by:"human", should_have:"design-review", gap_class:"not-a-real-enum-value",
            what:"invalid one", evidence:[{kind:"git", ref:"git:mixed2"}], source:"sweep:git"}'
 } > "$LDIR/.staging.jsonl"
+echo '{"/mixed/transcript/path":{"cursor":111}}' > "$LDIR/.propose-transcript.json"
+echo '{"/mixed/git/repo":{"cursor":222}}' > "$LDIR/.propose-git.json"
+PRE_MIXED_STATE='{"unrelated":{"marker":"stays"}}'
+printf '%s\n' "$PRE_MIXED_STATE" > "$LDIR/scan-state.json"
+BEFORE_MIXED="$(cat "$LDIR/scan-state.json")"
 
 TOUCHSTONE_LEDGER_DIR="$LDIR" bash "$SWEEP" finalize >/dev/null 2>&1
 RC_MIXED=$?
-if [ "$RC_MIXED" -ne 0 ] && [ ! -e "$LDIR/.staging.jsonl" ] && { [ ! -e "$LDIR/entries.jsonl" ] || [ ! -s "$LDIR/entries.jsonl" ]; }; then
-  ok "MIXED-batch: finalize fails the whole batch (writer's real whole-batch semantics), ledger unchanged"
+AFTER_MIXED="$(cat "$LDIR/scan-state.json")"
+if [ "$RC_MIXED" -ne 0 ] && [ ! -e "$LDIR/.staging.jsonl" ] && { [ ! -e "$LDIR/entries.jsonl" ] || [ ! -s "$LDIR/entries.jsonl" ]; } && [ "$BEFORE_MIXED" = "$AFTER_MIXED" ]; then
+  ok "MIXED-batch: finalize fails the whole batch (writer's real whole-batch semantics), ledger + scan-state (incl. seeded propose files) unchanged"
 else
-  fail "MIXED-batch (rc=$RC_MIXED staging_exists=$([ -e "$LDIR/.staging.jsonl" ] && echo yes || echo no))"
+  fail "MIXED-batch (rc=$RC_MIXED staging_exists=$([ -e "$LDIR/.staging.jsonl" ] && echo yes || echo no) scan_state_changed=$([ "$BEFORE_MIXED" = "$AFTER_MIXED" ] && echo no || echo yes))"
 fi
 
 echo "== $pass ok, $fail fail =="

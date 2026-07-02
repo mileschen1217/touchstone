@@ -16,8 +16,10 @@
 #                          (LEDGER_TRANSCRIPTS_DIR / LEDGER_GIT_REPO /
 #                          LEDGER_EPIC_DIR — firelog needs none, it reads
 #                          $LDIR/fire-log.jsonl directly); an unset var means
-#                          the source is not configured for this sweep and is
-#                          silently skipped (not a failure). A CONFIGURED
+#                          the source is not configured for this sweep — it
+#                          is recorded in .sweep-skipped-unconfigured (not a
+#                          failure) and `report` prints it as "sources
+#                          skipped (unconfigured): <list>". A CONFIGURED
 #                          source whose extractor exits non-zero is the
 #                          skip-and-report path: the source is skipped, the
 #                          other sources proceed, ".sweep incomplete: <src>"
@@ -35,25 +37,35 @@
 #                          catch-miss/v1 enum. Any violation is an L1 STAGE
 #                          FAILURE: non-zero exit, ".sweep incomplete: l1"
 #                          recorded, no staging is created.
-#   stage                  builds enriched candidates (is_miss:true lines
-#                          from .candidates-log.jsonl, joined with their
-#                          digest/v1 record by ref) and pipes them through
-#                          $LEDGER_L2_CMD, capturing the result to
+#   stage                  refuses (non-zero exit, no staging) when this
+#                          run's .sweep-incomplete already carries an "l1"
+#                          entry — a phase-sequencing guard, not a new
+#                          check: validate-candidates already failed this
+#                          run, so its output is not safe to build on.
+#                          Otherwise builds enriched candidates (is_miss:true
+#                          lines from .candidates-log.jsonl, joined with
+#                          their digest/v1 record by ref) and pipes them
+#                          through $LEDGER_L2_CMD, capturing the result to
 #                          .staging.jsonl. On $LEDGER_L2_CMD failure:
 #                          .staging.jsonl is never left behind and
 #                          ".sweep incomplete: l2" is recorded.
-#   finalize                pipes .staging.jsonl into ledger-append.sh. On
-#                          success: merges every .propose-<src>.json into
-#                          scan-state.json (temp+mv, per cursor-lib.sh) and
-#                          deletes .staging.jsonl + the propose files. On
-#                          ANY failure (including ledger-append.sh's
+#   finalize                refuses (non-zero exit) when this run's
+#                          .sweep-incomplete already carries an "l1" or "l2"
+#                          entry (same phase-sequencing guard as stage).
+#                          Otherwise pipes .staging.jsonl into
+#                          ledger-append.sh. On success: merges every
+#                          .propose-<src>.json into scan-state.json
+#                          (temp+mv, per cursor-lib.sh) and deletes
+#                          .staging.jsonl + the propose files. On ANY
+#                          failure (including ledger-append.sh's
 #                          whole-batch schema rejection): .staging.jsonl is
 #                          discarded and scan-state.json is left untouched —
 #                          cursor commit happens ONLY after a successful
 #                          append.
-#   report                  prints sources consumed, every recorded
-#                          "sweep incomplete: <x>" line, and entries.jsonl's
-#                          line count + byte size.
+#   report                  prints sources consumed, sources skipped
+#                          (unconfigured), every recorded "sweep incomplete:
+#                          <x>" line, and entries.jsonl's line count + byte
+#                          size.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -68,6 +80,7 @@ CANDIDATES_FILE="$LDIR/.candidates-log.jsonl"
 STAGING_FILE="$LDIR/.staging.jsonl"
 CONSUMED_FILE="$LDIR/.sweep-consumed"
 INCOMPLETE_FILE="$LDIR/.sweep-incomplete"
+SKIPPED_FILE="$LDIR/.sweep-skipped-unconfigured"
 
 GAP_CLASSES_JSON='["missing-AC","false-green","no-gate"]'
 
@@ -99,16 +112,23 @@ collect() {
   : > "$CONSUMED_FILE"
   : > "$INCOMPLETE_FILE"
   : > "$CANDIDATES_FILE"
+  : > "$SKIPPED_FILE"
   rm -f "$LDIR"/.propose-*.json
 
   if [ -n "${LEDGER_TRANSCRIPTS_DIR:-}" ]; then
     run_source transcript "$SCRIPT_DIR/extract-transcript.sh" --dir "$LEDGER_TRANSCRIPTS_DIR" --propose-cursors "$LDIR/.propose-transcript.json"
+  else
+    echo transcript >> "$SKIPPED_FILE"
   fi
   if [ -n "${LEDGER_GIT_REPO:-}" ]; then
     run_source git "$SCRIPT_DIR/extract-git.sh" --repo "$LEDGER_GIT_REPO" --propose-cursors "$LDIR/.propose-git.json"
+  else
+    echo git >> "$SKIPPED_FILE"
   fi
   if [ -n "${LEDGER_EPIC_DIR:-}" ]; then
     run_source reckoning "$SCRIPT_DIR/extract-reckoning.sh" --epic-dir "$LEDGER_EPIC_DIR"
+  else
+    echo reckoning >> "$SKIPPED_FILE"
   fi
   run_source firelog "$SCRIPT_DIR/extract-firelog.sh" --propose-cursors "$LDIR/.propose-firelog.json"
 
@@ -145,6 +165,14 @@ classify() {
   done
   rm -rf "$chunkdir"
   return 0
+}
+
+# prior_stage_failure <label> — true when this run's INCOMPLETE_FILE
+# already carries "sweep incomplete: <label>" (phase-sequencing guard for
+# stage/finalize: a prior l1/l2 failure means their input is not safe to
+# build on).
+prior_stage_failure() {
+  [ -s "$INCOMPLETE_FILE" ] && grep -qxF "sweep incomplete: $1" "$INCOMPLETE_FILE"
 }
 
 validate_candidates() {
@@ -190,6 +218,10 @@ build_enriched_candidates() {
 }
 
 stage() {
+  if prior_stage_failure l1; then
+    echo "sweep-run stage: refusing — validate-candidates (l1) failed for this run; fix and re-run validate-candidates first" >&2
+    return 1
+  fi
   : "${LEDGER_L2_CMD:?sweep-run stage: LEDGER_L2_CMD must be set}"
   rm -f "$STAGING_FILE"
 
@@ -229,6 +261,10 @@ merge_cursor_proposals() {
 }
 
 finalize() {
+  if prior_stage_failure l1 || prior_stage_failure l2; then
+    echo "sweep-run finalize: refusing — a prior l1/l2 stage failure was recorded for this run" >&2
+    return 1
+  fi
   if [ ! -f "$STAGING_FILE" ]; then
     # nothing staged (stage phase never ran, or produced no incidents) —
     # nothing to append, nothing to commit.
@@ -254,6 +290,9 @@ report() {
     consumed="$(tr '\n' ' ' < "$CONSUMED_FILE" | sed 's/ *$//')"
   fi
   echo "sources consumed: ${consumed:-none}"
+  if [ -s "$SKIPPED_FILE" ]; then
+    echo "sources skipped (unconfigured): $(tr '\n' ' ' < "$SKIPPED_FILE" | sed 's/ *$//')"
+  fi
   if [ -s "$INCOMPLETE_FILE" ]; then
     cat "$INCOMPLETE_FILE"
   fi
