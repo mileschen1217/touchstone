@@ -13,11 +13,16 @@
 # Default mode (no --since/--epic/--propose-cursors): unfiltered,
 # cursor-advancing — commits the new last_swept sha to
 # $TOUCHSTONE_LEDGER_DIR/scan-state.json section "git" (keyed by repo
-# toplevel path). Incremental range is last_swept..HEAD; when last_swept is
-# unreachable (rebase/force-push) or absent (first run), the extractor
-# falls back to a full history walk — the same pairwise --window bound
-# governs chain construction either way, there is no separate scan-depth
-# cap ("window-bounded full rescan" = full walk, window-bounded pairing).
+# toplevel path). Records are emitted only for fix commits AFTER
+# last_swept, but the anchor search walks the full --window regardless of
+# the cursor: a new fix whose nearest non-fix anchor predates the cursor
+# must still pair (a literal last_swept..HEAD walk would make that anchor
+# invisible and silently drop the fix — the no-lookback gap). When
+# last_swept is unreachable (rebase/force-push) or absent (first run), the
+# extractor falls back to a full history walk — the same pairwise --window
+# bound governs chain construction either way, there is no separate
+# scan-depth cap ("window-bounded full rescan" = full walk, window-bounded
+# pairing).
 # --propose-cursors FILE: same unfiltered scan, but the proposed git
 # section (bare, no "git" envelope) is written to FILE instead of
 # scan-state.json — sweep mode; the caller merges it after a successful
@@ -127,6 +132,31 @@ fi
 SOH=$'\x01'
 US=$'\x02'
 
+# IS_INCREMENTAL gates two independent things: (1) which commits populate
+# the anchor search (window-wide, via --since, NOT last_swept..HEAD — a
+# literal cursor-bounded walk would hide an anchor that predates the
+# cursor and silently drop a new fix that pairs with it) and (2) which
+# fix commits are allowed to EMIT a record (only those in last_swept..HEAD
+# — NEW_SHAS below). A full-history run (first-ever sweep, or recovery
+# from an unreachable last_swept) has no cursor, so every commit is
+# eligible for both.
+IS_INCREMENTAL=0
+ANCHOR_SINCE_EPOCH=""
+NEW_SHAS=""
+if [ -n "$RANGE" ]; then
+  IS_INCREMENTAL=1
+  LAST_SWEPT_CT="$(git -C "$REPO_TOPLEVEL" log -1 --format=%ct "$LAST_SWEPT" 2>/dev/null)"
+  if [ -n "$LAST_SWEPT_CT" ]; then
+    ANCHOR_SINCE_EPOCH=$((LAST_SWEPT_CT - WINDOW_SECS))
+  fi
+  # else: committer date lookup failed unexpectedly — leave
+  # ANCHOR_SINCE_EPOCH empty so the log walk below degrades to full
+  # history (correctness over efficiency).
+  # US-joined, not newline-joined: BSD awk (macOS default) rejects a
+  # multi-line -v value ("newline in string").
+  NEW_SHAS="$(git -C "$REPO_TOPLEVEL" rev-list "$RANGE" 2>/dev/null | tr '\n' "$US")"
+fi
+
 # emit records: one line per fix-chain anchor, SOH-delimited
 # (sha SOH ciso SOH chain_len SOH fix_shas(US-joined) SOH paths(US-joined)
 #  SOH subjects(US-joined)) — piped to jq below to build digest/v1 JSON
@@ -135,9 +165,10 @@ US=$'\x02'
 # bash 3.2 treats "${ARR[@]}" on a possibly-empty array as unbound under
 # set -u, so the optional range arg is branched here rather than expanded
 # from an array.
-if [ -n "$RANGE" ]; then
+if [ "$IS_INCREMENTAL" -eq 1 ] && [ -n "$ANCHOR_SINCE_EPOCH" ]; then
   LOG_RAW="$(git -C "$REPO_TOPLEVEL" log --reverse --no-merges \
-    --pretty=format:"%H${SOH}%ct${SOH}%cI${SOH}%s" --name-only "$RANGE" 2>/dev/null)"
+    --since="@${ANCHOR_SINCE_EPOCH}" \
+    --pretty=format:"%H${SOH}%ct${SOH}%cI${SOH}%s" --name-only HEAD 2>/dev/null)"
 else
   LOG_RAW="$(git -C "$REPO_TOPLEVEL" log --reverse --no-merges \
     --pretty=format:"%H${SOH}%ct${SOH}%cI${SOH}%s" --name-only 2>/dev/null)"
@@ -145,9 +176,23 @@ fi
 
 DIGEST_LINES="$(
   printf '%s\n' "$LOG_RAW" \
-  | awk -v FS="$SOH" -v SOH="$SOH" -v US="$US" -v WINDOW="$WINDOW_SECS" '
+  | awk -v FS="$SOH" -v SOH="$SOH" -v US="$US" -v WINDOW="$WINDOW_SECS" \
+        -v is_incremental="$IS_INCREMENTAL" -v new_shas="$NEW_SHAS" '
     function is_fix_subject(s) {
       return (s ~ /^fix($|[^a-zA-Z])/)
+    }
+    BEGIN {
+      # new_shas = `git rev-list last_swept..HEAD` output (one sha per
+      # line), empty on a full-history run. Record emission is gated on
+      # is_new so a commit that only exists to widen the anchor search
+      # (window-wide, predating the cursor) never itself surfaces a
+      # record — that would re-emit an already-swept chain.
+      if (is_incremental == "1") {
+        nnew = split(new_shas, new_arr, US)
+        for (ni = 1; ni <= nnew; ni++) {
+          if (new_arr[ni] != "") is_new_sha[new_arr[ni]] = 1
+        }
+      }
     }
     {
       if ($0 == "") { next }
@@ -162,6 +207,7 @@ DIGEST_LINES="$(
         for (i = 5; i <= n; i++) subj = subj SOH f[i]
         subject_of[sha] = subj
         is_fix[sha] = is_fix_subject(subj) ? 1 : 0
+        is_new[sha] = (is_incremental == "1") ? (sha in is_new_sha) : 1
         npaths[sha] = 0
         cur = sha
         next
@@ -172,6 +218,13 @@ DIGEST_LINES="$(
     END {
       for (idx = 1; idx <= nseen; idx++) {
         sha = order[idx]
+        if (is_fix[sha] && !is_new[sha]) {
+          # old fix (before the cursor, present only to widen the anchor
+          # search): never updates path_last_nonfix (still a fix) and
+          # never emits (already-swept) — skip outright rather than
+          # falling into the non-fix branch below.
+          continue
+        }
         if (is_fix[sha]) {
           best_sha = ""; best_ct = -1
           for (p = 1; p <= npaths[sha]; p++) {

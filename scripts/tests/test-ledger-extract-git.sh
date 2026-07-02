@@ -193,6 +193,51 @@ else
   fail "propose-mode (scan-state exists=$([ -e "$LDIR3/scan-state.json" ] && echo yes || echo no) propose file size=$(wc -c < "$PROPOSE_F" 2>/dev/null))"
 fi
 
+# --- no-lookback regression: a fix landing AFTER the cursor must still
+# pair with an anchor that landed BEFORE the cursor (epic-close sweeps
+# more often than the window, so this is the common case, not an edge
+# case). A literal last_swept..HEAD anchor search would make the
+# pre-cursor anchor invisible and silently drop the fix. ---
+R5="$(mkrepo nolookback)"
+T0e=1740000000
+SHA_ANCHOR="$(commit_at "$R5" "$T0e"           "feat: add h"           h.sh "line-1")"
+SHA_FIX1="$(commit_at   "$R5" "$((T0e+2*DAY))" "fix: patch h"          h.sh "line-2")"
+
+LDIR5="$TMP/nolookback/ledger"
+TOUCHSTONE_LEDGER_DIR="$LDIR5" "$X" --repo "$R5" > "$TMP/nolookback/digest1.jsonl"
+LC5_1="$(grep -c . "$TMP/nolookback/digest1.jsonl")"
+ANCHOR5_1="$(jq -r '.payload.anchor_sha' "$TMP/nolookback/digest1.jsonl")"
+
+# run-1 sweeps, cursor now sits at SHA_FIX1 — past the feat anchor.
+if [ "$LC5_1" = 1 ] && [ "$ANCHOR5_1" = "$SHA_ANCHOR" ]; then
+  ok "no-lookback run-1: fix pairs with anchor, cursor advances past the anchor"
+else
+  fail "no-lookback run-1 (lc=$LC5_1 anchor=$ANCHOR5_1 want=$SHA_ANCHOR)"
+fi
+
+# 5 days later, a second fix lands on the same path. Its only candidate
+# anchor (SHA_ANCHOR) is now BEFORE the cursor.
+SHA_FIX2="$(commit_at "$R5" "$((T0e+7*DAY))" "fix: patch h again" h.sh "line-3")"
+
+TOUCHSTONE_LEDGER_DIR="$LDIR5" "$X" --repo "$R5" > "$TMP/nolookback/digest2.jsonl"
+LC5_2="$(grep -c . "$TMP/nolookback/digest2.jsonl")"
+ANCHOR5_2="$(jq -r '.payload.anchor_sha' "$TMP/nolookback/digest2.jsonl")"
+FIXSHAS5_2="$(jq -c '.payload.fix_shas' "$TMP/nolookback/digest2.jsonl")"
+
+if [ "$LC5_2" = 1 ] && [ "$ANCHOR5_2" = "$SHA_ANCHOR" ]; then
+  ok "no-lookback run-2: new fix pairs with the pre-cursor anchor"
+else
+  fail "no-lookback run-2 pairing (lc=$LC5_2 anchor=$ANCHOR5_2 want=$SHA_ANCHOR)"
+fi
+
+HAS_FIX2="$(printf '%s' "$FIXSHAS5_2" | jq --arg s "$SHA_FIX2" 'index($s) != null')"
+HAS_FIX1_LEAK="$(printf '%s' "$FIXSHAS5_2" | jq --arg s "$SHA_FIX1" 'index($s) != null')"
+if [ "$HAS_FIX2" = true ] && [ "$HAS_FIX1_LEAK" = false ]; then
+  ok "no-lookback run-2: emits only the new fix, does not re-emit the pre-cursor chain"
+else
+  fail "no-lookback run-2 fix_shas (has_fix2=$HAS_FIX2 has_fix1_leak=$HAS_FIX1_LEAK fixshas=$FIXSHAS5_2)"
+fi
+
 # --- --since is read-only: no scan-state.json written ---
 R4="$(mkrepo since)"
 T0d=1730000000
