@@ -217,12 +217,13 @@ MF="$TMP/malformed"; mkdir -p "$MF/runs"
 mkmani "$MF" GOOD anvil sess-1 /proj 2026-07-01T10:00:00Z
 jq -nc '{schema:"run-manifest/v1",skill:"anvil",session_id:"sess-1",cwd:"/proj",started_at:"2026-07-01T10:01:00Z"}' > "$MF/runs/norunid.json"
 jq -nc '{schema:"run-manifest/v1",run_id:"BADTS",skill:"anvil",session_id:"sess-1",cwd:"/proj",started_at:"not-a-date"}' > "$MF/runs/BADTS.json"
+jq -nc '{schema:"run-manifest/v1",run_id:"NOTS",skill:"anvil",session_id:"sess-1",cwd:"/proj"}' > "$MF/runs/NOTS.json"
 printf 'not json at all' > "$MF/runs/garbage.json"
 nowMF=$(iso_to_epoch 2026-07-01T10:10:00Z)
 wmf="$(TOUCHSTONE_METRICS_DIR="$MF" build_windows_v2 sess-1 "$nowMF")"; rcmf=$?
 { [ "$rcmf" -eq 0 ] && [ "$(printf '%s\n' "$wmf" | grep -c .)" = 1 ] \
   && [ "$(printf '%s\n' "$wmf" | awk -F'\t' '{print $1}')" = GOOD ]; } \
-  && ok "BW-6 malformed manifests (no run_id / bad started_at / non-JSON) silently excluded, good one windows" \
+  && ok "BW-6 malformed manifests (no run_id / bad or missing started_at / non-JSON) silently excluded, good one windows" \
   || fail "BW-6 rc=$rcmf windows=$wmf"
 
 # ==================================================================================
