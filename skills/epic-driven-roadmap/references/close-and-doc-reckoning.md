@@ -218,10 +218,8 @@ A healthy close has an empty `[unverified]` set.
 
 Harvests gate-miss signal (transcript corrections, git fix-chains, Evidence
 Reckoning `[unverified]` rows, checker fire-log) from this closing epic's
-history into `.touchstone/ledger/entries.jsonl`. Non-blocking: a failed
-source or stage is reported, never silent, and never stops close. See
-`scripts/ledger/sweep-run.sh` for the phase implementations this procedure
-drives.
+history into `.touchstone/ledger/entries.jsonl` — non-blocking (see Failure
+semantics below).
 
 **Failure semantics (apply throughout):** an L0 extractor failure
 (step 1) is skip-and-report — that source is skipped, the others proceed,
@@ -260,6 +258,7 @@ splitting a line (identical rule to `sweep-run.sh`'s own `classify` phase):
 ```bash
 chunkdir="$(mktemp -d)"
 awk -v maxb=200000 -v dir="$chunkdir" '
+  BEGIN { idx = 0 }
   { n = length($0) + 1
     if (bytes > 0 && bytes + n > maxb) { idx++; bytes = 0 }
     file = dir "/chunk-" idx
@@ -270,10 +269,15 @@ awk -v maxb=200000 -v dir="$chunkdir" '
 ```
 
 For EACH chunk file produced, make ONE `Agent` dispatch with **explicit
-`model: "haiku"`** (the machine default is sonnet — an unpinned dispatch
-silently doubles cost; REQ-6 SHALL requires this pin every time, not just
-when it "matters"). The dispatch prompt MUST inline the following
-verbatim — the closer is cold and the dispatched agent is colder still:
+`model: "haiku"`** and **explicit `subagent_type: "general-purpose"`**
+(the machine default is sonnet — an unpinned dispatch silently doubles
+cost; REQ-6 SHALL requires this pin every time, not just when it
+"matters". The `subagent_type` pin exists because several named agent
+types lack Read/Bash — pin the dispatch type rather than trust the
+default; this dispatch specifically depends on `general-purpose`'s Read
+tool for the "Read the file at `<chunk-file-path>`" instruction below).
+The dispatch prompt MUST inline the following verbatim — the closer is
+cold and the dispatched agent is colder still:
 
 ```
 You are classifying gate-miss candidates from a digest file. Read the file
@@ -290,7 +294,8 @@ The CLOSED locus vocabulary (use ONLY these values for caught_by/should_have):
 design-review, plan-review, code-review:per-commit, code-review:batch,
 anvil:final, checker:<check-name>, test-suite, live-probe, human.
 
-When is_miss is true, classify gap_class as exactly one of:
+When is_miss is true, classify gap_class as exactly one of (operational
+glosses — the spec defines only the enum):
 - missing-AC — the claim was never written (no AC covered it)
 - false-green — a claim existed but its evidence was false
 - no-gate — no gate covers this class of defect at all
@@ -308,6 +313,15 @@ Append the returned candidate lines, in order, to
 `$TOUCHSTONE_LEDGER_DIR/.candidates-log.jsonl` (create if absent; append —
 never truncate — across chunks).
 
+If a chunk's dispatch errors, times out, or returns no usable output:
+append the EXACT line `sweep incomplete: l1` to
+`$TOUCHSTONE_LEDGER_DIR/.sweep-incomplete` yourself (the sequencing guard
+matches exact strings — improvised wording is invisible to it), then skip
+that chunk and continue dispatching the remaining chunks. After every
+chunk has been attempted: proceed to Step 3 only if at least one chunk
+succeeded; if every chunk failed, abort the sweep (do not proceed to
+Step 3).
+
 ### Step 3 — validate
 
 ```bash
@@ -322,12 +336,20 @@ fix step 2's output (re-dispatch the offending chunk) and re-run
 
 ### Step 4 — L2 synthesis dispatch (sonnet, one dispatch)
 
-Make ONE `Agent` dispatch with **explicit `model: "sonnet"`**. Its input is
-three things: the `is_miss:true` lines from `.candidates-log.jsonl`, their
-matching `digest/v1` records from `.digest.jsonl` (join by `ref`), and the
-CURRENT ledger entries (`cat "$TOUCHSTONE_LEDGER_DIR/entries.jsonl"` — empty
-if the file doesn't exist yet). The dispatch prompt MUST inline the
-following verbatim:
+Make ONE `Agent` dispatch with **explicit `model: "sonnet"`** and
+**explicit `subagent_type: "general-purpose"`** (same pin rationale as
+Step 2 — several named agent types lack Read/Bash; pin the dispatch type
+rather than trust the default).
+
+Input delivery: the CLOSER reads the three inputs itself — the
+`is_miss:true` lines from `.candidates-log.jsonl`, their matching
+`digest/v1` records from `.digest.jsonl` (join by `ref`), and the CURRENT
+ledger entries (`cat "$TOUCHSTONE_LEDGER_DIR/entries.jsonl"` — empty if
+the file doesn't exist yet) — and EMBEDS all three directly in the L2
+dispatch prompt text, after the fixed instructions below. The dispatched
+agent needs no file access for this step. The dispatch prompt MUST
+inline the following fixed instructions verbatim, followed by the
+embedded inputs:
 
 ```
 You are synthesizing gate-miss ledger entries from classified candidates.
@@ -352,8 +374,10 @@ artifact","ref":"<normalized ref, unchanged from the candidate's ref>"}],
 L2 MERGE RULE: synthesize exactly ONE entry per underlying incident. When
 multiple candidates (possibly from different sources) describe the SAME
 incident, merge them into a single entry whose evidence[] array carries
-every one of their refs (one array element per kind, refs unchanged).
-Never emit two entries for one incident.
+every one of their refs (a single evidence[] carrying every contributing
+ref — all kinds represented; multiple refs of the same kind for one
+incident are allowed; refs unchanged). Never emit two entries for one
+incident.
 
 LABEL BEST-MATCH RULE: when a synthesized incident matches an existing
 entry in the current ledger whose source is "label" — same transcript path
@@ -370,6 +394,14 @@ One JSON object per line.
 
 Write the returned lines to `$TOUCHSTONE_LEDGER_DIR/.staging.jsonl`
 (overwrite — this file holds only the current run's staged batch).
+
+If the dispatch errors, times out, or returns no usable output: append
+the EXACT line `sweep incomplete: l2` to
+`$TOUCHSTONE_LEDGER_DIR/.sweep-incomplete` yourself (the sequencing guard
+matches exact strings — improvised wording is invisible to it), then
+abort staging — do not write `.staging.jsonl` and do not run Step 5's
+`finalize` happy path. Still run Step 5's `report` command and paste its
+incomplete line into the close report.
 
 ### Step 5 — finalize and report
 
