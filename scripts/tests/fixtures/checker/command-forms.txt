@@ -27,3 +27,6 @@ none	ls -la
 none	echo git commit
 none	git -C
 none	git -c
+pre-commit	rtk git commit -m "x"
+pre-push	rtk git push
+none	rtk gain

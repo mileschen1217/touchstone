@@ -37,8 +37,12 @@ classify_command() {
     # shellcheck disable=SC2086  # intentional: unquoted $seg for word-splitting; set -f guards globs
     set -- $seg
     IFS=';&|'                # restore chain-split IFS for the next for-iteration
-    # drop leading VAR=val and env prefixes
-    while [ $# -gt 0 ]; do case "$1" in *=*) shift ;; env) shift ;; *) break ;; esac; done
+    # drop leading VAR=val / env / rtk prefixes. `rtk` is the token-optimizing proxy
+    # (rtk git commit …) — a PreToolUse rewrite hook prepends it to git commands, so the
+    # classifier must see through it or every covered form silently classifies `none`
+    # (the first AC-13 live probe was bypassed exactly this way — offline suites can't
+    # see the wrapper environment; only the live probe caught it).
+    while [ $# -gt 0 ]; do case "$1" in *=*) shift ;; env) shift ;; rtk) shift ;; *) break ;; esac; done
     [ "${1:-}" = "git" ] || continue
     shift
     # skip -C <path> / -c k=v global options to reach the subcommand.
