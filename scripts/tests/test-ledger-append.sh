@@ -181,6 +181,28 @@ else
   fail "bare-ref transcript non-overlap (lc=$LC)"
 fi
 
+# --- transcript-range overlap dedupe: HALF-OPEN ranges, adjacent != overlapping ---
+L="$(mkl adjrange)"
+printf '%s\n' "$(entry a1 transcript "transcript:/q#0-10")" | TOUCHSTONE_LEDGER_DIR="$L" bash "$W"
+printf '%s\n' "$(entry a2 transcript "transcript:/q#10-20")" | TOUCHSTONE_LEDGER_DIR="$L" bash "$W"
+LC="$(grep -c . "$L/entries.jsonl")"
+if [ "$LC" = 2 ]; then
+  ok "adjacent half-open ranges (#0-10, #10-20) are NOT overlapping -> both land"
+else
+  fail "adjacent half-open ranges (lc=$LC)"
+fi
+
+# --- transcript-range overlap dedupe: genuinely overlapping ranges still dedupe ---
+L="$(mkl genovrange)"
+printf '%s\n' "$(entry g1 transcript "transcript:/s#0-10")" | TOUCHSTONE_LEDGER_DIR="$L" bash "$W"
+printf '%s\n' "$(entry g2 transcript "transcript:/s#5-15")" | TOUCHSTONE_LEDGER_DIR="$L" bash "$W"
+LC="$(grep -c . "$L/entries.jsonl")"
+if [ "$LC" = 1 ]; then
+  ok "genuinely overlapping ranges (#0-10, #5-15) still dedupe to one"
+else
+  fail "genuinely overlapping ranges (lc=$LC)"
+fi
+
 # --- --label mode fills schema/id/ts/dedupe_key, forces source=label ---
 L="$(mkl label1)"
 LBL='{"what":"human caught it","caught_by":"human","should_have":"code-review:per-commit","gap_class":"false-green","evidence":[{"kind":"git","ref":"git:labelsha"}]}'

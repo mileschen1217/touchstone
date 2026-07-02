@@ -131,7 +131,10 @@ fill_line() {
 # Per-kind overlap rule: transcript refs overlap only when same path AND byte
 # ranges intersect (a bare transcript:<path> ref — label-only, no byte range —
 # never overlaps anything, too coarse); every other kind overlaps on exact
-# normalized-ref string equality.
+# normalized-ref string equality. Ranges are HALF-OPEN [start, end) — same as
+# the extractors that produce them — so adjacent ranges (e.g. #0-10 and
+# #10-20) must NOT be treated as overlapping; the comparison uses strict
+# inequalities, not <=/<=.
 refs_overlap() {
   jq -n --argjson new "$1" --argjson old "$2" '
     def parse_t(r):
@@ -145,7 +148,7 @@ refs_overlap() {
       if (a | startswith("transcript:")) and (b | startswith("transcript:")) then
         (parse_t(a)) as $pa | (parse_t(b)) as $pb |
         if ($pa.bare or $pb.bare) then false
-        else ($pa.path == $pb.path) and ($pa.start <= $pb.end) and ($pb.start <= $pa.end)
+        else ($pa.path == $pb.path) and ($pa.start < $pb.end) and ($pb.start < $pa.end)
         end
       else
         a == b

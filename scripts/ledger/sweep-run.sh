@@ -30,7 +30,13 @@
 #                          command string run via `bash -c`), appending its
 #                          candidate/v1 output to .candidates-log.jsonl —
 #                          RETAINED (never deleted) as the inspectable
-#                          per-run classification artifact.
+#                          per-run classification artifact. Every chunk
+#                          invocation's exit status is checked: if ANY chunk
+#                          fails, ".sweep incomplete: l1" is recorded and
+#                          classify exits non-zero — the same L1 STAGE
+#                          FAILURE outcome as a validate-candidates rejection
+#                          below, so finalize's phase-sequencing guard
+#                          refuses either way.
 #   validate-candidates    jq shape check over .candidates-log.jsonl:
 #                          candidate/v1 shape, and — when is_miss:true —
 #                          caught_by/should_have present and gap_class in the
@@ -158,12 +164,18 @@ classify() {
     chunk_bytes=$((chunk_bytes + line_bytes))
   done < "$DIGEST_FILE"
 
-  local f
+  local f rc had_failure=0
   for f in "$chunkdir"/chunk-*; do
     [ -s "$f" ] || continue
     bash -c "$LEDGER_L1_CMD" < "$f" >> "$CANDIDATES_FILE"
+    rc=$?
+    [ "$rc" -eq 0 ] || had_failure=1
   done
   rm -rf "$chunkdir"
+  if [ "$had_failure" -ne 0 ]; then
+    echo "sweep incomplete: l1" >> "$INCOMPLETE_FILE"
+    return 1
+  fi
   return 0
 }
 

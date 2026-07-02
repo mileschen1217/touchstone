@@ -337,6 +337,49 @@ case "$REPORT_L2" in
 esac
 
 # ============================================================
+# F1 — classify() checks LEDGER_L1_CMD's exit status per chunk: a failing
+# command over a non-empty digest fails classify (rc!=0), records
+# "sweep incomplete: l1", the subsequent finalize refuses (phase-sequencing
+# guard), and scan-state.json stays byte-identical throughout.
+# ============================================================
+
+LDIR="$(mkl l1cmdfail)"
+cat > "$LDIR/.digest.jsonl" <<'EOF'
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/x#1-2","ts":"t","payload":{"text":"whatever"}}
+EOF
+SEED_STATE_L1CMD='{"transcripts":{"/x":{"cursor":9}}}'
+printf '%s\n' "$SEED_STATE_L1CMD" > "$LDIR/scan-state.json"
+BEFORE_L1CMD="$(cat "$LDIR/scan-state.json")"
+
+TOUCHSTONE_LEDGER_DIR="$LDIR" LEDGER_L1_CMD=false bash "$SWEEP" classify >/dev/null 2>&1
+RC_L1CMD=$?
+
+if [ "$RC_L1CMD" -ne 0 ]; then
+  ok "F1 classify: LEDGER_L1_CMD failure over a non-empty digest returns non-zero"
+else
+  fail "F1 classify: LEDGER_L1_CMD failure did not fail (rc=$RC_L1CMD)"
+fi
+if grep -qxF "sweep incomplete: l1" "$LDIR/.sweep-incomplete" 2>/dev/null; then
+  ok "F1 classify: LEDGER_L1_CMD failure records 'sweep incomplete: l1'"
+else
+  fail "F1 classify: incomplete file missing the l1 line"
+fi
+
+TOUCHSTONE_LEDGER_DIR="$LDIR" bash "$SWEEP" finalize >/dev/null 2>&1
+RC_L1CMD_FIN=$?
+AFTER_L1CMD="$(cat "$LDIR/scan-state.json")"
+if [ "$RC_L1CMD_FIN" -ne 0 ]; then
+  ok "F1 classify: subsequent finalize refuses after the recorded l1 failure"
+else
+  fail "F1 classify: finalize did not refuse (rc=$RC_L1CMD_FIN)"
+fi
+if [ "$BEFORE_L1CMD" = "$AFTER_L1CMD" ]; then
+  ok "F1 classify: scan-state byte-identical after the LEDGER_L1_CMD failure"
+else
+  fail "F1 classify: scan-state mutated after the LEDGER_L1_CMD failure"
+fi
+
+# ============================================================
 # AC-17 — label/sweep converge in either order, first writer wins
 # ============================================================
 

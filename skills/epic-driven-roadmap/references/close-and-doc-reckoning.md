@@ -313,12 +313,21 @@ Append the returned candidate lines, in order, to
 `$TOUCHSTONE_LEDGER_DIR/.candidates-log.jsonl` (create if absent; append —
 never truncate — across chunks).
 
-If a chunk's dispatch errors, times out, or returns no usable output:
-append the EXACT line `sweep incomplete: l1` to
-`$TOUCHSTONE_LEDGER_DIR/.sweep-incomplete` yourself (the sequencing guard
-matches exact strings — improvised wording is invisible to it), then skip
-that chunk and continue dispatching the remaining chunks so the candidates
-log captures as much signal as possible. But note: once ANY chunk has
+After each chunk's dispatch, compare the chunk's input line count
+(`wc -l <chunk-file-path>`) against the number of candidate lines the
+dispatch actually returned. A dispatch that silently returns nothing (or
+fewer lines than it read) is invisible to `validate-candidates` — that
+check only inspects the shape of lines that ARE present, so a dropped
+chunk passes it unnoticed. Treat any shortfall (returned count < input
+count) the same as an errored dispatch: it is a dispatch failure.
+
+If a chunk's dispatch errors, times out, returns no usable output, or its
+returned line count falls short of its input line count: append the EXACT
+line `sweep incomplete: l1` to `$TOUCHSTONE_LEDGER_DIR/.sweep-incomplete`
+yourself (the sequencing guard matches exact strings — improvised wording
+is invisible to it), then skip that chunk and continue dispatching the
+remaining chunks so the candidates log captures as much signal as
+possible. But note: once ANY chunk has
 failed, `.sweep-incomplete` carries the `l1` line for the rest of this
 collect cycle (nothing clears it before the next `collect`), and
 `finalize` will refuse no matter what Steps 3-4 produce. So after every
