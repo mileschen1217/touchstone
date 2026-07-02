@@ -145,16 +145,18 @@ emit_digest() {
         '{ printf "%d %d %s\n", off, off+length($0)+1, $0; off+=length($0)+1 }' \
     | jq -Rc --arg path "$f" '
         capture("^(?<s>[0-9]+) (?<e>[0-9]+) (?<j>.*)$") as $m
-        | ($m.j | try fromjson catch empty)
-        | select(.type=="user")
-        | {schema:"digest/v1", source:"transcript",
-           ref:("transcript:"+$path+"#"+$m.s+"-"+$m.e),
-           ts:(.timestamp // ""),
-           payload:{text:(.message.content
-               | if type=="string" then .
-                 else ([.[]? | select(.type=="text") | .text] | join(" "))
-                 end),
-             interrupt_pair:false}}
+        | try (
+            ($m.j | fromjson)
+            | select(.type=="user")
+            | {schema:"digest/v1", source:"transcript",
+               ref:("transcript:"+$path+"#"+$m.s+"-"+$m.e),
+               ts:(.timestamp // ""),
+               payload:{text:(.message.content
+                   | if type=="string" then .
+                     else ([.[]? | select(.type=="text") | .text] | join(" "))
+                     end),
+                 interrupt_pair:false}}
+          ) catch empty
       ' \
     | jq -nc --arg sentinel "$SENTINEL" '
         foreach inputs as $r (

@@ -7,6 +7,7 @@ X="$REPO_ROOT/scripts/ledger/extract-transcript.sh"
 W="$REPO_ROOT/scripts/ledger/ledger-append.sh"
 FIXTURE="$REPO_ROOT/scripts/tests/fixtures/ledger/fixture-transcript.jsonl"
 FIXTURE_NOEOL="$REPO_ROOT/scripts/tests/fixtures/ledger/fixture-transcript-noeol.jsonl"
+FIXTURE_NONOBJECT="$REPO_ROOT/scripts/tests/fixtures/ledger/fixture-transcript-nonobject.jsonl"
 SENTINEL='[Request interrupted by user]'
 pass=0; fail=0
 ok()   { pass=$((pass+1)); echo "ok   - $1"; }
@@ -88,6 +89,39 @@ if [ "$RC" -eq 0 ]; then
   ok "AC-7 malformed line present in fixture, extractor still exits 0"
 else
   fail "AC-7 exit code with malformed line (rc=$RC)"
+fi
+
+# --- AC-7 (non-object JSON): a line that is VALID JSON but not an object
+# ([1,2,3], 42) must not throw an uncaught jq runtime error to stderr; the
+# per-line try/catch must guard the whole transform, not just fromjson ---
+read -r SRC OUT <<<"$(mkscene nonobject)"
+cp "$FIXTURE_NONOBJECT" "$SRC/sess1.jsonl"
+LDIR="$OUT/ledger"
+TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/digest.jsonl" 2> "$OUT/stderr.log"
+RC=$?
+LC="$(grep -c . "$OUT/digest.jsonl")"
+ERR="$(cat "$OUT/stderr.log")"
+if [ "$RC" -eq 0 ] && [ "$LC" = 4 ] && [ -z "$ERR" ]; then
+  ok "AC-7 non-object JSON line ([1,2,3]/42) skipped, correct records still emitted, stderr empty"
+else
+  fail "AC-7 non-object JSON line (rc=$RC lc=$LC stderr='$ERR')"
+fi
+NONOBJ_BYTE_OK=1
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  ref="$(printf '%s' "$line" | jq -r .ref)"
+  path="$(printf '%s' "$ref" | sed -E 's/^transcript:(.*)#[0-9]+-[0-9]+$/\1/')"
+  s="$(printf '%s' "$ref" | sed -E 's/^transcript:.*#([0-9]+)-[0-9]+$/\1/')"
+  e="$(printf '%s' "$ref" | sed -E 's/^transcript:.*#[0-9]+-([0-9]+)$/\1/')"
+  len=$((e - s))
+  raw="$(dd bs=1 skip="$s" count="$len" if="$path" 2>/dev/null)"
+  rtype="$(printf '%s' "$raw" | jq -r '.type // empty')"
+  [ "$rtype" = "user" ] || NONOBJ_BYTE_OK=0
+done < "$OUT/digest.jsonl"
+if [ "$NONOBJ_BYTE_OK" = 1 ]; then
+  ok "AC-7 non-object JSON line: byte ranges of surviving records are still exact"
+else
+  fail "AC-7 non-object JSON line byte ranges (dd extraction did not re-parse as user record)"
 fi
 
 # --- no-trailing-newline case: chosen behavior = skip the unterminated
