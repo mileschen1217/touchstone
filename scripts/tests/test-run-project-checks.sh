@@ -108,5 +108,12 @@ addcheck "$WT" pre-commit check-wt.sh 1
 fire "$WT" 'git commit -m x'; printf '%s' "$CAP" | grep -q "check-wt.sh" \
   && ok "AC-8 worktree toplevel" || fail "AC-8 cap=$CAP"
 
+# rtk-wrapper end-to-end: an rtk-rewritten commit must still fire the repo's checks
+# (regression for the first AC-13 live probe, which the rtk prefix silently bypassed).
+R="$TMP/rtk"; mkrepo "$R"; addcheck "$R" pre-commit check-rtk.sh 1
+fire "$R" 'rtk git commit -m x'
+{ [ "$RC" -eq 2 ] && printf '%s' "$CAP" | grep -q "check-rtk.sh"; } \
+  && ok "rtk-wrapped commit → checks fire + block" || fail "rtk wrapper rc=$RC cap=$CAP"
+
 echo "== test-run-project-checks: $pass ok, $fail fail =="
 [ "$fail" -eq 0 ]
