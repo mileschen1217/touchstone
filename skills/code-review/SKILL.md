@@ -14,7 +14,7 @@ kind: workflow
 
 # /touchstone:code-review — Code Review (Patterns C and B)
 
-<!-- orientation-inline: none — the "why Pattern B" rationale and Dependencies live in README per ADR-0016 (1a). -->
+<!-- orientation-inline: none — the "why Pattern B" rationale and Dependencies live in README. -->
 
 Parallel reviewers in separate contexts. Fast quality check before commit.
 
@@ -85,7 +85,7 @@ diff's risk surface demands — it self-selects domain lenses from the diff
 named deep domains below (security / database), on their conditions. The
 test-evidence lens (when the diff touches test files) is part of the generic
 reviewer, not a separate dispatch. (Why the specialist roster is capped to those
-two — maintainer rationale — lives in `README.md` + ADR-0025.)
+two — maintainer rationale — lives in `README.md`.)
 
 Read the diff briefly. Dispatch a specialist only if the diff *meaningfully*
 touches the domain — not just mentions a keyword.
