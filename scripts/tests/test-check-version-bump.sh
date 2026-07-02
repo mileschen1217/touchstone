@@ -34,17 +34,20 @@ printf 'b\n' >> "$W/skills/x/SKILL.md"; ( cd "$W" && git add -A && git commit -q
 printf '{"version":"0.10.0"}\n' > "$W/.claude-plugin/plugin.json"; ( cd "$W" && git add -A && git commit -q -m bump )
 ( cd "$W" && bash check.sh ) >/dev/null 2>&1 && ok "AC-32 bumped → 0" || fail "AC-32 bumped should pass"
 
-# --- AC-33 (behavioural): the check READS the set from the file, not a restated literal.
-# Point shipped-surface.txt at a UNIQUE prefix absent from any hardcoded set; a change under
-# it with no bump must fail — proving behaviour follows the FILE. ---
-printf 'zzunique-surface/\n' > "$W/.touchstone/shipped-surface.txt"
-mkdir -p "$W/zzunique-surface"; printf 'x\n' > "$W/zzunique-surface/f"
-printf '{"version":"0.10.0"}\n' > "$W/.claude-plugin/plugin.json"   # keep version == origin baseline? no — origin has 0.9.0
-# reset origin baseline version to match so an unchanged version is the tested condition
-( cd "$W" && git show origin/main:.claude-plugin/plugin.json >/dev/null 2>&1 )
-printf '{"version":"0.9.0"}\n' > "$W/.claude-plugin/plugin.json"
-( cd "$W" && git add -A && git commit -q -m "zzunique change no bump" )
-( cd "$W" && bash check.sh ) >/dev/null 2>&1 && fail "AC-33 check should read the file's custom prefix" || ok "AC-33 behaviour follows shipped-surface.txt (reads file, not literal)"
+# --- AC-33 (behavioural): the check READS the prefix set from shipped-surface.txt,
+# not a hardcoded literal. FRESH clone so origin/main..HEAD contains ONLY the zzunique
+# change — a hardcoded skills|agents|... implementation would see nothing it recognises
+# and exit 0; only a file-reading check fires on the custom prefix. (An earlier version
+# reused $W, whose prior skills/x/SKILL.md change lingered in the diff and let a hardcoded
+# impl pass too — a proxy. This isolation is the real anti-restatement guard.) ---
+W2="$TMP/work2"; git clone -q "$ORIGIN" "$W2"
+printf 'zzunique-surface/\n' > "$W2/.touchstone/shipped-surface.txt"
+mkdir -p "$W2/zzunique-surface"; printf 'x\n' > "$W2/zzunique-surface/f"
+# version stays at origin's 0.9.0 (unchanged) — the ONLY question is whether the check
+# detects the zzunique-surface/ change via the file's custom prefix.
+cp "$CHK" "$W2/check.sh"
+( cd "$W2" && git add -A && git commit -q -m "zzunique change no bump" )
+( cd "$W2" && bash check.sh ) >/dev/null 2>&1 && fail "AC-33 behaviour: check must read shipped-surface.txt's custom prefix (a hardcoded set would exit 0 here)" || ok "AC-33 behaviour follows shipped-surface.txt (reads file, not hardcoded set)"
 
 # --- AC-33 (dual-home): CLAUDE.md references the filename and does NOT restate the prefix set inline ---
 CM="$REPO_ROOT/CLAUDE.md"
