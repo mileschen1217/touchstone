@@ -251,4 +251,9 @@ chk "cr-batch-carries-test-evidence-ref" \
   "skills/code-review/references/batch-mode.md" \
   "test.evidence|reviewer-prompts.*generic-diff|generic-diff.*reviewer-prompts"
 
+# catch-attribution sweep step is wired into the epic-close reference (REQ-6)
+chk "close-has-catch-attribution-sweep" \
+  "skills/epic-driven-roadmap/references/close-and-doc-reckoning.md" \
+  "## Catch-attribution sweep"
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
