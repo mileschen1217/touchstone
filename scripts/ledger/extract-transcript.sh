@@ -20,7 +20,15 @@
 # choice): an unterminated final line is treated as still being written —
 # it is NOT emitted and the cursor stops at its start byte, so the next run
 # re-reads it whole once it gets a trailing newline.
+#
+# Cursor mechanics (tail-only scan, reset-on-shrink, section-scoped
+# scan-state read/propose/commit) are shared with extract-firelog.sh — see
+# cursor-lib.sh.
 set -u
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/cursor-lib.sh"
 
 SENTINEL='[Request interrupted by user]'
 
@@ -85,23 +93,10 @@ fi
 OLD_TRANSCRIPTS='{}'
 STATE_JSON='{}'
 LDIR=""
-SCAN_STATE=""
 if [ "$READONLY" -eq 0 ]; then
-  if [ -n "${TOUCHSTONE_LEDGER_DIR:-}" ]; then
-    LDIR="$TOUCHSTONE_LEDGER_DIR"
-  else
-    TOPLEVEL="$(git rev-parse --show-toplevel 2>/dev/null)"
-    if [ -z "$TOPLEVEL" ]; then
-      echo "extract-transcript: not inside a git repo; set TOUCHSTONE_LEDGER_DIR" >&2
-      exit 1
-    fi
-    LDIR="$TOPLEVEL/.touchstone/ledger"
-  fi
-  SCAN_STATE="$LDIR/scan-state.json"
-  if [ -f "$SCAN_STATE" ]; then
-    STATE_JSON="$(cat "$SCAN_STATE")"
-  fi
-  OLD_TRANSCRIPTS="$(printf '%s' "$STATE_JSON" | jq -c '.transcripts // {}')"
+  LDIR="$(cursor_lib_resolve_ledger_dir extract-transcript)" || exit 1
+  STATE_JSON="$(cursor_lib_load_state "$LDIR")"
+  OLD_TRANSCRIPTS="$(cursor_lib_section "$STATE_JSON" transcripts)"
 fi
 NEW_TRANSCRIPTS="$OLD_TRANSCRIPTS"
 
@@ -111,27 +106,11 @@ NEW_TRANSCRIPTS="$OLD_TRANSCRIPTS"
 NEW_CURSOR=0
 emit_digest() {
   local f="$1" cursor="$2"
-  local fs_bytes last_byte last_line_bytes effective_end
+  local fs_bytes effective_end
 
-  fs_bytes="$(wc -c < "$f" | tr -d ' ')"
-
-  if [ "$cursor" -gt "$fs_bytes" ]; then
-    cursor=0
-  fi
-
-  last_byte=""
-  if [ "$fs_bytes" -gt 0 ]; then
-    last_byte="$(tail -c 1 -- "$f")"
-  fi
-
-  if [ -n "$last_byte" ]; then
-    # final byte isn't a newline: the last line is unterminated. Skip it —
-    # the cursor stops before it so the next run re-reads it whole.
-    last_line_bytes="$(tail -n 1 -- "$f" | LC_ALL=C wc -c | tr -d ' ')"
-    effective_end=$((fs_bytes - last_line_bytes))
-  else
-    effective_end="$fs_bytes"
-  fi
+  fs_bytes="$(cursor_lib_fs_bytes "$f")"
+  cursor="$(cursor_lib_reset_if_shrunk "$cursor" "$fs_bytes")"
+  effective_end="$(cursor_lib_tail_effective_end "$f" "$fs_bytes")"
 
   NEW_CURSOR="$effective_end"
 
@@ -190,30 +169,13 @@ fi
 
 # prune keys whose source file no longer exists (AC: stale scan-state key
 # for a deleted/rotated-away file is dropped at scan time).
-KEYS=()
-while IFS= read -r k; do
-  KEYS+=("$k")
-done < <(printf '%s' "$NEW_TRANSCRIPTS" | jq -r 'keys[]')
-
-for k in "${KEYS[@]:-}"; do
-  [ -n "$k" ] || continue
-  if [ ! -f "$k" ]; then
-    NEW_TRANSCRIPTS="$(printf '%s' "$NEW_TRANSCRIPTS" | jq -c --arg p "$k" 'del(.[$p])')"
-  fi
-done
+NEW_TRANSCRIPTS="$(cursor_lib_prune_stale "$NEW_TRANSCRIPTS")"
 
 if [ -n "$PROPOSE_FILE" ]; then
-  mkdir -p "$(dirname "$PROPOSE_FILE")" || { echo "extract-transcript: cannot create dir for $PROPOSE_FILE" >&2; exit 1; }
-  TMP_PROPOSE="$(mktemp "${PROPOSE_FILE}.tmp.XXXXXX")"
-  printf '%s\n' "$NEW_TRANSCRIPTS" > "$TMP_PROPOSE"
-  mv "$TMP_PROPOSE" "$PROPOSE_FILE"
+  cursor_lib_propose "$PROPOSE_FILE" "$NEW_TRANSCRIPTS" || { echo "extract-transcript: cannot create dir for $PROPOSE_FILE" >&2; exit 1; }
   exit 0
 fi
 
-mkdir -p "$LDIR" || { echo "extract-transcript: cannot create ledger dir $LDIR" >&2; exit 1; }
-NEW_STATE="$(printf '%s' "$STATE_JSON" | jq -c --argjson t "$NEW_TRANSCRIPTS" '.transcripts = $t')"
-TMP_STATE="$(mktemp "${SCAN_STATE}.tmp.XXXXXX")"
-printf '%s\n' "$NEW_STATE" > "$TMP_STATE"
-mv "$TMP_STATE" "$SCAN_STATE"
+cursor_lib_commit_section "$LDIR" "$STATE_JSON" transcripts "$NEW_TRANSCRIPTS" || { echo "extract-transcript: cannot create ledger dir $LDIR" >&2; exit 1; }
 
 exit 0
