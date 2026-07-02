@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # cursor-lib.sh — shared byte-cursor scan-state mechanics for L0 tail-only
 # extractors. "transcripts" and "firelog" share an IDENTICAL cursor
 # contract (byte-cursor tail-only, AC-5/AC-6 semantics — see spec

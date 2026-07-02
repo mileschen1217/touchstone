@@ -214,5 +214,32 @@ else
   fail "--since read-only mode (rc=$RC lc=$LC_SINCE scan-state exists=$([ -e "$LDIR_SINCE/scan-state.json" ] && echo yes || echo no))"
 fi
 
+# ============================================================
+# cross-section scan-state isolation — extract-firelog.sh must only touch
+# its own "firelog" section, leaving sibling sections ("git",
+# "transcripts") byte-for-byte untouched.
+# ============================================================
+
+LDIR_ISO="$TMP/isolation/ledger"
+mkdir -p "$LDIR_ISO"
+cat > "$LDIR_ISO/fire-log.jsonl" <<'EOF'
+{"schema":"fire-event/v1","ts":"2026-07-02T10:00:01.000Z","check":"check-x","repo":"/repo","stage":"pre-commit"}
+EOF
+SEED_STATE='{"git":{"/x":{"last_swept":"abc"}},"transcripts":{"/y":{"cursor":7}}}'
+printf '%s\n' "$SEED_STATE" > "$LDIR_ISO/scan-state.json"
+
+TOUCHSTONE_LEDGER_DIR="$LDIR_ISO" "$XF" > "$TMP/isolation/digest.jsonl"
+
+GIT_BEFORE="$(printf '%s' "$SEED_STATE" | jq -c '.git')"
+TRANSCRIPTS_BEFORE="$(printf '%s' "$SEED_STATE" | jq -c '.transcripts')"
+GIT_AFTER="$(jq -c '.git' "$LDIR_ISO/scan-state.json")"
+TRANSCRIPTS_AFTER="$(jq -c '.transcripts' "$LDIR_ISO/scan-state.json")"
+FIRELOG_AFTER="$(jq -c '.firelog // empty' "$LDIR_ISO/scan-state.json")"
+if [ "$GIT_BEFORE" = "$GIT_AFTER" ] && [ "$TRANSCRIPTS_BEFORE" = "$TRANSCRIPTS_AFTER" ] && [ -n "$FIRELOG_AFTER" ]; then
+  ok "cross-section isolation: .git and .transcripts unchanged, .firelog now present"
+else
+  fail "cross-section isolation (git_before=$GIT_BEFORE git_after=$GIT_AFTER transcripts_before=$TRANSCRIPTS_BEFORE transcripts_after=$TRANSCRIPTS_AFTER firelog_after=$FIRELOG_AFTER)"
+fi
+
 echo "== $pass ok, $fail fail =="
 [ "$fail" -eq 0 ]

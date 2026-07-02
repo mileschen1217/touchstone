@@ -17,6 +17,10 @@
 # evidence-ref dedupe absorbs any replay.
 #
 # Row/entry detection (grep/awk, no cursor state):
+#  - Caveat: the "|"+"[unverified:" heuristic can also fire on a prose
+#    bullet that happens to use "|" inside a backtick span (e.g. a code
+#    snippet quoting a shell pipe) rather than an actual table row. This
+#    is over-inclusive by design (see AC-9 note below) — L1 filters.
 #  - "[unverified" row: a markdown table row (contains "|") whose matched
 #    cell contains "[unverified:" (colon required) — this is what
 #    distinguishes a real DATA row ("`[unverified: reason]`") from the
