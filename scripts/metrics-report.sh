@@ -517,7 +517,9 @@ main() {
     build_session_summary "$session" "$costs" "$otel" "$sid" "$scope"
   fi
   if [ -z "$otel" ]; then
-    echo "WARNING: CC-subagent figures are [unverified] — no OTel sink supplied. See README § OTel setup." >&2
+    echo "WARNING: CC-subagent figures are [unverified] — no OTel sink supplied." >&2
+    echo "         Deploy the persistent collector once: bash scripts/metrics/setup-otel.sh (then open a new shell / restart CC)." >&2
+    echo "         Until then subagent tokens are never captured in a real session (README § OTel setup)." >&2
   fi
   return 0
 }
