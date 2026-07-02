@@ -33,6 +33,7 @@ scan() {
 }
 
 # AC-21: the live tree (valid-only) → no finding
+[ -d "$REPO_ROOT/.touchstone/checker" ] || fail "AC-21 precondition: checker dir absent (scan would vacuously pass)"
 scan "$REPO_ROOT/.touchstone/checker" >/dev/null 2>&1 && ok "AC-21 live tree clean" || fail "AC-21 live tree has structure findings"
 
 # AC-20: unrecognised subdir flagged (fixture)
@@ -41,6 +42,7 @@ mkdir -p "$TMP/precommit"   # typo
 out="$(scan "$TMP" 2>&1)"; printf '%s' "$out" | grep -q "stray-subdir" && ok "AC-20 typo subdir flagged" || fail "AC-20 out=$out"
 
 # AC-22a: stray file directly under checker/ flagged
+rm -rf "$TMP/precommit"   # isolate from AC-20's typo-dir fixture (else scan emits 2 findings)
 mkdir -p "$TMP/pre-commit"; printf 'x' > "$TMP/check-loose.sh"
 out="$(scan "$TMP" 2>&1)"; printf '%s' "$out" | grep -q "stray-file" && ok "AC-22 stray file flagged" || fail "AC-22a out=$out"
 rm -f "$TMP/check-loose.sh"; rm -rf "$TMP/precommit"

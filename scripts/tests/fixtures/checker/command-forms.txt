@@ -25,3 +25,5 @@ none	git merge feature
 none	cd sub && git commit -m "x"
 none	ls -la
 none	echo git commit
+none	git -C
+none	git -c

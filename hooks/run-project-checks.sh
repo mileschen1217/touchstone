@@ -41,11 +41,13 @@ classify_command() {
     while [ $# -gt 0 ]; do case "$1" in *=*) shift ;; env) shift ;; *) break ;; esac; done
     [ "${1:-}" = "git" ] || continue
     shift
-    # skip -C <path> / -c k=v global options to reach the subcommand
+    # skip -C <path> / -c k=v global options to reach the subcommand.
+    # `[ $# -gt 1 ] || break` guards a malformed trailing `git -C` (no path arg):
+    # on bash 3.2 a bare `shift 2` with $#=1 is a no-op that would spin this loop.
     while [ $# -gt 0 ]; do
       case "$1" in
-        -C) shift 2 ;;
-        -c) shift 2 ;;
+        -C) [ $# -gt 1 ] || break; shift 2 ;;
+        -c) [ $# -gt 1 ] || break; shift 2 ;;
         --git-dir=*|--work-tree=*) shift ;;
         *) break ;;
       esac
@@ -64,16 +66,20 @@ classify_command() {
 # own process cwd, which is the plugin root). Falls back to payload cwd.
 effective_git_dir() {
   cmd="$1"; pcwd="$2"
+  set -f                       # parity with classify_command: guard globby commit msgs
   # shellcheck disable=SC2086  # intentional: unquoted $cmd for word-splitting to parse tokens
   set -- $cmd
+  set +f
   # find `git` head then a -C value
   while [ $# -gt 0 ]; do [ "$1" = "git" ] && break; shift; done
   [ "${1:-}" = "git" ] && shift
   cdir=""
+  # `[ $# -gt 1 ] || break` guards a malformed trailing `git -C` (no path arg) —
+  # a bare `shift 2` with $#=1 is a bash-3.2 no-op that would spin this loop.
   while [ $# -gt 0 ]; do
     case "$1" in
-      -C) cdir="${2:-}"; shift 2 ;;
-      -c) shift 2 ;;
+      -C) cdir="${2:-}"; [ $# -gt 1 ] || break; shift 2 ;;
+      -c) [ $# -gt 1 ] || break; shift 2 ;;
       *) break ;;
     esac
   done

@@ -7,8 +7,7 @@ proj="${1:-$PWD}"; gi="$proj/.gitignore"
 # 1. dirs + .gitkeep
 for stage in pre-commit pre-push; do
   mkdir -p "$proj/.touchstone/checker/$stage"
-  : > "$proj/.touchstone/checker/$stage/.gitkeep" 2>/dev/null || true
-  [ -f "$proj/.touchstone/checker/$stage/.gitkeep" ] || : > "$proj/.touchstone/checker/$stage/.gitkeep"
+  : > "$proj/.touchstone/checker/$stage/.gitkeep"   # dir exists (mkdir -p above); let a write error surface
 done
 
 # 2. .gitignore carve — canonical order: `.touchstone/*` then the two re-includes.

@@ -24,15 +24,25 @@ W="$TMP/work"; git clone -q "$ORIGIN" "$W"
 mkdir -p "$W/skills/x" "$W/.touchstone" "$W/.claude-plugin"
 printf 'skills/\n' > "$W/.touchstone/shipped-surface.txt"
 printf '{"version":"0.9.0"}\n' > "$W/.claude-plugin/plugin.json"
+printf '{"version":"0.9.0"}\n' > "$W/.claude-plugin/marketplace.json"
 printf 'a\n' > "$W/skills/x/SKILL.md"
 ( cd "$W" && git add -A && git commit -q -m base && git branch -M main && git push -q origin main )
 cp "$CHK" "$W/check.sh"
 # change shipped surface, DO NOT bump version
 printf 'b\n' >> "$W/skills/x/SKILL.md"; ( cd "$W" && git add -A && git commit -q -m change )
 ( cd "$W" && bash check.sh ) >/dev/null 2>&1 && fail "AC-31 unchanged version should fail" || ok "AC-31 shipped change + no bump → nonzero"
-# now bump version
-printf '{"version":"0.10.0"}\n' > "$W/.claude-plugin/plugin.json"; ( cd "$W" && git add -A && git commit -q -m bump )
-( cd "$W" && bash check.sh ) >/dev/null 2>&1 && ok "AC-32 bumped → 0" || fail "AC-32 bumped should pass"
+# now bump BOTH manifests in lockstep
+printf '{"version":"0.10.0"}\n' > "$W/.claude-plugin/plugin.json"
+printf '{"version":"0.10.0"}\n' > "$W/.claude-plugin/marketplace.json"; ( cd "$W" && git add -A && git commit -q -m bump )
+( cd "$W" && bash check.sh ) >/dev/null 2>&1 && ok "AC-32 lockstep bump → 0" || fail "AC-32 lockstep bump should pass"
+
+# AC-32b (final-review M1 — marketplace lockstep): shipped change + plugin.json bumped
+# but marketplace.json left at base → must fail (a stale marketplace deploys nothing).
+W4="$TMP/work4"; git clone -q "$ORIGIN" "$W4"; cp "$CHK" "$W4/check.sh"
+printf 'c\n' >> "$W4/skills/x/SKILL.md"                             # a shipped-surface change
+printf '{"version":"0.10.0"}\n' > "$W4/.claude-plugin/plugin.json"  # bump plugin ONLY; marketplace stays 0.9.0
+( cd "$W4" && git add -A && git commit -q -m "plugin bumped, marketplace stale" )
+( cd "$W4" && bash check.sh ) >/dev/null 2>&1 && fail "AC-32b plugin-only bump must fail (marketplace stale)" || ok "AC-32b marketplace not bumped in lockstep → nonzero"
 
 # --- AC-33 (behavioural): the check READS the prefix set from shipped-surface.txt,
 # not a hardcoded literal. FRESH clone so origin/main..HEAD contains ONLY the zzunique
