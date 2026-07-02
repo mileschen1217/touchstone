@@ -325,8 +325,10 @@ collect cycle (nothing clears it before the next `collect`), and
 chunk has been attempted, check `$TOUCHSTONE_LEDGER_DIR/.sweep-incomplete`:
 if it contains a `sweep incomplete: l1` line, skip Steps 3 and 4 entirely
 and go straight to Step 5's `report` command only (do NOT run `finalize`,
-do NOT spend the L2 dispatch); proceed to Step 3 only if the file is
-absent or empty. The un-swept signal is not lost — cursor commit happens
+do NOT spend the L2 dispatch); proceed to Step 3 whenever the file does
+NOT contain a `sweep incomplete: l1` line — an unrelated L0 source
+failure recorded there (e.g. `sweep incomplete: git`) does NOT block
+Steps 3-5; only `l1`/`l2` lines do. The un-swept signal is not lost — cursor commit happens
 only in a successful `finalize`, so the next close's sweep re-extracts the
 same range.
 
