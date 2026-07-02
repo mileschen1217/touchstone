@@ -32,7 +32,7 @@ val="$(printf '%s' "$vs" | sed -n 's/.*Live-bearing AC IDs:\*\*[[:space:]]*//p' 
 # the valid prefix — rather than stripping at the first separator char — avoids corrupting
 # the hyphen INSIDE `AC-1` (a naive `s/-.*//` would). A value that does NOT start with a
 # valid token (e.g. `TBD`, `see above`) yields no match → we keep the raw value so the
-# format check below fails it (AC-41). Em-dash trailing prose is handled (a real reviewer catch).
+# format check below fails a malformed value. Em-dash trailing prose is handled (a real reviewer catch).
 extracted="$(printf '%s' "$val" | grep -oE '^(none|AC-[0-9]+([, ]+AC-[0-9]+)*)' || true)"
 [ -n "$extracted" ] && val="$extracted"
 

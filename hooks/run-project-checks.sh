@@ -111,7 +111,7 @@ main() {
   for chk in "$dir"/check-*.sh; do
     [ -e "$chk" ] || continue               # zero-glob → literal, skip
     # Honour the +x contract: a non-executable check is a MISCONFIGURED check, not
-    # an infra fault — surface it as a named block (the structure meta-check AC-22
+    # an infra fault — surface it as a named block (the structure meta-check
     # flags it pre-emptively, but the runtime must not silently run it via `bash`).
     if [ ! -x "$chk" ]; then
       printf '[touchstone-checker] FAIL: %s is not executable (chmod +x it)\n' "$chk" >&2

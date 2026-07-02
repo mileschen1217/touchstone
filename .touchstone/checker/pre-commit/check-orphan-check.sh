@@ -2,7 +2,7 @@
 # check-orphan-check.sh — a check-*.sh placed DIRECTLY under .touchstone/checker/
 # (not under a pre-commit/ or pre-push/ stage subdir) is an orphan: the hook only
 # globs checker/<stage>/, so the script silently never runs. Defense-in-depth twin
-# of the structure meta-check (AC-22); catching this at commit time prevents silent
+# of the test-suite structure meta-check; catching this at commit time prevents silent
 # dead gates from entering the committed tree.
 set -uo pipefail
 root="${TOUCHSTONE_CHECK_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}" || exit 0
