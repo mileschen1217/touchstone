@@ -73,6 +73,16 @@ mkdir -p "${CLAUDE_PROJECT_DIR}/<workspace_root>/research"
 
 If `mkdir` fails (permission, invalid path), print error naming the path, exit non-zero.
 
+## Step 4b — Bootstrap checker scaffold
+
+Run the deterministic scaffold bootstrap (idempotent; converges any partial state):
+
+    bash "${CLAUDE_PLUGIN_ROOT}/scripts/init-checker-scaffold.sh" "${CLAUDE_PROJECT_DIR}"
+
+This creates `.touchstone/checker/{pre-commit,pre-push}/` (each with a `.gitkeep`)
+and applies the canonical `.gitignore` carve so committed project checks are
+trackable while the rest of `.touchstone/` stays ignored.
+
 ## Step 5 — Write yaml
 
 Write `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml`:

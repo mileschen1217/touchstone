@@ -1,0 +1,9 @@
+# Shipped-surface path prefixes (single home). A diff touching any of these
+# requires a plugin.json + marketplace.json version bump (version-keyed cache).
+# Read by .touchstone/checker/pre-push/check-version-bump.sh; referenced (not
+# restated) by CLAUDE.md § Versioning.
+skills/
+agents/
+commands/
+.claude-plugin/
+hooks/

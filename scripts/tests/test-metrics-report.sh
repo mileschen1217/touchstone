@@ -376,8 +376,8 @@ jq empty "$HJ" 2>/dev/null && ok "HK-4 hooks.json is valid JSON" || fail "HK-4 h
 events="$(jq -r '.hooks | keys[]' "$HJ" | sort | tr '\n' ',')"
 [ "$events" = "PreToolUse,UserPromptSubmit," ] && ok "HK-5 registers UserPromptSubmit + PreToolUse only (no dead UserPromptExpansion)" || fail "HK-5 events=$events"
 [ "$(jq -r '.hooks.PreToolUse[0].matcher' "$HJ")" = Skill ] && ok "HK-5b PreToolUse matcher=Skill (auto-invoke path)" || fail "HK-5b wrong matcher"
-jq -e '[.. | objects | select(has("command")) | .command | test("stamp-run.sh")] | all' "$HJ" >/dev/null \
-  && ok "HK-6 every hook command invokes stamp-run.sh" || fail "HK-6 command wiring"
+jq -e '[.. | objects | select(has("command")) | .command | (test("stamp-run.sh") or test("run-project-checks.sh"))] | all' "$HJ" >/dev/null \
+  && ok "HK-6 every hook command invokes a known touchstone hook script (stamp-run / run-project-checks)" || fail "HK-6 command wiring"
 
 # ==================================================================================
 # AC-23 (live-bearing) + REAL-DATA FIDELITY — committed real OTel fixture

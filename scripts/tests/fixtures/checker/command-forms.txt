@@ -1,0 +1,29 @@
+# audited-against: git-scm.com/docs 2026-07-02
+pre-commit	git commit -m "x"
+pre-commit	git commit -am "x"
+pre-commit	git commit -F msg.txt
+pre-commit	git commit --amend --no-edit
+pre-commit	git -C /other/repo commit -m "x"
+pre-commit	git -c user.name=x commit -m "y"
+pre-commit	GIT_DIR=.git git commit -m "x"
+pre-commit	env FOO=bar git commit -m "x"
+pre-commit	make lint && git commit -m "x"
+pre-push	git push
+pre-push	git push --force-with-lease
+pre-push	git push origin HEAD
+pre-push	git -C /other/repo push
+none	git status
+none	git log --oneline
+none	git diff HEAD
+none	git show HEAD
+none	git config commit.gpgsign false
+none	git commit --dry-run
+none	git stash
+none	git cherry-pick abc123
+none	git revert HEAD
+none	git merge feature
+none	cd sub && git commit -m "x"
+none	ls -la
+none	echo git commit
+none	git -C
+none	git -c

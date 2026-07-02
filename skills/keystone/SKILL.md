@@ -31,7 +31,7 @@ A structural fork with durability stakes: 2+ viable approaches where the choice
 constrains future deliveries across code, docs, or suite structure.
 
 **NOT a trigger:** multi-actor / pre-spec system-model alignment (a deprecated
-construct) — see ADR-0018 for the revisit path if that need resurfaces.
+construct) — see the honesty-spine core-identity decision for the revisit path if that need resurfaces.
 
 Skip when: direction is clear → go to `/touchstone:design-spec`; tactical
 implementation choice → resolve inline.
@@ -77,4 +77,4 @@ and a review owner per recorded bet. Write to `docs/adr/` only when a decision i
 
 Decision recorded → `/touchstone:design-spec` (reference the ADR in Related).
 
-**Related:** `adr-authoring.md` · `references/arch-rubric.md` · `ADR-0018` (two-pillar derivation)
+**Related:** `adr-authoring.md` · `references/arch-rubric.md` · design+review two-pillar derivation (`CONTEXT.md`)
