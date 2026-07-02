@@ -97,6 +97,26 @@ effective_git_dir() {
   fi
 }
 
+# fire_log <check-path> — append a fire-event/v1 line to the repo's ledger on a block.
+# Every failure path is silent and returns 0: this is telemetry, never a gate.
+fire_log() {
+  [ -L "$root/.touchstone" ] && return 0            # symlink guard, BOTH levels
+  d="$root/.touchstone/ledger"; [ -L "$d" ] && return 0
+  mkdir -p "$d" 2>/dev/null || return 0
+  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)"; c="$(basename "$1")"
+  r="$root"
+  line="$(jq -nc --arg ts "$ts" --arg c "$c" --arg r "$r" --arg s "$stage" \
+    '{schema:"fire-event/v1",ts:$ts,check:$c,repo:$r,stage:$s}' 2>/dev/null)" || return 0
+  # BYTE-enforced ≤512 bound (wc -c, not ${#}): head-truncate repo with leading …
+  while [ "$(printf '%s' "$line" | wc -c)" -gt 512 ] && [ "$(printf '%s' "$r" | wc -c)" -gt 12 ]; do
+    r="…${r#??????}"
+    line="$(jq -nc --arg ts "$ts" --arg c "$c" --arg r "$r" --arg s "$stage" \
+      '{schema:"fire-event/v1",ts:$ts,check:$c,repo:$r,stage:$s}' 2>/dev/null)" || return 0
+  done
+  printf '%s\n' "$line" >> "$d/fire-log.jsonl" 2>/dev/null || true
+  return 0
+}
+
 main() {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v git >/dev/null 2>&1 || exit 0
@@ -119,10 +139,12 @@ main() {
     # flags it pre-emptively, but the runtime must not silently run it via `bash`).
     if [ ! -x "$chk" ]; then
       printf '[touchstone-checker] FAIL: %s is not executable (chmod +x it)\n' "$chk" >&2
+      fire_log "$chk"
       exit 2
     fi
     if ! out="$("$chk" 2>&1)"; then         # execute directly, honouring the +x bit
       printf '[touchstone-checker] FAIL: %s\n%s\n' "$chk" "$out" >&2
+      fire_log "$chk"
       exit 2                                # fail-fast: first failure blocks
     fi
   done

@@ -14,7 +14,7 @@ fire() {
   local cwd="$1" cmd="$2"
   local payload; payload="$(jq -nc --arg c "$cmd" --arg d "$cwd" \
     '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$c},cwd:$d}')"
-  CAP="$(printf '%s' "$payload" | bash "$HANDLER" 2>&1)"; RC=$?
+  CAP="$(printf '%s' "$payload" | "$HANDLER" 2>&1)"; RC=$?
 }
 mkrepo() { local d="$1"; mkdir -p "$d"; ( cd "$d" && git init -q ); }
 addcheck() { # <repo> <stage> <name> <exit>
@@ -114,6 +114,79 @@ R="$TMP/rtk"; mkrepo "$R"; addcheck "$R" pre-commit check-rtk.sh 1
 fire "$R" 'rtk git commit -m x'
 { [ "$RC" -eq 2 ] && printf '%s' "$CAP" | grep -q "check-rtk.sh"; } \
   && ok "rtk-wrapped commit → checks fire + block" || fail "rtk wrapper rc=$RC cap=$CAP"
+
+# FL-1: blocked commit → fire-log has 1 parseable event naming the check + stage (AC-11)
+R="$TMP/fl1"; mkrepo "$R"; addcheck "$R" pre-commit check-fl1.sh 1
+fire "$R" 'git commit -m x'
+LOG="$R/.touchstone/ledger/fire-log.jsonl"
+{ [ -f "$LOG" ] && [ "$(wc -l < "$LOG" | tr -d ' ')" -eq 1 ] \
+  && jq -e '.schema=="fire-event/v1" and .check=="check-fl1.sh" and .stage=="pre-commit" and (.ts|length>0) and (.repo|length>0)' "$LOG" >/dev/null 2>&1; } \
+  && ok "FL-1 blocked commit → 1 parseable fire event naming check+stage" || fail "FL-1 log=$(cat "$LOG" 2>/dev/null)"
+
+# FL-2: unwritable ledger dir (parent .touchstone chmod 555) → block still exit 2 named,
+# passing check still exit 0, zero fire-log stderr (AC-12)
+R="$TMP/fl2a"; mkrepo "$R"; addcheck "$R" pre-commit check-fl2.sh 1
+fire "$R" 'git commit -m x'; capA="$CAP"; rcA="$RC"
+chmod 555 "$R/.touchstone"
+fire "$R" 'git commit -m x'; capB="$CAP"; rcB="$RC"
+chmod 755 "$R/.touchstone"   # restore before trap cleanup
+{ [ "$rcA" -eq 2 ] && [ "$rcB" -eq 2 ] && [ "$capA" = "$capB" ] \
+  && ! printf '%s' "$capB" | grep -qi "permission denied\|mkdir"; } \
+  && ok "FL-2 unwritable ledger dir → block unaffected, zero fire-log stderr" || fail "FL-2 rcA=$rcA rcB=$rcB capA=$capA capB=$capB"
+
+R="$TMP/fl2b"; mkrepo "$R"; addcheck "$R" pre-commit check-fl2p.sh 0
+chmod 555 "$R/.touchstone"
+fire "$R" 'git commit -m x'; rcP="$RC"; capP="$CAP"
+chmod 755 "$R/.touchstone"
+{ [ "$rcP" -eq 0 ] && ! printf '%s' "$capP" | grep -qi "permission denied\|mkdir"; } \
+  && ok "FL-2b unwritable ledger dir, passing check → 0, zero fire-log stderr" || fail "FL-2b rc=$rcP cap=$capP"
+
+# FL-3: two parallel direct executions with failing checks → 2 intact JSON lines (AC-23)
+R="$TMP/fl3"; mkrepo "$R"; addcheck "$R" pre-commit check-fl3.sh 1
+payload="$(jq -nc --arg c 'git commit -m x' --arg d "$R" \
+  '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$c},cwd:$d}')"
+printf '%s' "$payload" | "$HANDLER" >/dev/null 2>&1 &
+printf '%s' "$payload" | "$HANDLER" >/dev/null 2>&1 &
+wait
+LOG="$R/.touchstone/ledger/fire-log.jsonl"
+lines=0; parsed_ok=1
+if [ -f "$LOG" ]; then
+  lines="$(wc -l < "$LOG" | tr -d ' ')"
+  while IFS= read -r ln; do jq -e . >/dev/null 2>&1 <<<"$ln" || parsed_ok=0; done < "$LOG"
+fi
+{ [ "$lines" -eq 2 ] && [ "$parsed_ok" -eq 1 ]; } \
+  && ok "FL-3 concurrent hook fires → 2 intact JSON lines" || fail "FL-3 lines=$lines log=$(cat "$LOG" 2>/dev/null)"
+
+# FL-4: >512B repo path → fire-log line still ≤512 BYTES (wc -c) and still parses (AC-23 bound)
+longpart="$(printf 'x%.0s' $(seq 1 50))"
+P="$TMP/fl4"
+for _i in $(seq 1 12); do P="$P/$longpart"; done
+mkrepo "$P"; addcheck "$P" pre-commit check-fl4.sh 1
+fire "$P" 'git commit -m x'
+LOG="$P/.touchstone/ledger/fire-log.jsonl"
+line="$(cat "$LOG" 2>/dev/null)"
+bytes="$(printf '%s' "$line" | wc -c | tr -d ' ')"
+{ [ -n "$line" ] && [ "$bytes" -le 512 ] && jq -e . >/dev/null 2>&1 <<<"$line"; } \
+  && ok "FL-4 >512B repo path → line <=512 bytes, still parses" || fail "FL-4 bytes=$bytes line=$line"
+
+# FL-5: symlink guard at BOTH levels → no fire-log write, block/pass semantics unchanged (Architecture)
+# FL-5a: .touchstone itself is a symlink
+R="$TMP/fl5a"; mkdir -p "$R"; ( cd "$R" && git init -q )
+REAL="$TMP/fl5a-real"; mkdir -p "$REAL/checker/pre-commit"
+printf '#!/usr/bin/env bash\necho "check-fl5a ran"\nexit 1\n' > "$REAL/checker/pre-commit/check-fl5a.sh"
+chmod +x "$REAL/checker/pre-commit/check-fl5a.sh"
+ln -s "$REAL" "$R/.touchstone"
+fire "$R" 'git commit -m x'
+{ [ "$RC" -eq 2 ] && printf '%s' "$CAP" | grep -q "check-fl5a.sh" && [ ! -e "$REAL/ledger" ]; } \
+  && ok "FL-5a .touchstone symlinked → no fire-log write, block unaffected" || fail "FL-5a rc=$RC cap=$CAP"
+
+# FL-5b: .touchstone/ledger is a symlink
+R="$TMP/fl5b"; mkrepo "$R"; addcheck "$R" pre-commit check-fl5b.sh 1
+TARGET="$TMP/fl5b-ledger-target"; mkdir -p "$TARGET"
+ln -s "$TARGET" "$R/.touchstone/ledger"
+fire "$R" 'git commit -m x'
+{ [ "$RC" -eq 2 ] && printf '%s' "$CAP" | grep -q "check-fl5b.sh" && [ -z "$(ls -A "$TARGET" 2>/dev/null)" ]; } \
+  && ok "FL-5b .touchstone/ledger symlinked → no fire-log write, block unaffected" || fail "FL-5b rc=$RC cap=$CAP"
 
 echo "== test-run-project-checks: $pass ok, $fail fail =="
 [ "$fail" -eq 0 ]
