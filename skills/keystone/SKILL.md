@@ -77,4 +77,4 @@ and a review owner per recorded bet. Write to `docs/adr/` only when a decision i
 
 Decision recorded → `/touchstone:design-spec` (reference the ADR in Related).
 
-**Related:** `adr-authoring.md` · `references/arch-rubric.md` · design+review two-pillar derivation
+**Related:** `adr-authoring.md` · `references/arch-rubric.md` · design+review two-pillar derivation (`CONTEXT.md`)
