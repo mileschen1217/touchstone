@@ -1,0 +1,7 @@
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"正常訊息 A"}]},"uuid":"fx-0:01.000","timestamp":"2026-07-02T10:00:01.000Z","sessionId":"fixture-sess","cwd":"/fixture/proj","isSidechain":false}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"好的"}]},"timestamp":"2026-07-02T10:00:02.000Z","sessionId":"fixture-sess"}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user]"}]},"uuid":"fx-0:03.000","timestamp":"2026-07-02T10:00:03.000Z","sessionId":"fixture-sess","cwd":"/fixture/proj","isSidechain":false,"interruptedMessageId":"msg_fixture01"}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"修正:X 其實壞了 TESTHINT:K1"}]},"uuid":"fx-0:04.000","timestamp":"2026-07-02T10:00:04.000Z","sessionId":"fixture-sess","cwd":"/fixture/proj","isSidechain":false}
+{"type":"attachment","attachment":{"kind":"blob"},"timestamp":"2026-07-02T10:00:05.000Z","sessionId":"fixture-sess"}
+not json {
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"gate 自己抓到 Y,已修 TESTHINT:notmiss"}]},"uuid":"fx-0:06.000","timestamp":"2026-07-02T10:00:06.000Z","sessionId":"fixture-sess","cwd":"/fixture/proj","isSidechain":false}
