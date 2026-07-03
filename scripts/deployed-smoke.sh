@@ -9,7 +9,8 @@
 #
 # Prints PASS/FAIL for four checks:
 #   (1) key files exist: skills/*/SKILL.md count ≥ repo, hooks/ and scripts/ present
-#   (2) all scripts/**/*.sh in the cache carry the filesystem exec bit
+#   (2) all shebang'd scripts/**/*.sh in the cache carry the filesystem exec
+#       bit (no-shebang files are source-only libraries, never executed)
 #   (3) bare-path lint: no unguarded "bash scripts/..." or "Read \`skills/..." in cache skills/**/*.md
 #   (4) every ${CLAUDE_PLUGIN_ROOT}/<path> referenced in this repo's skills/ exists in the cache
 #
@@ -68,13 +69,18 @@ else
   bad "1-key-files" "skills=$cache_skill_count (need ≥$repo_skill_count), hooks_present=$hooks_present, scripts_present=$scripts_present"
 fi
 
-# --- (2) exec bits on all scripts/**/*.sh ---
+# --- (2) exec bits on all shebang'd scripts/**/*.sh ---
+# A file without a #! first line is a source-only library (e.g. *-lib.sh);
+# it is never executed directly, so it legitimately carries no exec bit.
 missing_exec=""
 while IFS= read -r f; do
+  first2="$(head -c 2 "$f" 2>/dev/null)"
+  # empty first2 = zero-byte or unreadable file — deployment corruption, don't exempt
+  [ "$first2" != "#!" ] && [ -n "$first2" ] && continue
   [ -x "$f" ] || missing_exec="$missing_exec\n  $f"
 done < <(find "$CACHE/scripts" -name '*.sh' 2>/dev/null | sort)
 if [ -z "$missing_exec" ]; then
-  ok "2-exec-bits" "all scripts/**/*.sh are executable"
+  ok "2-exec-bits" "all shebang'd scripts/**/*.sh are executable"
 else
   bad "2-exec-bits" "missing exec bit on:$missing_exec"
 fi
