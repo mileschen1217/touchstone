@@ -101,5 +101,20 @@ ent "$OP" o1 2026-07-01T00:00:00Z
 OUT="$(TOUCHSTONE_LEDGER_DIR="$OP" bash "$R" digest)"
 echo "$OUT" | grep -q 'no pending proposals' && ok "open-but-unproposed digest message" || fail "open-no-pending digest: $OUT"
 
+# --- replay cost-witness render branch (fires!=hits → needs-your-call) ---
+RW="$(mkl replaywitness)"
+ent "$RW" rw1 2026-07-01T00:00:00Z
+jq -nc '{schema:"proposal/v1", id:"prw", ts:"2026-07-02T00:00:00Z", scope:"local",
+  unit_type:"checker", title:"T-rw", class_desc:"C-rw", benefit_witness:["rw1"],
+  cost_witness:{kind:"replay", fires:3, hits:2, samples:["deadbee1"]},
+  auto_install_eligible:false, body_ref:"proposals/prw/proposal.md"}' \
+  | TOUCHSTONE_LEDGER_DIR="$RW" bash "$W" proposal
+DIG="$(TOUCHSTONE_LEDGER_DIR="$RW" bash "$R" digest)"
+BLOCK="$(echo "$DIG" | sed -n '/^## T-rw/,/^$/p')"
+echo "$BLOCK" | grep -qF 'cost: replay fires=3 hits=2 — extra fires: deadbee1' \
+  && ok "replay cost render: fires/hits + extra-fires sample" || fail "replay cost render: $BLOCK"
+echo "$BLOCK" | grep -q '\[needs-your-call\]' \
+  && ok "replay fires!=hits recomputes needs-your-call" || fail "replay needs-your-call: $BLOCK"
+
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]
