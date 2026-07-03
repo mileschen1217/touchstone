@@ -50,18 +50,40 @@ in_list() {
 
 # validation errors name the offending line AND field — LINE_NO is set by the
 # batch loop before each validator call.
-LINE_NO=0
 verr() { echo "facts-append: line $LINE_NO: $1" >&2; }
 
 # CLAIMED accumulates witness ids validated earlier in THIS batch so two
 # lines of one batch cannot claim the same entry.
 CLAIMED=""
 
+# CLAIMED_IDS accumulates caller-supplied .id values validated earlier in
+# THIS batch. A reused id — whether it already exists in $TARGET or repeats
+# within one batch — would let validate_resolution's
+# `select(.id==$id) | tail -1` proposal lookup silently join against the
+# wrong record, so both facts families reject it up front.
+CLAIMED_IDS=""
+
+# check_id_unique <id> — called by validate_proposal AND validate_resolution
+# (both write exactly one $TARGET per invocation, so the same check applies).
+check_id_unique() {
+  local id="$1" existing
+  existing="$(jq -c --arg id "$id" 'select(.id==$id)' "$TARGET" 2>/dev/null | tail -1)"
+  [ -z "$existing" ] || { verr "id already exists in $(basename "$TARGET"): '$id' (field: id)"; return 1; }
+  if printf '%s\n' "$CLAIMED_IDS" | grep -qxF "$id"; then
+    verr "id duplicated within batch: '$id' (field: id)"; return 1
+  fi
+  CLAIMED_IDS="$CLAIMED_IDS
+$id"
+  return 0
+}
+
 validate_proposal() {
   local e="$1"
   echo "$e" | jq -e . >/dev/null 2>&1 || { verr "not valid JSON"; return 1; }
   local schema; schema="$(echo "$e" | jq -r '.schema // empty')"
   [ "$schema" = "proposal/v1" ] || { verr "schema must be proposal/v1 (got '$schema') (field: schema)"; return 1; }
+  local id; id="$(echo "$e" | jq -r '.id // empty')"
+  [ -z "$id" ] || check_id_unique "$id" || return 1
   local scope; scope="$(echo "$e" | jq -r '.scope // empty')"
   # shellcheck disable=SC2086
   in_list "$scope" $SCOPES || { verr "invalid scope: '$scope' (field: scope)"; return 1; }
@@ -105,6 +127,8 @@ validate_resolution() {
   echo "$e" | jq -e . >/dev/null 2>&1 || { verr "not valid JSON"; return 1; }
   local schema; schema="$(echo "$e" | jq -r '.schema // empty')"
   [ "$schema" = "resolution/v1" ] || { verr "schema must be resolution/v1 (got '$schema') (field: schema)"; return 1; }
+  local id; id="$(echo "$e" | jq -r '.id // empty')"
+  [ -z "$id" ] || check_id_unique "$id" || return 1
   local kind; kind="$(echo "$e" | jq -r '.kind // empty')"
   # shellcheck disable=SC2086
   in_list "$kind" $RES_KINDS || { verr "invalid kind: '$kind' (field: kind)"; return 1; }
@@ -147,7 +171,7 @@ fill_proposal() {
   local e="$1" id ts
   id="$(echo "$e" | jq -r '.id // empty')"
   ts="$(echo "$e" | jq -r '.ts // empty')"
-  [ -n "$id" ] || id="p-$(date -u +%Y%m%dT%H%M%SZ)-$(printf '%04x' $((RANDOM % 65536)))"
+  [ -n "$id" ] || id="p-$(date -u +%Y%m%dT%H%M%SZ)-$$-$(printf '%04x' $((RANDOM % 65536)))"
   [ -n "$ts" ] || ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   jq -c -n --argjson e "$e" --arg id "$id" --arg ts "$ts" \
     --slurpfile es <(cat "$ENTRIES" 2>/dev/null) '
@@ -169,7 +193,7 @@ fill_resolution() {
   local e="$1" id ts
   id="$(echo "$e" | jq -r '.id // empty')"
   ts="$(echo "$e" | jq -r '.ts // empty')"
-  [ -n "$id" ] || id="r-$(date -u +%Y%m%dT%H%M%SZ)-$(printf '%04x' $((RANDOM % 65536)))"
+  [ -n "$id" ] || id="r-$(date -u +%Y%m%dT%H%M%SZ)-$$-$(printf '%04x' $((RANDOM % 65536)))"
   [ -n "$ts" ] || ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "$e" | jq -c --arg id "$id" --arg ts "$ts" '.id=$id | .ts=$ts'
 }

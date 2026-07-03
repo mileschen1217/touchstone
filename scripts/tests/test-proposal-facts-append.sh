@@ -155,6 +155,32 @@ assert_accepted "AC-7 setup: pending p-pend claims e2" proposal "$S" "$(prop ppe
 assert_rejected "AC-7 pending-claimed entry" proposal "$S" "$(prop q4 e2)"
 assert_accepted "AC-7 open entry e3 fine" proposal "$S" "$(prop q5 e3)"
 
+# --- id-uniqueness (reviewer finding on Task 1): a caller-supplied .id must
+# not silently collide with an id already in the target file, nor with
+# another line of the SAME batch — a collision would let validate_resolution's
+# `select(.id==$id) | tail -1` proposal lookup join against the wrong record.
+U="$(mkrepo idu)"
+mkentry "$U" e1 2026-07-01T00:00:00Z
+mkentry "$U" e2 2026-07-01T00:00:01Z
+mkentry "$U" e3 2026-07-01T00:00:02Z
+assert_accepted "id-uniqueness setup: pu1 committed" proposal "$U" "$(prop pu1 e1)"
+# (a) id already present in proposals.jsonl
+ERR="$(printf '%s\n' "$(prop pu1 e2)" | TOUCHSTONE_LEDGER_DIR="$U" bash "$W" proposal 2>&1 1>/dev/null)"; rc=$?
+[ "$rc" -ne 0 ] && ok "id reuse: existing proposal id rejected" || fail "id reuse: existing proposal id rc=$rc"
+echo "$ERR" | grep -q 'field: id' && ok "id reuse: existing proposal id names field id" || fail "id reuse: existing proposal id field: '$ERR'"
+[ "$(wc -l < "$U/proposals.jsonl")" -eq 1 ] && ok "id reuse: existing proposal id — nothing written" || fail "id reuse: existing proposal id wrote extra line"
+# (b) two lines of ONE batch sharing an id
+ERR="$(printf '%s\n' "$(prop pu2 e2)" "$(prop pu2 e3)" | TOUCHSTONE_LEDGER_DIR="$U" bash "$W" proposal 2>&1 1>/dev/null)"; rc=$?
+[ "$rc" -ne 0 ] && ok "id reuse: batch-internal duplicate id rejected" || fail "id reuse: batch dup rc=$rc"
+echo "$ERR" | grep -q 'field: id' && ok "id reuse: batch-internal duplicate names field id" || fail "id reuse: batch dup field: '$ERR'"
+[ "$(wc -l < "$U/proposals.jsonl")" -eq 1 ] && ok "id reuse: batch dup — nothing written" || fail "id reuse: batch dup wrote extra line"
+# (c) resolution id already present in resolutions.jsonl
+assert_accepted "id-uniqueness setup: ru1 committed" resolution "$U" "$(res pu1 accepted '.id="ru1" | .entry_ids=["e1"]')"
+ERR="$(printf '%s\n' "$(res pu1 revoked '.id="ru1"')" | TOUCHSTONE_LEDGER_DIR="$U" bash "$W" resolution 2>&1 1>/dev/null)"; rc=$?
+[ "$rc" -ne 0 ] && ok "id reuse: existing resolution id rejected" || fail "id reuse: existing resolution id rc=$rc"
+echo "$ERR" | grep -q 'field: id' && ok "id reuse: existing resolution id names field id" || fail "id reuse: existing resolution id field: '$ERR'"
+[ "$(wc -l < "$U/resolutions.jsonl")" -eq 1 ] && ok "id reuse: existing resolution id — nothing written" || fail "id reuse: existing resolution id wrote extra line"
+
 # --- AC-4: append-only + nested gitignore self-heal + lock ---
 G="$(mkrepo ac4)"
 mkentry "$G" e1 2026-07-01T00:00:00Z
