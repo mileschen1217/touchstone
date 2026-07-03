@@ -1,4 +1,6 @@
 # <Project Name> Roadmap
+<!-- Hosts with scripts/roadmap-render.sh: run the script to regenerate this file
+     (and ROADMAP.html) from epic index files instead of hand-editing. -->
 
 ## Scope
 

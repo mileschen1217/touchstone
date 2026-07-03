@@ -54,5 +54,11 @@ d="$(mk)"; bash "$BOOT" "$d"
 ( cd "$d" && git check-ignore -q .touchstone/ledger/entries.jsonl ) \
   && ok "ledger-dir-gitignored-via-blanket-rule" || fail "ledger-dir-gitignored-via-blanket-rule"
 
+# G4-3: workspace_root: .swarm → gitignore contains .swarm/* AND !.touchstone/checker/
+d="$(mk)"; mkdir -p "$d/.claude"; printf 'workspace_root: .swarm\n' > "$d/.claude/touchstone.yaml"
+bash "$BOOT" "$d"
+{ grep -qxF '.swarm/*' "$d/.gitignore" && grep -qxF '!.touchstone/checker/' "$d/.gitignore"; } \
+  && ok "G4-3 ws_root .swarm: .swarm/* and !.touchstone/checker/ present" || fail "G4-3 ws_root .swarm"
+
 echo "== test-init-checker-scaffold: $pass ok, $fail fail =="
 [ "$fail" -eq 0 ]

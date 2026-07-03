@@ -75,7 +75,7 @@ same invocation.
 Want vocabulary, conventions (As-a/so-that template, Spec-Kit WHAT/WHY-not-HOW, INVEST), and terminology live in `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate. Detailed authoring guidance: `references/draft-workflow.md § Want-layer authoring`.
 
 **feedforward ground-and-sweep arm.** Before generating Acceptance Criteria, load the shared doctrine:
-> Read `skills/_shared/ground-and-sweep.md`
+> Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/ground-and-sweep.md`
 
 feedforward application delta (AC generation): `requirement × current-repo-state` — ground each AC in concrete repo facts (file path, line number, value); sweep the AC's true subject set to saturation, not first-hit. When **generating** acceptance criteria, each generated AC is the unit; saturation = every subject element has ≥1 AC.
 

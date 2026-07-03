@@ -46,9 +46,11 @@ chk "draft-workflow-has-challenger-id" \
   "challenger_id"
 
 # skills/design-spec/references/draft-workflow.md — spec-extract.sh digest
+# (path is ${CLAUDE_PLUGIN_ROOT}-prefixed and quoted, so allow an optional quote
+# between the script name and the subcommand)
 chk "draft-workflow-has-spec-extract-digest" \
   "skills/design-spec/references/draft-workflow.md" \
-  "spec-extract\.sh digest"
+  "spec-extract\.sh\"? digest"
 
 # skills/design-spec/references/draft-workflow.md — untrusted-data directive
 chk "draft-workflow-has-untrusted-data" \

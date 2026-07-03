@@ -28,8 +28,7 @@ A skill = a prompt-injected instruction that wrangles determinism out of a stoch
 The audit invited an aggressive prune. The adversarial review surfaced the decisive risk:
 
 **Pruning a skill with no behavioral regression test is itself a false-green.** The behavioral
-step0-fixture runner is not wired; the only green gate (`check-intention-first-l1.sh`) is a static
-grep (structural, not behavioral). Repeated wording in a skill is sometimes the mechanism that
+step0-fixture runner is not wired; a pre-commit structural check (`check-foundation-gate-structure.sh`) runs structural greps via the pre-commit checker, but this is structural, not behavioral. Repeated wording in a skill is sometimes the mechanism that
 survives truncation / partial attention — removing it can leave the skill semantically
 underconstrained while looking cleaner, and the regression is silent. Likewise, moving
 disambiguation that prevents a defect (e.g. the critique-vs-gate boundary, ADR-0015) out of the

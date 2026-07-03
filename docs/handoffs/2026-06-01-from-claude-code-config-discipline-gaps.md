@@ -88,6 +88,7 @@ existing docs backfill.
 assert `kind:` (so it runs as part of the floor gate at close), or add a
 separate `scripts/check-doc-kind.sh` invoked by `epic-driven-roadmap`
 Doc Reckoning. Adoption gate via `.claude/touchstone.yaml` toggle.
+(Note: `scripts/check-doc-kind.sh` was never created and is not implemented — gap identified, not built.)
 
 ### 3. Floor checker incompatible with lettered sub-AC ids
 

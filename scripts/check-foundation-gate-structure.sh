@@ -9,7 +9,7 @@
 # set -uo pipefail (NOT -e) and helper assertions; the script exits with the
 # number of failed checks (0 = all green).
 set -uo pipefail
-cd "$(dirname "$0")/.."   # repo root
+cd "$(dirname "$0")/.." || { echo "FAIL: cannot cd to repo root from $(dirname "$0")"; exit 1; }   # repo root
 
 fail=0
 expect_count() {            # expect_count <want> <cmd...>
@@ -44,11 +44,11 @@ expect_absent grep -REn \
 # region below would be empty and the forbidden-conditional grep would
 # print 0 and false-pass (no region = no violation counted).
 expect_count 1 grep -cE '^0\. \*\*Foundation elicitation' skills/epic-driven-roadmap/SKILL.md
-expect_count 1 grep -cE '^### Step 0 — Foundation elicitation' skills/design-spec/SKILL.md
+expect_count 1 grep -cE '^### Foundation elicitation' skills/design-spec/SKILL.md
 expect_count 0 bash -c "set -o pipefail; awk '/^0\\. \\*\\*Foundation elicitation/{f=1} /^1\\. /{f=0} f' \
   skills/epic-driven-roadmap/SKILL.md \
   | grep -cE 'adopted_disciplines|intention-first|--skip|\\bquick\\b|if .*yaml'"
-expect_count 0 bash -c "set -o pipefail; awk '/^### Step 0 — Foundation elicitation/{f=1} /^### /{if(f&&!/Step 0 — Foundation elicitation/)f=0} f' \
+expect_count 0 bash -c "set -o pipefail; awk '/^### Foundation elicitation/{f=1} /^### /{if(f&&!/Foundation elicitation/)f=0} f' \
   skills/design-spec/SKILL.md \
   | grep -cE 'adopted_disciplines|intention-first|--skip|\\bquick\\b|if .*yaml'"
 
@@ -82,7 +82,7 @@ expect_count 1 grep -cF '**Intention (why):**' "$S"
 expect_count 1 grep -cF '**Aim:**' "$S"
 expect_count 1 grep -cF '**Out of scope:**' "$S"
 expect_count 1 grep -cE '^## Acceptance Criteria$' "$S"
-expect_count 1 bash -c "awk '/^## Foundation\$/{f=1} /^## Acceptance Criteria\$/{f=0} f' '$S' | grep -cF 'provisional direction set at Step 0'"
+expect_count 1 bash -c "awk '/^## Foundation\$/{f=1} /^## Acceptance Criteria\$/{f=0} f' '$S' | grep -cF 'provisional direction set at the Foundation-elicitation phase'"
 expect_count 1 bash -c "awk '/^## Foundation\$/{f=1} /^## Acceptance Criteria\$/{f=0} f' '$S' | grep -cF 'silently inherited'"
 expect_no_output grep -nE '^\s*-\s*\*\*Out of scope:\*\*\s*\S' "$S"
 expect_no_output awk '

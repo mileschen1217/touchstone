@@ -50,7 +50,7 @@ grep -Eiq 'insight.*metrics-report|metrics-report.*insight' "$REPO_ROOT/README.m
 V1="$(grep -o '"version": "[^"]*"' "$REPO_ROOT/.claude-plugin/plugin.json")"
 V2="$(grep -o '"version": "[^"]*"' "$REPO_ROOT/.claude-plugin/marketplace.json")"
 [ "$V1" = "$V2" ] && ok "version lockstep" || fail "version lockstep: $V1 vs $V2"
-[ "$V1" = '"version": "0.12.0"' ] && ok "version is exactly 0.12.0" || fail "version: $V1"
+[ "$V1" = '"version": "0.13.0"' ] && ok "version is exactly 0.13.0" || fail "version: $V1"
 
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

@@ -8,9 +8,9 @@ decision and the execution contract for whoever wires it.
 
 | Tier | What | Status |
 |---|---|---|
-| Structural Layer-1 | greps/awk over the four shipped files (AC-6, AC-7 local-conditional, AC-11, AC-5 template half) | **GREEN now** via `scripts/check-intention-first-l1.sh` — needs no runner |
-| Behavioral Layer-1 (replay) | replay each fixture, assert deterministic fields (`required-phrases`, `forbidden-substrings`, `expected-foundation` incl. `aim-not-contains`, `expected-risk-notes`, `expected-artifacts`, `awk-shape`) | **pending-harness** — needs the replay runner below |
-| Layer-2 rubric | judge AC-1 / AC-2 / AC-3 / AC-13 rubrics over `runs` with `min-pass` | **pending-runner** |
+| Structural Layer-1 | greps/awk over the four shipped files (AC-6, AC-7 local-conditional, AC-11, AC-5 template half) | **GREEN now** via `scripts/check-foundation-gate-structure.sh` — triggered by pre-commit checker |
+| Behavioral Layer-1 (replay) | replay each fixture, assert deterministic fields (`required-phrases`, `forbidden-substrings`, `expected-foundation` incl. `aim-not-contains`, `expected-risk-notes`, `expected-artifacts`, `awk-shape`) | **pending-harness** (not-scheduled) — needs the replay runner; runner has not been created and is not scheduled for creation |
+| Layer-2 rubric | judge AC-1 / AC-2 / AC-3 / AC-13 rubrics over `runs` with `min-pass` | **pending-runner** (not-scheduled) — depends on the same unscheduled runner |
 
 Only AC-1, AC-2, AC-3, AC-13 carry `rubric`/`runs`/`min-pass`. The other
 ACs are Layer-1; their behavioral parts are pending-harness (replay), NOT
@@ -42,5 +42,5 @@ phrase is forbidden in every fixture except `aim-handoff`.
 ## Interim (until wired)
 
 A human may replay any fixture by hand and check its deterministic fields
-on demand. Structural Layer-1 (`scripts/check-intention-first-l1.sh`) is the
-standing gate and stays GREEN.
+on demand. Structural Layer-1 (`scripts/check-foundation-gate-structure.sh`) is the
+standing gate, triggered by the pre-commit checker, and stays GREEN.
