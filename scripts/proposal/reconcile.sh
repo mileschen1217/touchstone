@@ -46,6 +46,10 @@ jq -r -n --arg now "$NOW" \
     end'
 
 echo "== possible recurrence of a resolved class — human review =="
+# A proposal can carry multiple resolution facts over the same entry_ids
+# (e.g. accepted + install-failed) — each is a separate candidate match, so
+# dedupe to ONE line per (new-entry, class) pair, keeping the earliest
+# covering resolution (min ts) as the representative id.
 jq -r -n \
   --slurpfile rs <(slurp "$DIR/resolutions.jsonl") \
   --slurpfile es <(slurp "$DIR/entries.jsonl") '
@@ -56,9 +60,14 @@ jq -r -n \
       | $es[] | . as $e
       | select($e.ts > $r.ts)
       | select(($keys | index({sh:$e.should_have, gc:$e.gap_class})) != null)
-      | "resolution " + $r.id + " ~ new entry " + $e.id
-        + " (class " + $e.should_have + " × " + $e.gap_class + ")"
-    ] | unique)
+      | {rid:$r.id, rts:$r.ts, eid:$e.id, sh:$e.should_have, gc:$e.gap_class}
+    ]
+    | sort_by(.rts)
+    | group_by([.eid, .sh, .gc])
+    | map(.[0])
+    | map("resolution " + .rid + " ~ new entry " + .eid
+        + " (class " + .sh + " × " + .gc + ")")
+  )
   | if length == 0 then "none" else .[] end'
 
 echo "== runs/ =="

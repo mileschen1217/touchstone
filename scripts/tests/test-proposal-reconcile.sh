@@ -64,6 +64,12 @@ echo "$OUT" | grep -q 'possible recurrence' && ok "AC-18 recurrence section pres
 echo "$OUT" | grep 'possible recurrence' -A 20 | grep -q 'e9' && ok "AC-18 new entry id listed" || fail "AC-18 e9"
 echo "$OUT" | grep 'e9' | grep -q 'ra1' && ok "AC-18 resolution id paired" || fail "AC-18 pair"
 grep -q 'recurrence-fact' "$L/resolutions.jsonl" 2>/dev/null && fail "AC-18 auto-marked" || ok "AC-18 not auto-adjudicated"
+# pa has TWO resolution facts over e1 (ra1 accepted, ra2 install-failed) covering
+# the same class as e9 — must collapse to exactly one line, keeping the earliest.
+n_e9="$(echo "$OUT" | grep -c 'new entry e9')"
+[ "$n_e9" -eq 1 ] && ok "AC-18 dedupe: exactly one line for e9" || fail "AC-18 dedupe: n=$n_e9"
+echo "$OUT" | grep 'new entry e9' | grep -q 'ra1' && ok "AC-18 dedupe: keeps earliest resolution ra1" || fail "AC-18 dedupe: earliest"
+echo "$OUT" | grep 'new entry e9' | grep -qv 'ra2' && ok "AC-18 dedupe: drops later resolution ra2" || fail "AC-18 dedupe: ra2 leaked"
 
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]
