@@ -4,6 +4,15 @@
 set -uo pipefail
 proj="${1:-$PWD}"; gi="$proj/.gitignore"
 
+# Resolve workspace_root from .claude/touchstone.yaml (default: .touchstone).
+# Checker dirs + hook lookup remain at .touchstone/checker/ regardless of ws_root.
+ws_root=".touchstone"
+yaml="$proj/.claude/touchstone.yaml"
+if [ -f "$yaml" ]; then
+  v="$(awk -F: '/^workspace_root:/{gsub(/[[:space:]]/,"",$2); print $2}' "$yaml")"
+  [ -n "$v" ] && ws_root="$v"
+fi
+
 # 1. dirs + .gitkeep
 for stage in pre-commit pre-push; do
   mkdir -p "$proj/.touchstone/checker/$stage"
@@ -21,3 +30,11 @@ if [ "$(grep -cxF '.touchstone/*' "$gi")" -eq 0 ]; then
 fi
 # Append the two carve lines AFTER the parent (they were stripped above, so append is correct order).
 printf '!.touchstone/checker/\n!.touchstone/checker/**\n' >> "$gi"
+
+# 3. If workspace_root differs from .touchstone, also ignore that root's content.
+if [ "$ws_root" != ".touchstone" ]; then
+  ws_line="${ws_root}/*"
+  if [ "$(grep -cxF "$ws_line" "$gi")" -eq 0 ]; then
+    printf '%s\n' "$ws_line" >> "$gi"
+  fi
+fi

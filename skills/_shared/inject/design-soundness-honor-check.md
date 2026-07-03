@@ -8,14 +8,20 @@ load-and-inject verbatim into every cold-dispatched reviewer. The feedforward ar
 `design-review` (subject = the spec document); the feedback arm fires at deliverable review
 (subject = delivered code vs the spec's `## Architecture` commitments).
 
+**Injector requirement (warm orchestrator, at injection time):** also load
+`${CLAUDE_PLUGIN_ROOT}/skills/keystone/references/arch-rubric.md` and inject its content
+into the cold prompt alongside this fragment. The cold reviewer cannot resolve plugin
+paths — the rubric must arrive as content, never as a path.
+
 ---
 
 ## Shared: what a structural commitment is
 
 A **structural commitment** is a normative SHALL statement in a spec's `## Architecture`
 section that constrains the shape of the delivered code — e.g. "module M SHALL be deep /
-SHALL NOT leak its orchestration sequence to callers." It is grounded in
-`skills/keystone/references/arch-rubric.md` (load, do not restate the force text).
+SHALL NOT leak its orchestration sequence to callers." It is grounded in the keystone
+arch-rubric, whose force text is injected alongside this fragment — apply that injected
+content; do not go looking for a file.
 
 A commitment is **normative** when it uses SHALL or SHALL NOT and names a component +
 constraint. A section that merely describes the system shape without these constraints

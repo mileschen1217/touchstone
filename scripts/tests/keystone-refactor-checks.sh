@@ -72,7 +72,7 @@ disc=$(sweep 'arch-discovery')
 # --- [archreview-repointed]: zero arch-review (excl docs/adr + this script) + positive per-consumer keystone ---
 ar=$(sweep 'arch-review')
 [ -z "$ar" ] || err "[archreview-repointed] arch-review still referenced in: $ar"
-for c in README.md CONTEXT.md agents/codex-adversarial-reviewer.md scripts/migration-audit.sh \
+for c in README.md CONTEXT.md agents/codex-adversarial-reviewer.md scripts/archive/migration-audit.sh \
          skills/_shared/inject/bridge-content-gate.md skills/_shared/inject/standing-vs-transient-bridge.md \
          skills/cross-provider-architect/SKILL.md skills/cross-provider-reviewer/SKILL.md \
          skills/code-review/README.md skills/design-spec/README.md; do

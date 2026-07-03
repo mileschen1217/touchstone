@@ -14,6 +14,10 @@ kind: workflow
 
 ---
 
+## Step 0 — Dependency check
+
+Before running any stage, verify that `superpowers:writing-plans` and `superpowers:subagent-driven-development` appear in your available-skills list; if either is absent, stop and tell the user which skills are missing and where to install them (both are from the official Claude Code Superpowers plugin).
+
 ## Stage sequence (un-skippable — each gate's DONE is the next's precondition)
 
 ```
@@ -29,9 +33,9 @@ Each dispatched stage produces a `stage-return/v1` artifact via `normalize-stage
 Run the Phase-3.1 spine-integrity gate on the accepted contract. Capture native output FIRST, then normalize:
 
 ```bash
-bash scripts/design-review-precheck.sh "$spec" > "$task_dir/precheck.out" 2>&1
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/design-review-precheck.sh" "$spec" > "$task_dir/precheck.out" 2>&1
 echo $? > "$task_dir/precheck.rc"
-bash scripts/normalize-stage-return.sh entry-precondition "$task_dir"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/normalize-stage-return.sh" entry-precondition "$task_dir"
 ```
 
 **Structured-return handling:**
@@ -69,7 +73,7 @@ STAGE-REVIEW-SUMMARY: critical=<n> high=<n> degraded=<true|false>
 Capture into `$task_dir/review.result.json` (the composite's native result) and `$task_dir/review.md` (free-text synthesis + sentinel), then normalize:
 
 ```bash
-bash scripts/normalize-stage-return.sh plan-review "$task_dir"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/normalize-stage-return.sh" plan-review "$task_dir"
 ```
 
 **Structured-return handling:**
@@ -103,7 +107,7 @@ Single home: load by path; never restate the body inline.
 Dispatch `touchstone:cross-provider-reviewer` on the deliverable. Same capture-then-normalize two-step as plan-review (write `review.result.json` + `review.md` into `$task_dir`):
 
 ```bash
-bash scripts/normalize-stage-return.sh final-review "$task_dir"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/normalize-stage-return.sh" final-review "$task_dir"
 ```
 
 **Structured-return handling:**

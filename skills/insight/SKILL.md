@@ -14,7 +14,7 @@ Run the reporter and present its output. Do this and nothing more.
 2. If an otelcol file sink is configured (README § OTel setup), its path is in `TOUCHSTONE_OTEL_EXPORT`. If that var is unset, omit `--otel`: CC-subagent cells then print `[unverified]` (Codex cost does not need OTel — it comes from `~/.codex/sessions`).
 3. From the repo root:
    ```bash
-   scripts/metrics-report.sh --session-id "$sid" ${TOUCHSTONE_OTEL_EXPORT:+--otel "$TOUCHSTONE_OTEL_EXPORT"}
+   "${CLAUDE_PLUGIN_ROOT}/scripts/metrics-report.sh" --session-id "$sid" ${TOUCHSTONE_OTEL_EXPORT:+--otel "$TOUCHSTONE_OTEL_EXPORT"}
    ```
    Append `--session <transcript.jsonl>` to also get the main-loop + session-wallclock summary.
 4. Present the tool's output as-is. **Never** replace an `[unverified: <reason>]` cell with a number or a zero — the marker is the honest answer.

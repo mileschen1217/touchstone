@@ -28,7 +28,7 @@
    check on that confirmed file:
 
    ```bash
-   bash skills/epic-driven-roadmap/check-close-ready.sh .touchstone/epics/<slug>/index.md
+   bash "${CLAUDE_PLUGIN_ROOT}/skills/epic-driven-roadmap/check-close-ready.sh" .touchstone/epics/<slug>/index.md
    ```
 
    Show the full output. If the check exits non-zero, fix the reported issue and
@@ -53,7 +53,14 @@
     reported, not fatal; close still proceeds). See § Catch-attribution sweep below.
     Paste the `report` phase output into the close report verbatim.
 
-6. Remove the row from ROADMAP § Active Epics; add to § Completed Epics with the landed date.
+6. Update ROADMAP.
+   - If `${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh` exists, regenerate both
+     ROADMAP files (the script reflects the updated epic frontmatter automatically):
+     ```bash
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh" --root <project-root>
+     ```
+   - Otherwise (host without the render script): remove the row from ROADMAP
+     § Active Epics and add it to § Completed Epics with the landed date.
 7. Commit.
 
 ## Doc Reckoning
@@ -149,7 +156,7 @@ and the testing-strategy spec Interfaces §5.
 **Procedure**
 
 1. **Structural floor first.** For each `status: Accepted` spec of this epic, run
-   `scripts/check-spec-floor.sh <spec-path>`. Any non-zero exit BLOCKS close — fix
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/check-spec-floor.sh" <spec-path>`. Any non-zero exit BLOCKS close — fix
    the spec (un-enumerable AC set, duplicate AC id, or an empty `[unverified]`
    reason) before continuing. This is the deterministic gate; coverage judgment is
    the reviewer's.
@@ -212,6 +219,17 @@ and the testing-strategy spec Interfaces §5.
 5. **Record** the completed reckoning table by opening `.touchstone/epics/<slug>/index.md`
    with the Edit tool and appending the `## Evidence Reckoning` section with the table.
 
+5b. **Mechanical gate check.** After the table is appended, run the reckoning validator:
+   ```
+   if [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/check-evidence-reckoning.sh" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-evidence-reckoning.sh" \
+       .touchstone/epics/<slug>/index.md <spec-path>
+   fi
+   ```
+   Any non-zero exit BLOCKS close — the script prints `BLOCK:` lines identifying which
+   rules fired. Fix each blocking row before continuing. If the script is absent the
+   check degrades gracefully (no false-block).
+
 A healthy close has an empty `[unverified]` set.
 
 ## Catch-attribution sweep
@@ -241,10 +259,10 @@ export TOUCHSTONE_LEDGER_DIR="<repo-root>/.touchstone/ledger"
 export LEDGER_TRANSCRIPTS_DIR="$HOME/.claude/projects/$(pwd | tr '/._' '---')"
 export LEDGER_GIT_REPO="<repo-root>"
 export LEDGER_EPIC_DIR="<repo-root>/.touchstone/epics/<slug>"
-bash scripts/ledger/sweep-run.sh collect
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" collect
 ```
 
-Then run `bash scripts/ledger/sweep-run.sh report` and check its output for a
+Then run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" report` and check its output for a
 "sources skipped (unconfigured)" line. If present, one or more of the three
 envs above was empty at collect time — fix the export(s) and re-run
 `collect` before continuing (a source silently skipped here never gets its
@@ -344,7 +362,7 @@ same range.
 ### Step 3 — validate
 
 ```bash
-bash scripts/ledger/sweep-run.sh validate-candidates
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" validate-candidates
 ```
 
 Non-zero exit is an L1 stage failure: `.sweep-incomplete` now carries
@@ -425,8 +443,8 @@ incomplete line into the close report.
 ### Step 5 — finalize and report
 
 ```bash
-bash scripts/ledger/sweep-run.sh finalize
-bash scripts/ledger/sweep-run.sh report
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" finalize
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" report
 ```
 
 `finalize` appends `.staging.jsonl` through the REQ-1 writer (dedupe
