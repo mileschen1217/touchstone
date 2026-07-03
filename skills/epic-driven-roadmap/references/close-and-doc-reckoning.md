@@ -53,6 +53,13 @@
     reported, not fatal; close still proceeds). See § Catch-attribution sweep below.
     Paste the `report` phase output into the close report verbatim.
 
+5d. Run the **Proposal reconcile** (non-blocking, read-only, like 5c):
+    `scripts/proposal/reconcile.sh`. Paste its output verbatim into the close
+    report. Close never touches the checker rail — accept and deploy decisions
+    for proposals happen only in the `/touchstone:insight` flow (at phase-ship
+    or ad-hoc), never during close (a freshly deployed pre-commit check could
+    block the close's own commit).
+
 6. Remove the row from ROADMAP § Active Epics; add to § Completed Epics with the landed date.
 7. Commit.
 
