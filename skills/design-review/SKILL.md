@@ -129,7 +129,12 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 >
 > Check (verification-honesty lens):
 > 1. Problem / Scope / Non-goals are concrete and falsifiable
-> 2. Acceptance Criteria cover happy path, error paths, boundaries
+> 2. Requirement→AC completeness (a dedicated pass on coverage DIRECTION): for
+>    EACH requirement, enumerate the behaviours a user would recognize as "this
+>    requirement working" — happy path, error paths, boundaries — and check each
+>    behaviour has an AC witnessing it. Flag every requirement whose AC set
+>    witnesses only the happy path. This pass hunts ACs that do NOT exist;
+>    critiquing the ACs that do exist is the other checks' job.
 > 3. Interfaces / Contracts are specific (field names, types, error returns)
 > 4. Error Handling rows map to scenarios
 > 5. Invariants are cross-cutting rules

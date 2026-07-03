@@ -85,7 +85,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/normalize-stage-return.sh" plan-review "$tas
 
 ## SDD (in-session)
 
-Invoke `/superpowers:subagent-driven-development` in-session. SDD is designed for continuous in-session execution (no routine human stops). After SDD's run, read `.superpowers/sdd/progress.md` for terminal state:
+Invoke `/superpowers:subagent-driven-development` in-session. SDD is designed for continuous in-session execution (no routine human stops). When a task builds or tests a parser / extractor / guard, you MUST carry the adversarial-input question into that task's prompt: which of the shapes the contract admits (empty input, zero-byte file, success-with-empty-output, multi-line records, legally-empty fields, half-open vs inclusive boundaries) does the suite feed? An unfed shape is unwitnessed behaviour. After SDD's run, read `.superpowers/sdd/progress.md` for terminal state:
 
 - All tasks complete → proceed to the final review.
 - A task is BLOCKED → surface directly to the present human (SDD runs in-session; no envelope needed — REQ-7 scope is dispatched stages only). Resume after resolution.

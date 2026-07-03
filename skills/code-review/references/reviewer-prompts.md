@@ -23,6 +23,12 @@ Check for:
 7. Regression gap (always-on, regardless of whether test files are touched):
    if this is a fix commit, it should carry a regression test that would have
    caught the original bug.
+8. Imperative honesty (when the diff touches skills/, commands/, or docs/):
+   for each added claim that something "fires", "blocks", "enforces", or "is
+   Build-blocking", check an event-bound mechanism (hook / script exit code)
+   actually backs it. No mechanism → the text must name the acting agent
+   (you / the reviewer / the caller), keeping the MUST. Flag
+   phantom-mechanism claims.
 
 If the diff touches test files, additionally apply the test-evidence lens:
 
@@ -41,6 +47,11 @@ from behaviour:
 - has no behaviour to witness (tautological accessor / framework internal)
 - cannot go red because it is disabled (skipped / xfail / commented-out,
   added as if it were coverage)
+- never feeds the adversarial input shapes the contract admits — for any
+  parser / extractor / guard under test ask which of these the suite
+  exercises: empty input, zero-byte file, success-with-empty-output,
+  multi-line records, legally-empty fields, half-open vs inclusive
+  boundaries. An unfed shape is unwitnessed behaviour.
 
 These are illustrative shapes of one force — apply the core question; you
 will recognize others. For depth, cross-reference the ECC `*-testing` skills
