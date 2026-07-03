@@ -46,5 +46,13 @@ d="$(mk)"; printf '!.touchstone/checker/\n!.touchstone/checker/**\n.touchstone/*
 mkdir -p "$d/.touchstone/checker/pre-commit"; bash "$BOOT" "$d"
 { carve_order_ok "$d" && trackable "$d"; } && ok "AC-42 reordered" || fail "AC-42"
 
+# Regression pin: the blanket `.touchstone/*` rule the scaffold writes already
+# covers `.touchstone/ledger/` transitively — no scaffold change carves an
+# exception for it (unlike checker/, above). If this ever goes red, the
+# blanket rule was narrowed and the ledger dir needs an explicit gitignore line.
+d="$(mk)"; bash "$BOOT" "$d"
+( cd "$d" && git check-ignore -q .touchstone/ledger/entries.jsonl ) \
+  && ok "ledger-dir-gitignored-via-blanket-rule" || fail "ledger-dir-gitignored-via-blanket-rule"
+
 echo "== test-init-checker-scaffold: $pass ok, $fail fail =="
 [ "$fail" -eq 0 ]
