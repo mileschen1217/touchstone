@@ -169,7 +169,7 @@ if [ "$PASS_RC" -ne 0 ]; then
   # appended a phantom fire-event to the REAL repo's fire-log.jsonl for this
   # failed pass-side run (the hook ran against $ROOT, not a scratch fixture).
   # This is NOT purged: fire-log.jsonl is append-only (no component ever
-  # rewrites or deletes a line), and reconcile.sh (Task 6) time-filters fire
+  # rewrites or deletes a line), and reconcile.sh time-filters fire
   # counts to each installed fact's [installed-fact ts, revoke ts) interval —
   # a phantom predating any kind=installed fact for this check never falls
   # inside that interval, so it never counts. Truncating here would violate
