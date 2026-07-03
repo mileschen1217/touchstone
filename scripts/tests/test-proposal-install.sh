@@ -201,5 +201,22 @@ run_install "$R9" p9 >/dev/null 2>&1 \
   || fail "regression: re-accept after reject install still refused"
 [ -f "$R9/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "regression: check landed after re-accept" || fail "regression: check missing after re-accept"
 
+# --- regression: existing check at the target path -> refuse, never overwrite ---
+# (caught live: the first insight run silently overwrote a shipped, git-tracked
+# check that a prior phase had installed at the same stage/name)
+R10="$(mkworld existing)"
+mkprop "$R10" p10; accept "$R10" p10; mksidecar "$R10" p10 pre-commit "$GOOD"
+mkdir -p "$R10/.touchstone/checker/pre-commit"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$R10/.touchstone/checker/pre-commit/check-probe.sh"
+chmod 755 "$R10/.touchstone/checker/pre-commit/check-probe.sh"
+before_sum="$(cksum < "$R10/.touchstone/checker/pre-commit/check-probe.sh")"
+ERR="$(run_install "$R10" p10 2>&1 >/dev/null)"; rc=$?
+[ "$rc" -ne 0 ] && ok "regression: existing target refused" || fail "regression: existing target rc=$rc"
+echo "$ERR" | grep -q 'already exists' && ok "regression: refusal names the conflict" || fail "regression: message: '$ERR'"
+after_sum="$(cksum < "$R10/.touchstone/checker/pre-commit/check-probe.sh")"
+[ "$before_sum" = "$after_sum" ] && ok "regression: existing check byte-unchanged" || fail "regression: existing check overwritten"
+grep -qE '"kind":"(installed|install-failed)"' "$R10/.touchstone/ledger/resolutions.jsonl" 2>/dev/null \
+  && fail "regression: no fact must be appended on existing-target refusal" || ok "regression: no fact appended on refusal"
+
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

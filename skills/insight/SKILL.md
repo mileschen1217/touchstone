@@ -29,8 +29,13 @@ as-is; they are the honest answer.
 2. **Cluster + draft (the semantic step).** Read the open set:
    `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/report.sh" open-entries`. Optionally read the epic's
    `data-points.md` as auxiliary signal. Cluster open entries into candidate
-   mechanisms (a recurring class → one candidate). For each candidate, write
-   its sidecar under `<ledger-dir>/proposals/<id>/`:
+   mechanisms (a recurring class → one candidate). **Screen each candidate
+   against what already exists** before drafting: list `.touchstone/checker/*/`
+   and the repo's registered lints/tests — a class whose mechanism already
+   shipped is not a candidate (its open entries predate the mechanism; close
+   them with a `kind=rejected` fact naming the existing mechanism instead).
+   For each surviving candidate, write its sidecar under
+   `<ledger-dir>/proposals/<id>/`:
    - `proposal.md` — frontmatter `stage:` + `check_name:` (checker units
      only), then prose: mechanism, rationale, class description. No status
      field — status lives only in resolution facts.
