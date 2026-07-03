@@ -38,18 +38,27 @@ fi
 # violates this script's read-only commitment.
 STATUS_BEFORE="$(git status --porcelain 2>/dev/null)"
 
+# sidecar output is captured to a temp FILE, not a shell variable: command
+# substitution strips trailing newlines (and `grep -c .` counts only
+# NON-EMPTY lines), either of which would let a blank line slip a two-line
+# output ("\n<sha> fire") past a single-line check. A file + `wc -l` counts
+# physical (newline-terminated) lines unambiguously.
+OUT_FILE="$(mktemp)"
+trap 'rm -f "$OUT_FILE"' EXIT
+
 fires=0; hits=0; unmatched=""
 for sha in $SHAS; do
-  out="$(bash "$PDIR/replay.sh" "$sha")" \
+  bash "$PDIR/replay.sh" "$sha" > "$OUT_FILE" \
     || { echo "replay-run: replay.sh failed at $sha" >&2; exit 1; }
-  # require EXACTLY one line matching "<sha> (fire|pass)" — a sidecar that
-  # prints extra lines (e.g. one per commit instead of one for the requested
-  # sha) must not be silently parsed via a trailing-token match.
-  if [ "$(printf '%s\n' "$out" | grep -c .)" -ne 1 ] \
-     || ! printf '%s\n' "$out" | grep -qxE "$sha (fire|pass)"; then
+  # require EXACTLY one physical line matching "<sha> (fire|pass)" — a
+  # sidecar that prints extra lines (blank, multi-commit, etc.) must not be
+  # silently parsed via a trailing-token match or a non-empty-line count.
+  LINES="$(wc -l < "$OUT_FILE" | tr -d ' ')"
+  if [ "$LINES" -ne 1 ] || ! grep -qxE "$sha (fire|pass)" "$OUT_FILE"; then
     echo "replay-run: replay.sh printed malformed output at $sha" >&2
     exit 1
   fi
+  out="$(cat "$OUT_FILE")"
   case "$out" in
     *" fire")
       fires=$((fires+1))

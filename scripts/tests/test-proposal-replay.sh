@@ -84,6 +84,22 @@ rc=$?
   && ok "regression: sidecar mutation detected, replay aborted" || fail "regression mutation: rc=$rc '$ERR'"
 rm -f "$FR/mutated-by-replay"
 
+# regression: a leading blank line plus one valid verdict line must not slip
+# past a "count non-empty lines" gate (grep -c . ignores blank lines, so
+# "\n<sha> fire" would previously read as exactly one non-empty line and
+# pass — silently accepting malformed output as fires=1). Physical line
+# count (wc -l) must catch it: malformed, non-zero, sha named.
+cat > "$P/replay.sh" <<'EOS'
+#!/usr/bin/env bash
+sha="$1"
+echo ""
+echo "$sha fire"
+EOS
+ERR="$(cd "$FR" && TOUCHSTONE_LEDGER_DIR="$L" bash "$RR" "$P" "HEAD~1..HEAD" 2>&1 >/dev/null)"
+rc=$?
+[ "$rc" -ne 0 ] && echo "$ERR" | grep -q "malformed output at $SHA3" \
+  && ok "regression: blank-line-plus-verdict rejected, sha named (not fires=1)" || fail "regression blank-line: rc=$rc '$ERR'"
+
 # missing replay.sh → non-zero (declared-path routing)
 rm "$P/replay.sh"
 (cd "$FR" && TOUCHSTONE_LEDGER_DIR="$L" bash "$RR" "$P" "HEAD~1..HEAD" >/dev/null 2>&1) \
