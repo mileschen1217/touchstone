@@ -4,7 +4,6 @@
 # SEPARATE invocation (`sweep-run.sh <phase> [args]`); state between phases
 # lives in files under $TOUCHSTONE_LEDGER_DIR (or <git-toplevel>/.touchstone/ledger
 # — same resolution as ledger-append.sh / the extractors, via cursor-lib.sh).
-# See .touchstone/specs/2026-07-02-catch-attribution-ledger-design.md (REQ-6).
 #
 # Phases:
 #   collect               runs extract-transcript.sh / extract-git.sh /

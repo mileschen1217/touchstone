@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # extract-transcript.sh — L0 digest extractor for Claude Code session
 # transcripts. Streams user-authored records to stdout as digest/v1 JSONL,
-# byte-cursor incremental per file. See
-# .touchstone/specs/2026-07-02-catch-attribution-ledger-design.md (REQ-2).
+# byte-cursor incremental per file.
 #
 # Usage: extract-transcript.sh [--since ISO] [--epic slug]
 #                               [--propose-cursors FILE] [--dir DIR]

@@ -4,8 +4,7 @@
 # >=1 touched path within a pairwise window (default 14 days). Intervening
 # fix commits are skipped in the anchor search so chains collapse to one
 # non-fix anchor; one digest record is emitted per anchor aggregating its
-# fixes. See .touchstone/specs/2026-07-02-catch-attribution-ledger-design.md
-# (REQ-3).
+# fixes.
 #
 # Usage: extract-git.sh [--window <days=14>] [--since ISO] [--epic slug]
 #                        [--propose-cursors FILE] [--repo <path=.>]

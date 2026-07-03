@@ -1,8 +1,7 @@
 # shellcheck shell=bash
 # cursor-lib.sh — shared byte-cursor scan-state mechanics for L0 tail-only
 # extractors. "transcripts" and "firelog" share an IDENTICAL cursor
-# contract (byte-cursor tail-only, AC-5/AC-6 semantics — see spec
-# Interfaces § scan-state.json): scan forward from a per-file cursor, skip
+# contract (byte-cursor tail-only): scan forward from a per-file cursor, skip
 # a final unterminated line (still being written), reset to 0 when the
 # cursor exceeds the current file size. This file factors that mechanism
 # out of extract-transcript.sh (built first) so extract-firelog.sh reuses
@@ -22,7 +21,7 @@
 #   cursor_lib_fs_bytes <file>
 #     Echoes the file's size in bytes.
 #   cursor_lib_reset_if_shrunk <cursor> <fs-bytes>
-#     Echoes 0 when cursor > fs-bytes (reset-on-shrink, AC-6); otherwise
+#     Echoes 0 when cursor > fs-bytes (reset-on-shrink); otherwise
 #     echoes cursor unchanged.
 #   cursor_lib_tail_effective_end <file> <fs-bytes>
 #     Echoes the byte offset to scan up to: fs-bytes, or fs-bytes minus the

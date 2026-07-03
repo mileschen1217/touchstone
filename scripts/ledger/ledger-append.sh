@@ -27,7 +27,7 @@ GAP_CLASSES="missing-AC false-green no-gate"
 SOURCES="label sweep:transcript sweep:git sweep:reckoning sweep:firelog"
 LOCUS_LIST="design-review plan-review code-review:per-commit code-review:batch anvil:final test-suite live-probe human"
 
-# --- symlink refusal (AC-24): never write through a pre-existing symlink,
+# --- symlink refusal: never write through a pre-existing symlink,
 # checked before anything else touches the filesystem ---
 PARENT_DIR="$(dirname "$DIR")"
 if [ -L "$DIR" ] || [ -L "$PARENT_DIR" ]; then
@@ -206,7 +206,7 @@ if [ "${#LINES[@]}" -eq 0 ]; then
 fi
 
 # validate ALL entries before any write — a schema-invalid line anywhere in
-# the batch leaves the ledger completely unchanged (AC-18).
+# the batch leaves the ledger completely unchanged.
 for ln in "${LINES[@]}"; do
   validate_line "$ln" || exit 1
 done
@@ -216,7 +216,7 @@ mkdir -p "$DIR" || { echo "ledger-append: cannot create ledger dir $DIR" >&2; ex
 acquire_lock || exit 1
 trap 'release_lock' EXIT
 
-# --- gitignore self-heal (AC-3), inside the lock, before any entry write ---
+# --- gitignore self-heal, inside the lock, before any entry write ---
 TOPLEVEL="$(git -C "$DIR" rev-parse --show-toplevel 2>/dev/null)"
 if [ -n "$TOPLEVEL" ]; then
   if ! git -C "$DIR" check-ignore -q "$LEDGER" 2>/dev/null; then

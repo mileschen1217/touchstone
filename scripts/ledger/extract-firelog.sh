@@ -2,16 +2,15 @@
 # extract-firelog.sh — L0 digest extractor for the checker fire log
 # ($TOUCHSTONE_LEDGER_DIR/fire-log.jsonl, schema fire-event/v1, produced by
 # hooks/run-project-checks.sh on every exit-2 block). Emits one per-check
-# aggregate digest record per run over the newly-scanned tail. See
-# .touchstone/specs/2026-07-02-catch-attribution-ledger-design.md (REQ-4).
+# aggregate digest record per run over the newly-scanned tail.
 #
 # Usage: extract-firelog.sh [--since ISO] [--epic slug] [--propose-cursors FILE]
 #
 # Default mode (no --since/--epic/--propose-cursors): unfiltered,
 # cursor-advancing — commits the new cursor to
 # $TOUCHSTONE_LEDGER_DIR/scan-state.json section "firelog". Byte-cursor
-# tail-only, IDENTICAL contract to extract-transcript.sh (AC-5/AC-6
-# semantics apply here too) — mechanics shared via cursor-lib.sh.
+# tail-only, IDENTICAL contract to extract-transcript.sh — mechanics shared
+# via cursor-lib.sh.
 # --propose-cursors FILE: same unfiltered scan, but the proposed cursor is
 # written to FILE instead of scan-state.json (sweep mode — the caller
 # commits after a successful ledger-append.sh).

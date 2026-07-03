@@ -4,9 +4,7 @@
 # entries in an epic's index.md, plus the spec files it references. Emits
 # CANDIDATES for L1 judgment — every row/entry found is emitted, including
 # non-miss corrective amendments (e.g. a typo fix); filtering is L1's job,
-# never the extractor's. See
-# .touchstone/specs/2026-07-02-catch-attribution-ledger-design.md (REQ-4,
-# AC-9).
+# never the extractor's.
 #
 # Usage: extract-reckoning.sh --epic-dir <path>
 #
@@ -20,7 +18,8 @@
 #  - Caveat: the "|"+"[unverified:" heuristic can also fire on a prose
 #    bullet that happens to use "|" inside a backtick span (e.g. a code
 #    snippet quoting a shell pipe) rather than an actual table row. This
-#    is over-inclusive by design (see AC-9 note below) — L1 filters.
+#    is over-inclusive by design (intentional over-extraction, see note
+#    below) — L1 filters.
 #  - "[unverified" row: a markdown table row (contains "|") whose matched
 #    cell contains "[unverified:" (colon required) — this is what
 #    distinguishes a real DATA row ("`[unverified: reason]`") from the
@@ -33,8 +32,8 @@
 #    heading, else "amendment-<n>"); when a Log has no "###" subsections,
 #    its top-level "- " bullets become entries instead. Every "###"
 #    subsection is counted, including non-entry ones like an "Old → new AC
-#    mapping" table heading — intentional over-extraction, per the AC-9
-#    design: L0 candidates are not filtered for miss-vs-non-miss meaning.
+#    mapping" table heading — intentional over-extraction: L0 candidates
+#    are not filtered for miss-vs-non-miss meaning.
 set -u
 
 EPIC_DIR=""
