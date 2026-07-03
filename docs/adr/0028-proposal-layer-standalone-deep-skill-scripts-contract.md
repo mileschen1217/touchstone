@@ -87,6 +87,27 @@ already answers the mechanism-stability concern.
 - The ledger writer stays single-schema; proposal/resolution facts get a sibling writer
   mirroring its lock/self-heal design.
 
+## Amendment — naming reassigned; metrics reporting dissolves into the phase-ship gate (2026-07-03, same session)
+
+The structural core above is unchanged (scripts contract, one deep skill, write-authority
+split, no mid-close install). Two identity clauses are revised after a deterministic-vs-
+semantic layering pass with the bet owner:
+
+- **"Insight is untouched" is superseded.** The `insight` name transfers to the loop skill
+  — honoring the original seam note that named this destination — because the current
+  metrics reporter under that name over-promises (it reports numbers, not insights).
+- **The metrics reporter does not survive as a skill.** It was a shallow pass-through
+  wrapper (the same defect class as the rejected retrospective verb). Its content
+  dissolves into a **deterministic phase-ship step**: run the (unchanged)
+  `scripts/metrics-report.sh` — whose execution also closes the open run window, a
+  cleaner stamp point than an arbitrary report moment — and append the phase's
+  cost/time/token row to the epic's data-point record mechanically instead of by hand.
+  When the OTel collector is absent the row records `[unverified]` cells honestly; no
+  conditional branch.
+- The phase-ship moment therefore carries two layers: the deterministic metrics record
+  (script, no judgment) and the semantic `insight report` invocation (digest for human
+  accept). They remain two checklist lines, not an orchestrator.
+
 ## Flip-triggers
 
 - **Wrapper verb:** if the two-command phase-ship ritual proves annoying across ≥3
