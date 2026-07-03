@@ -109,7 +109,7 @@ An unrecognised commit variant silently skips its checks, so the covered command
 
 ## OTel setup (for CC-subagent figures)
 
-`/touchstone:insight` attributes CC-subagent token/cost per agent, but only when an OpenTelemetry collector funnels Claude Code telemetry into a local JSONL sink. Without it, CC-subagent cells are `[unverified]` (Codex figures do not need it — they come from `~/.codex/sessions`).
+`scripts/metrics/phase-record.sh` attributes CC-subagent token/cost per agent, but only when an OpenTelemetry collector funnels Claude Code telemetry into a local JSONL sink. Without it, CC-subagent cells are `[unverified]` (Codex figures do not need it — they come from `~/.codex/sessions`).
 
 **One-shot setup.** This installs/locates `otelcol-contrib`, writes the collector config (the **logs** pipeline the reader consumes), loads a persistent collector service (**macOS** launchd / **Linux** systemd `--user`), and appends the telemetry env vars — including `TOUCHSTONE_OTEL_EXPORT` — to the profile your login shell sources (`~/.zshrc`, `~/.bashrc`, or `~/.profile`). Idempotent; re-running is safe:
 
@@ -125,17 +125,25 @@ Run-manifests are stamped automatically by a plugin hook on every **design-spec 
 anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs`) — no setup, no mode
 toggle. The hook catches both invoke paths: `UserPromptSubmit` when you type the gate command, and
 `PreToolUse`/`Skill` when a composite (e.g. crucible) auto-invokes design-spec / design-review
-internally. Codex cost is harvested from `~/.codex/sessions` rollouts. Read the report on demand:
+internally. Codex cost is harvested from `~/.codex/sessions` rollouts. Reading is split into a
+deterministic step and a semantic step (see `skills/epic-driven-roadmap/references/phase-ship.md`):
 
 ```bash
-# via the skill — also bounds the last still-open run at report time
-/touchstone:insight
+# deterministic — appends the phase's cost/time/token row to the epic's
+# data-points.md; also bounds the last still-open run at record time
+scripts/metrics/phase-record.sh <epic-slug> <phase-label>
 
-# or directly (TOUCHSTONE_OTEL_EXPORT is set by setup-otel.sh)
+# or read the numbers directly without recording a row
+# (TOUCHSTONE_OTEL_EXPORT is set by setup-otel.sh)
 scripts/metrics-report.sh --session-id <session-uuid> \
   ${TOUCHSTONE_OTEL_EXPORT:+--otel "$TOUCHSTONE_OTEL_EXPORT"} \
   [--session ~/.claude/projects/<slug>/<session-uuid>.jsonl]   # optional: adds main-loop + session-wallclock summary
 ```
+
+`/touchstone:insight` is a separate, semantic step — the workflow-improvement loop that turns the
+gate-miss ledger's open entries into a ranked, evidence-backed proposal digest for human accept. It
+does not read or report the metrics numbers above; run it alongside `phase-record.sh` at the
+phase-ship moment (see `skills/epic-driven-roadmap/references/phase-ship.md`).
 
 `--session-id` must match your otelcol export's `session.id` attribute. The reader auto-detects the
 nested OTLP shape (`resourceLogs[].scopeLogs[].logRecords[]`) and normalizes it; CC-subagent cost

@@ -53,6 +53,13 @@
     reported, not fatal; close still proceeds). See § Catch-attribution sweep below.
     Paste the `report` phase output into the close report verbatim.
 
+5d. Run the **Proposal reconcile** (non-blocking, read-only, like 5c):
+    `bash "${CLAUDE_PLUGIN_ROOT}/scripts/proposal/reconcile.sh"`. Paste its output
+    verbatim into the close report. Close never touches the checker rail — accept
+    and deploy decisions for proposals happen only in the `/touchstone:insight`
+    flow (at phase-ship or ad-hoc), never during close (a freshly deployed
+    pre-commit check could block the close's own commit).
+
 6. Update ROADMAP.
    - If `${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh` exists, regenerate both
      ROADMAP files (the script reflects the updated epic frontmatter automatically):
