@@ -15,8 +15,9 @@ checker directories; this skill is the sole writer of check content (always
 through `scripts/proposal/install.sh`, never by hand). Never install anything
 without an explicit human accept of that specific proposal in this session.
 
-Every deterministic step below is a script call under `scripts/proposal/`
-(run from the repo root). Do not re-implement a step in prose, and do not
+Every deterministic step of this loop is a script call under `scripts/proposal/`
+(run from the repo root; the ad-hoc sweep pointer in step 1 is the ledger
+family's own script). Do not re-implement a step in prose, and do not
 re-derive a script's result by judgment. Present `[unverified: …]` markers
 as-is; they are the honest answer.
 

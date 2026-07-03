@@ -22,7 +22,10 @@ grep -q 'auto-run gate efficiency report' "$SK" && fail "AC-19 old self-descript
 # --- AC-22: close step 5d — reconcile only, no install anywhere in close ---
 grep -q '^5d\.' "$CL" && ok "AC-22 step 5d present" || fail "AC-22 5d"
 grep -q 'reconcile.sh' "$CL" && ok "AC-22 5d invokes reconcile.sh" || fail "AC-22 reconcile"
-grep -q 'verbatim' "$CL" && ok "AC-22 verbatim paste required" || fail "AC-22 verbatim"
+# scope the verbatim check to the 5d block itself — 5c already contains
+# "verbatim" for its own paste instruction, which would false-pass a file-wide grep
+BLOCK_5D="$(sed -n '/^5d\./,/^6\./p' "$CL")"
+printf '%s\n' "$BLOCK_5D" | grep -q 'verbatim' && ok "AC-22 verbatim paste required" || fail "AC-22 verbatim"
 grep -qE 'install\.sh|scripts/proposal/install' "$CL" && fail "AC-22 close doc carries an install invocation" || ok "AC-22 no install invocation in close doc"
 
 # --- phase-ship reference ---

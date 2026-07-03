@@ -126,7 +126,7 @@ anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs`
 toggle. The hook catches both invoke paths: `UserPromptSubmit` when you type the gate command, and
 `PreToolUse`/`Skill` when a composite (e.g. crucible) auto-invokes design-spec / design-review
 internally. Codex cost is harvested from `~/.codex/sessions` rollouts. Reading is split into a
-deterministic step and a semantic step (see § Phase-ship moment below):
+deterministic step and a semantic step (see `skills/epic-driven-roadmap/references/phase-ship.md`):
 
 ```bash
 # deterministic — appends the phase's cost/time/token row to the epic's
