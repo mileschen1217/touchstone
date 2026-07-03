@@ -108,6 +108,17 @@ semantic layering pass with the bet owner:
   (script, no judgment) and the semantic `insight report` invocation (digest for human
   accept). They remain two checklist lines, not an orchestrator.
 
+## Amendment 2 — subcommand contract refined at design-spec (2026-07-03)
+
+The Decision's clause 1 named `report` as generative (writing proposal facts) and
+`record-resolution` as a separate append mode. The design spec superseded that split with a
+stricter one the review upheld: ALL facts (proposal and resolution) enter through a single
+validated writer (`facts-append.sh`, the referential-integrity choke point), and `report.sh`
+— like `reconcile.sh` and `replay-run.sh` — is strictly read-only. The write-authority
+principle of clause 1 is unchanged; only the command-to-authority assignment moved. The
+governing interface definition is the spec's Interfaces section (and, once built, the
+scripts themselves).
+
 ## Flip-triggers
 
 - **Wrapper verb:** if the two-command phase-ship ritual proves annoying across ≥3
