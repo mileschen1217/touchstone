@@ -212,6 +212,17 @@ and the testing-strategy spec Interfaces §5.
 5. **Record** the completed reckoning table by opening `.touchstone/epics/<slug>/index.md`
    with the Edit tool and appending the `## Evidence Reckoning` section with the table.
 
+5b. **Mechanical gate check.** After the table is appended, run the reckoning validator:
+   ```
+   if [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/check-evidence-reckoning.sh" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-evidence-reckoning.sh" \
+       .touchstone/epics/<slug>/index.md <spec-path>
+   fi
+   ```
+   Any non-zero exit BLOCKS close — the script prints `BLOCK:` lines identifying which
+   rules fired. Fix each blocking row before continuing. If the script is absent the
+   check degrades gracefully (no false-block).
+
 A healthy close has an empty `[unverified]` set.
 
 ## Catch-attribution sweep

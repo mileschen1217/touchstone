@@ -96,6 +96,8 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/design-review-precheck.sh" <spec-path>
 
 Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/design-review-precheck.sh" <spec-path>` if it exists; if the script is absent, skip this step and proceed to "Dispatch the reviewer" (degrade gracefully — do not hard-block when the script is not present).
 
+Also run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-design-soundness-refs.sh" <spec-path>` if it exists; if absent, skip (degrade gracefully). A non-zero exit means the spec declares an Architecture commitment but a named consumer file lacks the required inject-fragment reference — surface the `BLOCK:` line verbatim and do not dispatch reviewers until the consumer wires the fragment.
+
 Interpret the result:
 
 - **Exit non-zero** (`BLOCK:` line in output) — surface the full BLOCK output verbatim to the user and **do not dispatch reviewers**. Build does not proceed until the human resolves the block (fixes the structural violation, runs the challenge-pass, resolves stale digests, etc.).
