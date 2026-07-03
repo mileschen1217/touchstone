@@ -9,6 +9,10 @@ Forges raw intent into a precise, accepted contract in ONE invocation. Chains ex
 
 **Applicability boundary:** crucible forges a contract by sharpening intent and then grounding it in the system. **Exploration is a phase of the chain (after grill), not a precondition** — grill sharpens the *what* (intent / vocabulary, against CONTEXT.md / ADRs); explore grounds it in the *how* (the system). Sharpen the what before grounding the how. The one exception is work where you cannot state the intent until you have looked — the router below front-loads exploration for that case.
 
+## Step 0 — Dependency check
+
+Before running any step, verify that `superpowers:brainstorming` and `grill-with-docs` appear in your available-skills list; if either is absent, stop and tell the user which skills are missing and where to install them (`superpowers` is the official Claude Code Superpowers plugin; `grill-with-docs` is a user-global skill).
+
 ## Before the chain — which role does exploration play?
 
 The answer sets where exploration sits.

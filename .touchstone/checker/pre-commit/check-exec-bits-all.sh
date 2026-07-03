@@ -3,7 +3,7 @@
 # Every script across hooks/*.sh, .touchstone/checker/**/check-*.sh,
 # scripts/tests/*.sh, and skill/command-referenced scripts/*.sh paths
 # must be 100755 in the git index.  A 100644 mode ships "Permission denied"
-# when CC executes the file directly (the AC-13 recurrence pattern ×3).
+# when CC executes the file directly (the invocation-mode defect class, recurred ×3).
 set -uo pipefail
 root="${TOUCHSTONE_CHECK_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}" || exit 0
 [ -n "$root" ] || exit 0

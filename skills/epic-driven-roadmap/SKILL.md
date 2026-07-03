@@ -86,6 +86,10 @@ Two distinct artifacts; do not conflate.
 
 ### Scaffold a new epic
 
+Pre-scaffold candidates — ideas not yet shaped into an epic — belong in
+`<epics-dir>/_draft-brainstorm.md`; the render script lists them as a Backlog
+section in ROADMAP.html.
+
 0. **Foundation elicitation (Baseline — always runs)** — before slugging
    anything, run the 3-field elicitation gate per
    `${CLAUDE_PLUGIN_ROOT}/skills/_shared/foundation-gate.md` (read it and
@@ -107,7 +111,15 @@ Two distinct artifacts; do not conflate.
    - `**Aim:**` headline
    - `## Foundation` (intention + out-of-scope from the elicitation)
    - Phase 1 row in the `## Phases` table
-4. Add a row to `ROADMAP.md` § Active Epics: `| <slug> | <aim> | proposed | [index](<epics-dir>/<slug>/index.md) |`.
+4. Update `ROADMAP.md` and `ROADMAP.html`.
+   - If `${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh` exists, regenerate both
+     ROADMAP files (picks up the new epic automatically):
+     ```bash
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh" --root <project-root>
+     ```
+   - Otherwise (host without the render script): append the row manually to
+     `ROADMAP.md` § Active Epics:
+     `| <slug> | <aim> | proposed | — | <epics-dir>/<slug>/index.md |`
 5. When creating content docs (research, specs, plans, ADRs) for this epic, add frontmatter `epics: [<slug>]` so the backlink exists from day one. See `templates/content-doc.md`.
 5. Commit.
 

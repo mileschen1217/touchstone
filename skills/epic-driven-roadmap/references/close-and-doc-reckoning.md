@@ -53,7 +53,14 @@
     reported, not fatal; close still proceeds). See § Catch-attribution sweep below.
     Paste the `report` phase output into the close report verbatim.
 
-6. Remove the row from ROADMAP § Active Epics; add to § Completed Epics with the landed date.
+6. Update ROADMAP.
+   - If `${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh` exists, regenerate both
+     ROADMAP files (the script reflects the updated epic frontmatter automatically):
+     ```bash
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh" --root <project-root>
+     ```
+   - Otherwise (host without the render script): remove the row from ROADMAP
+     § Active Epics and add it to § Completed Epics with the landed date.
 7. Commit.
 
 ## Doc Reckoning

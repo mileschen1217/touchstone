@@ -14,6 +14,10 @@ kind: workflow
 
 ---
 
+## Step 0 — Dependency check
+
+Before running any stage, verify that `superpowers:writing-plans` and `superpowers:subagent-driven-development` appear in your available-skills list; if either is absent, stop and tell the user which skills are missing and where to install them (both are from the official Claude Code Superpowers plugin).
+
 ## Stage sequence (un-skippable — each gate's DONE is the next's precondition)
 
 ```
