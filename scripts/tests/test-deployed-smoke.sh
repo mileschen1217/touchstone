@@ -88,6 +88,18 @@ echo "$out" | grep -q "FAIL (2-exec-bits)" \
   && ok "(no-exec) check 2 reported as FAIL" \
   || fail "(no-exec) check 2 not reported FAIL: $out"
 
+# --- PASS: check 2 — no-shebang source-only lib without exec bit is exempt ---
+make_clean_cache
+printf '# shellcheck shell=bash\nfoo() { :; }\n' > "$FAKE_CACHE/scripts/cursor-lib.sh"
+chmod -x "$FAKE_CACHE/scripts/cursor-lib.sh"
+out="$(run_smoke)"; rc=$?
+[ "$rc" -eq 0 ] \
+  && ok "(lib-exempt) exits 0 when only a no-shebang lib lacks exec bit" \
+  || fail "(lib-exempt) should exit 0: $out"
+echo "$out" | grep -q "PASS (2-exec-bits)" \
+  && ok "(lib-exempt) check 2 reported as PASS" \
+  || fail "(lib-exempt) check 2 not reported PASS: $out"
+
 # --- PASS: check 3 — bare-path lint clean ---
 make_clean_cache
 out="$(run_smoke)"
