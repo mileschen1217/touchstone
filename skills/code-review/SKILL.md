@@ -151,9 +151,19 @@ Mark which reviewer(s) found each issue for traceability.
 3. **Low** — AI judgment: if the fix is trivial (≤2 lines, no architectural
    change), fix inline; otherwise note and defer. No ledger — don't track
    deferred Lows across commits.
+4. **Post-fix sweep** — after applying any Critical/High fix, re-read the fix
+   diff itself before reporting ready: is the fix complete, does it break an
+   adjacent behaviour, does the same defect survive at a sibling site? Fixes
+   are the one diff no reviewer saw — sweep them.
+5. **Changed-AC re-check** — when the commit claims an AC discharged (the
+   claim signal: an AC reference in the commit message, or in the task brief
+   this review was invoked for), confirm that AC's Then-clause against the
+   diff (changed ACs only, never the full table). A green suite is not the
+   confirmation; the diff is.
 
 No re-review loop in per-commit mode (Pattern C) — the per-commit scope is too small to justify it
-(that is `/touchstone:code-review batch`'s job).
+(that is `/touchstone:code-review batch`'s job). The post-fix sweep above is a
+self-read of the fix diff, not a re-dispatch.
 
 ### Step 6: Report
 
