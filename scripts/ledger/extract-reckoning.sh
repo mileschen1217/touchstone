@@ -21,10 +21,11 @@
 #    is over-inclusive by design (intentional over-extraction, see note
 #    below) — L1 filters.
 #  - "[unverified" row: a markdown table row (contains "|") whose matched
-#    cell contains "[unverified:" (colon required) — this is what
-#    distinguishes a real DATA row ("`[unverified: reason]`") from the
-#    reckoning table's own COLUMN HEADER cell, which is the bare literal
-#    "[unverified]" with no colon (see epic-driven-roadmap templates). The
+#    cell contains "[unverified:" (colon required), EXCLUDING the table's
+#    own COLUMN HEADER row (first non-empty cell is the literal "AC") — the
+#    colon heuristic alone is not enough because the close-procedure table
+#    template shipped its header cell as "[unverified: reason]" WITH colon,
+#    which turned every reckoning table header into a false record. The
 #    row's identifier is its first non-empty table cell when it matches
 #    AC-<n>[<suffix>]; otherwise "row-<line-number>".
 #  - Amendment entry: any "## Amendment Log" section's "###" subsections
@@ -90,12 +91,14 @@ scan_file() {
           if (c != "") { ident = c; break }
         }
         gsub(/\*\*/, "", ident); gsub(/`/, "", ident)
-        if (ident !~ /^AC-[0-9]+[A-Za-z]*$/) { ident = "row-" NR }
-        cell_text = ""
-        for (i = 1; i <= n; i++) {
-          if (index(cells[i], "[unverified:") > 0) { cell_text = trim(cells[i]); break }
+        if (ident != "AC") {
+          if (ident !~ /^AC-[0-9]+[A-Za-z]*$/) { ident = "row-" NR }
+          cell_text = ""
+          for (i = 1; i <= n; i++) {
+            if (index(cells[i], "[unverified:") > 0) { cell_text = trim(cells[i]); break }
+          }
+          print "unverified" SOH ident SOH cell_text
         }
-        print "unverified" SOH ident SOH cell_text
       }
 
       if (line ~ /^##[ \t]+Amendment Log/) {
