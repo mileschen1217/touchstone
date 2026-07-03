@@ -9,6 +9,7 @@ __pycache__/
 !.touchstone/checker/
 !.touchstone/checker/**
 !.touchstone/shipped-surface.txt
+!.touchstone/retired-terms.txt
 .claude/touchstone.yaml.bak
 .claude/worktrees/
 CLAUDE.local.md

@@ -85,6 +85,15 @@ case "$STAGE" in
 esac
 [ -n "$CNAME" ] || { echo "install: sidecar proposal.md missing check_name" >&2; exit 1; }
 
+# refuse to overwrite an existing check at the target path — another mechanism
+# owns it (possibly git-tracked); a duplicate proposal must be rejected, or the
+# existing install revoked first. Caught live: the first insight run silently
+# overwrote a shipped check before this guard existed.
+if [ -e "$ROOT/.touchstone/checker/$STAGE/check-$CNAME.sh" ]; then
+  echo "install: refusing — .touchstone/checker/$STAGE/check-$CNAME.sh already exists (another mechanism owns this path; reject the duplicate proposal, pick a different check_name, or revoke the existing install first)" >&2
+  exit 1
+fi
+
 case "$STAGE" in
   pre-commit) CMD="git commit -m proposal-selfproof" ;;
   pre-push)   CMD="git push origin main" ;;

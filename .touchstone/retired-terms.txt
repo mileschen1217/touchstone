@@ -1,0 +1,3 @@
+# retired terms — one per line; the pre-commit checker check-retired-terms.sh
+# blocks any tracked-file occurrence outside docs/adr/ and the ledger family.
+# Register a term here whenever a rename/retirement ships; never remove lines.

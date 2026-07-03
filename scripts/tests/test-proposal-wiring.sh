@@ -50,7 +50,10 @@ grep -Eiq 'insight.*metrics-report|metrics-report.*insight' "$REPO_ROOT/README.m
 V1="$(grep -o '"version": "[^"]*"' "$REPO_ROOT/.claude-plugin/plugin.json")"
 V2="$(grep -o '"version": "[^"]*"' "$REPO_ROOT/.claude-plugin/marketplace.json")"
 [ "$V1" = "$V2" ] && ok "version lockstep" || fail "version lockstep: $V1 vs $V2"
-[ "$V1" = '"version": "0.13.0"' ] && ok "version is exactly 0.13.0" || fail "version: $V1"
+# lockstep is asserted above; pin the FORMAT (semver), not the value — an exact
+# pin rots on every bump (it already shipped one red suite when a sibling PR
+# bumped past it).
+echo "$V1" | grep -qE '"version": "[0-9]+\.[0-9]+\.[0-9]+"' && ok "version is semver" || fail "version format: $V1"
 
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]
