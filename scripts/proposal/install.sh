@@ -112,6 +112,9 @@ fail_fact() { # <triage> <note>
 }
 
 # --- fire side FIRST: the real repo is untouched until this passes ---
+# A fire-fixture.sh that fails to run (bad script, no output, etc.) is treated
+# as an incomplete sidecar: guard refusal, no fact — by design, same class as
+# the sidecar-file-presence checks above.
 FIX="$(bash "$SDIR/fire-fixture.sh")" || { echo "install: fire-fixture.sh failed" >&2; exit 1; }
 git -C "$FIX" rev-parse --show-toplevel >/dev/null 2>&1 \
   || { echo "install: fire-fixture.sh did not print a git toplevel (got '$FIX')" >&2; exit 1; }
@@ -128,8 +131,11 @@ if [ "$FIRE_RC" -ne 2 ]; then
   # definition. spec-violation-fixed requires semantic judgment no exit code
   # can supply — it enters only via the skill's human-grounded facts.
   TR="class-definition-wrong"
-  fail_fact "$TR" "fire-side proof failed: hook exit $FIRE_RC (expected 2 — the check did not bite the failing fixture); hook output: $HOOK_OUT"
-  echo "install: fire-side proof failed (hook exit $FIRE_RC, expected 2); real repo untouched; install-failed fact recorded (triage=$TR)" >&2
+  if fail_fact "$TR" "fire-side proof failed: hook exit $FIRE_RC (expected 2 — the check did not bite the failing fixture); hook output: $HOOK_OUT"; then
+    echo "install: fire-side proof failed (hook exit $FIRE_RC, expected 2); real repo untouched; install-failed fact recorded (triage=$TR)" >&2
+  else
+    echo "install: fire-side proof failed (hook exit $FIRE_RC, expected 2); real repo untouched; WARNING: install-failed fact could NOT be appended (facts-append failed)" >&2
+  fi
   exit 1
 fi
 
@@ -151,9 +157,22 @@ hook_run "$ROOT"
 PASS_RC=$HOOK_RC
 if [ "$PASS_RC" -ne 0 ]; then
   rm -f "$TGT"   # rollback: no observable half-installed state
+  rmdir "$(dirname "$TGT")" 2>/dev/null || true   # only removes an empty stage dir
+  # NOTE: by the time we get here, the hook's own fire_log() has already
+  # appended a phantom fire-event to the REAL repo's fire-log.jsonl for this
+  # failed pass-side run (the hook ran against $ROOT, not a scratch fixture).
+  # This is NOT purged: fire-log.jsonl is append-only (no component ever
+  # rewrites or deletes a line), and reconcile.sh (Task 6) time-filters fire
+  # counts to each installed fact's [installed-fact ts, revoke ts) interval —
+  # a phantom predating any kind=installed fact for this check never falls
+  # inside that interval, so it never counts. Truncating here would violate
+  # the append-only invariant for a residual that downstream already excludes.
   TR="$(triage_for "$HOOK_OUT")"
-  fail_fact "$TR" "pass-side proof failed: hook exit $PASS_RC on the clean repo; hook output: $HOOK_OUT"
-  echo "install: pass-side proof failed (hook exit $PASS_RC); rolled back; install-failed fact recorded (triage=$TR)" >&2
+  if fail_fact "$TR" "pass-side proof failed: hook exit $PASS_RC on the clean repo; hook output: $HOOK_OUT"; then
+    echo "install: pass-side proof failed (hook exit $PASS_RC); rolled back; install-failed fact recorded (triage=$TR)" >&2
+  else
+    echo "install: pass-side proof failed (hook exit $PASS_RC); rolled back; WARNING: install-failed fact could NOT be appended (facts-append failed)" >&2
+  fi
   exit 1
 fi
 

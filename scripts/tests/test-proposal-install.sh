@@ -124,6 +124,24 @@ T="$(echo "$F" | jq -r .triage)"
   && ok "AC-15 grounded triage ($T)" || fail "AC-15 triage=$T"
 [ -n "$(echo "$F" | jq -r '.note // empty')" ] && ok "AC-15 grounding note present" || fail "AC-15 note"
 
+# --- regression: facts-append failure while recording install-failed must not
+# claim a fact was recorded. Reuse the AC-15 fire-side-failure scenario but
+# hold the writer lock first so facts-append fails deterministically.
+R8="$(mkworld lockfail)"
+mkprop "$R8" p8; accept "$R8" p8; mksidecar "$R8" p8 pre-commit "$PASSIVE"
+LOCKDIR="$R8/.touchstone/ledger/.lock"
+mkdir "$LOCKDIR"; echo $$ > "$LOCKDIR/pid"
+export TOUCHSTONE_LEDGER_LOCK_TIMEOUT=1
+ERR="$(run_install "$R8" p8 2>&1 >/dev/null)"; rc=$?
+unset TOUCHSTONE_LEDGER_LOCK_TIMEOUT
+rm -rf "$LOCKDIR"
+[ "$rc" -ne 0 ] && ok "regression: lock-held install still exits non-zero" || fail "regression: rc=$rc"
+[ ! -e "$R8/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "regression: real repo untouched" || fail "regression: wrote"
+grep -q install-failed "$R8/.touchstone/ledger/resolutions.jsonl" 2>/dev/null \
+  && fail "regression: install-failed fact must NOT be recorded (lock held)" || ok "regression: no install-failed fact appended"
+echo "$ERR" | grep -q "fact recorded" && fail "regression: stderr falsely claims fact recorded ($ERR)" || ok "regression: stderr does not claim fact recorded"
+echo "$ERR" | grep -q "WARNING" && ok "regression: stderr carries WARNING" || fail "regression: stderr missing WARNING ($ERR)"
+
 # --- AC-25: pass-side genuine fire (check bites the clean repo) → rollback ---
 R5="$(mkworld passfire)"
 BITER="$TMP/biter.sh"; printf '#!/usr/bin/env bash\necho always-bites\nexit 1\n' > "$BITER"
