@@ -107,6 +107,35 @@ else
   fail "missing epic index (rc=$RC lc=$LC_EMPTY)"
 fi
 
+# regression — a colon-style header cell ("[unverified: reason]", the shape
+# the close-procedure table template ships) must not become a record; only
+# the data row is emitted. The header row's first cell is the literal "AC".
+HDR_DIR="$TMP/hdr/epic"
+mkdir -p "$HDR_DIR"
+cat > "$HDR_DIR/index.md" <<'EOF'
+---
+slug: demo
+status: active
+---
+
+## Evidence Reckoning
+
+| AC | Covered by (test ref) | [unverified: reason] | live-bearing? | waiver | Issue |
+|----|----|----|----|----|----|
+| AC-4 | none | [unverified: no test asserts this] | no | — | — |
+EOF
+
+OUT_HDR="$TMP/hdr/digest.jsonl"
+"$XR" --epic-dir "$HDR_DIR" > "$OUT_HDR"
+RC=$?
+LC_HDR="$(grep -c . "$OUT_HDR")"
+HDR_IDENT="$(jq -r '.payload.identifier' "$OUT_HDR" 2>/dev/null)"
+if [ "$RC" -eq 0 ] && [ "$LC_HDR" = 1 ] && [ "$HDR_IDENT" = "AC-4" ]; then
+  ok "colon-style header row is skipped; only the AC-4 data row is emitted"
+else
+  fail "colon-style header regression (rc=$RC lc=$LC_HDR ident=$HDR_IDENT)"
+fi
+
 # ============================================================
 # AC-10 — fire-log pattern digest + incremental re-run
 # ============================================================
