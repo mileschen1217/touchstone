@@ -31,7 +31,7 @@ This skill reviews an **`accepted-candidate`** before crucible's accept (an alre
 
 ## Relationship to /touchstone:design-spec — this is the only design gate
 
-`design-spec` is **pure authoring**: it emits a `Draft` and runs no review of its own (there is no separate author-time architect critique). This skill is the **single consolidated design-review gate** — it reviews an **`accepted-candidate`** before crucible's terminal human-accept, dispatches the `reviewer` composite with the doc-review prompt applying BOTH lens-sets (**design-soundness ∪ verification-honesty** — the union; passing one lens never discharges the other), and is C+H-tiered and Build-blocking. Never treat "design-spec was run" as "this gate passed".
+`design-spec` is **pure authoring**: it emits a `Draft` and runs no review of its own (there is no separate author-time architect critique). This skill is the **single consolidated design-review gate** — it reviews an **`accepted-candidate`** before crucible's terminal human-accept, dispatches the `reviewer` composite with the doc-review prompt applying BOTH lens-sets (**design-soundness ∪ verification-honesty** — the union; passing one lens never discharges the other), and is C+H-tiered — at C+H ≥ 1 the caller withholds Build per § Apply findings (an instruction the caller follows, not a hook-enforced stop). Never treat "design-spec was run" as "this gate passed".
 
 ## Procedure
 
@@ -91,10 +91,10 @@ Read the target file(s). Check frontmatter `type:` field if present, or path:
 For `type: spec` targets (path matches `**/specs/**` or frontmatter `type: spec`), run the deterministic pre-check before dispatching reviewers if it exists:
 
 ```bash
-bash scripts/design-review-precheck.sh <spec-path>
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/design-review-precheck.sh" <spec-path>
 ```
 
-Run `bash scripts/design-review-precheck.sh <spec-path>` if it exists; if the script is absent, skip this step and proceed to "Dispatch the reviewer" (degrade gracefully — do not hard-block when the script is not present in the consumer project).
+Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/design-review-precheck.sh" <spec-path>` if it exists; if the script is absent, skip this step and proceed to "Dispatch the reviewer" (degrade gracefully — do not hard-block when the script is not present).
 
 Interpret the result:
 
@@ -156,18 +156,18 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 
 Quality gate (sums findings across reviewers):
 
-- **C+H ≥ 5** → mandatory second-pass review. After applying fixes inline, re-invoke `/touchstone:design-review <path>`. Build is blocked until a subsequent run returns **C+H = 0** (or only Medium/Low remain). The caller MUST run the second pass; do not skip on user discretion.
-- **1 ≤ C+H < 5** → surface findings; block Build until Critical+High are resolved. Single-pass fix is sufficient; second pass optional.
+- **C+H ≥ 5** → mandatory second-pass review. After applying fixes inline, re-invoke `/touchstone:design-review <path>`. Do not proceed to Build until a subsequent run returns **C+H = 0** (or only Medium/Low remain). The caller MUST run the second pass; do not skip on user discretion.
+- **1 ≤ C+H < 5** → surface findings; do not proceed to Build until Critical+High are resolved. Single-pass fix is sufficient; second pass optional.
 - **C+H = 0, only Medium / Low** → surface findings; allow Build to proceed at user's discretion.
 
 **Informed-consent checkpoint (orthogonal to the C+H gate):** if the composite's
 returned synthesis carries a ⚠️ DEGRADED or ⚠️ PARTIAL banner, present the banner
 text to the user VERBATIM and obtain explicit acknowledgement (an `AskUserQuestion`
 choice, or an explicit user "proceed") BEFORE allowing Build to proceed. This applies
-even when C+H == 0 — the banner is informational, not a hard block, but the workflow
-MUST NOT auto-advance past it without the human knowingly acknowledging. A clean
+even when C+H == 0 — the banner is informational, not a hard block, but you (the
+caller) MUST NOT advance past it without the human knowingly acknowledging. A clean
 review (no banner) does not trigger this checkpoint. The banner's meaning is defined
-in `skills/cross-provider-reviewer/references/provenance.md`.
+in `${CLAUDE_PLUGIN_ROOT}/skills/cross-provider-reviewer/references/provenance.md`.
 
 In all cases: do not auto-promote spec status; the user (or caller skill) decides when to proceed.
 
@@ -176,7 +176,7 @@ In all cases: do not auto-promote spec status; the user (or caller skill) decide
 **Injection scope:** this block fires on the review / feedback path only (INV-NO-SILENT-PATH).
 It does NOT apply to the design-spec feedforward arm or any other path.
 
-Read `skills/_shared/ground-and-sweep.md` and inject it verbatim into the reviewer
+Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/ground-and-sweep.md` and inject it verbatim into the reviewer
 envelope (append to `system_prompt`, alongside the injected `live-bearing-predicate.md` content)
 so the cold reviewer applies sweep-to-dry over the AC's true subject. The injected fragment
 carries the shared saturation definition and scope-resolution rule — do not restate them here.

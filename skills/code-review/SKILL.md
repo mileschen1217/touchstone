@@ -62,7 +62,7 @@ criteria, provenance, fallback, and CONSENT-3 checkpoint live there.
 
 ### Step 0: Shipped-ref guard (deterministic pre-check)
 
-Before dispatching reviewers, run `bash scripts/check-shipped-refs.sh` if it exists.
+Before dispatching reviewers, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-shipped-refs.sh"` if it exists.
 It flags a committed `docs/`/`skills/` file referencing an untracked dated local-doc
 artifact (a clone-dangling leak). Exit 1 ⇒ fix the leak before commit. Exit 2 ⇒
 environment problem (not at repo root / no git) — resolve and re-run. Exit 0 ⇒ proceed.
@@ -90,16 +90,16 @@ two — maintainer rationale — lives in `README.md`.)
 Read the diff briefly. Dispatch a specialist only if the diff *meaningfully*
 touches the domain — not just mentions a keyword.
 
-**security-reviewer** — fires on a **data-flow** condition: the diff alters an
-`untrusted-source → dangerous-sink` path. Judge by data provenance (does
+**security-reviewer** — dispatch when you judge the diff alters an
+`untrusted-source → dangerous-sink` path (a **data-flow** condition). Judge by data provenance (does
 adversary-controlled input reach this code?) and sink danger (does the code drive
 a harmful capability?). An internal interface is a security boundary only at a
 trust-level transition. Signals like JWT, CORS, and SSRF are examples of
 untrusted-source/dangerous-sink pairings, not the trigger rule. False positives
 waste agents — prefer skipping in ambiguous cases.
 
-**database-reviewer** — fires on a **structural** condition: the diff touches
-persistence operations, schema definitions, migration files, or data contracts
+**database-reviewer** — dispatch when you judge the diff touches a **structural**
+condition: persistence operations, schema definitions, migration files, or data contracts
 (ORM models / transaction boundaries / index definitions). Pure application-layer
 changes that reference DB entities without altering persistence structure do NOT
 warrant dispatch.

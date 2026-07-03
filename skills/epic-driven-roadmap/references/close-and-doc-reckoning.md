@@ -28,7 +28,7 @@
    check on that confirmed file:
 
    ```bash
-   bash skills/epic-driven-roadmap/check-close-ready.sh .touchstone/epics/<slug>/index.md
+   bash "${CLAUDE_PLUGIN_ROOT}/skills/epic-driven-roadmap/check-close-ready.sh" .touchstone/epics/<slug>/index.md
    ```
 
    Show the full output. If the check exits non-zero, fix the reported issue and
@@ -149,7 +149,7 @@ and the testing-strategy spec Interfaces §5.
 **Procedure**
 
 1. **Structural floor first.** For each `status: Accepted` spec of this epic, run
-   `scripts/check-spec-floor.sh <spec-path>`. Any non-zero exit BLOCKS close — fix
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/check-spec-floor.sh" <spec-path>`. Any non-zero exit BLOCKS close — fix
    the spec (un-enumerable AC set, duplicate AC id, or an empty `[unverified]`
    reason) before continuing. This is the deterministic gate; coverage judgment is
    the reviewer's.
@@ -241,10 +241,10 @@ export TOUCHSTONE_LEDGER_DIR="<repo-root>/.touchstone/ledger"
 export LEDGER_TRANSCRIPTS_DIR="$HOME/.claude/projects/$(pwd | tr '/._' '---')"
 export LEDGER_GIT_REPO="<repo-root>"
 export LEDGER_EPIC_DIR="<repo-root>/.touchstone/epics/<slug>"
-bash scripts/ledger/sweep-run.sh collect
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" collect
 ```
 
-Then run `bash scripts/ledger/sweep-run.sh report` and check its output for a
+Then run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" report` and check its output for a
 "sources skipped (unconfigured)" line. If present, one or more of the three
 envs above was empty at collect time — fix the export(s) and re-run
 `collect` before continuing (a source silently skipped here never gets its
@@ -344,7 +344,7 @@ same range.
 ### Step 3 — validate
 
 ```bash
-bash scripts/ledger/sweep-run.sh validate-candidates
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" validate-candidates
 ```
 
 Non-zero exit is an L1 stage failure: `.sweep-incomplete` now carries
@@ -425,8 +425,8 @@ incomplete line into the close report.
 ### Step 5 — finalize and report
 
 ```bash
-bash scripts/ledger/sweep-run.sh finalize
-bash scripts/ledger/sweep-run.sh report
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" finalize
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" report
 ```
 
 `finalize` appends `.staging.jsonl` through the REQ-1 writer (dedupe
