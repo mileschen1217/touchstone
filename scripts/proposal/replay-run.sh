@@ -32,12 +32,26 @@ if [ -z "$SHAS" ]; then
   exit 1
 fi
 
+# read-only enforcement: replay.sh is an arbitrary sidecar script we do not
+# control. Capture the working tree's status before the sha loop and compare
+# once after — any difference means the sidecar mutated the repo, which
+# violates this script's read-only commitment.
+STATUS_BEFORE="$(git status --porcelain 2>/dev/null)"
+
 fires=0; hits=0; unmatched=""
 for sha in $SHAS; do
-  line="$(bash "$PDIR/replay.sh" "$sha")" \
+  out="$(bash "$PDIR/replay.sh" "$sha")" \
     || { echo "replay-run: replay.sh failed at $sha" >&2; exit 1; }
-  case "${line##* }" in
-    fire)
+  # require EXACTLY one line matching "<sha> (fire|pass)" — a sidecar that
+  # prints extra lines (e.g. one per commit instead of one for the requested
+  # sha) must not be silently parsed via a trailing-token match.
+  if [ "$(printf '%s\n' "$out" | grep -c .)" -ne 1 ] \
+     || ! printf '%s\n' "$out" | grep -qxE "$sha (fire|pass)"; then
+    echo "replay-run: replay.sh printed malformed output at $sha" >&2
+    exit 1
+  fi
+  case "$out" in
+    *" fire")
       fires=$((fires+1))
       if [ -f "$ENTRIES" ] \
          && jq -e --arg r "git:$sha" 'select(.evidence != null) | .evidence[] | select(.ref==$r)' \
@@ -47,10 +61,15 @@ for sha in $SHAS; do
         unmatched="$unmatched $sha"
       fi
       ;;
-    pass) : ;;
-    *) echo "replay-run: replay.sh printed malformed line at $sha: '$line'" >&2; exit 1 ;;
+    *" pass") : ;;
   esac
 done
+
+STATUS_AFTER="$(git status --porcelain 2>/dev/null)"
+if [ "$STATUS_BEFORE" != "$STATUS_AFTER" ]; then
+  echo "replay-run: sidecar replay.sh mutated the working tree — replay aborted" >&2
+  exit 1
+fi
 
 echo "fires=$fires hits=$hits"
 for u in $unmatched; do

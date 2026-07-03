@@ -59,9 +59,9 @@ res() {
 assert_rejected() { # <label> <mode> <ledger-dir> <json...>
   local label="$1" mode="$2" d="$3"; shift 3
   local tgt="$d/${mode}s.jsonl" before after err rc
-  before="$(wc -c < "$tgt" 2>/dev/null || echo 0)"
+  before="$([ -f "$tgt" ] && wc -c < "$tgt" || echo 0)"
   err="$(printf '%s\n' "$@" | TOUCHSTONE_LEDGER_DIR="$d" bash "$W" "$mode" 2>&1 1>/dev/null)"; rc=$?
-  after="$(wc -c < "$tgt" 2>/dev/null || echo 0)"
+  after="$([ -f "$tgt" ] && wc -c < "$tgt" || echo 0)"
   [ "$rc" -ne 0 ] && [ "$before" = "$after" ] && [ -n "$err" ] \
     && ok "$label" || fail "$label (rc=$rc err='$err')"
 }

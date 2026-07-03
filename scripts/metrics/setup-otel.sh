@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # setup-otel.sh — one-shot, idempotent setup of the OpenTelemetry collector that funnels Claude Code
-# telemetry into a local JSONL sink, so metrics-report.sh (/touchstone:insight) can attribute
+# telemetry into a local JSONL sink, so metrics-report.sh (invoked by scripts/metrics/phase-record.sh
+# at the phase-ship moment) can attribute
 # CC-subagent token/cost. Does the whole install/config/run/env chain; re-running is safe.
 #
 # Steps: (1) resolve otelcol-contrib (or brew-install it); (2) write the collector config with the

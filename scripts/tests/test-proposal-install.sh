@@ -176,5 +176,30 @@ F="$(lastres "$R7")"
 [ "$(echo "$F" | jq -r '.entry_ids | join(",")')" = "e1" ] && ok "AC-16 same entry_ids joined" || fail "AC-16 entry_ids"
 run_install "$R7" --revoke p7 >/dev/null 2>&1 && fail "AC-16 second revoke must refuse" || ok "AC-16 already-revoked refused"
 
+# --- regression: latest-DECISION gate, not any-historical-accepted-fact.
+# accept -> reject (later ts) must refuse install even though an older
+# accepted fact still exists; a fresh accept AFTER the reject (making
+# accepted the latest decision again) must then succeed.
+R9="$(mkworld latestdecision)"
+mkprop "$R9" p9; accept "$R9" p9; mksidecar "$R9" p9 pre-commit "$GOOD"
+jq -nc --arg pid p9 '{schema:"resolution/v1", ts:"2026-07-02T02:00:00Z",
+  proposal_id:$pid, entry_ids:["e1"], kind:"rejected"}' \
+  | TOUCHSTONE_LEDGER_DIR="$R9/.touchstone/ledger" bash "$W" resolution >/dev/null
+ERR="$(run_install "$R9" p9 2>&1 >/dev/null)"; rc=$?
+[ "$rc" -ne 0 ] && ok "regression: accept-then-later-reject refuses install" || fail "regression: accept-then-reject rc=$rc"
+[ ! -e "$R9/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "regression: nothing written under .touchstone/checker/ after reject" || fail "regression: wrote despite later reject"
+grep -q '"kind":"installed"' "$R9/.touchstone/ledger/resolutions.jsonl" 2>/dev/null \
+  && fail "regression: no installed fact must be appended after later reject" || ok "regression: no installed fact appended after later reject"
+echo "$ERR" | grep -q rejected && ok "regression: refusal names the latest decision (rejected)" || fail "regression: message doesn't name latest decision: '$ERR'"
+
+# a fresh accept AFTER the reject (latest decision = accepted again) → install succeeds
+jq -nc --arg pid p9 '{schema:"resolution/v1", ts:"2026-07-02T03:00:00Z",
+  proposal_id:$pid, entry_ids:["e1"], kind:"accepted"}' \
+  | TOUCHSTONE_LEDGER_DIR="$R9/.touchstone/ledger" bash "$W" resolution >/dev/null
+run_install "$R9" p9 >/dev/null 2>&1 \
+  && ok "regression: re-accept after reject (latest=accepted) → install succeeds" \
+  || fail "regression: re-accept after reject install still refused"
+[ -f "$R9/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "regression: check landed after re-accept" || fail "regression: check missing after re-accept"
+
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

@@ -51,9 +51,17 @@ if [ "$RUNS" -eq 0 ]; then
 fi
 
 # open-entry count: the one declared cross-script dependency (banner on
-# stderr is discarded; count = stdout line count).
-OPEN="$(bash "$SCRIPT_DIR/../proposal/report.sh" open-entries 2>/dev/null | grep -c . || true)"
-[ -n "$OPEN" ] || OPEN=0
+# stderr is discarded; count = stdout line count). Capture output and check
+# the exit code EXPLICITLY (not through a pipeline, which would mask it) so
+# a query failure degrades honestly instead of silently reading as 0.
+OPEN_OUT="$(bash "$SCRIPT_DIR/../proposal/report.sh" open-entries 2>/dev/null)"
+OPEN_RC=$?
+if [ "$OPEN_RC" -eq 0 ]; then
+  OPEN="$(printf '%s\n' "$OPEN_OUT" | grep -c . || true)"
+  [ -n "$OPEN" ] || OPEN=0
+else
+  OPEN="[unverified: open-entries query failed]"
+fi
 
 if [ -n "${TOUCHSTONE_EPICS_DIR:-}" ]; then
   EPICS="$TOUCHSTONE_EPICS_DIR"

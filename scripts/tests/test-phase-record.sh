@@ -62,6 +62,24 @@ rc=$?
 [ "$rc" -eq 0 ] && echo "$OUT" | grep -qF '[unverified: no gate runs recorded' \
   && ok "zero runs → [unverified] cells, exit 0" || fail "zero runs: rc=$rc '$OUT'"
 
+# regression: open-entries query failure must degrade honestly, not silently
+# read as 0. A malformed entries.jsonl line makes report.sh open-entries
+# exit non-zero (verified directly below) — phase-record must still append a
+# row (exit 0), with the open-entries cell carrying [unverified: ...].
+BAD="$TMP/bad-ledger"; mkdir -p "$BAD"
+echo 'not valid json {{{' > "$BAD/entries.jsonl"
+TOUCHSTONE_LEDGER_DIR="$BAD" bash "$REPO_ROOT/scripts/proposal/report.sh" open-entries >/dev/null 2>&1 \
+  && fail "regression precondition: report.sh open-entries must fail on malformed entries.jsonl" \
+  || ok "regression precondition: report.sh open-entries fails on malformed entries.jsonl"
+OUT="$(CLAUDE_SESSION_ID=sess-2 TOUCHSTONE_METRICS_REPORT="$FAKE" TOUCHSTONE_LEDGER_DIR="$BAD" \
+  TOUCHSTONE_EPICS_DIR="$E" bash "$PR" demo phase-bad)"
+rc=$?
+[ "$rc" -eq 0 ] && ok "regression: row still appended (exit 0) on open-entries failure" || fail "regression: rc=$rc"
+echo "$OUT" | grep -qF '[unverified: open-entries query failed]' \
+  && ok "regression: open-entries cell honestly [unverified], not 0" || fail "regression: cell not unverified: $OUT"
+echo "$OUT" | grep -q '| 0 |' \
+  && fail "regression: open-entries cell silently read as 0" || ok "regression: no silent 0"
+
 # no session id → non-zero
 TOUCHSTONE_METRICS_REPORT="$FAKE" TOUCHSTONE_EPICS_DIR="$E" TOUCHSTONE_LEDGER_DIR="$L" \
   env -u CLAUDE_SESSION_ID -u CLAUDE_CODE_SESSION_ID bash "$PR" demo p >/dev/null 2>&1 \

@@ -55,6 +55,35 @@ rc=$?
 [ "$rc" -ne 0 ] && echo "$ERR" | grep -q "failed at $SHA3" \
   && ok "mid-range error names sha, exits non-zero" || fail "mid-range: rc=$rc '$ERR'"
 
+# regression: a sidecar printing MULTIPLE lines (e.g. one per commit instead
+# of one for the requested sha) must not be silently trailing-token parsed —
+# that undercounts fires to 0. Require exactly one line, else malformed +
+# non-zero, naming the sha.
+cat > "$P/replay.sh" <<'EOS'
+#!/usr/bin/env bash
+sha="$1"
+echo "$sha fire"
+echo "$sha pass"
+EOS
+ERR="$(cd "$FR" && TOUCHSTONE_LEDGER_DIR="$L" bash "$RR" "$P" "HEAD~1..HEAD" 2>&1 >/dev/null)"
+rc=$?
+[ "$rc" -ne 0 ] && echo "$ERR" | grep -q "malformed output at $SHA3" \
+  && ok "regression: multi-line sidecar output rejected, sha named (not fires=0)" || fail "regression multi-line: rc=$rc '$ERR'"
+
+# regression: replay-run.sh's read-only commitment is enforced by detection —
+# a sidecar replay.sh that mutates the working tree must abort non-zero.
+cat > "$P/replay.sh" <<'EOS'
+#!/usr/bin/env bash
+sha="$1"
+touch "mutated-by-replay"
+echo "$sha pass"
+EOS
+ERR="$(cd "$FR" && TOUCHSTONE_LEDGER_DIR="$L" bash "$RR" "$P" "HEAD~1..HEAD" 2>&1 >/dev/null)"
+rc=$?
+[ "$rc" -ne 0 ] && echo "$ERR" | grep -q "mutated the working tree" \
+  && ok "regression: sidecar mutation detected, replay aborted" || fail "regression mutation: rc=$rc '$ERR'"
+rm -f "$FR/mutated-by-replay"
+
 # missing replay.sh → non-zero (declared-path routing)
 rm "$P/replay.sh"
 (cd "$FR" && TOUCHSTONE_LEDGER_DIR="$L" bash "$RR" "$P" "HEAD~1..HEAD" >/dev/null 2>&1) \

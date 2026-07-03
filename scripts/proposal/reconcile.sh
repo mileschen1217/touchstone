@@ -31,18 +31,36 @@ jq -r -n \
 echo "rejected: $(jq -s '[ .[] | select(.kind=="rejected") ] | length' <(slurp "$DIR/resolutions.jsonl"))"
 
 echo "== installed checks: fire counts =="
+# fire-log.jsonl's PRODUCER (the runtime hook's fire_log(), hooks/run-project-
+# checks.sh) always resolves the ledger dir from the committing repo's git
+# toplevel — it never honors TOUCHSTONE_LEDGER_DIR. When this script is run
+# with an override, fire counts below are only meaningful if the override
+# equals <toplevel>/.touchstone/ledger; otherwise the fire-log read here is
+# simply the file the hook never wrote to.
 jq -r -n --arg now "$NOW" \
   --slurpfile rs <(slurp "$DIR/resolutions.jsonl") \
   --slurpfile fl <(slurp "$DIR/fire-log.jsonl") '
   ([ $rs[] | select(.kind=="installed") ]) as $inst
-  | if ($inst | length) == 0 then "none" else
-      $inst[] | . as $i
+  | ($inst | map(. as $i
       | ([ $rs[] | select(.kind=="revoked" and .proposal_id==$i.proposal_id and (.ts > $i.ts)) ]
          | sort_by(.ts) | (.[0].ts // $now)) as $end
-      | ($i.proof.installed_path | split("/") | last) as $base
-      | ([ $fl[] | select(.check==$base and .ts >= $i.ts and .ts < $end) ] | length) as $n
-      | $i.proof.installed_path + " (" + $i.proposal_id + "): fires=" + ($n|tostring)
-        + " in [" + $i.ts + ", " + $end + ")"
+      | $i + {_end: $end, _base: ($i.proof.installed_path | split("/") | last)}
+    )) as $withend
+  | ($withend | length) as $n
+  | if $n == 0 then "none" else
+      range(0; $n) as $idx
+      | $withend[$idx] as $i
+      # honest annotation, not re-keying: fire-log records basename only, so
+      # two DIFFERENT installed facts sharing a basename with overlapping
+      # install intervals would each count the same fire events — flag it
+      # rather than silently attribute.
+      | ([ range(0; $n) | select(. != $idx) | $withend[.]
+           | select(._base == $i._base and .ts < $i._end and $i.ts < ._end) ]
+         | length) as $overlap
+      | ([ $fl[] | select(.check==$i._base and .ts >= $i.ts and .ts < $i._end) ] | length) as $cnt
+      | $i.proof.installed_path + " (" + $i.proposal_id + "): fires=" + ($cnt|tostring)
+        + " in [" + $i.ts + ", " + $i._end + ")"
+        + (if $overlap > 0 then " (shared basename — counts may overlap)" else "" end)
     end'
 
 echo "== possible recurrence of a resolved class — human review =="

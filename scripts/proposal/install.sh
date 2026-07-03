@@ -61,9 +61,16 @@ UT="$(echo "$P" | jq -r '.unit_type')"
 [ "$UT" = "checker" ]  || { echo "install: refusing unit_type=$UT — the install rail is checker-only" >&2; exit 1; }
 
 # accepted fact is the producer-side precondition (the skill appends it on
-# explicit human accept, BEFORE invoking install).
-jq -e --arg id "$PID" 'select(.proposal_id==$id and .kind=="accepted")' "$RES" >/dev/null 2>&1 \
-  || { echo "install: refusing — no kind=accepted resolution fact for $PID (accept first)" >&2; exit 1; }
+# explicit human accept, BEFORE invoking install). Gate on the LATEST
+# accept/reject decision (sorted by ts), never on "any historical accepted
+# fact ever exists" — an accept -> reject history must block install even
+# though an older accepted fact is still sitting in resolutions.jsonl.
+LATEST_DECISION="$(jq -c --arg id "$PID" \
+  'select(.proposal_id==$id and (.kind=="accepted" or .kind=="rejected"))' "$RES" 2>/dev/null \
+  | jq -s -c 'sort_by(.ts) | last // empty')"
+LATEST_KIND="$(printf '%s' "$LATEST_DECISION" | jq -r '.kind // empty' 2>/dev/null)"
+[ "$LATEST_KIND" = "accepted" ] \
+  || { echo "install: refusing — no accepted resolution fact for $PID (latest decision: ${LATEST_KIND:-none}; accept first)" >&2; exit 1; }
 
 SDIR="$DIR/proposals/$PID"
 for f in draft-check.sh fire-fixture.sh proposal.md; do

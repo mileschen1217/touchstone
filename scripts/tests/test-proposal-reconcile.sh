@@ -71,5 +71,25 @@ n_e9="$(echo "$OUT" | grep -c 'new entry e9')"
 echo "$OUT" | grep 'new entry e9' | grep -q 'ra1' && ok "AC-18 dedupe: keeps earliest resolution ra1" || fail "AC-18 dedupe: earliest"
 echo "$OUT" | grep 'new entry e9' | grep -qv 'ra2' && ok "AC-18 dedupe: drops later resolution ra2" || fail "AC-18 dedupe: ra2 leaked"
 
+# --- regression: shared-basename overlap gets an honest annotation, not a
+# silent double-count. Two DIFFERENT installed facts whose installed_path
+# basenames match ("check-shared.sh") and whose install intervals overlap
+# (both still-open — no revoke) must each carry the annotation; the
+# pre-existing single-basename fixture line (check-pd.sh) must stay unchanged.
+prop pe checker '["e1"]'
+res '{"schema":"resolution/v1","id":"re1","ts":"2026-07-02T05:00:00Z","proposal_id":"pe","entry_ids":["e1"],"kind":"accepted"}'
+res '{"schema":"resolution/v1","id":"re2","ts":"2026-07-02T05:30:00Z","proposal_id":"pe","entry_ids":["e1"],"kind":"installed","proof":{"fire_exit":2,"pass_exit":0,"checked_at":"2026-07-02T05:30:00Z","installed_path":".touchstone/checker/pre-commit/check-shared.sh"}}'
+prop pf checker '["e2"]'
+res '{"schema":"resolution/v1","id":"rf1","ts":"2026-07-02T06:00:00Z","proposal_id":"pf","entry_ids":["e2"],"kind":"accepted"}'
+res '{"schema":"resolution/v1","id":"rf2","ts":"2026-07-02T06:30:00Z","proposal_id":"pf","entry_ids":["e2"],"kind":"installed","proof":{"fire_exit":2,"pass_exit":0,"checked_at":"2026-07-02T06:30:00Z","installed_path":".touchstone/checker/pre-push/check-shared.sh"}}'
+OUT2="$(TOUCHSTONE_LEDGER_DIR="$L" bash "$RC")"
+echo "$OUT2" | grep 'check-shared.sh (pe)' | grep -q 'shared basename — counts may overlap' \
+  && ok "shared basename: pe line annotated" || fail "shared basename: pe not annotated: $OUT2"
+echo "$OUT2" | grep 'check-shared.sh (pf)' | grep -q 'shared basename — counts may overlap' \
+  && ok "shared basename: pf line annotated" || fail "shared basename: pf not annotated: $OUT2"
+echo "$OUT2" | grep 'check-pd.sh (pd)' | grep -q 'shared basename' \
+  && fail "shared basename: pre-existing single-basename line wrongly annotated" \
+  || ok "shared basename: pre-existing check-pd.sh line unchanged"
+
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]
