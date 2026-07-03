@@ -309,21 +309,55 @@ finalize() {
   # raw-bundle retention — BEFORE the staging/propose cleanup below: this
   # run's staging + L1 candidates log + a finalize-written summary (appended
   # count + cursor movements). L1 input chunks are mktemp-local in classify()
-  # and excluded by construction.
-  local run_ts runs_dir cursors
+  # and excluded by construction. ledger-append.sh has ALREADY succeeded at
+  # this point, so a failure anywhere in this archival sequence must fail
+  # closed WITHOUT touching .last-finalize/cursors/cleanup — staging + the
+  # propose files stay put and the next finalize retries (re-extraction is
+  # idempotent via the writer's dedupe, so a retry is safe).
+  local run_ts runs_dir cursors cursors_rc summary_rc archive_rc
   run_ts="$(date -u +%Y%m%dT%H%M%SZ)"
   runs_dir="$LDIR/runs/$run_ts"
-  mkdir -p "$runs_dir"
-  cp "$STAGING_FILE" "$runs_dir/staging.jsonl"
-  [ -f "$CANDIDATES_FILE" ] && cp "$CANDIDATES_FILE" "$runs_dir/candidates-log.jsonl"
-  cursors="$(jq -n \
-    --argjson t "$(cat "$LDIR/.propose-transcript.json" 2>/dev/null || echo null)" \
-    --argjson g "$(cat "$LDIR/.propose-git.json" 2>/dev/null || echo null)" \
-    --argjson f "$(cat "$LDIR/.propose-firelog.json" 2>/dev/null || echo null)" \
-    '{transcripts:$t, git:$g, firelog:$f}')"
-  jq -n --argjson appended "$((after - before))" --argjson cursors "$cursors" \
-    '{schema:"sweep-run-summary/v1", appended:$appended, cursor_movements:$cursors}' \
-    > "$runs_dir/summary.json"
+  archive_rc=0
+
+  mkdir -p "$runs_dir" || archive_rc=1
+
+  if [ "$archive_rc" -eq 0 ]; then
+    cp "$STAGING_FILE" "$runs_dir/staging.jsonl" || archive_rc=1
+  fi
+
+  if [ "$archive_rc" -eq 0 ]; then
+    if [ -f "$CANDIDATES_FILE" ]; then
+      cp "$CANDIDATES_FILE" "$runs_dir/candidates-log.jsonl" || archive_rc=1
+    else
+      : > "$runs_dir/candidates-log.jsonl" || archive_rc=1
+    fi
+  fi
+
+  if [ "$archive_rc" -eq 0 ]; then
+    cursors="$(jq -n \
+      --argjson t "$(cat "$LDIR/.propose-transcript.json" 2>/dev/null || echo null)" \
+      --argjson g "$(cat "$LDIR/.propose-git.json" 2>/dev/null || echo null)" \
+      --argjson f "$(cat "$LDIR/.propose-firelog.json" 2>/dev/null || echo null)" \
+      '{transcripts:$t, git:$g, firelog:$f}')"
+    cursors_rc=$?
+    [ "$cursors_rc" -eq 0 ] && [ -n "$cursors" ] || archive_rc=1
+  fi
+
+  if [ "$archive_rc" -eq 0 ]; then
+    jq -n --argjson appended "$((after - before))" --argjson cursors "$cursors" \
+      '{schema:"sweep-run-summary/v1", appended:$appended, cursor_movements:$cursors}' \
+      > "$runs_dir/summary.json"
+    summary_rc=$?
+    [ "$summary_rc" -eq 0 ] && [ -s "$runs_dir/summary.json" ] || archive_rc=1
+  fi
+
+  if [ "$archive_rc" -ne 0 ]; then
+    echo "sweep-run finalize: archive failed — staging retained" >&2
+    echo "sweep incomplete: archive" >> "$INCOMPLETE_FILE"
+    rm -rf "$runs_dir"
+    return 1
+  fi
+
   # freshness stamp: written ONLY on a successful finalize; report.sh sources
   # freshness solely from this file.
   date -u +%Y-%m-%dT%H:%M:%SZ > "$LDIR/.last-finalize"
