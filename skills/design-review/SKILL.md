@@ -157,7 +157,7 @@ Skill(skill: "touchstone:cross-provider-reviewer", args: {
 >
 > End your output with the machine-readable sentinel line:
 > `STAGE-REVIEW-SUMMARY: critical=<n> high=<n> degraded=<true|false>`
-> (`degraded` computed per `cross-provider-reviewer/references/provenance.md` Operation 3 — anvil's `normalize-stage-return.sh` greps it.)
+> (`degraded` computed per `cross-provider-reviewer/references/provenance.md` Operation 3 — anvil's `stage-return.sh` greps it.)
 
 ### Apply findings
 

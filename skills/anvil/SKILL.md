@@ -24,7 +24,7 @@ Before running any stage, verify that `superpowers:writing-plans` and `superpowe
 entry-precondition → writing-plans → [boundary check] → plan-review → SDD → final cross-vendor review → reviewed deliverable on branch
 ```
 
-Each dispatched stage produces a `stage-return/v1` artifact via `normalize-stage-return.sh`. anvil proceeds only from the validator's `status=` — never from liveness.
+Each dispatched stage's native output is judged by the fail-closed gate `stage-return.sh`, which prints exactly one `status=DONE|NEEDS_HUMAN|BLOCKED` line. anvil proceeds only from that `status=` line — never from liveness.
 
 ---
 
@@ -35,7 +35,7 @@ Run the Phase-3.1 spine-integrity gate on the accepted contract. Capture native 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/design-review-precheck.sh" "$spec" > "$task_dir/precheck.out" 2>&1
 echo $? > "$task_dir/precheck.rc"
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/normalize-stage-return.sh" entry-precondition "$task_dir"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/stage-return.sh" entry-precondition "$task_dir"
 ```
 
 **Structured-return handling:**
@@ -73,7 +73,7 @@ STAGE-REVIEW-SUMMARY: critical=<n> high=<n> degraded=<true|false>
 Capture into `$task_dir/review.result.json` (the composite's native result) and `$task_dir/review.md` (free-text synthesis + sentinel), then normalize:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/normalize-stage-return.sh" plan-review "$task_dir"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/stage-return.sh" plan-review "$task_dir"
 ```
 
 **Structured-return handling:**
@@ -107,7 +107,7 @@ Single home: load by path; never restate the body inline.
 Dispatch `touchstone:cross-provider-reviewer` on the deliverable. Same capture-then-normalize two-step as plan-review (write `review.result.json` + `review.md` into `$task_dir`):
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/normalize-stage-return.sh" final-review "$task_dir"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/stage-return.sh" final-review "$task_dir"
 ```
 
 **Structured-return handling:**

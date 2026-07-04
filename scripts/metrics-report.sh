@@ -4,13 +4,16 @@
 #
 # Sources: run-manifests (hook-stamped, ${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs)
 # define per-run windows (each ends at the next run's START; the last run at report-time `now`);
-# CC-subagent cost <- OTel (keyed by session.id); Codex cost <- ~/.codex/sessions rollouts (keyed by
-# cwd + window + originator=codex_exec); main-loop <- the session transcript. Any ungrounded cell is
+# CC-subagent cost <- OTel (keyed by session.id); Codex usage <- the task_dir artifact
+# `raw_codex.jsonl` that every codex agent dispatch writes (turn.completed usage events, SUMMED),
+# discovered under ${TOUCHSTONE_CODEX_TASKDIR_ROOT:-<git-toplevel>/.touchstone} and attributed to a
+# run by file mtime; main-loop <- the session transcript. Any ungrounded cell is
 # a closed-list unverified marker (see UNVERIFIED) — never a fabricated number or a silent zero.
 #
-# SCOPE LIMIT: Codex attribution is cwd+window-keyed → reliable only with <=1 active session per
-# literal cwd at a time. Separate git worktrees (distinct cwd) are fine; two concurrent sessions in
-# the SAME directory path are out of scope (CC/OTel figures, keyed by session.id, are unaffected).
+# SCOPE LIMIT: Codex attribution is mtime-keyed — a raw_codex.jsonl rewritten AFTER its gate run
+# (task_dir reuse) attributes to the later window. The raw stream carries no model name; cost uses
+# $TOUCHSTONE_CODEX_MODEL, else the `model` line in $CODEX_HOME/config.toml (~/.codex/config.toml),
+# else the cost cell is the closed-list 'codex model unknown' sentinel (tokens stay grounded).
 set -uo pipefail
 # NB: bash 3.2 target — NO associative arrays anywhere (see Global Constraints).
 
@@ -32,86 +35,94 @@ compute_codex_cost() {
     'BEGIN{ printf "%.6f", (i*ir + c*cr + (o+r)*orr)/1000000 }'
 }
 
-# codex_rollout_usage <rollout_file> → {model,in,cached_in,out,reasoning} OR prints MISSING + return 1
-# Reads a Codex durable session log (~/.codex/sessions/**/rollout-*.jsonl). Unlike a raw
-# `codex exec --json` stream (turn.completed events, SUMMED), a rollout carries cumulative
-# `token_count` events — the LAST one is the session total, so we take last (not sum). Model
-# comes from the `turn_context` event.
-codex_rollout_usage() {
+# codex_raw_usage <raw_codex.jsonl> → {in,cached_in,out,reasoning} OR prints MISSING + return 1
+# Reads the task_dir artifact every codex agent dispatch writes (`codex exec --json` stream).
+# turn.completed events carry PER-TURN usage — SUMMED across the file (unlike a ~/.codex rollout's
+# cumulative token_count). Non-JSON preamble lines are skipped. No turn.completed → MISSING.
+codex_raw_usage() {
   local f="$1" out
   [ -r "$f" ] || { echo MISSING; return 1; }
-  out="$(jq -cs '
-    (map(select(.type=="turn_context") | .model) | map(select(. != null)) | last) as $model
-    | (map(select(.type=="event_msg" and .payload.type=="token_count")
-           | .payload.info.total_token_usage) | map(select(. != null)) | last) as $u
-    | if $u == null then "MISSING"
-      else { model:     ($model // ""),
-             in:        ($u.input_tokens // 0),
-             cached_in: ($u.cached_input_tokens // 0),
-             out:       ($u.output_tokens // 0),
-             reasoning: ($u.reasoning_output_tokens // 0) }
+  out="$(jq -cRs '
+    [ split("\n")[] | fromjson? | select(.type=="turn.completed") | .usage | select(. != null) ]
+    | if length == 0 then "MISSING"
+      else { in:        (map(.input_tokens // 0) | add),
+             cached_in: (map(.cached_input_tokens // 0) | add),
+             out:       (map(.output_tokens // 0) | add),
+             reasoning: (map(.reasoning_output_tokens // 0) | add) }
       end' "$f" 2>/dev/null)"
   if [ -z "$out" ] || [ "$out" = '"MISSING"' ] || [ "$out" = null ]; then echo MISSING; return 1; fi
   echo "$out"
 }
 
-# codex_rollouts_in_window <cwd> <start_epoch> <end_epoch> → rollout paths, one per line
-# Selects Codex rollouts attributable to a run: session_meta.cwd matches, originator=codex_exec
-# (programmatic dispatch, not interactive), and session start timestamp in the half-open window.
-# SCOPE LIMIT: cwd-keyed — reliable only with <=1 active session per literal cwd at a time.
-# CODEX_SESSIONS_DIR overrides the scan root (default ~/.codex/sessions) for tests.
-codex_rollouts_in_window() {
-  local cwd="$1" start="$2" end="$3"
-  local root="${CODEX_SESSIONS_DIR:-$HOME/.codex/sessions}"
-  [ -d "$root" ] || return 0
-  local f meta rcwd rorig rts rep
-  while IFS= read -r f; do
-    meta="$(head -1 "$f" 2>/dev/null)"
-    rcwd="$(printf '%s' "$meta" | jq -r 'select(.type=="session_meta") | .payload.cwd // empty' 2>/dev/null)"
-    [ "$rcwd" = "$cwd" ] || continue
-    rorig="$(printf '%s' "$meta" | jq -r '.payload.originator // empty' 2>/dev/null)"
-    [ "$rorig" = "codex_exec" ] || continue
-    rts="$(printf '%s' "$meta" | jq -r '.payload.timestamp // empty' 2>/dev/null)"
-    # rollout timestamps carry millis (…:13.565Z); iso_to_epoch's BSD path wants no fraction.
-    rts="$(printf '%s' "$rts" | sed 's/\.[0-9]*Z$/Z/')"
-    rep="$(iso_to_epoch "$rts" 2>/dev/null)" || continue
-    awk -v t="$rep" -v a="$start" -v b="$end" 'BEGIN{ exit !(t>=a && t<b) }' && echo "$f"
-  done < <(find "$root" -type f -name 'rollout-*.jsonl' 2>/dev/null)
+# codex_model → model name for pricing, or empty. The raw stream carries no model name, so this is
+# declared config, not stream evidence: $TOUCHSTONE_CODEX_MODEL wins, else the first `model = "…"`
+# line in $CODEX_HOME/config.toml (default ~/.codex/config.toml).
+codex_model() {
+  if [ -n "${TOUCHSTONE_CODEX_MODEL:-}" ]; then printf '%s\n' "$TOUCHSTONE_CODEX_MODEL"; return 0; fi
+  local cfg="${CODEX_HOME:-$HOME/.codex}/config.toml"
+  [ -r "$cfg" ] || return 0
+  sed -n 's/^[[:space:]]*model[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$cfg" | head -1
 }
 
-# codex_window_aggregate <cwd> <start_epoch> <end_epoch> <prices> → "<usage_json>\t<cost>"
-# Sums Codex usage over ALL rollouts attributable to a run's window (0-all if none — a grounded
-# zero: V1 established every `codex exec` writes a rollout, so no rollout in-window means no codex
-# ran, NOT missing data — valid only within the 1-cwd-1-session scope limit). cost = summed USD;
-# if ANY rollout's model is absent from the price table, the whole cost propagates that ONE
-# closed-list sentinel (a total missing a leg is never half-claimed). Uses `< <(...)` so the loop
-# accumulates in THIS shell (a pipe would subshell the sums away).
+# codex_raws_in_window <start_epoch> <end_epoch> → raw_codex.jsonl paths, one per line
+# Discovers task_dir raw streams under ${TOUCHSTONE_CODEX_TASKDIR_ROOT:-<git-toplevel>/.touchstone}
+# and selects by file mtime in the half-open window (mtime = when the dispatch finished writing).
+codex_raws_in_window() {
+  local start="$1" end="$2"
+  local root="${TOUCHSTONE_CODEX_TASKDIR_ROOT:-}"
+  if [ -z "$root" ]; then
+    local top; top="$(git rev-parse --show-toplevel 2>/dev/null)" || return 0
+    [ -n "$top" ] || return 0
+    root="$top/.touchstone"
+  fi
+  [ -d "$root" ] || return 0
+  local f mt
+  while IFS= read -r f; do
+    mt="$(stat -f '%m' "$f" 2>/dev/null || stat -c '%Y' "$f" 2>/dev/null)" || continue
+    [ -n "$mt" ] || continue
+    awk -v t="$mt" -v a="$start" -v b="$end" 'BEGIN{ exit !(t>=a && t<b) }' && echo "$f"
+  done < <(find "$root" -type f -name 'raw_codex.jsonl' 2>/dev/null)
+}
+
+# codex_window_aggregate <start_epoch> <end_epoch> <prices> → "<usage_json>\t<cost>"
+# Sums Codex usage over ALL task_dir raw streams attributable to a run's window (0-all if none — a
+# grounded zero: every codex agent dispatch writes raw_codex.jsonl into its task_dir, so no raw in
+# window means no codex ran, NOT missing data). cost = summed USD priced at codex_model(); model
+# unresolvable or absent from the price table → the whole cost propagates ONE closed-list sentinel
+# (a total missing a leg is never half-claimed). Uses `< <(...)` so the loop accumulates in THIS
+# shell (a pipe would subshell the sums away).
 codex_window_aggregate() {
-  local cwd="$1" start="$2" end="$3" prices="$4"
-  local root="${CODEX_SESSIONS_DIR:-$HOME/.codex/sessions}"
+  local start="$1" end="$2" prices="$3"
   local zero; zero="$(jq -nc '{in:0,cached_in:0,out:0,reasoning:0}')"
-  # Absent/unreadable scan root ≠ "scanned, found none". We cannot claim a grounded zero when the
-  # durable source itself is missing — that would fabricate zero over ungrounded state. (Codex H1)
-  if [ ! -d "$root" ] || [ ! -r "$root" ] || [ ! -x "$root" ]; then
+  # Absent scan root ≠ "scanned, found none". We cannot claim a grounded zero when the durable
+  # source tree itself is missing — that would fabricate zero over ungrounded state. (Codex H1)
+  local root="${TOUCHSTONE_CODEX_TASKDIR_ROOT:-}"
+  if [ -z "$root" ]; then
+    local top; top="$(git rev-parse --show-toplevel 2>/dev/null)"
+    [ -n "$top" ] && root="$top/.touchstone"
+  fi
+  if [ -z "$root" ] || [ ! -d "$root" ] || [ ! -r "$root" ] || [ ! -x "$root" ]; then
     printf '%s\t%s\n' "$zero" "$(UNVERIFIED 'codex artifact absent')"; return 0
   fi
-  local in=0 cached=0 out=0 reason=0 cost=0 unv="" f u m c
+  local in=0 cached=0 out=0 reason=0 cost=0 unv="" f u c model
+  model="$(codex_model)"
   while IFS= read -r f; do
     [ -z "$f" ] && continue
-    # A rollout matched the window (a codex exec DID run here) but is unreadable/malformed → we
+    # A raw stream matched the window (a codex exec DID run here) but is unreadable/malformed → we
     # cannot drop it silently (that understates the total). Poison the whole leg. (Codex H2)
-    if ! u="$(codex_rollout_usage "$f" 2>/dev/null)"; then unv="$(UNVERIFIED 'malformed meta codex-rollout')"; continue; fi
+    if ! u="$(codex_raw_usage "$f" 2>/dev/null)"; then unv="$(UNVERIFIED 'malformed meta codex-raw')"; continue; fi
     in=$((     in     + $(echo "$u" | jq -r '.in // 0') ))
     cached=$(( cached + $(echo "$u" | jq -r '.cached_in // 0') ))
     out=$((    out    + $(echo "$u" | jq -r '.out // 0') ))
     reason=$(( reason + $(echo "$u" | jq -r '.reasoning // 0') ))
-    m="$(echo "$u" | jq -r '.model // ""')"
-    if c="$(compute_codex_cost "$(echo "$u"|jq -r .in)" "$(echo "$u"|jq -r .cached_in)" "$(echo "$u"|jq -r .out)" "$(echo "$u"|jq -r .reasoning)" "$m" "$prices" 2>/dev/null)"; then
+    if [ -z "$model" ]; then
+      unv="$(UNVERIFIED 'codex model unknown')"
+    elif c="$(compute_codex_cost "$(echo "$u"|jq -r .in)" "$(echo "$u"|jq -r .cached_in)" "$(echo "$u"|jq -r .out)" "$(echo "$u"|jq -r .reasoning)" "$model" "$prices" 2>/dev/null)"; then
       cost="$(awk -v a="$cost" -v b="$c" 'BEGIN{printf "%.6f", a+b}')"
     else
       unv="$(UNVERIFIED 'model not in price table')"
     fi
-  done < <(codex_rollouts_in_window "$cwd" "$start" "$end")
+  done < <(codex_raws_in_window "$start" "$end")
   local usage
   usage="$(jq -nc --argjson i "$in" --argjson c "$cached" --argjson o "$out" --argjson r "$reason" \
     '{in:$i, cached_in:$c, out:$o, reasoning:$r}')"
@@ -142,42 +153,6 @@ session_wallclock() {
   fe="$(iso_to_epoch "$rawfirst")" || { echo MALFORMED; return 1; }
   le="$(iso_to_epoch "$rawlast")" || { echo MALFORMED; return 1; }
   echo $(( le - fe ))
-}
-
-# costs_aggregate <costs_path> <session_id>
-# → {usd,unparseable_lines} (single-scope) OR prints NOSCOPE <unparseable> + stderr note + return 1
-# Reads line-by-line with `jq -R | fromjson?` so a single malformed line never aborts
-# the whole read. `unparseable` = JSON-parse failure OR parses-but-missing token fields.
-costs_aggregate() {
-  local f="$1" sid="$2"
-  [ -r "$f" ] || { echo "NOSCOPE 0"; echo "costs.jsonl unreadable — aggregate omitted" >&2; return 1; }
-  # unparseable count: each non-blank line that fails fromjson, OR parses but lacks both token fields
-  local unparse
-  unparse="$(awk 'NF' "$f" | jq -R '(fromjson? // null) as $o
-      | if $o == null then 1
-        elif ($o|type)=="object" and ($o|has("input_tokens")) and ($o|has("output_tokens")) then empty
-        else 1 end' 2>/dev/null | jq -s 'length')"
-  # classify scope over PARSEABLE token-bearing rows only
-  local cls
-  cls="$(jq -R 'fromjson? // empty | select((.input_tokens? != null) and (.output_tokens? != null))' "$f" 2>/dev/null \
-    | jq -s '
-        ( [ .[] | has("session_id") ] ) as $flags
-        | if (length==0) then "NOSCOPE"
-          elif ($flags|all) then "SINGLE"
-          elif ($flags|any) then "MIXED"
-          else "NOSCOPE" end')"
-  cls="$(echo "$cls" | tr -d '"')"
-  case "$cls" in
-    SINGLE)
-      local usd; usd="$(jq -R --arg sid "$sid" 'fromjson? // empty
-        | select((.input_tokens? != null) and (.output_tokens? != null)) | select(.session_id==$sid) | (.cost_usd // 0)' "$f" \
-        | jq -s 'add // 0')"
-      jq -nc --argjson usd "$usd" --argjson u "$unparse" '{usd:$usd, unparseable_lines:$u}' ;;
-    MIXED)
-      echo "NOSCOPE $unparse"; echo "costs.jsonl mixed schema (session_id on some rows, absent on others) — aggregate omitted" >&2; return 1 ;;
-    *)
-      echo "NOSCOPE $unparse"; echo "costs.jsonl has no session scope — aggregate omitted" >&2; return 1 ;;
-  esac
 }
 
 # otel_normalize <otlp_file> → one flat event JSON per line (only claude_code.api_request records)
@@ -354,11 +329,12 @@ otel_diagnostics() {
 
 UNVERIFIED() {
   # Single sentinel emitter (DS-1). Produces the closed-list sentinel string.
-  # Closed list: 11 reasons; "malformed meta" accepts any field suffix.
+  # Closed list: 12 reasons; "malformed meta" accepts any field suffix.
   # Off-list reason → loud stderr error + return 1.
   local reason="$1" valid=0
   case "$reason" in
     "codex artifact absent")               valid=1 ;;
+    "codex model unknown")                 valid=1 ;;
     "model not in price table")            valid=1 ;;
     "subagent usage requires OTel")        valid=1 ;;
     "no OTel subagent events for run")     valid=1 ;;
@@ -367,7 +343,6 @@ UNVERIFIED() {
     "ambiguous OTel run attribution")      valid=1 ;;
     "malformed transcript timestamp")      valid=1 ;;
     "malformed OTel timestamp")            valid=1 ;;
-    "costs aggregate lacks session scope") valid=1 ;;
     "malformed meta "*)                    valid=1 ;;
   esac
   if [ "$valid" -eq 0 ]; then
@@ -401,7 +376,7 @@ build_per_run_rows_v2() {
   while IFS=$'\t' read -r rid s e cwd skill; do
     [ -z "$rid" ] && continue
     wc=$(( e - s ))
-    agg="$(codex_window_aggregate "$cwd" "$s" "$e" "$prices")"
+    agg="$(codex_window_aggregate "$s" "$e" "$prices")"
     codex="$(printf '%s' "$agg" | cut -f1)"
     codex_cost="$(printf '%s' "$agg" | cut -f2)"
     if [ "$otel_state" = absent ]; then
@@ -427,20 +402,12 @@ build_per_run_rows_v2() {
   done <<< "$wins5"
 }
 
-# build_session_summary <transcript> <costs> <otel> <session_id> <scope_assert>
+# build_session_summary <transcript> <otel> <session_id> <scope_assert>
 build_session_summary() {
-  local tr="$1" costs="$2" otel="$3" sid="$4" assert="$5"
-  local cc_main sw agg unparse by_agent
+  local tr="$1" otel="$2" sid="$3" assert="$4"
+  local cc_main sw by_agent
   cc_main="$(mainloop_usage "$tr" 2>/dev/null || echo '{"in":0,"out":0}')"
   if sw="$(session_wallclock "$tr" 2>/dev/null)"; then :; else sw="$(UNVERIFIED 'malformed transcript timestamp')"; fi
-  # costs aggregate (single correct assignment)
-  local agg_json
-  if agg_json="$(costs_aggregate "$costs" "$sid")"; then
-    agg="$(echo "$agg_json" | jq -r .usd)"; unparse="$(echo "$agg_json" | jq -r .unparseable_lines)"
-  else
-    agg="$(UNVERIFIED 'costs aggregate lacks session scope')"
-    unparse="$(echo "$agg_json" | awk '{print $2; exit}')"; unparse="${unparse:-0}"
-  fi
   # by-agent rollup. Track groundedness with an EXPLICIT boolean — do NOT sniff the first
   # char: a sentinel string ALSO starts with `[`, so a first-char test would
   # feed invalid JSON to --argjson and the whole summary would fail to emit. (round-2 Critical)
@@ -476,16 +443,16 @@ build_session_summary() {
   fi
   local by_json
   if "$by_is_json"; then by_json="$by_agent"; else by_json="$(jq -nc --arg s "$by_agent" '$s')"; fi
-  jq -nc --argjson cc "$cc_main" --arg agg "$agg" --arg sw "$sw" --argjson un "${unparse:-0}" \
+  jq -nc --argjson cc "$cc_main" --arg sw "$sw" \
     --argjson by "$by_json" \
-    '{cc_main:$cc, costs_aggregate_usd:$agg, session_wallclock_s:$sw, by_agent:$by, unparseable_lines:$un}'
+    '{cc_main:$cc, session_wallclock_s:$sw, by_agent:$by}'
 }
 
-usage() { echo "usage: metrics-report.sh --session-id <id> [--session <transcript>] [--otel <p>] [--otel-session-scope <s>] [--prices <p>] [--costs <p>] [--now <epoch>]" >&2
-  echo "  run-manifests read from \${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs; Codex from ~/.codex/sessions (\$CODEX_SESSIONS_DIR override)." >&2; }
+usage() { echo "usage: metrics-report.sh --session-id <id> [--session <transcript>] [--otel <p>] [--otel-session-scope <s>] [--prices <p>] [--now <epoch>]" >&2
+  echo "  run-manifests read from \${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs; Codex from task_dir raw_codex.jsonl under \${TOUCHSTONE_CODEX_TASKDIR_ROOT:-<git-toplevel>/.touchstone}." >&2; }
 
 main() {
-  local session="" otel="" scope="" prices="" costs="" sid_override="" now_override=""
+  local session="" otel="" scope="" prices="" sid_override="" now_override=""
   # every value-taking flag guards that an operand exists BEFORE reading $2, so a trailing bare
   # flag returns the usage code 2, not an `unbound variable` abort under `set -u`.
   while [ $# -gt 0 ]; do
@@ -495,7 +462,6 @@ main() {
       --otel)                [ $# -ge 2 ] || { usage; return 2; }; otel="$2"; shift 2;;
       --otel-session-scope)  [ $# -ge 2 ] || { usage; return 2; }; scope="$2"; shift 2;;
       --prices)              [ $# -ge 2 ] || { usage; return 2; }; prices="$2"; shift 2;;
-      --costs)               [ $# -ge 2 ] || { usage; return 2; }; costs="$2"; shift 2;;
       --now)                 [ $# -ge 2 ] || { usage; return 2; }; now_override="$2"; shift 2;;
       *) usage; return 2;;
     esac
@@ -507,7 +473,6 @@ main() {
   elif [ -n "$session" ] && [ -f "$session" ]; then sid="$(basename "$session" | sed 's/\.[^.]*$//')"
   else echo "error: --session-id (or a --session transcript to derive it) is required" >&2; return 2; fi
   [ -z "$prices" ] && prices="$(dirname "$0")/metrics/model-prices.json"
-  [ -z "$costs" ] && costs="$HOME/.claude/metrics/costs.jsonl"
   # END of the last (open) run = report-invocation time; --now overrides for deterministic tests.
   local now; now="${now_override:-$(date +%s)}"
   # per-run rows over the run-manifest windows
@@ -519,7 +484,7 @@ main() {
   # session summary needs the transcript (main-loop usage + session wallclock); skip if absent.
   if [ -n "$session" ] && [ -f "$session" ]; then
     echo "=== SESSION SUMMARY ==="
-    build_session_summary "$session" "$costs" "$otel" "$sid" "$scope"
+    build_session_summary "$session" "$otel" "$sid" "$scope"
   fi
   if [ -z "$otel" ]; then
     echo "WARNING: CC-subagent figures are [unverified] — no OTel sink supplied." >&2

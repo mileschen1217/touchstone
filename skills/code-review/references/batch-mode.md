@@ -117,7 +117,6 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
      ALWAYS set, including under `force_reviewer` (Step 2 always runs detection).
    - Record `providers_used` (the vendor that actually reviewed) and `providers_expected`
      for THIS invocation per provenance.md.
-   - Extract `session_id` from `raw_codex.jsonl` if codex ran, per that reference.
    - If degraded/partial, build and prepend the banner(s) to the verdict text and to
      `<task_dir>/review.md` (when `task_dir` given), per that reference.
    - Write `<task_dir>/review.result.json` (review-envelope/v1) per that reference.

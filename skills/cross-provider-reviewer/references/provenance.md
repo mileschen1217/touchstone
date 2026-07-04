@@ -19,7 +19,6 @@ separate task-result artifact). All fields top-level.
 | `providers_expected` | string[] | yes | both paths | Intended set. Pattern A default `["cc","codex"]`; Pattern B swap = single opposite-of-builder vendor; `with X` = `["X"]`. Never empty — populated even on total failure. |
 | `providers_used` | string[] | yes | both paths | Who produced content. `[]` on total failure. Values `"cc"`, `"codex"`. |
 | `builder_vendor` | string or null | conditional | Pattern B body | Pattern B only: vendor that built the code (`"cc"`/`"codex"`). Null/absent for Pattern A. |
-| `session_id` | string or null | no | composite / code-review body (NOT the thin agent) | Codex session id from `raw_codex.jsonl`. Null if codex absent or id not found. |
 | `fallback_reason` | string or null | no | both paths | Why a provider was absent. Null when all expected ran. |
 | `risks` | object[] | no | both paths | `{ "provider": string, "error": string }` each. Present on partial/failed. |
 | `timestamp_utc` | string | yes | both paths | ISO 8601 UTC write time, e.g. `"2026-05-25T14:23:00Z"`. |
@@ -75,16 +74,3 @@ writer when a `with X` modifier governed the invocation (code-review batch, or a
 - DEGRADED (derived): cross-vendor completeness (quantity + vendor).
 - PARTIAL (derived): content quality (a provider ran but output unreliable; `status==partial`).
 - A degraded review that still produced output is `status: ok`. Both banners can co-occur.
-
-## session_id extraction (from raw_codex.jsonl)
-
-The composite / code-review body (NOT the thin agent) reads `<task_dir>/raw_codex.jsonl`
-after the codex agent completes and extracts the session id into `review.result.json.session_id`.
-
-Field path: the `thread.started` event's `thread_id` key (codex-cli 0.128.0, confirmed 2026-05-26).
-Extraction: `jq -rR 'fromjson? | select(.type=="thread.started") | .thread_id // empty' raw_codex.jsonl | head -1`
-(empty → `session_id = null`).
-
-Note: use per-line `fromjson?` (not a plain `jq select`) — `raw_codex.jsonl` can contain a
-non-JSON stderr banner line (`Reading additional input from stdin...`) because the agent
-dispatches `codex exec … 2>&1`; a plain `jq` parse aborts on that line, `fromjson?` skips it.

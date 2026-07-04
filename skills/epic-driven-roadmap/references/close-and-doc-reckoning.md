@@ -249,11 +249,11 @@ semantics below).
 **Failure semantics (apply throughout):** an L0 extractor failure
 (step 1) is skip-and-report — that source is skipped, the others proceed,
 and `report` lists it. An L1 or L2 stage failure (step 2 or step 4) is
-atomic discard — the whole staged batch is thrown away, `scan-state.json`
-is left untouched (so the un-swept bytes are re-extractable next sweep),
-and `report` carries an "sweep incomplete: <stage>" line. Neither failure
-mode proceeds silently — always run `report` (step 5) and paste its output
-into the close report even when a stage failed.
+atomic discard — the whole staged batch is thrown away, the `.last-sweep`
+timestamp is left untouched (so the un-swept records are re-extractable
+next sweep), and `report` carries an "sweep incomplete: <stage>" line.
+Neither failure mode proceeds silently — always run `report` (step 5) and
+paste its output into the close report even when a stage failed.
 
 ### Step 1 — collect
 
@@ -456,10 +456,12 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" report
 
 `finalize` appends `.staging.jsonl` through the REQ-1 writer (dedupe
 applies — an incident already in the ledger via a prior sweep or a label is
-a no-op) and, only on success, commits the proposed scan-state cursors so
-the next sweep does not re-scan bytes already covered. On any failure the
-staging file is discarded whole and `.sweep-incomplete` gains
-`sweep incomplete: finalize`; scan-state is left untouched either way.
+a no-op) and, only on success, advances the single `.last-sweep` timestamp
+to this run's collect-start so the next sweep filters to newer records
+(over-emission across sweeps is deliberate and deduped by the writer). On
+any failure the staging file is discarded whole and `.sweep-incomplete`
+gains `sweep incomplete: finalize`; `.last-sweep` is left untouched either
+way.
 
 Paste `report`'s output — sources consumed, any "sources skipped
 (unconfigured)" / "sweep incomplete: <x>" lines, and the entries count +

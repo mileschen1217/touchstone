@@ -59,9 +59,9 @@ The two outputs are intentionally different in tone. Synthesis must:
 All actions here follow the sole canonical
 `skills/cross-provider-reviewer/references/provenance.md` (this composite reads that SAME
 reference directly — no copy, no indirection through another skill). `builder_vendor` is
-null (Pattern A). Record provenance (`providers_expected`/`providers_used`), extract
-`session_id` from `raw_codex.jsonl`, and prepend the banner(s) if degraded/partial — all
-per that reference, which holds every field/operation/banner definition.
+null (Pattern A). Record provenance (`providers_expected`/`providers_used`) and prepend
+the banner(s) if degraded/partial — all per that reference, which holds every
+field/operation/banner definition.
 
 Write artifacts (if `task_dir` provided):
 - `<task_dir>/raw_cc.md` — architect output

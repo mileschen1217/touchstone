@@ -51,12 +51,14 @@ If `codex_healthy=0`, call only `everything-claude-code:code-reviewer` and proce
 
 Sort raw inputs by provider name (`cc` then `codex`).
 
-Merge findings:
+Merge findings — do not introduce new findings:
 - Same file:line + same category → keep one, attribute to both.
 - Disagreement on severity → list both verdicts inline; keep higher severity.
 - Unique to one provider → include with attribution.
+- Sort merged findings by severity (Critical, High, Medium, Low).
 
-Always emit a `## Divergence` section when verdicts disagree. Never silently merge.
+Always emit a `## Divergence` section when verdicts disagree; emit raw outputs
+alongside. Never silently merge.
 
 ### 4. Compute provenance, prepend banners, write artifacts
 
@@ -66,8 +68,7 @@ only the ACTIONS; it restates none of those definitions.
 
 1. Record `providers_expected` and `providers_used` for THIS invocation per
    provenance.md. `builder_vendor` is null (Pattern A has no builder).
-2. Extract `session_id` from `<task_dir>/raw_codex.jsonl` per provenance.md.
-3. Determine degraded/partial and, if either holds, build and prepend the banner(s)
+2. Determine degraded/partial and, if either holds, build and prepend the banner(s)
    to the synthesis text AND to `review.md`, per provenance.md (which defines the
    banner content and ordering).
 
@@ -81,10 +82,6 @@ Write artifacts (if `task_dir` provided):
 ### 5. Return synthesized review
 
 Skill body's final assistant text: the synthesized review.md content. The orchestrator caller reads it from shared LLM working memory.
-
-## Synthesis instruction (built-in)
-
-> Merge findings; do not introduce new findings. Preserve provider attribution. Label divergence explicitly. Sort by severity (Critical, High, Medium, Low). Emit raw outputs alongside; never silently merge.
 
 ## Failure semantics
 

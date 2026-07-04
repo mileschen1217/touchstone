@@ -2,27 +2,34 @@
 # sweep-run.sh — epic-close sweep orchestration: collect -> classify ->
 # validate-candidates -> stage -> finalize -> report. Each phase is a
 # SEPARATE invocation (`sweep-run.sh <phase> [args]`); state between phases
-# lives in files under $TOUCHSTONE_LEDGER_DIR (or <git-toplevel>/.touchstone/ledger
-# — same resolution as ledger-append.sh / the extractors, via cursor-lib.sh).
+# lives in files under $TOUCHSTONE_LEDGER_DIR (or <git-toplevel>/.touchstone/ledger).
+#
+# Incremental scan state is a SINGLE timestamp: $LDIR/.last-sweep holds the
+# collect-start time of the last sweep whose finalize succeeded. collect
+# passes it to the extractors as --since (extract-git gets it shifted back
+# by the pairing window so a new fix whose anchor predates the sweep still
+# surfaces its chain); finalize promotes this run's collect-start stamp to
+# .last-sweep ONLY after a successful append. Records re-emitted across
+# sweeps (timestamp overlap is deliberate over-emission, never data loss)
+# are deduped by ledger-append.sh's refs_overlap check.
 #
 # Phases:
 #   collect               runs extract-transcript.sh / extract-git.sh /
-#                          extract-firelog.sh (each --propose-cursors, never
-#                          committing scan-state directly) and
-#                          extract-reckoning.sh (no cursor), concatenating
-#                          their digest/v1 output into .digest.jsonl. A
-#                          source is attempted only when its env var is set
-#                          (LEDGER_TRANSCRIPTS_DIR / LEDGER_GIT_REPO /
-#                          LEDGER_EPIC_DIR — firelog needs none, it reads
-#                          $LDIR/fire-log.jsonl directly); an unset var means
-#                          the source is not configured for this sweep — it
-#                          is recorded in .sweep-skipped-unconfigured (not a
-#                          failure) and `report` prints it as "sources
-#                          skipped (unconfigured): <list>". A CONFIGURED
-#                          source whose extractor exits non-zero is the
-#                          skip-and-report path: the source is skipped, the
-#                          other sources proceed, ".sweep incomplete: <src>"
-#                          is recorded for `report`.
+#                          extract-firelog.sh / extract-reckoning.sh,
+#                          concatenating their digest/v1 output into
+#                          .digest.jsonl. A source is attempted only when its
+#                          env var is set (LEDGER_TRANSCRIPTS_DIR /
+#                          LEDGER_GIT_REPO / LEDGER_EPIC_DIR — firelog needs
+#                          none, it reads $LDIR/fire-log.jsonl directly); an
+#                          unset var means the source is not configured for
+#                          this sweep — it is recorded in
+#                          .sweep-skipped-unconfigured (not a failure) and
+#                          `report` prints it as "sources skipped
+#                          (unconfigured): <list>". A CONFIGURED source whose
+#                          extractor exits non-zero is the skip-and-report
+#                          path: the source is skipped, the other sources
+#                          proceed, ".sweep incomplete: <src>" is recorded
+#                          for `report`.
 #   classify               chunks .digest.jsonl into approx <=200KB pieces
 #                          (line-safe; a single line is never split) and
 #                          pipes each chunk through $LEDGER_L1_CMD (a shell
@@ -63,15 +70,13 @@
 #                          .sweep-incomplete already carries an "l1" or "l2"
 #                          entry (same phase-sequencing guard as stage).
 #                          Otherwise pipes .staging.jsonl into
-#                          ledger-append.sh. On success: merges every
-#                          .propose-<src>.json into scan-state.json
-#                          (temp+mv, per cursor-lib.sh) and deletes
-#                          .staging.jsonl + the propose files. On ANY
-#                          failure (including ledger-append.sh's
-#                          whole-batch schema rejection): .staging.jsonl is
-#                          discarded and scan-state.json is left untouched —
-#                          cursor commit happens ONLY after a successful
-#                          append.
+#                          ledger-append.sh. On success: promotes this run's
+#                          collect-start stamp to .last-sweep and deletes
+#                          .staging.jsonl. On ANY failure (including
+#                          ledger-append.sh's whole-batch schema rejection):
+#                          .staging.jsonl is discarded and .last-sweep is
+#                          left untouched — the timestamp advances ONLY
+#                          after a successful append.
 #   report                  prints sources consumed, sources skipped
 #                          (unconfigured), every recorded "sweep incomplete:
 #                          <x>" line, and entries.jsonl's line count + byte
@@ -79,10 +84,17 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=/dev/null
-. "$SCRIPT_DIR/cursor-lib.sh"
 
-LDIR="$(cursor_lib_resolve_ledger_dir sweep-run)" || exit 1
+if [ -n "${TOUCHSTONE_LEDGER_DIR:-}" ]; then
+  LDIR="$TOUCHSTONE_LEDGER_DIR"
+else
+  TOPLEVEL="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [ -z "$TOPLEVEL" ]; then
+    echo "sweep-run: not inside a git repo; set TOUCHSTONE_LEDGER_DIR" >&2
+    exit 1
+  fi
+  LDIR="$TOPLEVEL/.touchstone/ledger"
+fi
 mkdir -p "$LDIR" || { echo "sweep-run: cannot create ledger dir $LDIR" >&2; exit 1; }
 
 DIGEST_FILE="$LDIR/.digest.jsonl"
@@ -91,6 +103,8 @@ STAGING_FILE="$LDIR/.staging.jsonl"
 CONSUMED_FILE="$LDIR/.sweep-consumed"
 INCOMPLETE_FILE="$LDIR/.sweep-incomplete"
 SKIPPED_FILE="$LDIR/.sweep-skipped-unconfigured"
+LAST_SWEEP_FILE="$LDIR/.last-sweep"
+STARTED_FILE="$LDIR/.sweep-started"
 
 GAP_CLASSES_JSON='["missing-AC","false-green","no-gate"]'
 
@@ -123,15 +137,40 @@ collect() {
   : > "$INCOMPLETE_FILE"
   : > "$CANDIDATES_FILE"
   : > "$SKIPPED_FILE"
-  rm -f "$LDIR"/.propose-*.json
+
+  # stamp collect-start BEFORE scanning: records written while the sweep
+  # runs land after this stamp, so the next sweep re-reads them (over-
+  # emission is deduped; a later stamp would silently skip them).
+  date -u +%Y-%m-%dT%H:%M:%SZ > "$STARTED_FILE"
+
+  local since="" git_since=""
+  if [ -f "$LAST_SWEEP_FILE" ]; then
+    since="$(cat "$LAST_SWEEP_FILE")"
+  fi
+  if [ -n "$since" ]; then
+    # extract-git's since is shifted back by the pairing window so a new fix
+    # whose anchor predates the last sweep still surfaces its chain (the
+    # already-swept portion of that chain dedupes on the git:<anchor> ref).
+    git_since="$(jq -rn --arg t "$since" --argjson w "$((${LEDGER_GIT_WINDOW_DAYS:-14} * 86400))" \
+      '$t | fromdateiso8601 - $w | todateiso8601' 2>/dev/null)"
+    [ -n "$git_since" ] || git_since="$since"
+  fi
 
   if [ -n "${LEDGER_TRANSCRIPTS_DIR:-}" ]; then
-    run_source transcript "$SCRIPT_DIR/extract-transcript.sh" --dir "$LEDGER_TRANSCRIPTS_DIR" --propose-cursors "$LDIR/.propose-transcript.json"
+    if [ -n "$since" ]; then
+      run_source transcript "$SCRIPT_DIR/extract-transcript.sh" --dir "$LEDGER_TRANSCRIPTS_DIR" --since "$since"
+    else
+      run_source transcript "$SCRIPT_DIR/extract-transcript.sh" --dir "$LEDGER_TRANSCRIPTS_DIR"
+    fi
   else
     echo transcript >> "$SKIPPED_FILE"
   fi
   if [ -n "${LEDGER_GIT_REPO:-}" ]; then
-    run_source git "$SCRIPT_DIR/extract-git.sh" --repo "$LEDGER_GIT_REPO" --propose-cursors "$LDIR/.propose-git.json"
+    if [ -n "$git_since" ]; then
+      run_source git "$SCRIPT_DIR/extract-git.sh" --repo "$LEDGER_GIT_REPO" --since "$git_since"
+    else
+      run_source git "$SCRIPT_DIR/extract-git.sh" --repo "$LEDGER_GIT_REPO"
+    fi
   else
     echo git >> "$SKIPPED_FILE"
   fi
@@ -140,7 +179,11 @@ collect() {
   else
     echo reckoning >> "$SKIPPED_FILE"
   fi
-  run_source firelog "$SCRIPT_DIR/extract-firelog.sh" --propose-cursors "$LDIR/.propose-firelog.json"
+  if [ -n "$since" ]; then
+    run_source firelog "$SCRIPT_DIR/extract-firelog.sh" --since "$since"
+  else
+    run_source firelog "$SCRIPT_DIR/extract-firelog.sh"
+  fi
 
   return 0
 }
@@ -269,22 +312,6 @@ stage() {
   return 0
 }
 
-# merge_cursor_proposals — commits every .propose-<src>.json into
-# scan-state.json's matching section (temp+mv, via cursor-lib.sh), reloading
-# the on-disk state between commits since cursor_lib_commit_section writes
-# directly rather than returning the merged state.
-merge_cursor_proposals() {
-  if [ -f "$LDIR/.propose-transcript.json" ]; then
-    cursor_lib_commit_section "$LDIR" "$(cursor_lib_load_state "$LDIR")" transcripts "$(cat "$LDIR/.propose-transcript.json")"
-  fi
-  if [ -f "$LDIR/.propose-git.json" ]; then
-    cursor_lib_commit_section "$LDIR" "$(cursor_lib_load_state "$LDIR")" git "$(cat "$LDIR/.propose-git.json")"
-  fi
-  if [ -f "$LDIR/.propose-firelog.json" ]; then
-    cursor_lib_commit_section "$LDIR" "$(cursor_lib_load_state "$LDIR")" firelog "$(cat "$LDIR/.propose-firelog.json")"
-  fi
-}
-
 finalize() {
   if prior_stage_failure l1 || prior_stage_failure l2; then
     echo "sweep-run finalize: refusing — a prior l1/l2 stage failure was recorded for this run" >&2
@@ -292,7 +319,7 @@ finalize() {
   fi
   if [ ! -f "$STAGING_FILE" ]; then
     # nothing staged (stage phase never ran, or produced no incidents) —
-    # nothing to append, nothing to commit.
+    # nothing to append, nothing to advance.
     return 0
   fi
   local rc before after
@@ -302,19 +329,19 @@ finalize() {
   if [ "$rc" -ne 0 ]; then
     rm -f "$STAGING_FILE"
     echo "sweep incomplete: finalize" >> "$INCOMPLETE_FILE"
-    # failed finalize: nothing archived, .last-finalize untouched.
+    # failed finalize: nothing archived, .last-finalize/.last-sweep untouched.
     return 1
   fi
   after="$(grep -c . "$LDIR/entries.jsonl" 2>/dev/null || true)"; [ -n "$after" ] || after=0
-  # raw-bundle retention — BEFORE the staging/propose cleanup below: this
-  # run's staging + L1 candidates log + a finalize-written summary (appended
-  # count + cursor movements). L1 input chunks are mktemp-local in classify()
-  # and excluded by construction. ledger-append.sh has ALREADY succeeded at
-  # this point, so a failure anywhere in this archival sequence must fail
-  # closed WITHOUT touching .last-finalize/cursors/cleanup — staging + the
-  # propose files stay put and the next finalize retries (re-extraction is
+  # raw-bundle retention — BEFORE the staging cleanup below: this run's
+  # staging + L1 candidates log + a finalize-written summary (appended
+  # count + this run's since bound). L1 input chunks are mktemp-local in
+  # classify() and excluded by construction. ledger-append.sh has ALREADY
+  # succeeded at this point, so a failure anywhere in this archival sequence
+  # must fail closed WITHOUT touching .last-finalize/.last-sweep/cleanup —
+  # staging stays put and the next finalize retries (re-extraction is
   # idempotent via the writer's dedupe, so a retry is safe).
-  local run_ts runs_dir cursors cursors_rc summary_rc archive_rc
+  local run_ts runs_dir summary_rc archive_rc started
   run_ts="$(date -u +%Y%m%dT%H%M%SZ)"
   runs_dir="$LDIR/runs/$run_ts"
   archive_rc=0
@@ -334,18 +361,11 @@ finalize() {
   fi
 
   if [ "$archive_rc" -eq 0 ]; then
-    cursors="$(jq -n \
-      --argjson t "$(cat "$LDIR/.propose-transcript.json" 2>/dev/null || echo null)" \
-      --argjson g "$(cat "$LDIR/.propose-git.json" 2>/dev/null || echo null)" \
-      --argjson f "$(cat "$LDIR/.propose-firelog.json" 2>/dev/null || echo null)" \
-      '{transcripts:$t, git:$g, firelog:$f}')"
-    cursors_rc=$?
-    [ "$cursors_rc" -eq 0 ] && [ -n "$cursors" ] || archive_rc=1
-  fi
-
-  if [ "$archive_rc" -eq 0 ]; then
-    jq -n --argjson appended "$((after - before))" --argjson cursors "$cursors" \
-      '{schema:"sweep-run-summary/v1", appended:$appended, cursor_movements:$cursors}' \
+    started="$(cat "$STARTED_FILE" 2>/dev/null || echo "")"
+    jq -n --argjson appended "$((after - before))" \
+      --arg since "$(cat "$LAST_SWEEP_FILE" 2>/dev/null || echo "")" \
+      --arg started "$started" \
+      '{schema:"sweep-run-summary/v1", appended:$appended, since:$since, collected_at:$started}' \
       > "$runs_dir/summary.json"
     summary_rc=$?
     [ "$summary_rc" -eq 0 ] && [ -s "$runs_dir/summary.json" ] || archive_rc=1
@@ -361,9 +381,12 @@ finalize() {
   # freshness stamp: written ONLY on a successful finalize; report.sh sources
   # freshness solely from this file.
   date -u +%Y-%m-%dT%H:%M:%SZ > "$LDIR/.last-finalize"
-  merge_cursor_proposals
+  # advance the single scan-state timestamp: next sweep's --since = this
+  # run's collect-start. Promoted ONLY here (successful append + archive).
+  if [ -s "$STARTED_FILE" ]; then
+    cp "$STARTED_FILE" "$LAST_SWEEP_FILE"
+  fi
   rm -f "$STAGING_FILE"
-  rm -f "$LDIR"/.propose-*.json
   return 0
 }
 

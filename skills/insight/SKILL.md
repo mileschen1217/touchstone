@@ -43,10 +43,8 @@ as-is; they are the honest answer.
      (install refuses without them); `fire-fixture.sh` must create a
      self-contained scratch git repo in the failing state and print its
      toplevel.
-   - `replay.sh` (optional) — prints `<sha> fire|pass` per commit. When it
-     exists, run `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/replay-run.sh" <sidecar-dir> <rev-range>`
-     and embed the fires/hits result in the proposal's `cost_witness`;
-     when it does not, use `cost_witness = {kind: "declared", note: …}`.
+   - Set `cost_witness = {kind: "declared", note: …}` — one line naming the
+     expected cost of keeping this unit (maintenance, false-block risk).
    Compose each proposal fact and append it via
    `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/facts-append.sh" proposal` (the writer recomputes
    recurrence, latest_entry_ts, and auto-install eligibility).

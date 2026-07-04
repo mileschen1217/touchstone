@@ -41,7 +41,7 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 When a change's alignment touches a ratified ADR or standing decision, **surface the conflict for human resolution** — do not assume a clear slate where a prior decision can be silently overwritten. Two dispositions:
 
 - **True structural fork** (≥2 viable paths remain after the conflict): route to keystone (the structural-fork step) before design-spec.
-- **Decisively-resolved conflict** (the ratified decision still stands; no viable alternative remains): proceed noting the conflict inline (F-1 disposition). Do NOT silently proceed past a standing decision without naming it.
+- **Decisively-resolved conflict** (the ratified decision still stands; no viable alternative remains): the **note-and-proceed disposition** — proceed, and record one inline line naming the standing decision and why it still holds. Do NOT silently proceed past a standing decision without naming it.
 
 ## Mid-chain halt (design-review Critical/High)
 

@@ -39,9 +39,8 @@ Derived heuristic: the change spans multiple modules, or introduces a new contra
 The user may always explicitly request a design spec — that overrides the heuristic.
 
 When the expected-value test says skip (contained change, no new contract),
-NO Verification Strategy section is authored — there is no lighter PR-one-liner form
-in Phase 1 (deferred to a later phase). The evidence-honesty contract attaches to
-full specs only.
+NO Verification Strategy section is authored. The evidence-honesty contract
+attaches to full specs only.
 
 ## Load vocabulary
 

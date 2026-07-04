@@ -54,77 +54,53 @@ chk "A5 CONTEXT.md crucible entry no longer says crucible does-not-invoke design
 chk "A15 CONTEXT.md anvil entry no longer over-claims unqualified program-enforced independence" \
   '! grep -qE "adds only the deterministic sequencing \+ program-enforced independence" CONTEXT.md'
 
-# --- B1: check-stage-return.py validator, fail-closed ---
-sr=$(mktemp -d)
-printf '{"schema":"stage-return/v1","stage":"plan-review","status":"DONE","artifacts":["p.md"]}' > "$sr/done.json"
-chk "B1 well-formed DONE → DONE" \
-  '[ "$(python3 scripts/check-stage-return.py "$sr/done.json")" = "status=DONE" ]'
-printf '{"schema":"stage-return/v1","stage":"plan-review","status":"BLOCKED","reason":"C+H=2"}' > "$sr/blk.json"
-chk "B1 BLOCKED+reason → BLOCKED" \
-  '[ "$(python3 scripts/check-stage-return.py "$sr/blk.json")" = "status=BLOCKED" ]'
-printf '{"schema":"stage-return/v1","stage":"plan-review","status":"NEEDS_HUMAN"}' > "$sr/nh.json"
-chk "B1 NEEDS_HUMAN without reason → BLOCKED (fail closed)" \
-  '[ "$(python3 scripts/check-stage-return.py "$sr/nh.json")" = "status=BLOCKED" ]'
-printf '{"schema":"stage-return/v1","stage":"plan-review","status":"DONE","reason":"x","artifacts":["p.md"]}' > "$sr/baddone.json"
-chk "B1 DONE carrying a reason → BLOCKED (exclusion direction)" \
-  '[ "$(python3 scripts/check-stage-return.py "$sr/baddone.json")" = "status=BLOCKED" ]'
-printf '{"schema":"stage-return/v1","stage":"plan-review","status":"DONE"}' > "$sr/noart.json"
-chk "B1 DONE without artifacts → BLOCKED (DONE must produce an artifact)" \
-  '[ "$(python3 scripts/check-stage-return.py "$sr/noart.json")" = "status=BLOCKED" ]'
-printf '{"schema":"stage-return/v1","stage":"plan-review","status":"BLOCKED","reason":"r","artifacts":["x"]}' > "$sr/artblk.json"
-chk "B1 BLOCKED carrying artifacts → BLOCKED (reaches the artifacts rule with full fixture)" \
-  '[ "$(python3 scripts/check-stage-return.py "$sr/artblk.json")" = "status=BLOCKED" ]'
-printf '{"schema":"stage-return/v1","stage":"bogus","status":"DONE","artifacts":["p.md"]}' > "$sr/badstage.json"
-chk "B1 unknown stage → BLOCKED" \
-  '[ "$(python3 scripts/check-stage-return.py "$sr/badstage.json")" = "status=BLOCKED" ]'
-printf 'not json' > "$sr/bad.json"
-chk "B1 unparseable → BLOCKED" \
-  '[ "$(python3 scripts/check-stage-return.py "$sr/bad.json")" = "status=BLOCKED" ]'
-chk "B1 missing file → BLOCKED" \
-  '[ "$(python3 scripts/check-stage-return.py "$sr/nope.json")" = "status=BLOCKED" ]'
-rm -rf "$sr"
-
-# --- B2: normalize-stage-return.sh adapter ---
+# --- B2: stage-return.sh fail-closed gate (single script; JSON envelope +
+# python validator retired — the printed status= line IS the contract) ---
 td=$(mktemp -d)
 # review stage: clean (C+H=0, not degraded) → DONE
 printf '{"status":"ok","providers_expected":["cc","codex"],"providers_used":["cc","codex"]}' > "$td/review.result.json"
 printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
 chk "B2 clean review → DONE" \
-  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=DONE" ]'
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=DONE" ]'
 # C+H>=1 → BLOCKED
 printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=1 high=2 degraded=false\n' > "$td/review.md"
 chk "B2 C+H>=1 review → BLOCKED" \
-  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
 # degraded=true → NEEDS_HUMAN. The reviewer composite computes degraded per provenance.md
-# Operation 3 and writes it into the sentinel (the adapter TRUSTS the sentinel — degraded is NEVER
+# Operation 3 and writes it into the sentinel (the gate TRUSTS the sentinel — degraded is NEVER
 # stored in review.result.json). Make the fixture realistic: providers_used ⊊ providers_expected.
 printf '{"status":"ok","providers_expected":["cc","codex"],"providers_used":["cc"]}' > "$td/review.result.json"
 printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=true\n' > "$td/review.md"
 chk "B2 degraded review → NEEDS_HUMAN" \
-  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=NEEDS_HUMAN" ]'
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=NEEDS_HUMAN" ]'
 # missing sentinel → BLOCKED (fail closed)
 printf 'findings... no sentinel\n' > "$td/review.md"
 chk "B2 missing sentinel → BLOCKED" \
-  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
 # entry-precondition: exit 0 → DONE
 printf 'PRE-CHECK OK\n' > "$td/precheck.out"; echo 0 > "$td/precheck.rc"
 chk "B2 precheck exit0 → DONE" \
-  '[ "$(bash scripts/normalize-stage-return.sh entry-precondition "$td")" = "status=DONE" ]'
+  '[ "$(bash scripts/stage-return.sh entry-precondition "$td")" = "status=DONE" ]'
 printf 'BLOCK: stale\n' > "$td/precheck.out"; echo 1 > "$td/precheck.rc"
 chk "B2 precheck nonzero → BLOCKED" \
-  '[ "$(bash scripts/normalize-stage-return.sh entry-precondition "$td")" = "status=BLOCKED" ]'
-# fail-closed guards (FIX 1): missing review.result.json, unknown status, duplicate sentinel
+  '[ "$(bash scripts/stage-return.sh entry-precondition "$td")" = "status=BLOCKED" ]'
+# fail-closed guards: missing review.result.json, unknown status, duplicate
+# sentinel, unknown stage, missing task_dir
 rm -f "$td/review.result.json"
 printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
 chk "B2 missing review.result.json → BLOCKED" \
-  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
 printf '{"status":"bogus_status"}' > "$td/review.result.json"
 chk "B2 status not in enum → BLOCKED" \
-  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
 printf '{"status":"ok"}' > "$td/review.result.json"
 printf 'STAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\nextra\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
 chk "B2 duplicate sentinel → BLOCKED" \
-  '[ "$(bash scripts/normalize-stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+chk "B2 unknown stage → BLOCKED" \
+  '[ "$(bash scripts/stage-return.sh bogus-stage "$td")" = "status=BLOCKED" ]'
+chk "B2 missing task_dir → BLOCKED (fail closed, exit 0)" \
+  '[ "$(bash scripts/stage-return.sh plan-review "$td/nope" 2>/dev/null)" = "status=BLOCKED" ]'
 rm -rf "$td"
 
 # --- B3: anvil SKILL.md plain orchestrator ---
@@ -138,8 +114,8 @@ chk "B7 anvil documents the fixed stage sequence" \
   'grep -qE "entry-precondition" "$A" && grep -qE "writing-plans" "$A" && grep -qE "plan-review" "$A" && grep -qiE "final.*review" "$A"'
 chk "B7 anvil runs the writing-plans boundary check" \
   'grep -qiE "boundary check|non-empty|exists.*task" "$A"'
-chk "B11 anvil consumes the structured-return via the adapter+validator" \
-  'grep -qE "normalize-stage-return|stage-return" "$A"'
+chk "B11 anvil consumes the structured-return via the stage-return gate" \
+  'grep -qE "stage-return" "$A"'
 chk "B12 anvil stops before ship (no push/PR/merge)" \
   'grep -qiE "stops? (at|before).*(branch|ship)|never (push|open a PR|merge)" "$A"'
 chk "B13 anvil never promotes AC to verified" \

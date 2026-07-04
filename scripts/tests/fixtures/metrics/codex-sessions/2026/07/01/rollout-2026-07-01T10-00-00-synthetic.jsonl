@@ -1,4 +1,0 @@
-{"timestamp":"2026-07-01T10:00:00.123Z","type":"session_meta","payload":{"id":"synthetic-0001","timestamp":"2026-07-01T10:00:00.123Z","cwd":"/synthetic/project","originator":"codex_exec","cli_version":"0.141.0","source":"exec","model_provider":"openai","git":{"branch":"demo","commit_hash":"deadbeef"}}}
-{"timestamp":"2026-07-01T10:00:01.000Z","type":"turn_context","model":"gpt-5-codex","payload":{}}
-{"timestamp":"2026-07-01T10:00:05.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":400,"output_tokens":50,"reasoning_output_tokens":10,"total_tokens":1060}}}}
-{"timestamp":"2026-07-01T10:00:09.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":3000,"cached_input_tokens":1200,"output_tokens":180,"reasoning_output_tokens":40,"total_tokens":3400}}}}

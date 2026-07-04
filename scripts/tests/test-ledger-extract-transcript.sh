@@ -23,9 +23,9 @@ mkscene() {
   echo "$d/src $d/out"
 }
 
-# digest→catch-miss/v1 adapter (test-only plumbing for AC-6): the real L1/L2
-# classification is out of scope here — this just proves the extractor's
-# output can flow through the real writer end-to-end.
+# digest→catch-miss/v1 adapter (test-only plumbing for the dedupe test): the
+# real L1/L2 classification is out of scope here — this just proves the
+# extractor's output can flow through the real writer end-to-end.
 adapt_and_append() { # <ledger-dir> < digest/v1 JSONL on stdin
   local ldir="$1"
   jq -c '{schema:"catch-miss/v1", caught_by:"live-probe", should_have:"human",
@@ -37,8 +37,7 @@ adapt_and_append() { # <ledger-dir> < digest/v1 JSONL on stdin
 # --- AC-4: user-text + interrupt-pair digest, byte-accurate ---
 read -r SRC OUT <<<"$(mkscene ac4)"
 cp "$FIXTURE" "$SRC/sess1.jsonl"
-LDIR="$OUT/ledger"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/digest.jsonl"
+"$X" --dir "$SRC" > "$OUT/digest.jsonl"
 RC=$?
 LC="$(grep -c . "$OUT/digest.jsonl")"
 if [ "$RC" -eq 0 ] && [ "$LC" = 4 ]; then
@@ -96,8 +95,7 @@ fi
 # per-line try/catch must guard the whole transform, not just fromjson ---
 read -r SRC OUT <<<"$(mkscene nonobject)"
 cp "$FIXTURE_NONOBJECT" "$SRC/sess1.jsonl"
-LDIR="$OUT/ledger"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/digest.jsonl" 2> "$OUT/stderr.log"
+"$X" --dir "$SRC" > "$OUT/digest.jsonl" 2> "$OUT/stderr.log"
 RC=$?
 LC="$(grep -c . "$OUT/digest.jsonl")"
 ERR="$(cat "$OUT/stderr.log")"
@@ -124,113 +122,72 @@ else
   fail "AC-7 non-object JSON line byte ranges (dd extraction did not re-parse as user record)"
 fi
 
-# --- no-trailing-newline case: chosen behavior = skip the unterminated
-# final line; cursor stops at its start byte, not the raw file size ---
+# --- no-trailing-newline case: stateless behavior — a COMPLETE final JSON
+# line without a trailing newline is emitted (4 records); re-running after
+# the newline lands emits the identical set (same refs → writer dedupe) ---
 read -r SRC OUT <<<"$(mkscene noeol)"
 cp "$FIXTURE_NOEOL" "$SRC/sess1.jsonl"
-LDIR="$OUT/ledger"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/digest.jsonl"
+"$X" --dir "$SRC" > "$OUT/digest.jsonl"
 LC="$(grep -c . "$OUT/digest.jsonl")"
-FSIZE="$(wc -c < "$SRC/sess1.jsonl" | tr -d ' ')"
-CURSOR="$(jq -r '.transcripts | to_entries[0].value.cursor' "$LDIR/scan-state.json")"
-if [ "$LC" = 3 ] && [ "$CURSOR" -lt "$FSIZE" ]; then
-  ok "no-trailing-newline: unterminated final line skipped (3 records, not 4), cursor < file size"
+if [ "$LC" = 4 ]; then
+  ok "no-trailing-newline: complete unterminated final line is emitted (stateless full scan)"
 else
-  fail "no-trailing-newline behavior (lc=$LC cursor=$CURSOR fsize=$FSIZE)"
+  fail "no-trailing-newline behavior (lc=$LC)"
 fi
-# the skipped line's bytes must be re-read once terminated: appending a
-# newline to complete it and re-running should emit the 4th record now.
 printf '\n' >> "$SRC/sess1.jsonl"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/digest2.jsonl"
-LC2="$(grep -c . "$OUT/digest2.jsonl")"
-if [ "$LC2" = 1 ]; then
-  ok "no-trailing-newline: previously-skipped line is emitted once terminated"
+"$X" --dir "$SRC" > "$OUT/digest2.jsonl"
+if cmp -s "$OUT/digest.jsonl" "$OUT/digest2.jsonl"; then
+  ok "no-trailing-newline: refs stable once the newline lands (byte-identical digest)"
 else
-  fail "no-trailing-newline follow-up emission (lc2=$LC2)"
+  fail "no-trailing-newline follow-up digest differs (refs unstable)"
 fi
 
-# --- AC-5: cursor tail-only increment ---
-read -r SRC OUT <<<"$(mkscene ac5)"
+# --- incremental-by-since: the caller's --since bound is the ONLY increment
+# mechanism (sweep-run passes .last-sweep); an appended newer record is the
+# only one emitted under --since ---
+read -r SRC OUT <<<"$(mkscene since-inc)"
 cp "$FIXTURE" "$SRC/sess1.jsonl"
-LDIR="$OUT/ledger"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/r1.jsonl"
 printf '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"新訊息 B"}]},"uuid":"fx-0:07.000","timestamp":"2026-07-02T10:00:07.000Z","sessionId":"fixture-sess","cwd":"/fixture/proj","isSidechain":false}\n' >> "$SRC/sess1.jsonl"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/r2.jsonl"
+"$X" --dir "$SRC" --since "2026-07-02T10:00:06.500Z" > "$OUT/r2.jsonl"
 LC2="$(grep -c . "$OUT/r2.jsonl")"
-CURSOR2="$(jq -r '.transcripts | to_entries[0].value.cursor' "$LDIR/scan-state.json")"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/r3.jsonl"
-LC3="$(grep -c . "$OUT/r3.jsonl")"
-CURSOR3="$(jq -r '.transcripts | to_entries[0].value.cursor' "$LDIR/scan-state.json")"
-if [ "$LC2" = 1 ] && [ "$LC3" = 0 ] && [ "$CURSOR2" = "$CURSOR3" ]; then
-  ok "AC-5 tail-only increment: rerun emits only the append, second rerun emits 0 with cursor unchanged"
+NEWTEXT="$(jq -r '.payload.text' "$OUT/r2.jsonl")"
+if [ "$LC2" = 1 ] && [ "$NEWTEXT" = "新訊息 B" ]; then
+  ok "incremental-by-since: only the record newer than the since bound is emitted"
 else
-  fail "AC-5 tail-only increment (lc2=$LC2 lc3=$LC3 cursor2=$CURSOR2 cursor3=$CURSOR3)"
+  fail "incremental-by-since (lc2=$LC2 text=$NEWTEXT)"
 fi
 
-# --- AC-6 (reset-on-shrink) FULL PIPELINE: extractor -> adapter -> real
-# writer; snapshot entries.jsonl; force cursor > filesize; replay; assert
-# entries.jsonl is byte-identical (the WRITER's dedupe absorbs the replay).
-read -r SRC OUT <<<"$(mkscene ac6)"
+# --- rescan replay FULL PIPELINE: extractor -> adapter -> real writer;
+# snapshot entries.jsonl; full re-scan; replay through the writer; assert
+# entries.jsonl is byte-identical (the WRITER's ref dedupe absorbs the
+# deliberate over-emission the stateless scan produces). ---
+read -r SRC OUT <<<"$(mkscene rescan)"
 cp "$FIXTURE" "$SRC/sess1.jsonl"
 LDIR="$OUT/ledger"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/digest1.jsonl"
+"$X" --dir "$SRC" > "$OUT/digest1.jsonl"
 adapt_and_append "$LDIR" < "$OUT/digest1.jsonl" > /dev/null
 cp "$LDIR/entries.jsonl" "$OUT/entries.snapshot.jsonl"
-ABS_SESS1="$(cd "$SRC" && pwd)/sess1.jsonl"
-jq -c --arg p "$ABS_SESS1" '.transcripts[$p].cursor = 999999' "$LDIR/scan-state.json" > "$LDIR/scan-state.json.tmp"
-mv "$LDIR/scan-state.json.tmp" "$LDIR/scan-state.json"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > "$OUT/digest2.jsonl"
+"$X" --dir "$SRC" > "$OUT/digest2.jsonl"
 LC_REPLAY="$(grep -c . "$OUT/digest2.jsonl")"
 adapt_and_append "$LDIR" < "$OUT/digest2.jsonl" > /dev/null
 if [ "$LC_REPLAY" = 4 ] && cmp -s "$LDIR/entries.jsonl" "$OUT/entries.snapshot.jsonl"; then
-  ok "AC-6 reset-on-shrink: full rescan replay, entries.jsonl byte-identical after dedupe"
+  ok "rescan replay: full re-scan re-emits all records, entries.jsonl byte-identical after dedupe"
 else
-  fail "AC-6 reset-on-shrink (replay_lc=$LC_REPLAY, entries changed=$(! cmp -s "$LDIR/entries.jsonl" "$OUT/entries.snapshot.jsonl"; echo $?))"
+  fail "rescan replay (replay_lc=$LC_REPLAY, entries changed=$(! cmp -s "$LDIR/entries.jsonl" "$OUT/entries.snapshot.jsonl"; echo $?))"
 fi
 
-# --- prune: scan-state key for a deleted file is gone after the next run ---
-read -r SRC OUT <<<"$(mkscene prune)"
-LDIR="$OUT/ledger"; mkdir -p "$LDIR"
-printf '{"transcripts":{"%s/gone.jsonl":{"cursor":100}}}' "$SRC" > "$LDIR/scan-state.json"
+# --- stateless: no scan-state.json (or any state file) is ever created ---
+read -r SRC OUT <<<"$(mkscene stateless)"
+cp "$FIXTURE" "$SRC/sess1.jsonl"
+LDIR="$OUT/ledger"
 TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" > /dev/null
-REMAINING_KEYS="$(jq -r '.transcripts | keys | length' "$LDIR/scan-state.json")"
-if [ "$REMAINING_KEYS" = 0 ]; then
-  ok "prune: stale key for a deleted file is removed from scan-state"
-else
-  fail "prune (remaining_keys=$REMAINING_KEYS)"
-fi
-
-# --- propose-cursors mode: scan-state untouched, proposal file written ---
-read -r SRC OUT <<<"$(mkscene propose)"
-cp "$FIXTURE" "$SRC/sess1.jsonl"
-LDIR="$OUT/ledger"
-PROPOSE_F="$OUT/proposed.json"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" --propose-cursors "$PROPOSE_F" > "$OUT/digest.jsonl"
-LC="$(grep -c . "$OUT/digest.jsonl")"
-if [ "$LC" = 4 ] && [ ! -e "$LDIR/scan-state.json" ] && [ -s "$PROPOSE_F" ]; then
-  PROPOSED_CURSOR="$(jq -r '. | to_entries[0].value.cursor' "$PROPOSE_F")"
-  ABS_SESS1="$(cd "$SRC" && pwd)/sess1.jsonl"
-  FSIZE="$(wc -c < "$ABS_SESS1" | tr -d ' ')"
-  if [ "$PROPOSED_CURSOR" = "$FSIZE" ]; then
-    ok "propose-mode: digest emitted, scan-state.json untouched, proposal file written with correct cursor"
-  else
-    fail "propose-mode cursor value (proposed=$PROPOSED_CURSOR fsize=$FSIZE)"
-  fi
-else
-  fail "propose-mode (lc=$LC scan-state exists=$([ -e "$LDIR/scan-state.json" ] && echo yes || echo no) propose file size=$(wc -c < "$PROPOSE_F" 2>/dev/null))"
-fi
-
-# --- --since is read-only: no scan-state.json is created ---
-read -r SRC OUT <<<"$(mkscene since)"
-cp "$FIXTURE" "$SRC/sess1.jsonl"
-LDIR="$OUT/ledger"
 TOUCHSTONE_LEDGER_DIR="$LDIR" "$X" --dir "$SRC" --since "2026-07-02T10:00:04.000Z" > "$OUT/digest.jsonl"
 RC=$?
 LC="$(grep -c . "$OUT/digest.jsonl")"
 if [ "$RC" -eq 0 ] && [ ! -e "$LDIR/scan-state.json" ] && [ "$LC" -ge 1 ] && [ "$LC" -le 4 ]; then
-  ok "--since is read-only (no scan-state.json written) and filters by ts"
+  ok "stateless + --since filters by ts (no scan-state.json ever written)"
 else
-  fail "--since read-only mode (rc=$RC lc=$LC scan-state exists=$([ -e "$LDIR/scan-state.json" ] && echo yes || echo no))"
+  fail "stateless/--since mode (rc=$RC lc=$LC scan-state exists=$([ -e "$LDIR/scan-state.json" ] && echo yes || echo no))"
 fi
 
 echo "== $pass ok, $fail fail =="
