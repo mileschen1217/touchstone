@@ -29,11 +29,34 @@ as-is; they are the honest answer.
 2. **Cluster + draft (the semantic step).** Read the open set:
    `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/report.sh" open-entries`. Optionally read the epic's
    `data-points.md` as auxiliary signal. Cluster open entries into candidate
-   mechanisms (a recurring class → one candidate). **Screen each candidate
-   against what already exists** before drafting: list `.touchstone/checker/*/`
-   and the repo's registered lints/tests — a class whose mechanism already
-   shipped is not a candidate (its open entries predate the mechanism; close
-   them with a `kind=rejected` fact naming the existing mechanism instead).
+   mechanisms (a recurring class → one candidate), then screen every candidate
+   through the four admission rules — a candidate that fails one is not drafted
+   (record the ruling as a `kind=rejected` fact whose note names which rule and
+   where the class was routed instead):
+   - **A1 Feedforward-first.** Ask: would earlier discovery work (exploring the
+     repo/context before designing, sharpening the contract's assumptions) have
+     dissolved this miss class at its source? If yes, route the class to
+     strengthening that upstream instrument — do not add a downstream check for
+     it. The rejected fact's note names the upstream destination.
+   - **A2 Merge-or-replace.** Name the existing unit (checker, lens, skill rule)
+     whose class overlaps this candidate — write it into the sidecar's
+     `overlap:` frontmatter field. Merge into it or replace it; a net-new unit
+     must argue that no existing home fits. Screening is judgment + the human's
+     ruling — no script arbitrates overlap.
+   - **A3 Size.** Absolute layer: the unit carries no filler — size is what the
+     procedure needs (guideline ≤200 lines / ≈2.5k tokens for a skill body;
+     hard cap 500 lines). Ratchet layer: the review-prompt surface's total
+     token count never grows net — an addition over the cap is paid for by an
+     equal deletion.
+   - **A4 Deterministic checks sink to checkers.** Any fully deterministic
+     check (grep-able, exit-code-able) ships as a checker script, never as an
+     LLM lens sentence; a lens containing a deterministic sub-check has that
+     sub-check carved out into a script.
+   **Screen each surviving candidate against what already exists** before
+   drafting: list `.touchstone/checker/*/` and the repo's registered
+   lints/tests — a class whose mechanism already shipped is not a candidate
+   (its open entries predate the mechanism; close them with a `kind=rejected`
+   fact naming the existing mechanism instead).
    For each surviving candidate, write its sidecar under
    `<ledger-dir>/proposals/<id>/`:
    - `proposal.md` — frontmatter `stage:` + `check_name:` (checker units
@@ -60,5 +83,22 @@ as-is; they are the honest answer.
    - **Defer:** append nothing — the proposal stays pending.
    - Non-checker accepted units are carried out manually by the human;
      when done, append `kind=completed` with a note describing what was done.
-5. **Revoke on request:** `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/install.sh" --revoke <proposal-id>`
-   removes the check and reopens its entries for future runs.
+5. **Retirement pass (run after the proposal rulings, same session).** Read
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/reconcile.sh"` output — each installed check's line
+   carries `fires=<n> … commits=<m>` (the interval's commit count is the
+   denominator; judge rate, never raw fires). Table a unit for the human when
+   `fires=0` across ≥2 epics AND ≥100 commits — the threshold only puts it on
+   the table; the retirement judgment is **cost-to-keep**: maintenance debt,
+   false-block history, cognitive surface. A zero-fire unit has three
+   identities: *insurance* (cheap, guards a catastrophic class — keep),
+   *habit-corrector* (the habit may be cured — human judges cured vs
+   path-dead), *idle* (guards a path that no longer exists — the one true
+   retirement case). Any unit WITH fires stays (each fire = a prevented
+   incident). LLM lenses have no fire-log: judge them by whether a
+   feedforward instrument now covers their class, and only retire on an
+   observed drop in that class's miss rate — never on prediction. Caveat:
+   a short install interval zeroes fire counts spuriously — read raw events
+   before ruling. Retire via
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/install.sh" --revoke <proposal-id>` (also available
+   on direct request any time); revoke removes the check and reopens its
+   entries for future runs.

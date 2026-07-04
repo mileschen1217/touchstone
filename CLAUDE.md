@@ -19,6 +19,15 @@ In-flight work (specs, plans, epics, draft ADRs) is **local-only** — see `CLAU
 
 ## Skill-body content conventions
 
+- **Two-sentence authoring standard (all skill bodies).** (1) *Layer calibration:*
+  where deviation is a defect, write an instruction (unconditional imperative);
+  where deviation is legitimate judgment, write steering (name the goal and the
+  trade-off, not a pseudo-rule). (2) *Form economy:* every line must change what
+  the executing agent does on this run; size guideline ≤200 lines / ≈2.5k tokens
+  per skill body, hard cap 500 lines, and the review-prompt surface's total token
+  count never grows net (add over the cap only by deleting an equal amount).
+  Template + worked rules: `docs/skill-authoring-template.md`.
+
 - **State the rule, not the ADR.** A `SKILL.md` body states its behaviour/rule self-containedly — it does **not** cite ADR numbers (`ADR-NNNN`) inline. ADRs are the rationale *ledger*; their home is `docs/adr/` (the why), indexed from `CONTEXT.md` (the vocab/authority table). A reader of a skill should learn *what to do* without a lookup. (Where a rationale pointer genuinely helps, point at the **named concept** in `CONTEXT.md`, not the ADR number.) Legitimate ADR citations stay in: `CONTEXT.md` (the authority ledger), `docs/`, and test assertions that verify an ADR file exists.
 - **Cold-reviewer self-containment.** Any lens / doctrine a *cold-dispatched* reviewer must apply MUST be either defined inline in the dispatch prompt or load-and-injected from a `_shared/inject/` fragment — never named without a usable definition (the cold reviewer cannot see `CONTEXT.md`). A union/multi-lens review's lenses must be grounded to **equal depth** — one lens injected + another merely named is the defect that shipped the design-soundness gap (PR #27).
 - **Execution-precise, not README-style.** A `SKILL.md` body states *only what the executing agent needs to know to run the skill correctly this time* — inputs to resolve, the command / procedure, how to present output, and what NOT to do. It is not documentation: mechanism / rationale / how-it-works narration, and forward-looking or roadmap context (a future layer or mode that does not affect this execution), belong in `README` / `docs` / `CONTEXT.md` or the owning epic — never in the skill body. Test: if a paragraph would not change what the agent *does* on this run, cut it. (A future capability does not help present execution — capture its context in the epic that owns it, not the skill it will one day extend.)

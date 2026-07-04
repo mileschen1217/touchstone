@@ -37,6 +37,10 @@ echo "== installed checks: fire counts =="
 # with an override, fire counts below are only meaningful if the override
 # equals <toplevel>/.touchstone/ledger; otherwise the fire-log read here is
 # simply the file the hook never wrote to.
+# commit denominator: fires alone have no rate; append the interval's commit
+# count from the repo owning the ledger dir (retirement judgment reads
+# fires ÷ commits, not raw fires). No repo resolvable → commits=n/a.
+FIRE_REPO="$(git -C "$DIR" rev-parse --show-toplevel 2>/dev/null || true)"
 jq -r -n --arg now "$NOW" \
   --slurpfile rs <(slurp "$DIR/resolutions.jsonl") \
   --slurpfile fl <(slurp "$DIR/fire-log.jsonl") '
@@ -61,7 +65,22 @@ jq -r -n --arg now "$NOW" \
       | $i.proof.installed_path + " (" + $i.proposal_id + "): fires=" + ($cnt|tostring)
         + " in [" + $i.ts + ", " + $i._end + ")"
         + (if $overlap > 0 then " (shared basename — counts may overlap)" else "" end)
-    end'
+    end' \
+| while IFS= read -r line; do
+    case "$line" in
+      *" in ["*)
+        span="${line##* in [}"; span="${span%%)*}"
+        start="${span%%, *}"; end="${span##*, }"
+        if [ -n "$FIRE_REPO" ]; then
+          commits="$(git -C "$FIRE_REPO" rev-list --count HEAD --since="$start" --until="$end" 2>/dev/null || echo n/a)"
+        else
+          commits="n/a"
+        fi
+        echo "$line commits=$commits"
+        ;;
+      *) echo "$line" ;;
+    esac
+  done
 
 echo "== possible recurrence of a resolved class — human review =="
 # A proposal can carry multiple resolution facts over the same entry_ids
