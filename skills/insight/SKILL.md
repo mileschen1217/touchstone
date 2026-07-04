@@ -47,7 +47,9 @@ as-is; they are the honest answer.
      procedure needs (guideline ≤200 lines / ≈2.5k tokens for a skill body;
      hard cap 500 lines). Ratchet layer: the review-prompt surface's total
      token count never grows net — an addition over the cap is paid for by an
-     equal deletion.
+     equal deletion. The size guideline covers lazy-loaded `references/*.md`
+     too — a size audit that reads only SKILL.md bodies is incomplete; the
+     token ratchet stays scoped to the review-prompt surface.
    - **A4 Deterministic checks sink to checkers.** Any fully deterministic
      check (grep-able, exit-code-able) ships as a checker script, never as an
      LLM lens sentence; a lens containing a deterministic sub-check has that
