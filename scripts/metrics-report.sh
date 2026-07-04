@@ -288,18 +288,18 @@ build_windows_v2() {
   local n=${#lines[@]} i j endep nep rest
   for (( i=0; i<n; i++ )); do
     IFS=$'\t' read -r ep rid cwd skill eaep <<< "${lines[$i]}"
-    # END precedence: a valid stamped ended_at (strictly > start) wins; else the next
-    # STRICTLY-GREATER start (not merely the next line). Two gates stamped in the same
-    # whole second thus get overlapping [T, next_distinct) windows → events attribute AMBIGUOUS and
-    # are surfaced as [unverified], never silently handed to the second run via a zero-length first.
-    if [ "$eaep" != "-" ] && [ "$eaep" -gt "$ep" ] 2>/dev/null; then
+    # END: heuristic bound first — the next STRICTLY-GREATER start (not merely the
+    # next line; same-second runs get overlapping windows → AMBIGUOUS, surfaced as
+    # [unverified], never silently handed to the second run via a zero-length first).
+    # A valid stamped ended_at (strictly > start) then TIGHTENS the bound but never
+    # extends past the successor's start (a late stamp-end must not overlap windows).
+    endep="$now"
+    for (( j=i+1; j<n; j++ )); do
+      IFS=$'\t' read -r nep rest <<< "${lines[$j]}"
+      if [ "$nep" -gt "$ep" ]; then endep="$nep"; break; fi
+    done
+    if [ "$eaep" != "-" ] && [ "$eaep" -gt "$ep" ] 2>/dev/null && [ "$eaep" -lt "$endep" ] 2>/dev/null; then
       endep="$eaep"
-    else
-      endep="$now"
-      for (( j=i+1; j<n; j++ )); do
-        IFS=$'\t' read -r nep rest <<< "${lines[$j]}"
-        if [ "$nep" -gt "$ep" ]; then endep="$nep"; break; fi
-      done
     fi
     printf '%s\t%s\t%s\t%s\t%s\n' "$rid" "$ep" "$endep" "$cwd" "$skill"
   done

@@ -10,8 +10,10 @@
 # Stage → native output mapping:
 #   entry-precondition   precheck.rc (exit code) + precheck.out (stdout):
 #                        rc 0 → DONE; else BLOCKED.
-#   plan-review /        review.result.json (status: ok|partial|failed) +
-#   final-review         review.md with exactly one sentinel line
+#   plan-review /        review.result.json (review-envelope/v1 floor: schema
+#   final-review         literal + status enum + provider arrays — a stub JSON
+#                        never gates DONE) + review.md with exactly one FULL-LINE
+#                        sentinel
 #                        `STAGE-REVIEW-SUMMARY: critical=N high=N degraded=true|false`:
 #                        status failed → BLOCKED; degraded or partial →
 #                        NEEDS_HUMAN; critical+high == 0 → DONE; else BLOCKED.
@@ -34,12 +36,19 @@ case "$stage" in
   plan-review|final-review)
     rj="$td/review.result.json"; rm="$td/review.md"
     [ -f "$rj" ] || { echo "status=BLOCKED"; exit 0; }
-    rstatus="$(jq -r '.status // ""' "$rj" 2>/dev/null || echo "")"
-    case "$rstatus" in ok|partial|failed) ;; *) echo "status=BLOCKED"; exit 0 ;; esac
-    sentinel_count="$(grep -cE 'STAGE-REVIEW-SUMMARY: critical=[0-9]+ high=[0-9]+ degraded=(true|false)' "$rm" 2>/dev/null || echo 0)"
+    # envelope floor: a stub JSON must not gate DONE — require review-envelope/v1
+    # shape (schema literal, status enum, both provider arrays present).
+    jq -e '(.schema == "review-envelope/v1")
+           and ((.status // "") | IN("ok","partial","failed"))
+           and ((.providers_expected | type) == "array") and ((.providers_expected | length) > 0)
+           and ((.providers_used | type) == "array")' "$rj" >/dev/null 2>&1 \
+      || { echo "status=BLOCKED"; exit 0; }
+    rstatus="$(jq -r '.status' "$rj" 2>/dev/null)"
+    # sentinel: exactly ONE full-line match (an embedded/substring sentinel never gates)
+    sentinel_count="$(grep -cE '^STAGE-REVIEW-SUMMARY: critical=[0-9]+ high=[0-9]+ degraded=(true|false)$' "$rm" 2>/dev/null || echo 0)"
     [ "$sentinel_count" = "1" ] || { echo "status=BLOCKED"; exit 0; }
     [ "$rstatus" = "failed" ] && { echo "status=BLOCKED"; exit 0; }
-    sline="$(grep -oE 'STAGE-REVIEW-SUMMARY: critical=[0-9]+ high=[0-9]+ degraded=(true|false)' "$rm")"
+    sline="$(grep -E '^STAGE-REVIEW-SUMMARY: critical=[0-9]+ high=[0-9]+ degraded=(true|false)$' "$rm")"
     crit="$(echo "$sline" | grep -oE 'critical=[0-9]+' | cut -d= -f2)"
     high="$(echo "$sline" | grep -oE 'high=[0-9]+' | cut -d= -f2)"
     deg="$(echo "$sline" | grep -oE 'degraded=(true|false)' | cut -d= -f2)"

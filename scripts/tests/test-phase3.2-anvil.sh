@@ -58,7 +58,7 @@ chk "A15 CONTEXT.md anvil entry no longer over-claims unqualified program-enforc
 # python validator retired — the printed status= line IS the contract) ---
 td=$(mktemp -d)
 # review stage: clean (C+H=0, not degraded) → DONE
-printf '{"status":"ok","providers_expected":["cc","codex"],"providers_used":["cc","codex"]}' > "$td/review.result.json"
+printf '{"schema":"review-envelope/v1","status":"ok","providers_expected":["cc","codex"],"providers_used":["cc","codex"]}' > "$td/review.result.json"
 printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
 chk "B2 clean review → DONE" \
   '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=DONE" ]'
@@ -69,7 +69,7 @@ chk "B2 C+H>=1 review → BLOCKED" \
 # degraded=true → NEEDS_HUMAN. The reviewer composite computes degraded per provenance.md
 # Operation 3 and writes it into the sentinel (the gate TRUSTS the sentinel — degraded is NEVER
 # stored in review.result.json). Make the fixture realistic: providers_used ⊊ providers_expected.
-printf '{"status":"ok","providers_expected":["cc","codex"],"providers_used":["cc"]}' > "$td/review.result.json"
+printf '{"schema":"review-envelope/v1","status":"ok","providers_expected":["cc","codex"],"providers_used":["cc"]}' > "$td/review.result.json"
 printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=true\n' > "$td/review.md"
 chk "B2 degraded review → NEEDS_HUMAN" \
   '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=NEEDS_HUMAN" ]'
@@ -90,12 +90,25 @@ rm -f "$td/review.result.json"
 printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
 chk "B2 missing review.result.json → BLOCKED" \
   '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
-printf '{"status":"bogus_status"}' > "$td/review.result.json"
+printf '{"schema":"review-envelope/v1","status":"bogus_status","providers_expected":["cc"],"providers_used":["cc"]}' > "$td/review.result.json"
 chk "B2 status not in enum → BLOCKED" \
   '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
-printf '{"status":"ok"}' > "$td/review.result.json"
+printf '{"schema":"review-envelope/v1","status":"ok","providers_expected":["cc"],"providers_used":["cc"]}' > "$td/review.result.json"
 printf 'STAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\nextra\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
 chk "B2 duplicate sentinel → BLOCKED" \
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+# envelope floor: a stub JSON (status only, no schema/providers) must not gate DONE
+printf '{"status":"ok"}' > "$td/review.result.json"
+printf 'findings...\nSTAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false\n' > "$td/review.md"
+chk "B2 stub envelope (status only) → BLOCKED (envelope floor)" \
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+# sentinel must be a full line: an embedded/substring sentinel never gates
+printf '{"schema":"review-envelope/v1","status":"ok","providers_expected":["cc"],"providers_used":["cc"]}' > "$td/review.result.json"
+printf 'prefix STAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false suffix\n' > "$td/review.md"
+chk "B2 embedded sentinel (not a full line) → BLOCKED" \
+  '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
+printf 'STAGE-REVIEW-SUMMARY: critical=0 high=0 degraded=false trailing-words\n' > "$td/review.md"
+chk "B2 sentinel with trailing content on the line → BLOCKED" \
   '[ "$(bash scripts/stage-return.sh plan-review "$td")" = "status=BLOCKED" ]'
 chk "B2 unknown stage → BLOCKED" \
   '[ "$(bash scripts/stage-return.sh bogus-stage "$td")" = "status=BLOCKED" ]'
