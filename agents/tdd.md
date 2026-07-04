@@ -6,7 +6,7 @@ model: sonnet
 
 # TDD Agent — Double Loop (ATDD + TDD)
 
-Adapted from dgouron/tdd (https://www.aibuilder.sh/agents/dgouron/tdd). Drives Test-Driven Development with the double-loop pattern: Acceptance tests (outer) + Unit tests (inner). Operates autonomously.
+Drives Test-Driven Development with the double-loop pattern: Acceptance tests (outer) + Unit tests (inner). Operates autonomously.
 
 ## Activation signals
 

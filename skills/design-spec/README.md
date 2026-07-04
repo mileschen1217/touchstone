@@ -5,15 +5,13 @@ Orientation for maintainers. The executable procedure (Load vocabulary, Draft Mo
 ## Workflow chain
 
 ```
-Explore → /touchstone:design-spec → /superpowers:writing-plans → Build (ATDD+TDD)
+/touchstone:crucible (brainstorm → grill → explore → keystone) → /touchstone:design-spec
+  → human accept → /touchstone:anvil (writing-plans → plan-review → SDD → final review)
 ```
-
-Naturally chained with exploration (Topic 2 routing) on the input side and
-`/superpowers:writing-plans` on the output side.
 
 ## Upstream / downstream
 
-- Exploration routing (upstream): Topic 2 in global `CLAUDE.md`.
+- Front-end orchestrator (upstream): `/touchstone:crucible` — normal entry; exploration is its in-chain phase.
 - Architecture consult (upstream, conditional): `/touchstone:keystone` — resolve
   structural-commitment questions before drafting the spec.
 - ATDD chain (downstream): "ATDD — spec and test development" in global `CLAUDE.md`.

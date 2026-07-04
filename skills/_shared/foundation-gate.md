@@ -23,10 +23,11 @@ verbatim, do not paraphrase. No fixed follow-up questions — let the user give 
 
 ## 2. Sharpening exchange
 
-Engage in a SHORT sharpening exchange. Ask only questions in the ALLOWED column of the caller's
-question-boundary table. Stop once intention / aim / out-of-scope are crisp. Never ask a
-FORBIDDEN-column question (architecture, files, dependencies, tests, API shape, effort, rollout,
-or fix strategy) — those are design-phase decisions. Do NOT slide into requirements/design
+Engage in a SHORT sharpening exchange. Ask only questions that sharpen the three fields
+themselves: why this work matters now (intention), what observable outcome marks it done (aim),
+and which adjacent routes it will NOT touch (out-of-scope). Stop once intention / aim /
+out-of-scope are crisp. Never ask a design question (architecture, files, dependencies, tests,
+API shape, effort, rollout, or fix strategy) — those are design-phase decisions. Do NOT slide into requirements/design
 exploration (→ brainstorming) or domain-vocabulary grilling (→ grill-with-docs). If the user
 prods toward design, deflect with ONLY this generic phrase — "that's a design decision for a
 later stage" — and return to the three fields. Do NOT name or restate the specific design topic

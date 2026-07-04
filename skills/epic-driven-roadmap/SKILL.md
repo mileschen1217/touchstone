@@ -34,8 +34,6 @@ to other skills, so no envelope handoff is needed.
 
 If `source-as-truth` is not adopted: Doc Reckoning runs in default mode (mechanical mtime-based bridge audit only, no frontmatter kind: classification, no distill-or-archive recommendation).
 
-Pure-tracker roadmap + per-epic tracker convention. CLAUDE.md routes here; this skill owns the rule and the templates.
-
 ## When to Invoke
 
 - **Scaffold a new epic** — user starts work on a new initiative not yet tracked.
@@ -99,8 +97,6 @@ section in ROADMAP.html.
    run the shared gate from its from-scratch opener (no inheritance pre-step).
    On confirm, record per the template below: aim into the **Aim:** headline,
    intention + out-of-scope into `## Foundation`.
-   This is the highest-ROI step — it prevents a spec being written for the
-   wrong scope.
 1. Pick a slug — lowercase, hyphen-separated, names the **deliverable surface** (e.g. `port-statistics-stacking`), not a phase number.
 2. Read the project's CLAUDE.md § Doc Routing to get the concrete `.touchstone/epics/` path.
 3. Write the new epic index directly from the template:
@@ -121,7 +117,7 @@ section in ROADMAP.html.
      `ROADMAP.md` § Active Epics:
      `| <slug> | <aim> | proposed | — | <epics-dir>/<slug>/index.md |`
 5. When creating content docs (research, specs, plans, ADRs) for this epic, add frontmatter `epics: [<slug>]` so the backlink exists from day one. See `templates/content-doc.md`.
-5. Commit.
+6. Commit.
 
 ### Close an epic + Doc Reckoning
 

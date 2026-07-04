@@ -5,7 +5,7 @@ description: Front-end contract orchestrator — chains brainstorming (condition
 
 # /touchstone:crucible — Front-End Contract Orchestrator
 
-Forges raw intent into a precise, accepted contract in ONE invocation. Chains existing skills; the human accepts once at the end (human accept); hands the accepted contract to the build phase. Auto-invokes neither the build-phase gate nor the build.
+Forges raw intent into a precise, accepted contract in ONE invocation; the human accepts once at the end.
 
 **Applicability boundary:** crucible forges a contract by sharpening intent and then grounding it in the system. **Exploration is a phase of the chain (after grill), not a precondition** — grill sharpens the *what* (intent / vocabulary, against CONTEXT.md / ADRs); explore grounds it in the *how* (the system). Sharpen the what before grounding the how. The one exception is work where you cannot state the intent until you have looked — the router below front-loads exploration for that case.
 
@@ -41,7 +41,7 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 When a change's alignment touches a ratified ADR or standing decision, **surface the conflict for human resolution** — do not assume a clear slate where a prior decision can be silently overwritten. Two dispositions:
 
 - **True structural fork** (≥2 viable paths remain after the conflict): route to keystone (the structural-fork step) before design-spec.
-- **Decisively-resolved conflict** (the ratified decision still stands; no viable alternative remains): proceed noting the conflict inline (F-1 disposition). Do NOT silently proceed past a standing decision without naming it.
+- **Decisively-resolved conflict** (the ratified decision still stands; no viable alternative remains): the **note-and-proceed disposition** — proceed, and record one inline line naming the standing decision and why it still holds. Do NOT silently proceed past a standing decision without naming it.
 
 ## Mid-chain halt (design-review Critical/High)
 

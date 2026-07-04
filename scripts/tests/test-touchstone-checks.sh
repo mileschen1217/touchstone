@@ -31,9 +31,9 @@ detect check-adr-cite.sh setup_adr && ok "AC-30 adr-cite detects" || fail "AC-30
 
 setup_anvil() {
   mkdir -p "$1/skills/anvil" "$1/scripts"
-  printf 'STAGES = {"entry-precondition", "plan-review", "final-review"}\n' > "$1/scripts/check-stage-return.py"
+  printf 'case "$stage" in\n  entry-precondition)\n    : ;;\n  plan-review|final-review)\n    : ;;\nesac\n' > "$1/scripts/stage-return.sh"
   # shellcheck disable=SC2016  # "$d" literal is intentional: fixture writes it as text, not a shell expansion
-  printf 'bash scripts/normalize-stage-return.sh bogus-stage "$d"\n' > "$1/skills/anvil/SKILL.md"
+  printf 'bash scripts/stage-return.sh bogus-stage "$d"\n' > "$1/skills/anvil/SKILL.md"
 }
 detect check-anvil-stage-name.sh setup_anvil && ok "AC-30 anvil-stage-name detects" || fail "AC-30 anvil-stage miss"
 

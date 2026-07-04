@@ -541,10 +541,10 @@ else
 fi
 
 # ============================================================
-# merge_cursor_proposals POSITIVE coverage — one successful full sweep
-# (real firelog extraction) plus seeded propose files for two more sources
-# merges all of them into scan-state.json, leaving a pre-existing sibling
-# section untouched
+# .last-sweep advancement POSITIVE coverage — a successful full sweep
+# promotes the collect-start stamp to .last-sweep, and a second collect
+# passes it as the extractors' --since bound (no per-source cursor state).
+# A legacy scan-state.json is left byte-for-byte untouched.
 # ============================================================
 
 LDIR="$(mkl mergepos)"
@@ -555,47 +555,44 @@ PRE_MERGE_STATE='{"unrelated":{"marker":"stays"}}'
 printf '%s\n' "$PRE_MERGE_STATE" > "$LDIR/scan-state.json"
 
 sw "$LDIR" collect >/dev/null
+STARTED_STAMP="$(cat "$LDIR/.sweep-started" 2>/dev/null)"
 sw "$LDIR" classify >/dev/null
 sw "$LDIR" validate-candidates >/dev/null
 sw "$LDIR" stage >/dev/null
-
-# synthetic propose files for transcript+git — these two sources weren't
-# actually configured for this sweep (no TESTHINT in the firelog fixture
-# either, so nothing is is_miss:true), but merge_cursor_proposals commits
-# by FILE PRESENCE, not by which sources ran this sweep; seeding them here
-# exercises the >=2-source merge path without a real transcript/git corpus.
-echo '{"/synthetic/transcript/path":{"cursor":123}}' > "$LDIR/.propose-transcript.json"
-echo '{"/synthetic/git/repo":{"cursor":456}}' > "$LDIR/.propose-git.json"
-
 sw "$LDIR" finalize >/dev/null
 RC_MERGE=$?
 
-TRANSCRIPTS_SECTION="$(jq -c '.transcripts // {}' "$LDIR/scan-state.json")"
-GIT_SECTION="$(jq -c '.git // {}' "$LDIR/scan-state.json")"
-FIRELOG_NONEMPTY="$(jq -r '(.firelog // {}) | length > 0' "$LDIR/scan-state.json")"
+LAST_SWEEP="$(cat "$LDIR/.last-sweep" 2>/dev/null)"
 UNRELATED_SECTION="$(jq -c '.unrelated // {}' "$LDIR/scan-state.json")"
 
-if [ "$RC_MERGE" -eq 0 ] \
-  && [ "$TRANSCRIPTS_SECTION" = '{"/synthetic/transcript/path":{"cursor":123}}' ] \
-  && [ "$GIT_SECTION" = '{"/synthetic/git/repo":{"cursor":456}}' ] \
-  && [ "$FIRELOG_NONEMPTY" = "true" ]; then
-  ok "merge-proposals: finalize merges transcript+git+firelog proposals into scan-state.json"
+if [ "$RC_MERGE" -eq 0 ] && [ -n "$LAST_SWEEP" ] && [ "$LAST_SWEEP" = "$STARTED_STAMP" ]; then
+  ok "last-sweep: finalize promotes the collect-start stamp to .last-sweep"
 else
-  fail "merge-proposals: sections wrong (rc=$RC_MERGE transcripts=$TRANSCRIPTS_SECTION git=$GIT_SECTION firelog_nonempty=$FIRELOG_NONEMPTY)"
+  fail "last-sweep advancement (rc=$RC_MERGE last_sweep=$LAST_SWEEP started=$STARTED_STAMP)"
 fi
 if [ "$UNRELATED_SECTION" = '{"marker":"stays"}' ]; then
-  ok "merge-proposals: pre-existing sibling section untouched by the merge"
+  ok "last-sweep: legacy scan-state.json untouched (single-timestamp state, no cursor merge)"
 else
-  fail "merge-proposals: sibling section disturbed (got: $UNRELATED_SECTION)"
+  fail "legacy scan-state disturbed (got: $UNRELATED_SECTION)"
+fi
+
+# second sweep: the fire event predates .last-sweep, so collect's --since
+# bound filters it — digest is empty (incremental behavior via the single
+# timestamp, over-emission aside).
+sw "$LDIR" collect >/dev/null
+DIGEST_LC2="$(grep -c . "$LDIR/.digest.jsonl" 2>/dev/null)"; [ -n "$DIGEST_LC2" ] || DIGEST_LC2=0
+if [ "$DIGEST_LC2" = 0 ]; then
+  ok "last-sweep: second collect filters already-swept events via --since"
+else
+  fail "last-sweep second collect (digest_lc=$DIGEST_LC2)"
 fi
 
 # ============================================================
 # MIXED-batch writer test (Task-2 carried item) — staging with one valid +
 # one invalid line: finalize fails the WHOLE batch at the real caller
-# (ledger-append.sh's two-pass validation), ledger unchanged. Also seeds
-# propose files + a pre-existing scan-state (merge_cursor_proposals
-# NEGATIVE coverage) so the byte-identical assertion actually exercises
-# that a rejected batch never reaches the cursor-commit step.
+# (ledger-append.sh's two-pass validation), ledger unchanged, and the
+# .last-sweep timestamp is never advanced (a rejected batch must not
+# consume the un-swept window).
 # ============================================================
 
 LDIR="$(mkl mixedbatch)"
@@ -605,8 +602,6 @@ LDIR="$(mkl mixedbatch)"
   jq -nc '{schema:"catch-miss/v1", caught_by:"human", should_have:"design-review", gap_class:"not-a-real-enum-value",
            what:"invalid one", evidence:[{kind:"git", ref:"git:mixed2"}], source:"sweep:git"}'
 } > "$LDIR/.staging.jsonl"
-echo '{"/mixed/transcript/path":{"cursor":111}}' > "$LDIR/.propose-transcript.json"
-echo '{"/mixed/git/repo":{"cursor":222}}' > "$LDIR/.propose-git.json"
 PRE_MIXED_STATE='{"unrelated":{"marker":"stays"}}'
 printf '%s\n' "$PRE_MIXED_STATE" > "$LDIR/scan-state.json"
 BEFORE_MIXED="$(cat "$LDIR/scan-state.json")"
@@ -614,10 +609,10 @@ BEFORE_MIXED="$(cat "$LDIR/scan-state.json")"
 TOUCHSTONE_LEDGER_DIR="$LDIR" bash "$SWEEP" finalize >/dev/null 2>&1
 RC_MIXED=$?
 AFTER_MIXED="$(cat "$LDIR/scan-state.json")"
-if [ "$RC_MIXED" -ne 0 ] && [ ! -e "$LDIR/.staging.jsonl" ] && { [ ! -e "$LDIR/entries.jsonl" ] || [ ! -s "$LDIR/entries.jsonl" ]; } && [ "$BEFORE_MIXED" = "$AFTER_MIXED" ]; then
-  ok "MIXED-batch: finalize fails the whole batch (writer's real whole-batch semantics), ledger + scan-state (incl. seeded propose files) unchanged"
+if [ "$RC_MIXED" -ne 0 ] && [ ! -e "$LDIR/.staging.jsonl" ] && { [ ! -e "$LDIR/entries.jsonl" ] || [ ! -s "$LDIR/entries.jsonl" ]; } && [ "$BEFORE_MIXED" = "$AFTER_MIXED" ] && [ ! -e "$LDIR/.last-sweep" ]; then
+  ok "MIXED-batch: finalize fails the whole batch, ledger unchanged, .last-sweep never advanced"
 else
-  fail "MIXED-batch (rc=$RC_MIXED staging_exists=$([ -e "$LDIR/.staging.jsonl" ] && echo yes || echo no) scan_state_changed=$([ "$BEFORE_MIXED" = "$AFTER_MIXED" ] && echo no || echo yes))"
+  fail "MIXED-batch (rc=$RC_MIXED staging_exists=$([ -e "$LDIR/.staging.jsonl" ] && echo yes || echo no) last_sweep_exists=$([ -e "$LDIR/.last-sweep" ] && echo yes || echo no))"
 fi
 
 echo "== $pass ok, $fail fail =="

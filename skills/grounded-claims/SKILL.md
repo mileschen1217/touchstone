@@ -36,16 +36,10 @@ A claim grounded only in one path's evidence, when the system has multiple paths
 
 ## Examples
 
-**With citation:**
-> ConfigLoader delegates value SET to a single store (via: grep `setRuntimeValue` → `loader.c:183`: calls `storeSetValue`).
-
-**With `[假設]`:**
-> [假設] Most likely trigger is a port-count asymmetry between cached and fresh config. Verification: grep `portTable` construction in `src/config.rs` and `src/system_config.rs`.
-
 **Anti-pattern 1 (Rule 1 violation — no cite):**
 > The most likely cause is a port-count asymmetry — the active loader sees the widened pre_cfg but the just-loaded cfg has the un-widened shape.
 
-Hedged but uncited, no `[假設]`. This pattern failed two rounds of subagent validation under CLAUDE.md-only baseline; passes only when this skill's content is invoked or injected at task start.
+Hedged but uncited, no `[假設]`.
 
 **Anti-pattern 2 (Rule 2 violation — cite exists but insufficient):**
 > The system's maximum N is 8 (via: read → `init.c:42`: `g_max_n = 8`).
@@ -54,7 +48,7 @@ The cite proves one literal at one file location. It does **not** prove the syst
 
 ## Subagent dispatch
 
-Prepend this SKILL.md to every investigation / debug / source-trace subagent dispatch — CLAUDE.md alone yields 3-5 violations per dispatch; injecting this content at prompt start reduces that to 0-1.
+Prepend this SKILL.md to every investigation / debug / source-trace subagent dispatch.
 
 ## Composes with
 

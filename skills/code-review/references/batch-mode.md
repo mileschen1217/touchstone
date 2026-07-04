@@ -21,7 +21,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    one line — `no governing spec — coverage not audited` — never silently pass.
    Otherwise carry the Accepted spec path(s) into the reviewer envelope as
    `governing_specs`.
-2. Detect builder (ALWAYS run — the E14 envelope needs `builder_vendor` even under
+2. Detect builder (ALWAYS run — the review-envelope/v1 needs `builder_vendor` even under
    `force_reviewer`; force waives only the reviewer swap in Step 3 and the
    vendor-correctness requirement, NOT builder detection):
    - Scan commit-message trailers in the range:
@@ -29,7 +29,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
      git log --format=%B <range> | grep -iE '^Co-Authored-By:.*(codex|gpt-?5|openai)'
      ```
    - If any commit has a Codex-flavored `Co-Authored-By:` trailer → `builder = codex`
-   - Otherwise → `builder = cc` (harness default — covers both Claude-tagged and untagged commits, since this skill runs inside Claude Code)
+   - Otherwise → `builder = cc` (harness default — covers both Claude-tagged and untagged commits)
    - **Log the detection result so the user can spot misclassification:**
      - "Builder detection: N/M commits tagged Codex → builder = codex; reviewer swap = CC"
      - "Builder detection: no Codex trailers in M commits → builder = cc (default); reviewer swap = Codex"
@@ -93,7 +93,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    > Do NOT
    > require cryptographic signing of artifacts (over-spec — a human is in the loop
    > at close).
-   **Test-evidence lens (ADR-0025 — applies to per-commit AND batch).** If the
+   **Test-evidence lens (applies to per-commit AND batch).** If the
    batch diff touches test files, the reviewer must additionally apply the
    test-evidence lens defined in
    `skills/code-review/references/reviewer-prompts.md` § generic-diff prompt
@@ -101,12 +101,12 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    each test: if the named behaviour silently broke, would this test go red?
 
 5. Single reviewer; no parallel dispatch in Pattern B.
-   **Normative fallback (M3):** if the swapped reviewer (e.g. `touchstone:codex-reviewer`)
+   **Normative fallback:** if the swapped reviewer (e.g. `touchstone:codex-reviewer`)
    returns `status: failed` / a `fallback_reason` (codex unavailable), fall back to the
    builder's OWN vendor (`everything-claude-code:code-reviewer` when builder=cc) and let
    it produce the verdict. If BOTH the swap target and the builder-vendor fallback fail →
    `status: failed`, `providers_used == []`, no banner.
-   **No pre-probe (L2):** do not add a `codex --version` pre-probe here — rely on the
+   **No pre-probe:** do not add a `codex --version` pre-probe here — rely on the
    `touchstone:codex-reviewer` agent's own `status: failed` / `fallback_reason` as the
    codex-availability signal.
 6. Write provenance + banners per `skills/cross-provider-reviewer/references/provenance.md`
@@ -117,7 +117,6 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
      ALWAYS set, including under `force_reviewer` (Step 2 always runs detection).
    - Record `providers_used` (the vendor that actually reviewed) and `providers_expected`
      for THIS invocation per provenance.md.
-   - Extract `session_id` from `raw_codex.jsonl` if codex ran, per that reference.
    - If degraded/partial, build and prepend the banner(s) to the verdict text and to
      `<task_dir>/review.md` (when `task_dir` given), per that reference.
    - Write `<task_dir>/review.result.json` (review-envelope/v1) per that reference.

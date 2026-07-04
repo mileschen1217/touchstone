@@ -1,6 +1,6 @@
 ---
 name: codex-implementer
-description: Codex as code generator. Reads a task contract (m-epic-driven-roadmap format), executes the implementation within sandbox boundaries, writes a result.json conforming to schema v1. Used to validate cross-vendor portability of the workflow artifact contract — when CC plans/designs and Codex builds. Do NOT call directly for routine implementation; invoke through an epic-driven workflow that has prepared a task contract.
+description: Codex as code generator. Reads a task contract (epic-driven-roadmap format), executes the implementation within sandbox boundaries, writes a result.json conforming to schema v1. Used to validate cross-vendor portability of the workflow artifact contract — when CC plans/designs and Codex builds. Do NOT call directly for routine implementation; invoke through an epic-driven workflow that has prepared a task contract.
 model: sonnet
 tools: Bash
 timeout_seconds: 1800
@@ -72,7 +72,7 @@ Read the contract, execute it (touching only Owned Files), and write result.json
 
 **`</dev/null` before `2>&1` is mandatory.** codex 0.125.0 reads stdin even when `[PROMPT]` is supplied as an argument; without redirection codex blocks waiting for EOF. Confirmed hang 2026-05-06.
 
-The role is injected via prompt prefix (Path C — V0.2 confirmed Codex 0.122.0 ignores `instructions=` in profiles and CLI overrides). Sandbox `workspace-write` is scoped to `--cd <DIR>` — so we must point `--cd` at the project root, not the task dir, to let Codex modify Owned Files anywhere in the repo. Earlier behaviour (`cd "$TASK_DIR"` then default `--cd`) confined writes to the task subdirectory and broke implementation tasks whose Owned Files lived elsewhere in the tree (observed 2026-04-28 on T01 of `port-rest-stacking-aware`).
+The role is injected via prompt prefix (Codex ignores `instructions=` in profiles and CLI overrides — confirmed). Sandbox `workspace-write` is scoped to `--cd <DIR>` — point `--cd` at the project root, not the task dir, or Codex cannot modify Owned Files elsewhere in the tree.
 
 ### 3. Verify Codex wrote `result.json`
 
@@ -82,7 +82,7 @@ After `codex exec` returns, check the artifact exists:
 if [ ! -f "$TASK_DIR/result.json" ]; then
   cat > "$TASK_DIR/result.json" <<EOF
 {
-  "schema_version": "1",
+  "schema_version": "1.1",
   "task_id": "<from-contract>",
   "role": "implementer",
   "runtime": "codex",
@@ -120,11 +120,11 @@ Do not add any other commentary, analysis, or "what I did" prose. The Codex stre
 > 3. **Outside-scope necessity → blocked** — if AC requires touching a path outside Scope but not in Read-Only Boundaries / Do Not Touch (i.e., the planner missed it), set `status: blocked`, name the path in `handoff_notes`, and return. The orchestrator will widen Scope and re-dispatch.
 > 4. **Use `observations` liberally** — any context that doesn't fit summary/risks/handoff_notes goes here: unexpected codebase shape, ambiguities you resolved by judgment, related issues you noticed but didn't act on, design questions worth escalating, anything you'd tell the next implementer if you could chat. Don't pre-filter; the orchestrator skims.
 >
-> Run the Commands to Run; capture exit codes and tail of output. After implementation, write `result.json` to the path specified in the prompt. The JSON must conform to this schema (schema_version "1"):
+> Run the Commands to Run; capture exit codes and tail of output. After implementation, write `result.json` to the path specified in the prompt. The JSON must conform to this schema (schema_version "1.1"; `scope_change_request` stays null unless status is needs-scope-expansion):
 >
 > ```json
 > {
->   "schema_version": "1",
+>   "schema_version": "1.1",
 >   "task_id": "<from contract frontmatter>",
 >   "role": "implementer",
 >   "runtime": "codex",
@@ -151,9 +151,3 @@ Do not add any other commentary, analysis, or "what I did" prose. The Codex stre
 ## JSONL failure paths
 
 Codex emits one JSON event per line. The wrapper does NOT need to parse — it streams to `raw_codex.jsonl` and reads only `result.json` for the summary line. If `result.json` is absent post-exec, synthesize per Step 3.
-
-## Why this agent exists
-
-Phase 2 deliverable: validate that the workflow artifact contract (`task-contract.md` + `result.json` schema v1) is vendor-portable. Phase 1 verified it works when CC reads/writes it; this agent verifies it works when Codex does. If the wrapper does the work itself, the validation is invalid — that's why the prohibitions above exist.
-
-The OpenAI `codex-rescue` agent uses the same pattern (Bash-only tool, restrictive prompt, single forward call). Mirroring that design after observing the Read-tool escape hatch let Sonnet bypass Codex on tasks T01/T02 (2026-04-27).

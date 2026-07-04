@@ -39,9 +39,8 @@ Derived heuristic: the change spans multiple modules, or introduces a new contra
 The user may always explicitly request a design spec — that overrides the heuristic.
 
 When the expected-value test says skip (contained change, no new contract),
-NO Verification Strategy section is authored — there is no lighter PR-one-liner form
-in Phase 1 (deferred to a later phase). The evidence-honesty contract attaches to
-full specs only.
+NO Verification Strategy section is authored. The evidence-honesty contract
+attaches to full specs only.
 
 ## Load vocabulary
 
@@ -118,13 +117,6 @@ Inputs to collect + the drafting workflow (template read, AC-sharpening from Fou
 /touchstone:design-spec                          # interactive draft
 /touchstone:design-spec <feature-name>           # skip name prompt
 ```
-
-## Status Lifecycle (intentionally minimal)
-
-Specs are written as `Status: Draft`. Crucible then writes `accepted-candidate`
-before the consolidated `/touchstone:design-review` gate runs. Transition to
-`accepted` is the human-governed terminal accept after a clean design-review.
-The skill does not manage lifecycle beyond producing the Draft.
 
 ## Related
 

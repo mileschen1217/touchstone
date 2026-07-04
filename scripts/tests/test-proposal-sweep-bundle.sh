@@ -11,13 +11,13 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 L="$TMP/repo/.touchstone/ledger"; mkdir -p "$L"; git -C "$TMP/repo" init -q
 
 # hand-build a staged run: a valid catch-miss line in .staging.jsonl + a
-# candidates log + a cursor proposal file (finalize consumes these).
+# candidates log + a collect-start stamp (finalize consumes these).
 jq -nc '{schema:"catch-miss/v1", what:"w", caught_by:"human", should_have:"design-review",
   gap_class:"missing-AC", evidence:[{kind:"x", ref:"git:abc1234"}], source:"sweep:git"}' \
   > "$L/.staging.jsonl"
 echo '{"schema":"candidate/v1","ref":"git:abc1234","is_miss":true,"caught_by":"human","should_have":"design-review","gap_class":"missing-AC"}' \
   > "$L/.candidates-log.jsonl"
-echo '{"cursor":"abc1234"}' > "$L/.propose-git.json"
+date -u +%Y-%m-%dT%H:%M:%SZ > "$L/.sweep-started"
 : > "$L/.sweep-incomplete"
 
 TOUCHSTONE_LEDGER_DIR="$L" bash "$SW" finalize >/dev/null 2>&1 \
@@ -29,8 +29,10 @@ RUN_DIR="$(find "$L/runs" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1)
 [ -s "$RUN_DIR/summary.json" ]         && ok "summary written"             || fail "summary"
 [ "$(jq -r '.appended' "$RUN_DIR/summary.json")" = 1 ] \
   && ok "summary counts appended entries" || fail "summary.appended"
-jq -e '.cursor_movements.git' "$RUN_DIR/summary.json" >/dev/null \
-  && ok "summary carries cursor movements" || fail "summary.cursors"
+jq -e 'has("since") and has("collected_at")' "$RUN_DIR/summary.json" >/dev/null \
+  && ok "summary carries since bound + collect-start" || fail "summary.since/collected_at"
+[ -s "$L/.last-sweep" ] && [ "$(cat "$L/.last-sweep")" = "$(cat "$L/.sweep-started")" ] \
+  && ok ".last-sweep promoted from collect-start stamp" || fail ".last-sweep promotion"
 # L1 input chunks are mktemp-local in classify() (a separate directory) and
 # never copied into runs_dir — excluded by construction, not by a runtime check.
 [ -s "$L/.last-finalize" ] && ok ".last-finalize stamped" || fail "stamp missing"
@@ -44,6 +46,8 @@ TOUCHSTONE_LEDGER_DIR="$L" bash "$SW" finalize >/dev/null 2>&1 \
 N_RUNS="$(find "$L/runs" -mindepth 1 -maxdepth 1 -type d | grep -c .)"
 [ "$N_RUNS" -eq 1 ] && ok "failed finalize archives nothing new" || fail "runs count=$N_RUNS"
 [ "$(cat "$L/.last-finalize")" = "$STAMP1" ] && ok "failed finalize leaves stamp unchanged" || fail "stamp changed"
+SWEEP_STAMP1="$(cat "$L/.last-sweep")"
+[ -n "$SWEEP_STAMP1" ] && ok ".last-sweep still present after failed finalize" || fail ".last-sweep lost"
 
 # archive failure (fail-closed, post ledger-append success): pre-occupy
 # runs/ as a plain FILE so mkdir -p "$runs_dir" fails deterministically.
@@ -62,6 +66,7 @@ TOUCHSTONE_LEDGER_DIR="$L2" bash "$SW" finalize >/dev/null 2>&1 \
   && fail "archive failure must fail finalize" || ok "archive failure exits non-zero"
 [ -s "$L2/.staging.jsonl" ] && ok "archive failure: staging.jsonl retained" || fail "archive failure: staging.jsonl lost"
 [ -f "$L2/.last-finalize" ] && fail "archive failure: .last-finalize must not be written" || ok "archive failure: .last-finalize absent"
+[ -f "$L2/.last-sweep" ] && fail "archive failure: .last-sweep must not advance" || ok "archive failure: .last-sweep absent"
 grep -qxF "sweep incomplete: archive" "$L2/.sweep-incomplete" \
   && ok "archive failure recorded as 'sweep incomplete: archive'" || fail "archive failure: incomplete marker missing"
 find "$L2" -path '*/runs/*/summary.json' 2>/dev/null | grep -q . \

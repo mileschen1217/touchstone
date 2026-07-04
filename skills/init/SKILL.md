@@ -49,7 +49,7 @@ Prompt the user for the workspace root (or accept the matching flag if present):
 |---|---|---|
 | `--workspace-root <path>` | Workspace root? | `.touchstone` |
 
-Values are taken verbatim. **MVP sharp edge: path escape (`../../...`) is NOT rejected.** Production hardening (reject paths outside `${CLAUDE_PROJECT_DIR}`) is deferred.
+Values are taken verbatim. **Sharp edge: path escape (`../../...`) is NOT rejected.**
 
 ## Step 3 — Collect adopted disciplines
 

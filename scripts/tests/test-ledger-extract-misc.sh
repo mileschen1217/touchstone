@@ -170,39 +170,32 @@ case "$REF_X" in
   *) fail "AC-10 ref format (got '$REF_X')" ;;
 esac
 
-# rerun with no new events: zero records.
+# stateless rerun: the full scan re-emits the same aggregates (over-emission
+# is deliberate; the writer's ref dedupe absorbs it downstream).
 OUT2="$TMP/ac10/digest2.jsonl"
 TOUCHSTONE_LEDGER_DIR="$LDIR" "$XF" > "$OUT2"
-LC2="$(grep -c . "$OUT2")"
-if [ "$LC2" = 0 ]; then
-  ok "AC-10 rerun with no new events emits zero records"
+if cmp -s "$OUT1" "$OUT2"; then
+  ok "AC-10 stateless rerun re-emits an identical digest"
 else
-  fail "AC-10 no-op rerun (lc2=$LC2)"
+  fail "AC-10 stateless rerun (digests differ)"
 fi
 
-# append 2 more events (1 check-x, 1 check-y), rerun: only the NEW tail is
-# aggregated (byte-cursor tail-only, same contract as transcripts).
+# append 2 more events (1 check-x, 1 check-y); incremental-by-since (the
+# caller's --since bound is the only increment mechanism): only the NEW
+# tail is aggregated.
 cat >> "$LDIR/fire-log.jsonl" <<'EOF'
 {"schema":"fire-event/v1","ts":"2026-07-02T10:00:05.000Z","check":"check-y","repo":"/repo","stage":"pre-push"}
 {"schema":"fire-event/v1","ts":"2026-07-02T10:00:06.000Z","check":"check-x","repo":"/repo","stage":"pre-commit"}
 EOF
 OUT3="$TMP/ac10/digest3.jsonl"
-TOUCHSTONE_LEDGER_DIR="$LDIR" "$XF" > "$OUT3"
+TOUCHSTONE_LEDGER_DIR="$LDIR" "$XF" --since "2026-07-02T10:00:04.500Z" > "$OUT3"
 LC3="$(grep -c . "$OUT3")"
 COUNT_X3="$(jq -r 'select(.payload.check=="check-x") | .payload.count' "$OUT3")"
 COUNT_Y3="$(jq -r 'select(.payload.check=="check-y") | .payload.count' "$OUT3")"
 if [ "$LC3" = 2 ] && [ "$COUNT_X3" = 1 ] && [ "$COUNT_Y3" = 1 ]; then
-  ok "AC-10 incremental re-run aggregates ONLY the new tail (1 new check-x, 1 new check-y)"
+  ok "AC-10 incremental-by-since aggregates ONLY the events newer than the bound"
 else
-  fail "AC-10 incremental re-run (lc3=$LC3 count_x3=$COUNT_X3 count_y3=$COUNT_Y3)"
-fi
-
-CURSOR_AFTER="$(jq -r '.firelog | to_entries[0].value.cursor' "$LDIR/scan-state.json")"
-FSIZE="$(wc -c < "$LDIR/fire-log.jsonl" | tr -d ' ')"
-if [ "$CURSOR_AFTER" = "$FSIZE" ]; then
-  ok "AC-10 cursor advanced to the new file size after the incremental re-run"
-else
-  fail "AC-10 cursor advancement (cursor=$CURSOR_AFTER fsize=$FSIZE)"
+  fail "AC-10 incremental-by-since (lc3=$LC3 count_x3=$COUNT_X3 count_y3=$COUNT_Y3)"
 fi
 
 # missing fire log: source absent, emits nothing, exit 0.
@@ -215,19 +208,6 @@ if [ "$RC" -eq 0 ] && [ "$LC_EMPTY" = 0 ] && [ ! -e "$LDIR_EMPTY/scan-state.json
   ok "missing fire log: source absent, exit 0, no records, no scan-state written"
 else
   fail "missing fire log (rc=$RC lc=$LC_EMPTY)"
-fi
-
-# propose-cursors mode: scan-state untouched, proposal file written.
-LDIR_PROPOSE="$TMP/ac10-propose/ledger"
-mkdir -p "$LDIR_PROPOSE"
-cp "$LDIR/fire-log.jsonl" "$LDIR_PROPOSE/fire-log.jsonl"
-PROPOSE_F="$TMP/ac10-propose/proposed.json"
-TOUCHSTONE_LEDGER_DIR="$LDIR_PROPOSE" "$XF" --propose-cursors "$PROPOSE_F" > "$TMP/ac10/propose-digest.jsonl"
-LC_PROP="$(grep -c . "$TMP/ac10/propose-digest.jsonl")"
-if [ "$LC_PROP" = 2 ] && [ ! -e "$LDIR_PROPOSE/scan-state.json" ] && [ -s "$PROPOSE_F" ]; then
-  ok "propose-mode: digest emitted, scan-state.json untouched, proposal file written"
-else
-  fail "propose-mode (lc=$LC_PROP scan-state exists=$([ -e "$LDIR_PROPOSE/scan-state.json" ] && echo yes || echo no))"
 fi
 
 # --since is read-only: no scan-state.json is created.
@@ -244,9 +224,8 @@ else
 fi
 
 # ============================================================
-# cross-section scan-state isolation — extract-firelog.sh must only touch
-# its own "firelog" section, leaving sibling sections ("git",
-# "transcripts") byte-for-byte untouched.
+# stateless: a legacy scan-state.json (pre-timestamp era) is never touched
+# and never consulted — the extractor is read-only.
 # ============================================================
 
 LDIR_ISO="$TMP/isolation/ledger"
@@ -256,18 +235,16 @@ cat > "$LDIR_ISO/fire-log.jsonl" <<'EOF'
 EOF
 SEED_STATE='{"git":{"/x":{"last_swept":"abc"}},"transcripts":{"/y":{"cursor":7}}}'
 printf '%s\n' "$SEED_STATE" > "$LDIR_ISO/scan-state.json"
+BEFORE_STATE="$(cat "$LDIR_ISO/scan-state.json")"
 
 TOUCHSTONE_LEDGER_DIR="$LDIR_ISO" "$XF" > "$TMP/isolation/digest.jsonl"
+LC_ISO="$(grep -c . "$TMP/isolation/digest.jsonl")"
 
-GIT_BEFORE="$(printf '%s' "$SEED_STATE" | jq -c '.git')"
-TRANSCRIPTS_BEFORE="$(printf '%s' "$SEED_STATE" | jq -c '.transcripts')"
-GIT_AFTER="$(jq -c '.git' "$LDIR_ISO/scan-state.json")"
-TRANSCRIPTS_AFTER="$(jq -c '.transcripts' "$LDIR_ISO/scan-state.json")"
-FIRELOG_AFTER="$(jq -c '.firelog // empty' "$LDIR_ISO/scan-state.json")"
-if [ "$GIT_BEFORE" = "$GIT_AFTER" ] && [ "$TRANSCRIPTS_BEFORE" = "$TRANSCRIPTS_AFTER" ] && [ -n "$FIRELOG_AFTER" ]; then
-  ok "cross-section isolation: .git and .transcripts unchanged, .firelog now present"
+AFTER_STATE="$(cat "$LDIR_ISO/scan-state.json")"
+if [ "$BEFORE_STATE" = "$AFTER_STATE" ] && [ "$LC_ISO" = 1 ]; then
+  ok "stateless: legacy scan-state.json byte-identical after a run (read-only extractor)"
 else
-  fail "cross-section isolation (git_before=$GIT_BEFORE git_after=$GIT_AFTER transcripts_before=$TRANSCRIPTS_BEFORE transcripts_after=$TRANSCRIPTS_AFTER firelog_after=$FIRELOG_AFTER)"
+  fail "stateless legacy-state (before=$BEFORE_STATE after=$AFTER_STATE lc=$LC_ISO)"
 fi
 
 echo "== $pass ok, $fail fail =="

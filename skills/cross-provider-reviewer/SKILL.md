@@ -40,7 +40,6 @@ If `codex_healthy=1`, in ONE message issue BOTH:
 
 - `Agent(subagent_type: "everything-claude-code:code-reviewer", description: "CC review", prompt: <task envelope with system_prompt prefix>, model: "sonnet")`  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
 
-  The `model: "sonnet"` is explicit, not inherited from ECC's default — m-* family routes review through Sonnet by policy.
 - `Agent(subagent_type: "touchstone:codex-reviewer", description: "Codex review", prompt: <task envelope>)`
 
 Wait for both to return before synthesizing.
@@ -51,23 +50,23 @@ If `codex_healthy=0`, call only `everything-claude-code:code-reviewer` and proce
 
 Sort raw inputs by provider name (`cc` then `codex`).
 
-Merge findings:
+Merge findings — do not introduce new findings:
 - Same file:line + same category → keep one, attribute to both.
 - Disagreement on severity → list both verdicts inline; keep higher severity.
 - Unique to one provider → include with attribution.
+- Sort merged findings by severity (Critical, High, Medium, Low).
 
-Always emit a `## Divergence` section when verdicts disagree. Never silently merge.
+Always emit a `## Divergence` section when verdicts disagree; emit raw outputs
+alongside. Never silently merge.
 
 ### 4. Compute provenance, prepend banners, write artifacts
 
-All field definitions, the correctness operations, the banner formats/ordering, and
-the no-derived-fields rule live SOLELY in `references/provenance.md`. This body gives
-only the ACTIONS; it restates none of those definitions.
+Field definitions, correctness operations, banner formats/ordering, and the
+no-derived-fields rule: `references/provenance.md` (sole source).
 
 1. Record `providers_expected` and `providers_used` for THIS invocation per
    provenance.md. `builder_vendor` is null (Pattern A has no builder).
-2. Extract `session_id` from `<task_dir>/raw_codex.jsonl` per provenance.md.
-3. Determine degraded/partial and, if either holds, build and prepend the banner(s)
+2. Determine degraded/partial and, if either holds, build and prepend the banner(s)
    to the synthesis text AND to `review.md`, per provenance.md (which defines the
    banner content and ordering).
 
@@ -82,22 +81,13 @@ Write artifacts (if `task_dir` provided):
 
 Skill body's final assistant text: the synthesized review.md content. The orchestrator caller reads it from shared LLM working memory.
 
-## Synthesis instruction (built-in)
-
-> Merge findings; do not introduce new findings. Preserve provider attribution. Label divergence explicitly. Sort by severity (Critical, High, Medium, Low). Emit raw outputs alongside; never silently merge.
-
 ## Failure semantics
 
 - Codex probe / dispatch fail → CC-only synthesis; record provenance + prepend the banner if applicable, per `references/provenance.md`.
 - Both reviewers fail → no synthesis; surface as failure and record provenance per `references/provenance.md`.
 - Skill itself errors (framework) → propagate to caller.
 
-## Cost note
-
-Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/touchstone:design-review`), structural commitment (`/touchstone:keystone`), design spec (`/touchstone:design-spec`), or ad-hoc opt-in for high-risk diffs.
-
 ## Dependencies
 
-- `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — CC review backend. Epic B vendors or makes optional.
+- `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — CC review backend; invoked at the high-leverage gates only (design-review / structural commitment (`/touchstone:keystone`) / design-spec).
 - `touchstone:codex-reviewer` (plugin-local) — Codex review backend.
-- CC-only fallback: if a provider is absent, run the available provider(s), write `review.result.json` with the resulting `providers_used` / `fallback_reason`, and prepend the DEGRADED banner per `references/provenance.md`; if BOTH absent → no synthesis, surfaced as failure (envelope still written per provenance.md).

@@ -12,19 +12,16 @@ created: YYYY-MM-DD
 ## Scope
 - <repos / directories / modules the implementer may freely modify to satisfy AC>
 - Globs and individual files are both legal. Implementer may create new files inside Scope without listing them upfront.
-- Examples:
-  - `dl/plugin_moxa_port/framework/src/**` (whole subtree)
-  - `dl/plugins_moxa_framework/src/sys_config.rs` (single file)
 
 ## Read-Only Boundaries
 - <existing contracts the implementer reads but must not modify>
-- Typical: cross-team APIs, public traits, schema definitions, vendored deps in this repo.
+- Category: cross-team APIs, public traits, schema definitions, vendored deps in this repo.
 - If AC appears to require modifying anything here, implementer must fail with `risks` naming the path and the AC that conflicts.
 
 ## Do Not Touch
 - <hard safety boundary; off-limits even if technically reachable>
 - Stronger than Read-Only — implementer should not even read these for context.
-- Typical: `.git/`, sibling-team directories, vendored crates outside Scope.
+- Category: `.git/`, sibling-team directories, vendored crates outside Scope.
 
 ## Acceptance Criteria
 - <testable outcomes; load-bearing source of truth for "done">

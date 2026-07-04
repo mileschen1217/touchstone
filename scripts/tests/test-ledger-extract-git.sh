@@ -105,137 +105,80 @@ else
   fail "AC-8 envelope (ref=$REF source=$SOURCE schema=$SCHEMA)"
 fi
 
-# --- AC-20: incremental re-scan (only the new chain, cursor advances) ---
-R2="$(mkrepo ac20)"
+# --- incremental-by-since: the caller (sweep-run) owns increment state as a
+# single timestamp; extract-git filters emitted records by ANCHOR ts ---
+R2="$(mkrepo since-inc)"
 T0b=1710000000
 SHA_E1="$(commit_at "$R2" "$T0b"           "feat: add x" x.sh "line-1")"
 SHA_E2="$(commit_at "$R2" "$((T0b+1*DAY))" "fix: patch x" x.sh "line-2")"
 
-LDIR2="$TMP/ac20/ledger"
-TOUCHSTONE_LEDGER_DIR="$LDIR2" "$X" --repo "$R2" > "$TMP/ac20/digest1.jsonl"
-LC1="$(grep -c . "$TMP/ac20/digest1.jsonl")"
-S1="$(jq -r --arg r "$R2" '.git[$r].last_swept' "$LDIR2/scan-state.json")"
+TOUCHSTONE_LEDGER_DIR="$TMP/since-inc/ledger" "$X" --repo "$R2" > "$TMP/since-inc/digest1.jsonl"
+LC1="$(grep -c . "$TMP/since-inc/digest1.jsonl")"
 
 SHA_E3="$(commit_at "$R2" "$((T0b+2*DAY))" "feat: add y" y.sh "line-3")"
 SHA_E4="$(commit_at "$R2" "$((T0b+3*DAY))" "fix: patch y" y.sh "line-4")"
 
-TOUCHSTONE_LEDGER_DIR="$LDIR2" "$X" --repo "$R2" > "$TMP/ac20/digest2.jsonl"
-LC2="$(grep -c . "$TMP/ac20/digest2.jsonl")"
-ANCHOR2="$(jq -r '.payload.anchor_sha' "$TMP/ac20/digest2.jsonl")"
-S2="$(jq -r --arg r "$R2" '.git[$r].last_swept' "$LDIR2/scan-state.json")"
-HEAD_R2="$(git -C "$R2" rev-parse HEAD)"
+# full stateless re-scan sees BOTH chains…
+"$X" --repo "$R2" > "$TMP/since-inc/digest2-full.jsonl"
+LC2_FULL="$(grep -c . "$TMP/since-inc/digest2-full.jsonl")"
+# …and a --since bound after chain-1's anchor emits only the new chain.
+SINCE_BOUND="$(python3 -c "import datetime;print(datetime.datetime.fromtimestamp($T0b+1*$DAY+3600, datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))" 2>/dev/null   || date -u -r $((T0b+1*DAY+3600)) +%Y-%m-%dT%H:%M:%SZ)"
+"$X" --repo "$R2" --since "$SINCE_BOUND" > "$TMP/since-inc/digest2.jsonl"
+LC2="$(grep -c . "$TMP/since-inc/digest2.jsonl")"
+ANCHOR2="$(jq -r '.payload.anchor_sha' "$TMP/since-inc/digest2.jsonl")"
 
-if [ "$LC1" = 1 ] && [ "$S1" != "null" ] && [ -n "$S1" ]; then
-  ok "AC-20 first run: one chain recorded, last_swept committed"
+if [ "$LC1" = 1 ] && [ "$LC2_FULL" = 2 ]; then
+  ok "incremental-by-since baseline: 1 chain first, 2 chains on a full stateless re-scan"
 else
-  fail "AC-20 first run (lc1=$LC1 s1=$S1)"
+  fail "incremental-by-since baseline (lc1=$LC1 lc2_full=$LC2_FULL)"
 fi
 
-if [ "$LC2" = 1 ] && [ "$ANCHOR2" = "$SHA_E3" ] && [ "$S2" = "$HEAD_R2" ] && [ "$S2" != "$S1" ]; then
-  ok "AC-20 incremental re-run: emits only the new chain, last_swept advances to HEAD"
+if [ "$LC2" = 1 ] && [ "$ANCHOR2" = "$SHA_E3" ]; then
+  ok "incremental-by-since: --since after chain-1's anchor emits only the new chain"
 else
-  fail "AC-20 incremental re-run (lc2=$LC2 anchor2=$ANCHOR2 want_anchor=$SHA_E3 s2=$S2 head=$HEAD_R2 s1=$S1)"
+  fail "incremental-by-since (lc2=$LC2 anchor2=$ANCHOR2 want_anchor=$SHA_E3)"
 fi
 
-# unrelated shas must not leak from the (already-recorded) first chain
-LEAK="$(jq -r '.payload.fix_shas[]' "$TMP/ac20/digest2.jsonl" | grep -F -x "$SHA_E2" || true)"
-if [ -z "$LEAK" ]; then
-  ok "AC-20 incremental re-run does not re-walk commits before last_swept"
+# --- stateless: repeated runs never write any state file ---
+LDIR2="$TMP/since-inc/ledger"
+if [ ! -e "$LDIR2/scan-state.json" ]; then
+  ok "stateless: no scan-state.json written by any run"
 else
-  fail "AC-20 incremental re-run leaked pre-cursor commit ($LEAK)"
+  fail "stateless (scan-state.json exists)"
 fi
 
-# --- AC-20: unreachable last_swept -> window-bounded full rescan, digest
-# equals a fresh scan over the same repo state ---
-BOGUS="deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
-jq -c --arg r "$R2" --arg sha "$BOGUS" '.git[$r].last_swept = $sha' "$LDIR2/scan-state.json" > "$LDIR2/scan-state.json.tmp"
-mv "$LDIR2/scan-state.json.tmp" "$LDIR2/scan-state.json"
-
-TOUCHSTONE_LEDGER_DIR="$LDIR2" "$X" --repo "$R2" > "$TMP/ac20/digest3.jsonl"
-LC3="$(grep -c . "$TMP/ac20/digest3.jsonl")"
-S3="$(jq -r --arg r "$R2" '.git[$r].last_swept' "$LDIR2/scan-state.json")"
-
-LDIR_FRESH="$TMP/ac20/ledger-fresh"
-TOUCHSTONE_LEDGER_DIR="$LDIR_FRESH" "$X" --repo "$R2" > "$TMP/ac20/digest-fresh.jsonl"
-
-SORTED3="$(jq -Sc . "$TMP/ac20/digest3.jsonl" | sort)"
-SORTED_FRESH="$(jq -Sc . "$TMP/ac20/digest-fresh.jsonl" | sort)"
-
-if [ "$LC3" = 2 ] && [ "$SORTED3" = "$SORTED_FRESH" ]; then
-  ok "AC-20 unreachable last_swept: full rescan digest equals a fresh-scan digest"
-else
-  fail "AC-20 unreachable last_swept rescan (lc3=$LC3 equal=$([ "$SORTED3" = "$SORTED_FRESH" ] && echo yes || echo no))"
-fi
-
-if [ "$S3" = "$HEAD_R2" ]; then
-  ok "AC-20 unreachable last_swept: recovers by advancing last_swept to HEAD"
-else
-  fail "AC-20 unreachable last_swept recovery (s3=$S3 head=$HEAD_R2)"
-fi
-
-# --- --propose-cursors: scan-state untouched, bare git-section proposal written ---
-R3="$(mkrepo propose)"
-T0c=1720000000
-commit_at "$R3" "$T0c" "feat: seed" z.sh "line-1" >/dev/null
-LDIR3="$TMP/propose/ledger"
-PROPOSE_F="$TMP/propose/proposed.json"
-TOUCHSTONE_LEDGER_DIR="$LDIR3" "$X" --repo "$R3" --propose-cursors "$PROPOSE_F" > /dev/null
-if [ ! -e "$LDIR3/scan-state.json" ] && [ -s "$PROPOSE_F" ]; then
-  PROPOSED_SHA="$(jq -r --arg r "$R3" '.[$r].last_swept' "$PROPOSE_F")"
-  HEAD_R3="$(git -C "$R3" rev-parse HEAD)"
-  HAS_GIT_ENVELOPE="$(jq 'has("git")' "$PROPOSE_F")"
-  if [ "$PROPOSED_SHA" = "$HEAD_R3" ] && [ "$HAS_GIT_ENVELOPE" = "false" ]; then
-    ok "propose-mode: bare git-section proposal written, scan-state.json untouched"
-  else
-    fail "propose-mode content (proposed_sha=$PROPOSED_SHA head=$HEAD_R3 has_envelope=$HAS_GIT_ENVELOPE)"
-  fi
-else
-  fail "propose-mode (scan-state exists=$([ -e "$LDIR3/scan-state.json" ] && echo yes || echo no) propose file size=$(wc -c < "$PROPOSE_F" 2>/dev/null))"
-fi
-
-# --- no-lookback regression: a fix landing AFTER the cursor must still
-# pair with an anchor that landed BEFORE the cursor (epic-close sweeps
-# more often than the window, so this is the common case, not an edge
-# case). A literal last_swept..HEAD anchor search would make the
-# pre-cursor anchor invisible and silently drop the fix. ---
+# --- window-shifted since (the sweep-run contract): a fix landing AFTER the
+# last sweep still pairs with an anchor BEFORE it, because sweep-run passes
+# --since = last-sweep MINUS the pairing window. A since bound between the
+# anchor and the new fix filters the whole chain (anchor-ts filter — this is
+# WHY the caller must shift); the shifted bound keeps it. ---
 R5="$(mkrepo nolookback)"
 T0e=1740000000
 SHA_ANCHOR="$(commit_at "$R5" "$T0e"           "feat: add h"           h.sh "line-1")"
 SHA_FIX1="$(commit_at   "$R5" "$((T0e+2*DAY))" "fix: patch h"          h.sh "line-2")"
+SHA_FIX2="$(commit_at   "$R5" "$((T0e+7*DAY))" "fix: patch h again"    h.sh "line-3")"
 
-LDIR5="$TMP/nolookback/ledger"
-TOUCHSTONE_LEDGER_DIR="$LDIR5" "$X" --repo "$R5" > "$TMP/nolookback/digest1.jsonl"
-LC5_1="$(grep -c . "$TMP/nolookback/digest1.jsonl")"
-ANCHOR5_1="$(jq -r '.payload.anchor_sha' "$TMP/nolookback/digest1.jsonl")"
+# unshifted bound (a naive last-sweep at T0e+3d): chain filtered out.
+BOUND_NAIVE="$(date -u -r $((T0e+3*DAY)) +%Y-%m-%dT%H:%M:%SZ)"
+"$X" --repo "$R5" --since "$BOUND_NAIVE" > "$TMP/nolookback/naive.jsonl"
+LC_NAIVE="$(grep -c . "$TMP/nolookback/naive.jsonl")"
 
-# run-1 sweeps, cursor now sits at SHA_FIX1 — past the feat anchor.
-if [ "$LC5_1" = 1 ] && [ "$ANCHOR5_1" = "$SHA_ANCHOR" ]; then
-  ok "no-lookback run-1: fix pairs with anchor, cursor advances past the anchor"
+# window-shifted bound (T0e+3d - 14d): chain emitted, includes the new fix.
+BOUND_SHIFTED="$(date -u -r $((T0e+3*DAY-14*DAY)) +%Y-%m-%dT%H:%M:%SZ)"
+"$X" --repo "$R5" --since "$BOUND_SHIFTED" > "$TMP/nolookback/shifted.jsonl"
+LC_SHIFTED="$(grep -c . "$TMP/nolookback/shifted.jsonl")"
+ANCHOR_SHIFTED="$(jq -r '.payload.anchor_sha' "$TMP/nolookback/shifted.jsonl")"
+HAS_FIX2="$(jq -c '.payload.fix_shas' "$TMP/nolookback/shifted.jsonl" | jq --arg s "$SHA_FIX2" 'index($s) != null')"
+
+if [ "$LC_NAIVE" = 0 ]; then
+  ok "window-shift rationale: an unshifted since bound drops the old-anchor chain (anchor-ts filter)"
 else
-  fail "no-lookback run-1 (lc=$LC5_1 anchor=$ANCHOR5_1 want=$SHA_ANCHOR)"
+  fail "window-shift rationale (lc_naive=$LC_NAIVE)"
 fi
-
-# 5 days later, a second fix lands on the same path. Its only candidate
-# anchor (SHA_ANCHOR) is now BEFORE the cursor.
-SHA_FIX2="$(commit_at "$R5" "$((T0e+7*DAY))" "fix: patch h again" h.sh "line-3")"
-
-TOUCHSTONE_LEDGER_DIR="$LDIR5" "$X" --repo "$R5" > "$TMP/nolookback/digest2.jsonl"
-LC5_2="$(grep -c . "$TMP/nolookback/digest2.jsonl")"
-ANCHOR5_2="$(jq -r '.payload.anchor_sha' "$TMP/nolookback/digest2.jsonl")"
-FIXSHAS5_2="$(jq -c '.payload.fix_shas' "$TMP/nolookback/digest2.jsonl")"
-
-if [ "$LC5_2" = 1 ] && [ "$ANCHOR5_2" = "$SHA_ANCHOR" ]; then
-  ok "no-lookback run-2: new fix pairs with the pre-cursor anchor"
+if [ "$LC_SHIFTED" = 1 ] && [ "$ANCHOR_SHIFTED" = "$SHA_ANCHOR" ] && [ "$HAS_FIX2" = true ]; then
+  ok "window-shifted since: pre-bound anchor's chain emitted, new fix included"
 else
-  fail "no-lookback run-2 pairing (lc=$LC5_2 anchor=$ANCHOR5_2 want=$SHA_ANCHOR)"
-fi
-
-HAS_FIX2="$(printf '%s' "$FIXSHAS5_2" | jq --arg s "$SHA_FIX2" 'index($s) != null')"
-HAS_FIX1_LEAK="$(printf '%s' "$FIXSHAS5_2" | jq --arg s "$SHA_FIX1" 'index($s) != null')"
-if [ "$HAS_FIX2" = true ] && [ "$HAS_FIX1_LEAK" = false ]; then
-  ok "no-lookback run-2: emits only the new fix, does not re-emit the pre-cursor chain"
-else
-  fail "no-lookback run-2 fix_shas (has_fix2=$HAS_FIX2 has_fix1_leak=$HAS_FIX1_LEAK fixshas=$FIXSHAS5_2)"
+  fail "window-shifted since (lc=$LC_SHIFTED anchor=$ANCHOR_SHIFTED has_fix2=$HAS_FIX2)"
 fi
 
 # --- --since is read-only: no scan-state.json written ---
@@ -246,10 +189,10 @@ commit_at "$R4" "$((T0d+1*DAY))" "fix: patch w" w.sh "line-2" >/dev/null
 LDIR4="$TMP/since/ledger"
 TOUCHSTONE_LEDGER_DIR="$LDIR4" "$X" --repo "$R4" --since "1970-01-01T00:00:00Z" > "$TMP/since/digest.jsonl"
 RC4=$?
-if [ "$RC4" -eq 0 ] && [ ! -e "$LDIR4/scan-state.json" ]; then
-  ok "--since is read-only (no scan-state.json written)"
+if [ "$RC4" -eq 0 ] && [ ! -e "$LDIR4/scan-state.json" ] && [ "$(grep -c . "$TMP/since/digest.jsonl")" = 1 ]; then
+  ok "--since epoch-0 emits the chain and writes no state"
 else
-  fail "--since read-only mode (rc=$RC4 scan-state exists=$([ -e "$LDIR4/scan-state.json" ] && echo yes || echo no))"
+  fail "--since mode (rc=$RC4 lc=$(grep -c . "$TMP/since/digest.jsonl"))"
 fi
 
 echo "== $pass ok, $fail fail =="

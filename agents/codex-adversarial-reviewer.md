@@ -35,10 +35,10 @@ Same dispatch shape as `codex-reviewer` — only the role system prompt differs.
 
 ## Dispatch + probe + JSONL parsing + timeout + output
 
-Identical to `codex-reviewer`. See that agent's body for full procedure. Path C (prompt prefix) is locked — V0.2 outcome. The role-system-prompt below is prepended to `$TASK_TEXT` via `"$ROLE_PROMPT\n\n---\n\n$TASK_TEXT"` and dispatched as `timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check "..."`.
-<!-- Intentional: no --sandbox flag — codex DEFAULT sandbox permits git temp writes (nesting -s read-only inside CC's outer sandbox blocks them, ADR-0007 § sandbox); review stays read-only by role/prompt. Do NOT add -s read-only. -->
+Identical to `codex-reviewer`. See that agent's body for full procedure. Role injection = prompt prefix (locked). The role-system-prompt below is prepended to `$TASK_TEXT` via `"$ROLE_PROMPT\n\n---\n\n$TASK_TEXT"` and dispatched as `timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check "..."`.
+<!-- Intentional: no --sandbox flag — codex DEFAULT sandbox permits git temp writes (nesting -s read-only inside CC's outer sandbox blocks them,; review stays read-only by role/prompt. Do NOT add -s read-only. -->
 
-Failure events: same defensive checks as `codex-reviewer` (auth.*failed, error / turn.failed, sandbox+violation; >5 malformed lines = partial). V0.6 mini-spike will provide verbatim event names.
+Failure events: same defensive checks as `codex-reviewer` (auth.*failed, error / turn.failed, sandbox+violation; >5 malformed lines = partial). Exact Codex failure-event field names are not contractually guaranteed — pattern-match defensively.
 
 If `task_dir` is set, write `<task_dir>/raw_codex.jsonl` (full event stream) and `<task_dir>/review.result.json` (review-envelope/v1 (schema in skills/cross-provider-reviewer/references/provenance.md)). Always return the critique on stdout.
 

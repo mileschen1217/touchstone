@@ -3,10 +3,10 @@
 #
 # v2 contract: a UserPromptSubmit + PreToolUse/Skill hook (hooks/stamp-run.sh) stamps a run-manifest per auto-run
 # gate; the reporter windows those manifests by next-START (last run bounded at report-time `now`)
-# and harvests each window from DURABLE logs — OTel for CC subagents, ~/.codex/sessions rollouts for
-# Codex. No owned-writer, no meta sidecars, no --collection. Windows are contiguous/disjoint by
-# construction, so a slow Codex review can never truncate a run and AMBIGUOUS never arises via real
-# windows (attribute_event still supports it defensively; unit-tested with hand-crafted overlap).
+# and harvests each window from DURABLE logs — OTel for CC subagents, task_dir raw_codex.jsonl
+# artifacts (mtime-attributed) for Codex. No owned-writer, no meta sidecars, no --collection.
+# Windows are contiguous/disjoint by construction, so a slow Codex review can never truncate a run
+# and AMBIGUOUS never arises via real windows (attribute_event supports it defensively).
 #
 # SC2015: && ok || fail idiom is intentional. SC2034: some scaffolding vars.
 # SC2181: `cmd; [ $? -eq N ]` is intentional for asserting a subprocess exit code.
@@ -17,13 +17,18 @@ TOOL="$REPO_ROOT/scripts/metrics-report.sh"
 HOOK="$REPO_ROOT/hooks/stamp-run.sh"
 PRICES="$REPO_ROOT/scripts/metrics/model-prices.json"
 FIX="$REPO_ROOT/scripts/tests/fixtures/metrics"
-CODEX_FIX="$FIX/codex-sessions"
 pass=0; fail=0
 ok()   { pass=$((pass+1)); echo "ok   - $1"; }
 fail() { fail=$((fail+1)); echo "FAIL - $1"; }
 # shellcheck source=/dev/null
 source "$TOOL"   # source-guard keeps main() from running
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+# default codex scan root = empty dir; individual tests override. Guards
+# against the reporter's git-toplevel default finding REAL repo artifacts.
+export TOUCHSTONE_CODEX_TASKDIR_ROOT="$TMP/no-codex"; mkdir -p "$TOUCHSTONE_CODEX_TASKDIR_ROOT"
+# no real codex model config leaks in: resolve from env only in these tests
+export CODEX_HOME="$TMP/no-codex-home"
+set_mtime() { python3 -c "import os,sys; os.utime(sys.argv[1], (int(sys.argv[2]), int(sys.argv[2])))" "$1" "$2"; }
 
 # ==================================================================================
 # UNCHANGED HELPERS — still present in v2, tested verbatim
@@ -48,27 +53,6 @@ sw="$(session_wallclock "$tr")"
 [ "$sw" = 300 ] && ok "AC-21 session wallclock = last-first" || fail "AC-21 got=$sw"
 badtr="$TMP/badtr.jsonl"; printf '%s\n' '{"type":"assistant","message":{"usage":{}}}' '{"type":"assistant","timestamp":"nope","message":{"usage":{}}}' > "$badtr"
 if session_wallclock "$badtr" >/dev/null 2>&1; then fail "AC-21 malformed should fail"; else ok "AC-21 malformed transcript ts → MALFORMED"; fi
-
-# --- AC-6: costs.jsonl single-scope sums only target session ---
-co="$TMP/costs.jsonl"
-printf '%s\n' \
- '{"session_id":"S1","input_tokens":100,"output_tokens":50,"cost_usd":0.5}' \
- '{"session_id":"S2","input_tokens":999,"output_tokens":999,"cost_usd":9.9}' \
- 'not json' \
- '{"session_id":"S1","input_tokens":10,"output_tokens":5,"cost_usd":0.25}' > "$co"
-agg="$(costs_aggregate "$co" S1)"
-[ "$(echo "$agg" | jq -r .usd)" = 0.75 ] && ok "AC-6 single-scope sums only target" || fail "AC-6 got=$agg"
-[ "$(echo "$agg" | jq -r .unparseable_lines)" = 1 ] && ok "AC-6 scope-excluded row not unparseable" || fail "AC-6 unparseable wrong: $agg"
-co2="$TMP/costs2.jsonl"; printf '%s\n' '{"input_tokens":100,"output_tokens":50,"cost_usd":0.5}' > "$co2"
-note="$(costs_aggregate "$co2" S1 2>&1 >/dev/null)"; rc=$?
-[ "$rc" != 0 ] && echo "$note" | grep -qi "session scope" && ok "AC-6 no-scope → NOSCOPE + note" || fail "AC-6 noscope rc=$rc note=$note"
-co3="$TMP/costs3.jsonl"; printf '%s\n' '{"session_id":"S1","input_tokens":1,"output_tokens":1}' '{"input_tokens":1,"output_tokens":1}' > "$co3"
-if costs_aggregate "$co3" S1 >/dev/null 2>&1; then fail "AC-6 mixed-schema should be NOSCOPE"; else ok "AC-6 mixed-schema → NOSCOPE"; fi
-
-# --- G-2 (regression): unparseable_lines preserved through build_session_summary NOSCOPE branch ---
-co_ns_bad="$TMP/costs_ns_bad.jsonl"; printf '%s\n' '{"input_tokens":100,"output_tokens":50,"cost_usd":0.5}' 'not json' > "$co_ns_bad"
-sum_ns="$(build_session_summary "$tr" "$co_ns_bad" "" SES "" 2>/dev/null)"
-[ "$(echo "$sum_ns" | jq -r .unparseable_lines)" = 1 ] && ok "G-2 unparseable_lines=1 preserved through NOSCOPE else-branch" || fail "G-2 unparseable wrong"
 
 # --- AC-15: OTel scoping — matching included, foreign excluded, unscoped marked ---
 ot="$TMP/otel.jsonl"
@@ -111,73 +95,69 @@ uev='{"agent_name":"reviewer","tokens":99,"cost_usd":0.99,"ts":150,"_unscoped":t
 if cc_subagent_cell r1 "$uev" "$win" >/dev/null 2>&1; then fail "H1 unscoped event leaked into run"; else ok "H1 unscoped event excluded from run total"; fi
 
 # ==================================================================================
-# V2 NEW — Codex durable-log reader (~/.codex/sessions rollouts)
+# V2 NEW — Codex task_dir reader (raw_codex.jsonl, mtime-attributed)
 # ==================================================================================
-ROLL="$CODEX_FIX/2026/07/01/rollout-2026-07-01T10-00-00-synthetic.jsonl"
-
-# codex_rollout_usage: takes LAST cumulative token_count + model from turn_context
-u="$(codex_rollout_usage "$ROLL")"
-[ "$(echo "$u" | jq -r .model)" = gpt-5-codex ] && [ "$(echo "$u" | jq -r .in)" = 3000 ] \
-  && [ "$(echo "$u" | jq -r .cached_in)" = 1200 ] && [ "$(echo "$u" | jq -r .out)" = 180 ] \
-  && [ "$(echo "$u" | jq -r .reasoning)" = 40 ] \
-  && ok "CX-1 codex_rollout_usage = LAST cumulative token_count + turn_context model" || fail "CX-1 got=$u"
-if codex_rollout_usage "$TMP/nope.jsonl" >/dev/null 2>&1; then fail "CX-2 missing rollout should fail"; else ok "CX-2 missing rollout → MISSING"; fi
-
-# codex_rollouts_in_window: cwd + half-open window + originator=codex_exec
+CROOT="$TMP/tsroot"; mkdir -p "$CROOT/research/task-a"
+RAW="$CROOT/research/task-a/raw_codex.jsonl"
+printf '%s\n' \
+ 'Reading additional input from stdin...' \
+ '{"type":"thread.started","thread_id":"t-1"}' \
+ '{"type":"turn.completed","usage":{"input_tokens":2000,"cached_input_tokens":800,"output_tokens":100,"reasoning_output_tokens":30}}' \
+ '{"type":"turn.completed","usage":{"input_tokens":1000,"cached_input_tokens":400,"output_tokens":80,"reasoning_output_tokens":10}}' > "$RAW"
 s0=$(iso_to_epoch 2026-07-01T09:00:00Z); e0=$(iso_to_epoch 2026-07-01T11:00:00Z)
-hit="$(CODEX_SESSIONS_DIR="$CODEX_FIX" codex_rollouts_in_window /synthetic/project "$s0" "$e0")"
-[ "$(printf '%s\n' "$hit" | grep -c synthetic)" = 1 ] && ok "CX-3 rollout selected by cwd+window+originator" || fail "CX-3 got=$hit"
-miss_cwd="$(CODEX_SESSIONS_DIR="$CODEX_FIX" codex_rollouts_in_window /other/cwd "$s0" "$e0")"
-[ -z "$miss_cwd" ] && ok "CX-4 cwd mismatch → excluded" || fail "CX-4 got=$miss_cwd"
-s1=$(iso_to_epoch 2026-07-01T11:00:00Z); e1=$(iso_to_epoch 2026-07-01T12:00:00Z)
-miss_win="$(CODEX_SESSIONS_DIR="$CODEX_FIX" codex_rollouts_in_window /synthetic/project "$s1" "$e1")"
-[ -z "$miss_win" ] && ok "CX-5 ts outside window → excluded" || fail "CX-5 got=$miss_win"
+set_mtime "$RAW" $(( s0 + 3600 ))
 
-# codex_window_aggregate: sum over rollouts, priced; grounded ZERO when none; unverified propagation
-agg="$(CODEX_SESSIONS_DIR="$CODEX_FIX" codex_window_aggregate /synthetic/project "$s0" "$e0" "$PRICES")"
+# codex_raw_usage: SUMS turn.completed usage, skips the non-JSON preamble
+u="$(codex_raw_usage "$RAW")"
+[ "$(echo "$u" | jq -r .in)" = 3000 ] && [ "$(echo "$u" | jq -r .cached_in)" = 1200 ] \
+  && [ "$(echo "$u" | jq -r .out)" = 180 ] && [ "$(echo "$u" | jq -r .reasoning)" = 40 ] \
+  && ok "CX-1 codex_raw_usage sums turn.completed (preamble line skipped)" || fail "CX-1 got=$u"
+if codex_raw_usage "$TMP/nope.jsonl" >/dev/null 2>&1; then fail "CX-2 missing raw should fail"; else ok "CX-2 missing raw_codex.jsonl → MISSING"; fi
+
+# codex_raws_in_window: mtime half-open window under the task_dir root
+hit="$(TOUCHSTONE_CODEX_TASKDIR_ROOT="$CROOT" codex_raws_in_window "$s0" "$e0")"
+[ "$(printf '%s\n' "$hit" | grep -c task-a)" = 1 ] && ok "CX-3 raw selected by mtime window" || fail "CX-3 got=$hit"
+s1=$(iso_to_epoch 2026-07-01T11:00:00Z); e1=$(iso_to_epoch 2026-07-01T12:00:00Z)
+miss_win="$(TOUCHSTONE_CODEX_TASKDIR_ROOT="$CROOT" codex_raws_in_window "$s1" "$e1")"
+[ -z "$miss_win" ] && ok "CX-5 mtime outside window → excluded" || fail "CX-5 got=$miss_win"
+
+# codex_window_aggregate: sum + priced via declared model; grounded ZERO when none
+agg="$(TOUCHSTONE_CODEX_TASKDIR_ROOT="$CROOT" TOUCHSTONE_CODEX_MODEL=gpt-5-codex codex_window_aggregate "$s0" "$e0" "$PRICES")"
 au="$(printf '%s' "$agg" | cut -f1)"; ac="$(printf '%s' "$agg" | cut -f2)"
 [ "$(echo "$au" | jq -r .in)" = 3000 ] && [ "$ac" = "0.006100" ] \
   && ok "CX-6 codex_window_aggregate sums + prices (in=3000 cost=0.006100)" || fail "CX-6 usage=$au cost=$ac"
-# grounded zero: window with no rollout → all-zero usage, cost 0 (NOT unverified)
-gz="$(CODEX_SESSIONS_DIR="$CODEX_FIX" codex_window_aggregate /synthetic/project "$s1" "$e1" "$PRICES")"
+gz="$(TOUCHSTONE_CODEX_TASKDIR_ROOT="$CROOT" TOUCHSTONE_CODEX_MODEL=gpt-5-codex codex_window_aggregate "$s1" "$e1" "$PRICES")"
 gzu="$(printf '%s' "$gz" | cut -f1)"; gzc="$(printf '%s' "$gz" | cut -f2)"
 [ "$(echo "$gzu" | jq -r .in)" = 0 ] && [ "$gzc" = 0 ] \
-  && ok "CX-7 no rollout in window → grounded ZERO codex cost (not [unverified])" || fail "CX-7 usage=$gzu cost=$gzc"
-# unverified propagation: an unpriced-model rollout → cost sentinel
-UPROLL="$TMP/codex/2026/07/01"; mkdir -p "$UPROLL"
-printf '%s\n' \
- '{"type":"session_meta","payload":{"cwd":"/unpriced/proj","originator":"codex_exec","timestamp":"2026-07-01T10:00:00.000Z"}}' \
- '{"type":"turn_context","model":"totally-unknown-model"}' \
- '{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":9,"cached_input_tokens":0,"output_tokens":9,"reasoning_output_tokens":0}}}}' \
- > "$UPROLL/rollout-2026-07-01T10-00-00-unpriced.jsonl"
-upa="$(CODEX_SESSIONS_DIR="$TMP/codex" codex_window_aggregate /unpriced/proj "$s0" "$e0" "$PRICES")"
+  && ok "CX-7 no raw in window → grounded ZERO codex cost (not [unverified])" || fail "CX-7 usage=$gzu cost=$gzc"
+# unpriced declared model → cost sentinel (tokens stay grounded)
+upa="$(TOUCHSTONE_CODEX_TASKDIR_ROOT="$CROOT" TOUCHSTONE_CODEX_MODEL=totally-unknown codex_window_aggregate "$s0" "$e0" "$PRICES")"
 [ "$(printf '%s' "$upa" | cut -f2)" = "[unverified: model not in price table]" ] \
-  && ok "CX-8 unpriced-model rollout → cost propagates closed-list sentinel" || fail "CX-8 got=$(printf '%s' "$upa" | cut -f2)"
+  && ok "CX-8 unpriced declared model → cost propagates closed-list sentinel" || fail "CX-8 got=$(printf '%s' "$upa" | cut -f2)"
+# no declared model anywhere → 'codex model unknown' sentinel
+und="$(TOUCHSTONE_CODEX_TASKDIR_ROOT="$CROOT" codex_window_aggregate "$s0" "$e0" "$PRICES")"
+[ "$(printf '%s' "$und" | cut -f2)" = "[unverified: codex model unknown]" ] \
+  && ok "CX-8b unresolvable model → [unverified: codex model unknown] (raw stream carries no model)" || fail "CX-8b got=$(printf '%s' "$und" | cut -f2)"
 # CX-9 (Codex H1): absent scan root ≠ scanned-empty → [unverified], NOT grounded zero
-a9="$(CODEX_SESSIONS_DIR="$TMP/does-not-exist" codex_window_aggregate /synthetic/project "$s0" "$e0" "$PRICES")"
+a9="$(TOUCHSTONE_CODEX_TASKDIR_ROOT="$TMP/does-not-exist" codex_window_aggregate "$s0" "$e0" "$PRICES")"
 [ "$(printf '%s' "$a9" | cut -f2)" = "[unverified: codex artifact absent]" ] \
-  && ok "CX-9 absent CODEX_SESSIONS_DIR → [unverified] (not fabricated grounded zero)" || fail "CX-9 got=$(printf '%s' "$a9" | cut -f2)"
-# CX-10 (Codex H2): matched-but-malformed rollout (no token_count) → poisons the leg
-BADR="$TMP/badroll/2026/07/01"; mkdir -p "$BADR"
-printf '%s\n' \
- '{"type":"session_meta","payload":{"cwd":"/bad/proj","originator":"codex_exec","timestamp":"2026-07-01T10:00:00.000Z"}}' \
- '{"type":"turn_context","model":"gpt-5-codex"}' > "$BADR/rollout-2026-07-01T10-00-00-nomcount.jsonl"
-a10="$(CODEX_SESSIONS_DIR="$TMP/badroll" codex_window_aggregate /bad/proj "$s0" "$e0" "$PRICES")"
-[ "$(printf '%s' "$a10" | cut -f2)" = "[unverified: malformed meta codex-rollout]" ] \
-  && ok "CX-10 matched-but-malformed rollout → poisons codex leg [unverified]" || fail "CX-10 got=$(printf '%s' "$a10" | cut -f2)"
-# CX-11 (Codex H2): good + bad rollout mix → poisoned total, never a partial sum
-MIX="$TMP/mixroll/2026/07/01"; mkdir -p "$MIX"
-printf '%s\n' \
- '{"type":"session_meta","payload":{"cwd":"/mix/proj","originator":"codex_exec","timestamp":"2026-07-01T10:00:00.000Z"}}' \
- '{"type":"turn_context","model":"gpt-5-codex"}' \
- '{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":10,"cached_input_tokens":0,"output_tokens":10,"reasoning_output_tokens":0}}}}' \
- > "$MIX/rollout-2026-07-01T10-00-00-good.jsonl"
-printf '%s\n' \
- '{"type":"session_meta","payload":{"cwd":"/mix/proj","originator":"codex_exec","timestamp":"2026-07-01T10:00:05.000Z"}}' \
- '{"type":"turn_context","model":"gpt-5-codex"}' > "$MIX/rollout-2026-07-01T10-00-05-bad.jsonl"
-a11="$(CODEX_SESSIONS_DIR="$TMP/mixroll" codex_window_aggregate /mix/proj "$s0" "$e0" "$PRICES")"
-[ "$(printf '%s' "$a11" | cut -f2)" = "[unverified: malformed meta codex-rollout]" ] \
-  && ok "CX-11 good+bad rollout mix → poisoned (no partial sum claimed)" || fail "CX-11 got=$(printf '%s' "$a11" | cut -f2)"
+  && ok "CX-9 absent scan root → [unverified] (not fabricated grounded zero)" || fail "CX-9 got=$(printf '%s' "$a9" | cut -f2)"
+# CX-10 (Codex H2): matched-but-malformed raw (no turn.completed) → poisons the leg
+BADC="$TMP/badcroot/research/task-b"; mkdir -p "$BADC"
+printf '{"type":"thread.started","thread_id":"t-2"}\n' > "$BADC/raw_codex.jsonl"
+set_mtime "$BADC/raw_codex.jsonl" $(( s0 + 3600 ))
+a10="$(TOUCHSTONE_CODEX_TASKDIR_ROOT="$TMP/badcroot" TOUCHSTONE_CODEX_MODEL=gpt-5-codex codex_window_aggregate "$s0" "$e0" "$PRICES")"
+[ "$(printf '%s' "$a10" | cut -f2)" = "[unverified: malformed meta codex-raw]" ] \
+  && ok "CX-10 matched-but-malformed raw → poisons codex leg [unverified]" || fail "CX-10 got=$(printf '%s' "$a10" | cut -f2)"
+# CX-11 (Codex H2): good + bad raw mix → poisoned total, never a partial sum
+MIXC="$TMP/mixcroot/research"; mkdir -p "$MIXC/good" "$MIXC/bad"
+printf '{"type":"turn.completed","usage":{"input_tokens":10,"cached_input_tokens":0,"output_tokens":10,"reasoning_output_tokens":0}}\n' > "$MIXC/good/raw_codex.jsonl"
+printf '{"type":"thread.started","thread_id":"t-3"}\n' > "$MIXC/bad/raw_codex.jsonl"
+set_mtime "$MIXC/good/raw_codex.jsonl" $(( s0 + 3600 ))
+set_mtime "$MIXC/bad/raw_codex.jsonl" $(( s0 + 3700 ))
+a11="$(TOUCHSTONE_CODEX_TASKDIR_ROOT="$TMP/mixcroot" TOUCHSTONE_CODEX_MODEL=gpt-5-codex codex_window_aggregate "$s0" "$e0" "$PRICES")"
+[ "$(printf '%s' "$a11" | cut -f2)" = "[unverified: malformed meta codex-raw]" ] \
+  && ok "CX-11 good+bad raw mix → poisoned (no partial sum claimed)" || fail "CX-11 got=$(printf '%s' "$a11" | cut -f2)"
 
 # ==================================================================================
 # V2 NEW — run-manifest windows (build_windows_v2)
@@ -230,25 +210,28 @@ wmf="$(TOUCHSTONE_METRICS_DIR="$MF" build_windows_v2 sess-1 "$nowMF")"; rcmf=$?
 # V2 NEW — per-run rows (build_per_run_rows_v2) end-to-end + honesty spine
 # ==================================================================================
 PR="$TMP/pr"; mkdir -p "$PR/runs"
-# run DR: window [09:59,10:02) contains the synthetic rollout@10:00 (cwd /synthetic/project)
+# run DR: window [09:59,10:02) contains the raw_codex.jsonl mtime@10:00
+PRROOT="$TMP/prroot"; mkdir -p "$PRROOT/research/dr-task"
+cp "$RAW" "$PRROOT/research/dr-task/raw_codex.jsonl"
+set_mtime "$PRROOT/research/dr-task/raw_codex.jsonl" "$(iso_to_epoch 2026-07-01T10:00:00Z)"
 mkmani "$PR" DR design-review sess-1 /synthetic/project 2026-07-01T09:59:00Z
-# run AN: window [10:02,now) — no rollout in /synthetic/project → grounded zero codex
+# run AN: window [10:02,now) — no raw in that window → grounded zero codex
 mkmani "$PR" AN anvil         sess-1 /synthetic/project 2026-07-01T10:02:00Z
 nowPR=$(iso_to_epoch 2026-07-01T10:10:00Z)
-rows="$(TOUCHSTONE_METRICS_DIR="$PR" CODEX_SESSIONS_DIR="$CODEX_FIX" build_per_run_rows_v2 "$PRICES" "" sess-1 "" "$nowPR")"
+rows="$(TOUCHSTONE_METRICS_DIR="$PR" TOUCHSTONE_CODEX_TASKDIR_ROOT="$PRROOT" TOUCHSTONE_CODEX_MODEL=gpt-5-codex build_per_run_rows_v2 "$PRICES" "" sess-1 "" "$nowPR")"
 [ "$(echo "$rows" | jq -s 'length')" = 2 ] && ok "PR-1 one row per manifest" || fail "PR-1 count"
 [ "$(echo "$rows" | jq -s 'map(has("cc_main") or has("costs_aggregate_usd")) | any')" = false ] && ok "PR-2 no per-run row carries a session-level cell" || fail "PR-2 leak"
 [ "$(echo "$rows" | jq -s 'map(has("stage")) | any')" = false ] && ok "PR-3 v2 rows carry skill not stage" || fail "PR-3 stage leaked"
 rowDR="$(echo "$rows" | jq -c 'select(.skill=="design-review")')"
 [ "$(echo "$rowDR" | jq -r .codex.in)" = 3000 ] && [ "$(echo "$rowDR" | jq -r .codex_cost_usd)" = "0.006100" ] \
-  && ok "PR-4 codex leg harvested from rollout + priced" || fail "PR-4 got=$rowDR"
+  && ok "PR-4 codex leg harvested from task_dir raw + priced" || fail "PR-4 got=$rowDR"
 [ "$(echo "$rowDR" | jq -r .wallclock_s)" = 180 ] && ok "PR-5 wallclock DERIVED from window (end-start=180)" || fail "PR-5 wc=$(echo "$rowDR" | jq -r .wallclock_s)"
 # EXACT equality (not grep) so a corrupted/error-string cell fails
 [ "$(echo "$rowDR" | jq -r .cc_subagent)" = "[unverified: subagent usage requires OTel]" ] && ok "PR-6 cc_subagent unverified without OTel" || fail "PR-6 cc=$(echo "$rowDR" | jq -r .cc_subagent)"
 [ "$(echo "$rowDR" | jq -r .dispatch_total_cost_usd)" = "[unverified: subagent usage requires OTel]" ] && ok "PR-7 dispatch_total propagates failing leg's exact reason" || fail "PR-7 total=$(echo "$rowDR" | jq -r .dispatch_total_cost_usd)"
 rowAN="$(echo "$rows" | jq -c 'select(.skill=="anvil")')"
 [ "$(echo "$rowAN" | jq -r .codex.in)" = 0 ] && [ "$(echo "$rowAN" | jq -r .codex_cost_usd)" = 0 ] \
-  && ok "PR-8 no-rollout window → codex GROUNDED ZERO (row kept)" || fail "PR-8 got=$rowAN"
+  && ok "PR-8 no-raw window → codex GROUNDED ZERO (row kept)" || fail "PR-8 got=$rowAN"
 
 # ==================================================================================
 # V2 NEW — by-agent rollup superset (build_session_summary paired with v2 per-run subset)
@@ -259,12 +242,12 @@ printf '%s\n' \
  '{"name":"claude_code.api_request","query_source":"agent:builtin:reviewer","session_id":"SES","agent_name":"reviewer","tokens":50,"cost_usd":0.05,"ts":1200}' \
  '{"name":"claude_code.api_request","query_source":"agent:builtin:sdd-task","session_id":"SES","agent_name":"sdd-task","tokens":400,"cost_usd":0.40,"ts":9999}' \
  '{"name":"claude_code.api_request","query_source":"main","session_id":"SES","agent_name":"orch","tokens":1,"cost_usd":0.01,"ts":1000}' > "$sumcol_otel"
-sum="$(build_session_summary "$tr" "$co" "$sumcol_otel" SES "")"
+sum="$(build_session_summary "$tr" "$sumcol_otel" SES "")"
 echo "$sum" | jq -e '.by_agent[] | select(.agent_name=="sdd-task")' >/dev/null && ok "AC-27 rollup captures non-composite subagent" || fail "AC-27 missing sdd-task"
 rv="$(echo "$sum" | jq -c '.by_agent[] | select(.agent_name=="reviewer")')"
 [ "$(echo "$rv" | jq -r .tokens)" = 150 ] && [ "$(echo "$rv" | jq -r .event_count)" = 2 ] && [ "$(echo "$rv" | jq -r .wall_span_s)" = 200 ] && ok "AC-29 per-agent envelope span + count" || fail "AC-29 got=$rv"
 echo "$sum" | jq -e '.by_agent[] | select(.agent_name=="orch")' >/dev/null && fail "AC-27 main leaked into rollup" || ok "AC-27 main excluded from rollup"
-sum2="$(build_session_summary "$tr" "$co" "" SES "")"
+sum2="$(build_session_summary "$tr" "" SES "")"
 echo "$sum2" | jq -r '.by_agent' | grep -q "subagent usage requires OTel" && ok "AC-27 no sink → rollup unverified" || fail "AC-27 no-sink leak"
 # AC-28: rollup is a COMPLETE superset of the window-bounded per-run subset, never summed.
 # manifest window [1000,1300) bounds reviewer events (ts 1000,1200) but EXCLUDES sdd-task (ts 9999).
@@ -280,14 +263,14 @@ badts="$TMP/otel_badts.jsonl"
 printf '%s\n' \
  '{"name":"claude_code.api_request","query_source":"agent:builtin:reviewer","session_id":"SES","agent_name":"reviewer","tokens":10,"cost_usd":0.01,"ts":"not-a-number"}' \
  '{"name":"claude_code.api_request","query_source":"agent:builtin:reviewer","session_id":"SES","agent_name":"reviewer","tokens":10,"cost_usd":0.01,"ts":1000}' > "$badts"
-sum3="$(build_session_summary "$tr" "$co" "$badts" SES "")"
+sum3="$(build_session_summary "$tr" "$badts" SES "")"
 [ "$(echo "$sum3" | jq -r '.by_agent[] | select(.agent_name=="reviewer") | .wall_span_s')" = "[unverified: malformed OTel timestamp]" ] \
   && ok "AC-29 malformed OTel ts → wall_span_s unverified" || fail "AC-29 got=$(echo "$sum3" | jq -rc '.by_agent')"
 
 # ==================================================================================
 # V2 NEW — main CLI end-to-end + OTel diagnostics (v2 signature) + usage errors
 # ==================================================================================
-out="$(TOUCHSTONE_METRICS_DIR="$PR" CODEX_SESSIONS_DIR="$CODEX_FIX" bash "$TOOL" --session-id sess-1 --now "$nowPR" 2>/dev/null)"
+out="$(TOUCHSTONE_METRICS_DIR="$PR" TOUCHSTONE_CODEX_TASKDIR_ROOT="$PRROOT" TOUCHSTONE_CODEX_MODEL=gpt-5-codex bash "$TOOL" --session-id sess-1 --now "$nowPR" 2>/dev/null)"
 echo "$out" | jq -e 'select(.skill=="design-review")' >/dev/null && ok "CLI-1 main enumerates manifest-stamped runs" || fail "CLI-1 no run row"
 # --- AC-11: no --otel → visible warning pointing to README ---
 warn="$(TOUCHSTONE_METRICS_DIR="$PR" bash "$TOOL" --session-id sess-1 --now "$nowPR" 2>&1 >/dev/null)"
@@ -393,14 +376,60 @@ SL="$TMP/sl"; mkdir -p "$SL" "$TMP/sl-target"; ln -s "$TMP/sl-target" "$SL/runs"
 printf '{"session_id":"x","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvil"}' | TOUCHSTONE_METRICS_DIR="$SL" bash "$HOOK"; rc=$?
 [ "$rc" -eq 0 ] && [ -z "$(find "$TMP/sl-target" -name '*.json' 2>/dev/null)" ] \
   && ok "HK-7 symlinked runs dir → hook bails (exit 0, nothing written through symlink)" || fail "HK-7 wrote through symlink or nonzero (rc=$rc)"
+# HK-15: manifest carries ended_at:null + nullable epic_slug at stamp time; TOUCHSTONE_EPIC_SLUG env fills it
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvil"}' \
+  | TOUCHSTONE_METRICS_DIR="$HKD" TOUCHSTONE_EPIC_SLUG=demo bash "$HOOK"
+hm15="$(manifest)"
+[ "$(jq -r '.ended_at' "$hm15")" = null ] && [ "$(jq -r '.epic_slug' "$hm15")" = demo ] \
+  && ok "HK-15 stamp writes ended_at:null + epic_slug from env" || fail "HK-15 $(cat "$hm15" 2>/dev/null)"
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvil"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ "$(jq -r '.epic_slug' "$(manifest)")" = null ] && ok "HK-15b no env → epic_slug null (declared, never guessed)" || fail "HK-15b"
+
+# HK-16: expanded gate set — insight / code-review / epic-driven-roadmap stamp; close arg rides along
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/touchstone:epic-driven-roadmap close"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ "$(jq -r .skill "$(manifest)" 2>/dev/null)" = epic-driven-roadmap ] && ok "HK-16 epic-driven-roadmap close stamps" || fail "HK-16"
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"PreToolUse","tool_name":"Skill","tool_input":{"skill":"touchstone:insight"}}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ "$(jq -r .skill "$(manifest)" 2>/dev/null)" = insight ] && ok "HK-16b insight auto-invoke stamps" || fail "HK-16b"
+
+# SE-1: stamp-end fills ended_at on the newest open manifest; BW honors it as the window end
+SED="$TMP/se"; mkdir -p "$SED/runs"
+jq -nc '{schema:"run-manifest/v1",run_id:"SE1",skill:"anvil",session_id:"se-sess",cwd:"/p",started_at:"2026-07-01T10:00:00Z",ended_at:null,epic_slug:null}' > "$SED/runs/SE1.json"
+TOUCHSTONE_METRICS_DIR="$SED" CLAUDE_CODE_SESSION_ID=se-sess bash "$REPO_ROOT/scripts/metrics/stamp-end.sh"
+se_ea="$(jq -r '.ended_at' "$SED/runs/SE1.json")"
+[ "$se_ea" != null ] && [ -n "$se_ea" ] && ok "SE-1 stamp-end fills ended_at on the open manifest" || fail "SE-1 ended_at=$se_ea"
+# BW-7: a stamped ended_at bounds the window instead of report-time now
+jq '.ended_at = "2026-07-01T10:03:00Z"' "$SED/runs/SE1.json" > "$SED/runs/SE1.json.tmp" && mv "$SED/runs/SE1.json.tmp" "$SED/runs/SE1.json"
+nowSE=$(iso_to_epoch 2026-07-01T11:00:00Z)
+wse="$(TOUCHSTONE_METRICS_DIR="$SED" build_windows_v2 se-sess "$nowSE")"
+sedur="$(printf '%s\n' "$wse" | awk -F'\t' '$1=="SE1"{print $3-$2}')"
+[ "$sedur" = 180 ] && ok "BW-7 valid ended_at wins over the next-START/now heuristic (180s)" || fail "BW-7 dur=$sedur"
+# BW-7b: malformed ended_at falls back to the heuristic
+jq '.ended_at = "not-a-date"' "$SED/runs/SE1.json" > "$SED/runs/SE1.json.tmp" && mv "$SED/runs/SE1.json.tmp" "$SED/runs/SE1.json"
+wse2="$(TOUCHSTONE_METRICS_DIR="$SED" build_windows_v2 se-sess "$nowSE")"
+sedur2="$(printf '%s\n' "$wse2" | awk -F'\t' '$1=="SE1"{print $3-$2}')"
+[ "$sedur2" = 3600 ] && ok "BW-7b malformed ended_at → heuristic end (now)" || fail "BW-7b dur=$sedur2"
+
+# SE-2: stage-event appends a well-formed stage-event/v1 line, never blocks
+TOUCHSTONE_METRICS_DIR="$SED" bash "$REPO_ROOT/scripts/metrics/stage-event.sh" plan-review start
+TOUCHSTONE_METRICS_DIR="$SED" bash "$REPO_ROOT/scripts/metrics/stage-event.sh" plan-review end
+se_n="$(grep -c . "$SED/events.jsonl" 2>/dev/null)"
+se_ok="$(jq -s '[ .[] | select(.schema=="stage-event/v1" and .stage=="plan-review") ] | length' "$SED/events.jsonl" 2>/dev/null)"
+[ "$se_n" = 2 ] && [ "$se_ok" = 2 ] && ok "SE-2 stage-event appends start+end stage-event/v1 lines" || fail "SE-2 n=$se_n ok=$se_ok"
+TOUCHSTONE_METRICS_DIR="$SED" bash "$REPO_ROOT/scripts/metrics/stage-event.sh" bogus middle; rc=$?
+[ "$rc" -eq 0 ] && [ "$(grep -c . "$SED/events.jsonl")" = 2 ] && ok "SE-2b invalid boundary → silent no-op exit 0" || fail "SE-2b rc=$rc"
+
 # HK-4: hooks.json valid + registers exactly the two LIVE paths (UserPromptSubmit + PreToolUse/Skill)
 HJ="$REPO_ROOT/hooks/hooks.json"
 jq empty "$HJ" 2>/dev/null && ok "HK-4 hooks.json is valid JSON" || fail "HK-4 hooks.json invalid"
 events="$(jq -r '.hooks | keys[]' "$HJ" | sort | tr '\n' ',')"
-[ "$events" = "PreToolUse,UserPromptSubmit," ] && ok "HK-5 registers UserPromptSubmit + PreToolUse only (no dead UserPromptExpansion)" || fail "HK-5 events=$events"
+[ "$events" = "PreToolUse,SessionStart,UserPromptSubmit," ] && ok "HK-5 registers SessionStart + UserPromptSubmit + PreToolUse only" || fail "HK-5 events=$events"
 [ "$(jq -r '.hooks.PreToolUse[0].matcher' "$HJ")" = Skill ] && ok "HK-5b PreToolUse matcher=Skill (auto-invoke path)" || fail "HK-5b wrong matcher"
-jq -e '[.. | objects | select(has("command")) | .command | (test("stamp-run.sh") or test("run-project-checks.sh"))] | all' "$HJ" >/dev/null \
-  && ok "HK-6 every hook command invokes a known touchstone hook script (stamp-run / run-project-checks)" || fail "HK-6 command wiring"
+jq -e '[.. | objects | select(has("command")) | .command | (test("stamp-run.sh") or test("run-project-checks.sh") or test("session-start-observability.sh"))] | all' "$HJ" >/dev/null \
+  && ok "HK-6 every hook command invokes a known touchstone hook script (stamp-run / run-project-checks / session-start-observability)" || fail "HK-6 command wiring"
 
 # ==================================================================================
 # AC-23 (live-bearing) + REAL-DATA FIDELITY — committed real OTel fixture
@@ -420,7 +449,7 @@ if [ -f "$OTEL_FIX" ]; then
   printf '%s' "$sub_ev" | jq -e '(.tokens | type) == "number" and (.cost_usd | type) == "number"' >/dev/null 2>&1 && ok "REAL-4 tokens/cost_usd numeric" || fail "REAL-4 $sub_ev"
   scoped_real="$(otel_scoped_events "$OTEL_FIX" "$REAL_SID" "")"
   [ -n "$scoped_real" ] && ok "REAL-5 otel_scoped_events auto-detects OTLP + scopes real session" || fail "REAL-5 none"
-  sum_real="$(build_session_summary "$tr" "$co" "$OTEL_FIX" "$REAL_SID" "")"
+  sum_real="$(build_session_summary "$tr" "$OTEL_FIX" "$REAL_SID" "")"
   printf '%s' "$sum_real" | jq -e '.by_agent | type == "array"' >/dev/null 2>&1 && ok "REAL-6 by_agent is real JSON array (not [unverified])" || fail "REAL-6 $(printf '%s' "$sum_real" | jq -r '.by_agent')"
   real_agent="$(printf '%s' "$sum_real" | jq -r '.by_agent[0].agent_name // empty')"
   [ -n "$real_agent" ] && ok "REAL-6b by_agent[0].agent_name=$real_agent (real subagent end-to-end)" || fail "REAL-6b none"

@@ -1,3 +1,5 @@
 # retired terms — one per line; the pre-commit checker check-retired-terms.sh
 # blocks any tracked-file occurrence outside docs/adr/ and the ledger family.
 # Register a term here whenever a rename/retirement ships; never remove lines.
+# (Checker currently revoked as idle — re-install via /touchstone:insight when
+# a rename actually ships; this registry is the durable data either way.)
