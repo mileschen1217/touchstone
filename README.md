@@ -52,6 +52,9 @@ Without `everything-claude-code`, the language-specific code reviewers and the `
 ## Skills
 
 - `touchstone:init` — Bootstrap project adoption with `.claude/touchstone.yaml`.
+- `touchstone:crucible` — Front-end contract orchestrator: brainstorm → grill → explore → keystone → design-spec, one human accept.
+- `touchstone:anvil` — Back-end contract executor: plan → plan-review → SDD build → final cross-vendor review, stops before ship.
+- `touchstone:insight` — Workflow-improvement loop: ledger digest → proposals → human ruling → checker install/retire.
 - `touchstone:keystone` — Structural-commitment skill: decide and record a durability bet over code, docs, or suite structure.
 - `touchstone:design-spec` — Author spec: Problem → Scope → AC (GWT) → Architecture → Interfaces.
 - `touchstone:design-review` — Gate spec/plan/ADR before Build (Pattern A).
@@ -105,7 +108,7 @@ Command classification is best-effort regex on the command string. **KNOWN-LIMIT
 - `cd <path> && git commit …` — the pre-command `cd` prefix prevents reliable repo-root resolution.
 - `git cherry-pick`, `git revert`, `git merge` — excluded by design (not standard commit/push forms).
 
-An unrecognised commit variant silently skips its checks, so the covered command forms are enumerated in the hook and a meta-check guards the classifier itself. See [ADR-0029](docs/adr/0029-review-catch-mechanisation-enforcement-locus.md) for the full decision and alternatives considered.
+An unrecognised commit variant silently skips its checks, so the covered command forms are enumerated in the hook and a meta-check guards the classifier itself. See [ADR-0029](docs/adr/0029-repo-local-git-hooks-not-shipped.md) for the full decision and alternatives considered.
 
 ## OTel setup (for CC-subagent figures)
 
@@ -165,8 +168,8 @@ comes from OTel, Codex cost from `~/.codex/sessions`, and any cell that can't be
 
 ## Status
 
-`0.2.0`. Experimental. Used by the author on one project across ~30 sessions. Cross-project portability is unverified — see `docs/comparisons.md` for scope boundaries.
+`0.15.0` (see `.claude-plugin/plugin.json` for the current version). Experimental. Used by the author on one project. Cross-project portability is unverified — see `docs/comparisons.md` for scope boundaries.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT (LICENSE file not yet committed).

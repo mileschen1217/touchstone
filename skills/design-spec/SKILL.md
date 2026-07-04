@@ -118,13 +118,6 @@ Inputs to collect + the drafting workflow (template read, AC-sharpening from Fou
 /touchstone:design-spec <feature-name>           # skip name prompt
 ```
 
-## Status Lifecycle (intentionally minimal)
-
-Specs are written as `Status: Draft`. Crucible then writes `accepted-candidate`
-before the consolidated `/touchstone:design-review` gate runs. Transition to
-`accepted` is the human-governed terminal accept after a clean design-review.
-The skill does not manage lifecycle beyond producing the Draft.
-
 ## Related
 
 - Bundled template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md`.

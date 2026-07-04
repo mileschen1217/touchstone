@@ -59,6 +59,10 @@ dispositions), not at the instrument's concept.
 3. **keystone absorbs into the skill at fixation time** (the structural fork
    becomes one case of the readiness fork; the ADR fields flip-trigger /
    bet-owner / assumptions carry over).
+   Placement: the interview wires into crucible's chain AFTER grill-with-docs
+   and the explore phase — it consumes their outputs (vocabulary alignment,
+   grounded known-unknowns) and cannot surface assumptions about a map that
+   has not been drawn. It is not a Stage-0 pre-step.
 4. The honest ceiling stands: the interview NARROWS unknown-unknowns, never
    proves them zero; feedback-lens retirement keyed to interview coverage
    still requires observed fire-rate decline (the insight loop's R2), never

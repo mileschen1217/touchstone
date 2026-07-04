@@ -40,7 +40,6 @@ If `codex_healthy=1`, in ONE message issue BOTH:
 
 - `Agent(subagent_type: "everything-claude-code:code-reviewer", description: "CC review", prompt: <task envelope with system_prompt prefix>, model: "sonnet")`  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
 
-  The `model: "sonnet"` is explicit, not inherited from ECC's default — m-* family routes review through Sonnet by policy.
 - `Agent(subagent_type: "touchstone:codex-reviewer", description: "Codex review", prompt: <task envelope>)`
 
 Wait for both to return before synthesizing.
@@ -62,9 +61,8 @@ alongside. Never silently merge.
 
 ### 4. Compute provenance, prepend banners, write artifacts
 
-All field definitions, the correctness operations, the banner formats/ordering, and
-the no-derived-fields rule live SOLELY in `references/provenance.md`. This body gives
-only the ACTIONS; it restates none of those definitions.
+Field definitions, correctness operations, banner formats/ordering, and the
+no-derived-fields rule: `references/provenance.md` (sole source).
 
 1. Record `providers_expected` and `providers_used` for THIS invocation per
    provenance.md. `builder_vendor` is null (Pattern A has no builder).
@@ -89,12 +87,7 @@ Skill body's final assistant text: the synthesized review.md content. The orches
 - Both reviewers fail → no synthesis; surface as failure and record provenance per `references/provenance.md`.
 - Skill itself errors (framework) → propagate to caller.
 
-## Cost note
-
-Pattern A — ~2× tokens per invocation. Only invoked at high-leverage gates: doc review (`/touchstone:design-review`), structural commitment (`/touchstone:keystone`), design spec (`/touchstone:design-spec`), or ad-hoc opt-in for high-risk diffs.
-
 ## Dependencies
 
-- `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — CC review backend. Epic B vendors or makes optional.
+- `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — CC review backend; invoked at the high-leverage gates only (design-review / structural commitment (`/touchstone:keystone`) / design-spec).
 - `touchstone:codex-reviewer` (plugin-local) — Codex review backend.
-- CC-only fallback: if a provider is absent, run the available provider(s), write `review.result.json` with the resulting `providers_used` / `fallback_reason`, and prepend the DEGRADED banner per `references/provenance.md`; if BOTH absent → no synthesis, surfaced as failure (envelope still written per provenance.md).

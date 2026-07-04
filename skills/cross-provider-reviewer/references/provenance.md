@@ -1,6 +1,6 @@
 # Dispatch provenance — canonical reference
 
-Sole canonical home of the `review-envelope/v1` contract (per E14 spec §C2 and
+Sole canonical home of the `review-envelope/v1` contract (per
 CONTEXT.md § Dispatch provenance "canonical contract: provenance.md wins").
 The `cross-provider-reviewer`, `cross-provider-architect`, and `code-review`
 skill bodies, and the `codex-reviewer` / `codex-adversarial-reviewer` agents,

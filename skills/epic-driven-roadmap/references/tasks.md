@@ -22,7 +22,7 @@ A task contract is a unit of cohesive change that an executor (CC subagent, Code
 **One contract may bundle multiple file edits when:**
 
 - Edits are tightly coupled (signature change ripples through callers; rename and its references; struct field add and its serializer).
-- The pattern is the same across all files (e.g., "add stacking-aware bound to plugin schema, applied identically to `config_ifmib.rs` and `config_mxport.rs`"). Treat as one contract with the pattern stated once and the file list as a parameter.
+- The pattern is the same across all files (one schema rule applied identically across N config files). Treat as one contract with the pattern stated once and the file list as a parameter.
 - Local helper plus its only caller — no point splitting if the helper has no other client.
 
 **Split into multiple contracts when:**
@@ -42,7 +42,7 @@ A task contract is a unit of cohesive change that an executor (CC subagent, Code
 **Distribution across executors.** When the plan mixes CC orchestration and Codex implementation:
 
 - Code change with clear contract + standard tooling (cargo build inside repo) → Codex (`codex-implementer` or `codex-tdd`).
-- Code change requiring out-of-sandbox tooling (project-specific build wrappers like `/nos-build-buildroot`, multi-repo commit discipline like `/nos-commit`, live-bench verification) → CC (sonnet hybrid implementer or human).
+- Code change requiring out-of-sandbox tooling (project-specific build wrappers, multi-repo commit ceremonies, live-bench verification) → CC (sonnet hybrid implementer or human).
 - Decision artifacts (ADR, spec revision, retrospective) → CC.
 - Test authoring against live infrastructure → CC (executor needs test-infra context that lives in CC memory).
 - Verification / build / commit → CC orchestrator regardless of who wrote the code.

@@ -68,11 +68,11 @@ Same as `codex-implementer` — `codex exec --json --skip-git-repo-check --sandb
 > 3. If AC requires touching a path outside Scope but not in the off-limits sets, set `status: blocked` with `handoff_notes` naming the path; orchestrator will widen Scope and re-dispatch.
 > 4. Use `observations` liberally for context that doesn't fit summary/risks/handoff_notes — codebase surprises, judgment calls, related coverage gaps, design questions. Don't pre-filter.
 >
-> Write `result.json` to the path specified. Schema (schema_version "1"):
+> Write `result.json` to the path specified. Schema (schema_version "1.1"):
 >
 > ```json
 > {
->   "schema_version": "1",
+>   "schema_version": "1.1",
 >   "task_id": "<from contract frontmatter>",
 >   "role": "tdd",
 >   "runtime": "codex",
@@ -105,9 +105,3 @@ Same as `codex-implementer`:
 - `<task_dir>/result.json` (Codex-written, or synthesized failure if missing)
 
 Return one-line summary: `status=<value>, tests_passed=<value>, duration_ms=<value>`.
-
-## Why this agent exists
-
-Same purpose as `codex-implementer`: validate workflow artifact contract is vendor-portable. This agent validates the **test-writing leg** specifically — does the contract format communicate "what to test" clearly enough for Codex to produce useful tests, or are we relying on CC-specific reading conventions?
-
-Test-plan synthesis (a Pattern A composite pairing CC `tdd` with this agent) is deferred per the spec — synthesis of imperative test code is harder than synthesis of narrative findings. Build that composite only when test-quality complaints surface and the gap is attributable to single-vendor test-writing.

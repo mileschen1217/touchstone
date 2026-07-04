@@ -5,7 +5,7 @@ description: Front-end contract orchestrator — chains brainstorming (condition
 
 # /touchstone:crucible — Front-End Contract Orchestrator
 
-Forges raw intent into a precise, accepted contract in ONE invocation. Chains existing skills; the human accepts once at the end (human accept); hands the accepted contract to the build phase. Auto-invokes neither the build-phase gate nor the build.
+Forges raw intent into a precise, accepted contract in ONE invocation; the human accepts once at the end.
 
 **Applicability boundary:** crucible forges a contract by sharpening intent and then grounding it in the system. **Exploration is a phase of the chain (after grill), not a precondition** — grill sharpens the *what* (intent / vocabulary, against CONTEXT.md / ADRs); explore grounds it in the *how* (the system). Sharpen the what before grounding the how. The one exception is work where you cannot state the intent until you have looked — the router below front-loads exploration for that case.
 

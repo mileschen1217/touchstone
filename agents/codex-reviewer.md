@@ -40,7 +40,7 @@ Invoke Codex via `Bash` with `run_in_background: false` (composite skill body ha
 
 ```bash
 # Intentional: no --sandbox flag. codex DEFAULT sandbox permits git temp writes;
-# nesting `-s read-only` inside Claude Code's outer sandbox blocks them (ADR-0007 § sandbox).
+# nesting `-s read-only` inside Claude Code's outer sandbox blocks them.
 # Review stays read-only by role/prompt, not by codex sandbox. Do NOT add -s read-only.
 timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check "$ROLE_PROMPT
 
@@ -51,7 +51,7 @@ $TASK_TEXT" </dev/null 2>&1
 
 **`</dev/null` is mandatory.** codex 0.125.0 reads stdin even when `[PROMPT]` is supplied as an argument (per `codex exec --help`: "If stdin is piped and a prompt is also provided, stdin is appended as a `<stdin>` block"). The Claude Code Bash tool inherits an open stdin to subprocesses, so without `</dev/null` codex blocks indefinitely waiting for EOF — sleeping at 0% CPU, no network activity, no progress, eventually hitting the 600s timeout. Confirmed hang 2026-05-06 on codex-cli 0.125.0.
 
-Where `$ROLE_PROMPT` is the role-system-prompt (see "Role system prompt" section below) and `$TASK_TEXT` is the task from the envelope. The role is injected via prompt prefix because V0.2 confirmed Codex 0.122.0 ignores `instructions=` in `[profiles.<name>]` blocks AND in `-c instructions=` CLI overrides.
+Where `$ROLE_PROMPT` is the role-system-prompt (see "Role system prompt" section below) and `$TASK_TEXT` is the task from the envelope. The role is injected via prompt prefix because Codex ignores `instructions=` in `[profiles.<name>]` blocks AND in `-c instructions=` CLI overrides.
 
 ## Probe before dispatch
 
@@ -63,12 +63,12 @@ If probe fails: emit a `review.result.json` with `status: failed`, `fallback_rea
 
 ## JSONL parsing
 
-Codex emits one JSON event per line. Per V0.4, success-path events confirmed:
+Codex emits one JSON event per line. Confirmed success-path events:
 - `thread.started`, `turn.started` — informational
 - `item.completed` (with `type: agent_message` and `text` field) — extract text as the review content
 - `turn.completed` (with `usage` object) — final marker
 
-Failure event types are pending V0.6 spike confirmation. Until V0.6 completes, use these defensive checks (update verbatim names after V0.6):
+Failure events (heuristic pattern-match — exact Codex field names are not contractually guaranteed):
 - Event matching `auth.*failed` OR `error.code` containing `auth` → `fallback_reason: "codex auth expired"`, exit 0
 - Event with `type: error` OR `type: turn.failed` → `fallback_reason: "codex error: <event detail>"`, exit 0
 - Event with `type` containing `sandbox` and `violation` → `fallback_reason: "codex permission denied: <details>"`, exit 0

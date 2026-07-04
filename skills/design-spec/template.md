@@ -18,8 +18,7 @@ kill-on: <epic-slug>
 > Set at the Draft Mode Foundation-elicitation phase via elicitation. Full phase version, all three
 > fields — self-contained; must not require reading the parent epic to
 > interpret. If a parent epic exists, its foundation is the starting point;
-> sharpen to this phase's specifics. The spec has no tracker headline, so
-> aim lives here (unlike the epic, where aim lives in the headline).
+> sharpen to this phase's specifics.
 
 - **Intention (why):** <Full motivation: what hurts, what's broken, why
   this work is worth doing now.>
@@ -33,13 +32,13 @@ kill-on: <epic-slug>
 
 ## Source-level Deposit
 
-> Filled by author at draft time. Names the lever (source-level change) this spec advances, or "none" with reason. Per the `source-as-truth` discipline (see `skills/_shared/inject/bridge-content-gate.md`): every feature epic carries a deposit budget so architecture compounds in source rather than prose. Doc Reckoning reads this field at epic close.
+> Filled by author at draft time. Names the lever (source-level change) this spec advances, or "none" with reason. Per the `source-as-truth` discipline (see `skills/_shared/inject/bridge-content-gate.md`): every feature epic carries a deposit budget. Doc Reckoning reads this field at epic close.
 >
 > Skip this section entirely in projects that have NOT adopted the `source-as-truth` discipline — leave the heading off.
 
 - **Lever this spec advances:** `<lever-slug>` — one of the project's lever menu (the menu is per-project; see project ROADMAP. Lever-epic concept defined in CONTEXT.md § Validation rubric (load-bearing)), or `none`.
 - **If `none`:** justify in one sentence (e.g., "pure bug fix, no source-encoding gap exposed" or "lever not yet defined for this RC").
-- **Bridge docs this spec creates (if any):** list paths with `kill-on:` lever each declares. If a doc has no `kill-on:`, justify here (typically: navigation, workflow, or diagnostic — not bridge).
+- **Bridge docs this spec creates (if any):** list paths with `kill-on:` lever each declares. If a doc has no `kill-on:`, justify here with the doc's kind: navigation, workflow, or diagnostic — never bridge.
 - **Bridge docs this spec will retire on landing:** list paths the lever's land deletes.
 - **Three-principle audit (per new bridge doc, per the `source-as-truth` discipline, `skills/_shared/inject/bridge-content-gate.md`):** for each bridge `.md` listed above, answer:
   - **P1 (non-duplication):** what fact does this carry that source does NOT encode? Name the source path(s) checked. **Also reject doc-as-workaround:** if the paragraph exists to explain why dead / duplicative / obsolete source still exists, file a PR to remove the source instead; do not write the paragraph.
@@ -75,7 +74,7 @@ Given/When/Then scenarios — the **outer ATDD loop's contract**. Cover happy pa
 
 The verification layer/mechanism never appears in an AC's Name or Given-When-Then — coverage is derived and `[unverified]` is the only authored marker (no implementation leakage into the contract).
 
-Every AC carries a stable `AC-N` id (1-based, assigned at draft, never reused within a spec) and appears both in the index table and as a `#### AC-N` block nested under its parent `### Requirement: REQ-N`. **No stored AC→test mapping and no per-AC red/green state is kept** — coverage is DERIVED each review pass by the reviewer reading test source (see `docs/adr/0009-evidence-honesty-gate.md`, decision 2c). The ONLY authored per-AC marker is an inline `[unverified: <reason>]` line under an AC's Given/When/Then, with a mandatory non-empty reason; a live-bearing AC (one listed in Verification Strategy) may NOT carry it.
+Every AC carries a stable `AC-N` id (1-based, assigned at draft, never reused within a spec) and appears both in the index table and as a `#### AC-N` block nested under its parent `### Requirement: REQ-N`. **No stored AC→test mapping and no per-AC red/green state is kept** — coverage is DERIVED each review pass by the reviewer reading test source. The ONLY authored per-AC marker is an inline `[unverified: <reason>]` line under an AC's Given/When/Then, with a mandatory non-empty reason; a live-bearing AC (one listed in Verification Strategy) may NOT carry it.
 
 Each requirement is authored as a `### Requirement: REQ-N — <EARS SHALL statement>` heading. The SHALL text adds rule-altitude precision over its parent story (anti-redundancy: a requirement that merely rewords its story is a restatement — apply the Subtraction / SHALL-pass-fail / New-constraint / Quantifier tests from `references/methodology.md`). An unresolved `[NEEDS CLARIFICATION: <q>]` marker on any requirement or AC line blocks the design-review gate — resolve it before the gate runs.
 
@@ -104,7 +103,7 @@ Then <observable outcome>
 > Coarse, risk-scaled — NOT per-AC. ~4–7 lines. States which risk layers this
 > feature needs and which ACs require a live artifact. Read at design-review (presence
 > + live-bearing coherence) and at epic-close (the live-bearing list gates which
-> ACs may NOT be carried as `[unverified]`). See `docs/adr/0009-evidence-honesty-gate.md`.
+> ACs may NOT be carried as `[unverified]`).
 
 - **Risk layers this feature needs:** <unit? integration? contract? e2e? live? perf?>
 - **Power-on-able?** <can the design be exercised at the needed layer; if not, why / what's needed>

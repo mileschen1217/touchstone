@@ -44,7 +44,7 @@ Wait for both to return before synthesizing.
 
 If `codex_healthy=0`, call only `everything-claude-code:architect` (with `model: "sonnet"`) and proceed to synthesis with `fallback_reason: "codex unavailable"`.
 
-The `model: "sonnet"` override on the CC architect dispatch supersedes the agent's `model: opus` frontmatter — m-* family routes architecture work through Sonnet, not Opus, by policy.
+The `model: "sonnet"` override on the CC architect dispatch supersedes the agent's `model: opus` frontmatter — deliberate, not a bug.
 
 ### 3. Synthesis
 
@@ -80,12 +80,7 @@ Skill body's final assistant text: the synthesized review.md content.
 - Skill itself errors (framework) → propagate to caller.
 - The review-envelope is written as `review.result.json`, per `skills/cross-provider-reviewer/references/provenance.md` (sole definition of its fields and rules).
 
-## Cost note
-
-Pattern A — ~2× tokens. Reserved for highest-leverage gates: `/touchstone:keystone` and `/touchstone:design-spec` (architect-review stage).
-
 ## Dependencies
 
-- `everything-claude-code:architect` (ECC, EXTERNAL) — CC validation backend. Epic B vendors or makes optional.
+- `everything-claude-code:architect` (ECC, EXTERNAL) — CC validation backend; reserved for the highest-leverage gates (`/touchstone:keystone`, `/touchstone:design-spec`).
 - `touchstone:codex-adversarial-reviewer` (plugin-local) — Codex adversarial-critique backend.
-- CC-only fallback: if a provider is absent, run the available provider(s), write `review.result.json` with the resulting `providers_used` / `fallback_reason`, and prepend the DEGRADED banner per `skills/cross-provider-reviewer/references/provenance.md`; if BOTH absent → no synthesis, surfaced as failure (envelope still written per that reference).
