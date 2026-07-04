@@ -41,6 +41,10 @@ stage liveness; anything that is not a well-formed DONE is treated as not-done
 - `status=NEEDS_HUMAN` → surface the reason; halt for explicit human ack.
 Escalate, never decide: no silent auto-resolution of a human gate.
 
+Observability (never blocks — the scripts silently no-op on failure): at each
+stage's start and end run
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/metrics/stage-event.sh" <stage> <start|end>`.
+
 Before any stage: verify `superpowers:writing-plans` and
 `superpowers:subagent-driven-development` are in the available-skills list; if
 either is absent, stop and name the missing skill and its source (official
@@ -131,7 +135,9 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/stage-return.sh" final-review "$task_dir"
 
 ## Terminal — reviewed deliverable on a branch
 
-Present the branch name and the final-review result for the human's accept.
+Present the branch name and the final-review result for the human's accept, and
+close this run's metrics window:
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/metrics/stamp-end.sh"`.
 **anvil stops before ship**: never push, open a PR, merge, or release on any code
 path — including BLOCKED and NEEDS_HUMAN halts.
 

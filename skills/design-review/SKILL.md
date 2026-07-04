@@ -151,6 +151,8 @@ Build — even at C+H = 0. A clean review (no banner) skips this checkpoint. Ban
 meaning: `${CLAUDE_PLUGIN_ROOT}/skills/cross-provider-reviewer/references/provenance.md`.
 
 Never auto-promote the artifact's status — the human (or caller skill) decides.
+Close this run's metrics window (silent no-op on failure):
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/metrics/stamp-end.sh"`.
 
 - [ ] C+H tier applied; banner (if any) acknowledged by the human; status untouched.
 

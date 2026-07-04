@@ -376,14 +376,60 @@ SL="$TMP/sl"; mkdir -p "$SL" "$TMP/sl-target"; ln -s "$TMP/sl-target" "$SL/runs"
 printf '{"session_id":"x","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvil"}' | TOUCHSTONE_METRICS_DIR="$SL" bash "$HOOK"; rc=$?
 [ "$rc" -eq 0 ] && [ -z "$(find "$TMP/sl-target" -name '*.json' 2>/dev/null)" ] \
   && ok "HK-7 symlinked runs dir → hook bails (exit 0, nothing written through symlink)" || fail "HK-7 wrote through symlink or nonzero (rc=$rc)"
+# HK-15: manifest carries ended_at:null + nullable epic_slug at stamp time; TOUCHSTONE_EPIC_SLUG env fills it
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvil"}' \
+  | TOUCHSTONE_METRICS_DIR="$HKD" TOUCHSTONE_EPIC_SLUG=demo bash "$HOOK"
+hm15="$(manifest)"
+[ "$(jq -r '.ended_at' "$hm15")" = null ] && [ "$(jq -r '.epic_slug' "$hm15")" = demo ] \
+  && ok "HK-15 stamp writes ended_at:null + epic_slug from env" || fail "HK-15 $(cat "$hm15" 2>/dev/null)"
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/anvil"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ "$(jq -r '.epic_slug' "$(manifest)")" = null ] && ok "HK-15b no env → epic_slug null (declared, never guessed)" || fail "HK-15b"
+
+# HK-16: expanded gate set — insight / code-review / epic-driven-roadmap stamp; close arg rides along
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"UserPromptSubmit","prompt":"/touchstone:epic-driven-roadmap close"}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ "$(jq -r .skill "$(manifest)" 2>/dev/null)" = epic-driven-roadmap ] && ok "HK-16 epic-driven-roadmap close stamps" || fail "HK-16"
+mkfresh
+printf '{"session_id":"s","cwd":"/p","hook_event_name":"PreToolUse","tool_name":"Skill","tool_input":{"skill":"touchstone:insight"}}' | TOUCHSTONE_METRICS_DIR="$HKD" bash "$HOOK"
+[ "$(jq -r .skill "$(manifest)" 2>/dev/null)" = insight ] && ok "HK-16b insight auto-invoke stamps" || fail "HK-16b"
+
+# SE-1: stamp-end fills ended_at on the newest open manifest; BW honors it as the window end
+SED="$TMP/se"; mkdir -p "$SED/runs"
+jq -nc '{schema:"run-manifest/v1",run_id:"SE1",skill:"anvil",session_id:"se-sess",cwd:"/p",started_at:"2026-07-01T10:00:00Z",ended_at:null,epic_slug:null}' > "$SED/runs/SE1.json"
+TOUCHSTONE_METRICS_DIR="$SED" CLAUDE_CODE_SESSION_ID=se-sess bash "$REPO_ROOT/scripts/metrics/stamp-end.sh"
+se_ea="$(jq -r '.ended_at' "$SED/runs/SE1.json")"
+[ "$se_ea" != null ] && [ -n "$se_ea" ] && ok "SE-1 stamp-end fills ended_at on the open manifest" || fail "SE-1 ended_at=$se_ea"
+# BW-7: a stamped ended_at bounds the window instead of report-time now
+jq '.ended_at = "2026-07-01T10:03:00Z"' "$SED/runs/SE1.json" > "$SED/runs/SE1.json.tmp" && mv "$SED/runs/SE1.json.tmp" "$SED/runs/SE1.json"
+nowSE=$(iso_to_epoch 2026-07-01T11:00:00Z)
+wse="$(TOUCHSTONE_METRICS_DIR="$SED" build_windows_v2 se-sess "$nowSE")"
+sedur="$(printf '%s\n' "$wse" | awk -F'\t' '$1=="SE1"{print $3-$2}')"
+[ "$sedur" = 180 ] && ok "BW-7 valid ended_at wins over the next-START/now heuristic (180s)" || fail "BW-7 dur=$sedur"
+# BW-7b: malformed ended_at falls back to the heuristic
+jq '.ended_at = "not-a-date"' "$SED/runs/SE1.json" > "$SED/runs/SE1.json.tmp" && mv "$SED/runs/SE1.json.tmp" "$SED/runs/SE1.json"
+wse2="$(TOUCHSTONE_METRICS_DIR="$SED" build_windows_v2 se-sess "$nowSE")"
+sedur2="$(printf '%s\n' "$wse2" | awk -F'\t' '$1=="SE1"{print $3-$2}')"
+[ "$sedur2" = 3600 ] && ok "BW-7b malformed ended_at → heuristic end (now)" || fail "BW-7b dur=$sedur2"
+
+# SE-2: stage-event appends a well-formed stage-event/v1 line, never blocks
+TOUCHSTONE_METRICS_DIR="$SED" bash "$REPO_ROOT/scripts/metrics/stage-event.sh" plan-review start
+TOUCHSTONE_METRICS_DIR="$SED" bash "$REPO_ROOT/scripts/metrics/stage-event.sh" plan-review end
+se_n="$(grep -c . "$SED/events.jsonl" 2>/dev/null)"
+se_ok="$(jq -s '[ .[] | select(.schema=="stage-event/v1" and .stage=="plan-review") ] | length' "$SED/events.jsonl" 2>/dev/null)"
+[ "$se_n" = 2 ] && [ "$se_ok" = 2 ] && ok "SE-2 stage-event appends start+end stage-event/v1 lines" || fail "SE-2 n=$se_n ok=$se_ok"
+TOUCHSTONE_METRICS_DIR="$SED" bash "$REPO_ROOT/scripts/metrics/stage-event.sh" bogus middle; rc=$?
+[ "$rc" -eq 0 ] && [ "$(grep -c . "$SED/events.jsonl")" = 2 ] && ok "SE-2b invalid boundary → silent no-op exit 0" || fail "SE-2b rc=$rc"
+
 # HK-4: hooks.json valid + registers exactly the two LIVE paths (UserPromptSubmit + PreToolUse/Skill)
 HJ="$REPO_ROOT/hooks/hooks.json"
 jq empty "$HJ" 2>/dev/null && ok "HK-4 hooks.json is valid JSON" || fail "HK-4 hooks.json invalid"
 events="$(jq -r '.hooks | keys[]' "$HJ" | sort | tr '\n' ',')"
-[ "$events" = "PreToolUse,UserPromptSubmit," ] && ok "HK-5 registers UserPromptSubmit + PreToolUse only (no dead UserPromptExpansion)" || fail "HK-5 events=$events"
+[ "$events" = "PreToolUse,SessionStart,UserPromptSubmit," ] && ok "HK-5 registers SessionStart + UserPromptSubmit + PreToolUse only" || fail "HK-5 events=$events"
 [ "$(jq -r '.hooks.PreToolUse[0].matcher' "$HJ")" = Skill ] && ok "HK-5b PreToolUse matcher=Skill (auto-invoke path)" || fail "HK-5b wrong matcher"
-jq -e '[.. | objects | select(has("command")) | .command | (test("stamp-run.sh") or test("run-project-checks.sh"))] | all' "$HJ" >/dev/null \
-  && ok "HK-6 every hook command invokes a known touchstone hook script (stamp-run / run-project-checks)" || fail "HK-6 command wiring"
+jq -e '[.. | objects | select(has("command")) | .command | (test("stamp-run.sh") or test("run-project-checks.sh") or test("session-start-observability.sh"))] | all' "$HJ" >/dev/null \
+  && ok "HK-6 every hook command invokes a known touchstone hook script (stamp-run / run-project-checks / session-start-observability)" || fail "HK-6 command wiring"
 
 # ==================================================================================
 # AC-23 (live-bearing) + REAL-DATA FIDELITY — committed real OTel fixture

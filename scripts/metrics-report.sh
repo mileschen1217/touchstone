@@ -246,16 +246,17 @@ cc_subagent_cell() {
 
 # build_windows_v2 <session_id> <now_epoch> → TSV `run_id<TAB>start<TAB>end<TAB>cwd<TAB>skill`
 # v2 run-manifest window model. Reads ${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs/*.json
-# (run-manifest/v1: run_id, skill, session_id, cwd, started_at — NO ended_at). Sorted by started_at,
-# each run's END = the NEXT run's START (the sequential main loop guarantees the prior gate finished
-# before the user typed the next), and the LAST run's END = <now_epoch> (the report-invocation time —
-# the one open run has no successor). No idle-gap threshold: a slow Codex review can never truncate a
+# (run-manifest/v1: run_id, skill, session_id, cwd, started_at, optional ended_at). Sorted by
+# started_at. A run's END: a valid `ended_at` (parseable, strictly after start — stamped by the
+# gate's terminal step via scripts/metrics/stamp-end.sh) wins; else the NEXT run's START (the
+# sequential main loop guarantees the prior gate finished before the user typed the next); the
+# LAST run's END = <now_epoch>. No idle-gap threshold: a slow Codex review can never truncate a
 # run mid-flight. Only session-matching manifests are windowed.
 build_windows_v2() {
   local sid="$1" now="$2"
   local dir="${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs"
   [ -d "$dir" ] || return 0
-  local sorted m sa rid cwd skill ep
+  local sorted m sa rid cwd skill ep ea eaep
   sorted="$(
     shopt -s nullglob
     for m in "$dir"/*.json; do
@@ -263,15 +264,22 @@ build_windows_v2() {
       # an empty first/second field emits consecutive tabs, and bash `read` with tab-IFS
       # COLLAPSES runs of whitespace-IFS delimiters — fields shift left, so a read-side
       # `[ -n "$rid" ]` guard sees the NEXT column and passes garbage through as a window.
+      # ended_at rides in the LAST column ("-" when absent) so an empty value can never shift fields.
       jq -r --arg sid "$sid" \
         'select((.session_id // "") == $sid or ($sid == ""))
          | select(((.run_id // "") != "") and ((.started_at // "") != ""))
-         | [ .started_at, .run_id, (.cwd // ""), (.skill // "") ] | @tsv' \
+         | [ .started_at, .run_id, (.cwd // ""), (.skill // ""),
+             (if (.ended_at // "") == "" then "-" else .ended_at end) ] | @tsv' \
         "$m" 2>/dev/null
-    done | while IFS=$'\t' read -r sa rid cwd skill; do
+    done | while IFS=$'\t' read -r sa rid cwd skill ea; do
       [ -n "$rid" ] || continue
       ep="$(iso_to_epoch "$sa" 2>/dev/null)" || continue
-      printf '%s\t%s\t%s\t%s\n' "$ep" "$rid" "$cwd" "$skill"
+      eaep="-"
+      if [ "$ea" != "-" ]; then
+        eaep="$(iso_to_epoch "$ea" 2>/dev/null)" || eaep="-"
+        [ -n "$eaep" ] || eaep="-"
+      fi
+      printf '%s\t%s\t%s\t%s\t%s\n' "$ep" "$rid" "$cwd" "$skill" "$eaep"
     done | sort -n
   )"
   [ -n "$sorted" ] || return 0
@@ -279,15 +287,20 @@ build_windows_v2() {
   while IFS= read -r ln; do [ -n "$ln" ] && lines+=("$ln"); done <<< "$sorted"
   local n=${#lines[@]} i j endep nep rest
   for (( i=0; i<n; i++ )); do
-    IFS=$'\t' read -r ep rid cwd skill <<< "${lines[$i]}"
-    # END = the next STRICTLY-GREATER start (not merely the next line). Two gates stamped in the same
-    # whole second thus get overlapping [T, next_distinct) windows → events attribute AMBIGUOUS and are
-    # surfaced as [unverified], never silently handed to the second run via a zero-length first. (Codex M1)
-    endep="$now"
-    for (( j=i+1; j<n; j++ )); do
-      IFS=$'\t' read -r nep rest <<< "${lines[$j]}"
-      if [ "$nep" -gt "$ep" ]; then endep="$nep"; break; fi
-    done
+    IFS=$'\t' read -r ep rid cwd skill eaep <<< "${lines[$i]}"
+    # END precedence: a valid stamped ended_at (strictly > start) wins; else the next
+    # STRICTLY-GREATER start (not merely the next line). Two gates stamped in the same
+    # whole second thus get overlapping [T, next_distinct) windows → events attribute AMBIGUOUS and
+    # are surfaced as [unverified], never silently handed to the second run via a zero-length first.
+    if [ "$eaep" != "-" ] && [ "$eaep" -gt "$ep" ] 2>/dev/null; then
+      endep="$eaep"
+    else
+      endep="$now"
+      for (( j=i+1; j<n; j++ )); do
+        IFS=$'\t' read -r nep rest <<< "${lines[$j]}"
+        if [ "$nep" -gt "$ep" ]; then endep="$nep"; break; fi
+      done
+    fi
     printf '%s\t%s\t%s\t%s\t%s\n' "$rid" "$ep" "$endep" "$cwd" "$skill"
   done
 }

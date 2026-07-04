@@ -38,7 +38,8 @@
 set -u
 
 # Single source of the auto-run gate set (space-delimited; also used to gate-filter both paths).
-GATES="anvil design-spec design-review"
+# epic-driven-roadmap covers scaffold AND close invocations (one gate name, arg-agnostic).
+GATES="anvil design-spec design-review insight code-review epic-driven-roadmap"
 
 command -v jq >/dev/null 2>&1 || exit 0
 payload="$(cat 2>/dev/null || true)"
@@ -91,7 +92,13 @@ mkdir -p "$runs_dir" 2>/dev/null || exit 0
 run_id="$(date +%s%N 2>/dev/null)-$$-${RANDOM}${RANDOM}"
 started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)"
 
+# epic attribution is declared, nullable: $TOUCHSTONE_EPIC_SLUG (set it in the
+# CC process env for an epic-focused session) — never guessed from repo state.
+epic_slug="${TOUCHSTONE_EPIC_SLUG:-}"
+
 # Build with jq so a quoted/odd cwd or session_id can never emit invalid JSON.
+# ended_at starts null; scripts/metrics/stamp-end.sh fills it at a gate's
+# terminal step, and the reporter prefers it over the next-START heuristic.
 jq -nc \
   --arg schema "run-manifest/v1" \
   --arg run_id "$run_id" \
@@ -99,7 +106,10 @@ jq -nc \
   --arg session_id "$session_id" \
   --arg cwd "$cwd" \
   --arg started_at "$started_at" \
-  '{schema:$schema, run_id:$run_id, skill:$skill, session_id:$session_id, cwd:$cwd, started_at:$started_at}' \
+  --arg epic_slug "$epic_slug" \
+  '{schema:$schema, run_id:$run_id, skill:$skill, session_id:$session_id, cwd:$cwd,
+    started_at:$started_at, ended_at:null,
+    epic_slug:(if $epic_slug == "" then null else $epic_slug end)}' \
   > "$runs_dir/$run_id.json" 2>/dev/null || exit 0
 
 exit 0
