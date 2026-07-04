@@ -21,6 +21,14 @@ measurably outperforms the generic reviewer. The test-evidence lens is folded in
 the generic reviewer rather than dispatched separately, precisely because test
 hygiene is *not* such a deep domain. Rationale: ADR-0025.
 
+## Why a generic Sonnet agent on per-commit (not the ECC code-reviewer)
+
+Per-commit is the hot path. Keeping it on a generic Sonnet agent + touchstone's own
+`generic-diff` prompt avoids a hard dependency on the everything-claude-code plugin
+and keeps the per-commit review philosophy under touchstone's control. The dedicated
+cross-vendor agents (`codex-reviewer` / `everything-claude-code:code-reviewer`) come
+in at `batch` (Pattern B), where vendor independence carries the most weight.
+
 ## Dependencies
 
 - `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — used only as the `batch`
