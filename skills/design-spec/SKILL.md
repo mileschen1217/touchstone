@@ -61,10 +61,19 @@ elicitation gate per
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/foundation-gate.md` — read it and
 follow it exactly (reuse check, from-scratch opener, sharpening, synthesise,
 confirm; all canonical emit strings live there). design-spec wraps that gate
-with parent-epic inheritance + a reframe exit. Note: a FRESH invocation whose
-parent epic already has a populated `## Foundation` takes branch a
-(inheritance), NOT a reuse hit — the gate's reuse check applies only within the
-same invocation.
+with an assay consume-or-elicit branch, parent-epic inheritance + a reframe
+exit. Note: a FRESH invocation whose parent epic already has a populated
+`## Foundation` takes branch a (inheritance), NOT a reuse hit — the gate's
+reuse check applies only within the same invocation.
+
+**Consume-or-elicit (checked FIRST, before branches a/b):** when an assay
+record exists for this subject (the crucible chain hands it over; standalone,
+look for `<epics-dir>/<slug>/assay-*-<subject>.md`), consume its guardrail
+head as the confirmed foundation — scope → aim; contract facts + interview
+intent → intention; out-of-scope → out-of-scope — and record it per step g.
+Do NOT run the shared gate: assay is the chain's single human-elicitation
+surface, and its readiness ruling already carries the human's confirm. No
+assay record → elicit via branches a/b below.
 
 **Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section, in three existing sections:
 - `## Foundation` Intention carries the why.
