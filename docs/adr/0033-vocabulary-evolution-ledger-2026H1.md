@@ -63,3 +63,30 @@ current rule.
   exactly one home (this ledger + the per-decision ADRs it cites).
 - Future vocabulary supersessions append a dated entry to an ADR (this batch
   pattern or a dedicated one), never a parenthetical in `CONTEXT.md`.
+
+## Addendum — 2026-07-06 gate re-audit (entries 8–9)
+
+8. **Four-role activation taxonomy retired from `CONTEXT.md`** (2026-07-06):
+   the Skill / Mode / Discipline / Baseline block (structural roles table,
+   classification flow, agency rationale, current inventory, fire ordering)
+   was consumption-audited as orphan — no live surface routed a reader to it,
+   and its example row cited the since-retired `grill-with-docs` skill. The
+   decision content it carried, for the record: cross-cutting behaviour is
+   classified by activation scope (per-invocation Skill / per-session Mode /
+   per-project Discipline via `.claude/touchstone.yaml` `adopted_disciplines:`
+   / per-plugin Baseline); the classifying question is who has agency over
+   the toggle; scope-framing fires before content-rules (intention-first →
+   source-as-truth → active Modes). The mechanisms all remain live
+   (config-resolver, `adopted_disciplines`, the skills themselves) — only the
+   taxonomy prose leaves `CONTEXT.md`. `§ Honesty spine` keeps its "not an
+   activation scope of its own" clause without the table.
+9. **Epic-tracker projection vocabulary retired from `CONTEXT.md`**
+   (2026-07-06): the section duplicated the live home —
+   `skills/epic-driven-roadmap/README.md` "Portability model" + ADR-0024 —
+   which is what actual readers hit (consumption audit found zero inbound
+   references to the CONTEXT.md copy). The terms (agent-as-universal-shim,
+   projection, reconciliation, field-location mapping, canonical minimum)
+   continue to live there; single-home collapse, no semantic change.
+   ("Three layers of knowledge" was also pruned the same day as a pure
+   orphan — navigation/bridge/source trust levels remain derivable from
+   `§ Four doc kinds` + `§ Bridge content gate`; no decision content lost.)
