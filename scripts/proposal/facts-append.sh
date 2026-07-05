@@ -144,8 +144,8 @@ validate_resolution() {
   local has_proof; has_proof="$(echo "$e" | jq -r 'has("proof")')"
   if [ "$kind" = "installed" ]; then
     local proof_ok
-    proof_ok="$(echo "$e" | jq -r '(.proof // {}) | has("fire_exit") and has("pass_exit") and has("checked_at") and has("installed_path")')"
-    [ "$proof_ok" = "true" ] || { verr "kind=installed requires proof {fire_exit,pass_exit,checked_at,installed_path} (field: proof)"; return 1; }
+    proof_ok="$(echo "$e" | jq -r '(.proof // {}) | has("installed_path")')"
+    [ "$proof_ok" = "true" ] || { verr "kind=installed requires proof {installed_path} (field: proof)"; return 1; }
   else
     [ "$has_proof" = "false" ] || { verr "proof is forbidden unless kind=installed (field: proof)"; return 1; }
   fi

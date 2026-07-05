@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# install.sh suite: guards, two-sided self-proof, rollback + triage, revoke.
-# Spec joins: AC-13, AC-14, AC-15, AC-16, AC-25, AC-26, AC-27.
-# The hook under proof is the REAL hooks/run-project-checks.sh.
+# install.sh suite: guards, copy + one installed fact, rollback on fact-append
+# failure, revoke. Spec joins: AC-13, AC-16, AC-26, AC-27.
 # shellcheck disable=SC2015
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -25,22 +24,13 @@ mkworld() {
   echo "$r"
 }
 
-# mksidecar <repo> <pid> <stage> <check-body-file> — sidecar with the standard
-# fire fixture (scratch repo carrying an OFFENDING marker file)
+# mksidecar <repo> <pid> <stage> <check-body-file> — minimal sidecar
+# (draft-check.sh + proposal.md; no fire fixture — the rail is copy + fact)
 mksidecar() {
   local r="$1" pid="$2" stage="$3" body="$4"
   local s="$r/.touchstone/ledger/proposals/$pid"; mkdir -p "$s"
   printf -- '---\nstage: %s\ncheck_name: probe\n---\nmechanism prose\n' "$stage" > "$s/proposal.md"
   cp "$body" "$s/draft-check.sh"
-  cat > "$s/fire-fixture.sh" <<'EOS'
-#!/usr/bin/env bash
-set -eu
-T="$(mktemp -d)"
-git -C "$T" init -q
-git -C "$T" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
-touch "$T/OFFENDING"
-git -C "$T" rev-parse --show-toplevel
-EOS
 }
 
 # mkprop <repo> <pid> [scope] [unit_type] — proposal fact + accepted fact
@@ -64,7 +54,7 @@ run_install() { # <repo> <args...>
 }
 lastres() { tail -1 "$1/.touchstone/ledger/resolutions.jsonl"; }
 
-# the standard well-behaved check: bites iff OFFENDING exists in the repo
+# the standard check body (content irrelevant to the rail — never executed here)
 GOOD="$TMP/good-check.sh"
 cat > "$GOOD" <<'EOS'
 #!/usr/bin/env bash
@@ -76,7 +66,7 @@ fi
 exit 0
 EOS
 
-# --- AC-13: happy path — write, chmod, two-sided proof, fact ---
+# --- AC-13: happy path — write, chmod, one installed fact ---
 R1="$(mkworld happy)"
 mkprop "$R1" p1; accept "$R1" p1; mksidecar "$R1" p1 pre-commit "$GOOD"
 run_install "$R1" p1 >/dev/null 2>&1 && ok "AC-13 install exits 0" || fail "AC-13 rc"
@@ -85,11 +75,9 @@ TGT="$R1/.touchstone/checker/pre-commit/check-probe.sh"
 [ -x "$TGT" ] && ok "AC-13 mode is executable" || fail "AC-13 mode"
 F="$(lastres "$R1")"
 [ "$(echo "$F" | jq -r .kind)" = installed ] && ok "AC-13 installed fact" || fail "AC-13 fact kind"
-[ "$(echo "$F" | jq -r .proof.fire_exit)" = 2 ] && [ "$(echo "$F" | jq -r .proof.pass_exit)" = 0 ] \
-  && ok "AC-13 proof carries both exit codes" || fail "AC-13 proof exits"
 [ "$(echo "$F" | jq -r .proof.installed_path)" = ".touchstone/checker/pre-commit/check-probe.sh" ] \
-  && ok "AC-13 proof names installed path" || fail "AC-13 proof path"
-echo "$F" | jq -e '.proof.checked_at' >/dev/null && ok "AC-13 proof timestamped" || fail "AC-13 ts"
+  && ok "AC-13 fact names installed path" || fail "AC-13 fact path"
+cmp -s "$GOOD" "$TGT" && ok "AC-13 installed content is the sidecar draft" || fail "AC-13 content"
 
 # --- AC-26: refuse without accepted fact ---
 R2="$(mkworld noaccept)"
@@ -97,7 +85,7 @@ mkprop "$R2" p2; mksidecar "$R2" p2 pre-commit "$GOOD"
 ERR="$(run_install "$R2" p2 2>&1 >/dev/null)"; rc=$?
 [ "$rc" -ne 0 ] && echo "$ERR" | grep -q accepted && ok "AC-26 refuses, names missing accepted fact" || fail "AC-26 rc=$rc '$ERR'"
 [ ! -e "$R2/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "AC-26 nothing written" || fail "AC-26 wrote"
-grep -q install-failed "$R2/.touchstone/ledger/resolutions.jsonl" 2>/dev/null \
+grep -qE '"kind":"(installed|install-failed)"' "$R2/.touchstone/ledger/resolutions.jsonl" 2>/dev/null \
   && fail "AC-26 must append no fact" || ok "AC-26 no fact appended"
 
 # --- AC-27: mechanical boundary guards ---
@@ -111,59 +99,31 @@ run_install "$R3" --revoke pu >/dev/null 2>&1 && fail "AC-27 revoke-without-inst
 N="$(grep -cE '"kind":"(installed|install-failed|revoked)"' "$R3/.touchstone/ledger/resolutions.jsonl" 2>/dev/null || true)"
 [ "${N:-0}" -eq 0 ] && ok "AC-27 no fact appended" || fail "AC-27 facts=$N"
 
-# --- AC-15: fire-side failure (check never bites) — real repo untouched ---
-R4="$(mkworld fireside)"
-PASSIVE="$TMP/passive.sh"; printf '#!/usr/bin/env bash\nexit 0\n' > "$PASSIVE"
-mkprop "$R4" p4; accept "$R4" p4; mksidecar "$R4" p4 pre-commit "$PASSIVE"
-run_install "$R4" p4 >/dev/null 2>&1 && fail "AC-15 must fail" || ok "AC-15 fire-side failure non-zero"
-[ ! -e "$R4/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "AC-15 real repo never written" || fail "AC-15 wrote"
-F="$(lastres "$R4")"
-[ "$(echo "$F" | jq -r .kind)" = install-failed ] && ok "AC-15 install-failed fact" || fail "AC-15 kind"
-T="$(echo "$F" | jq -r .triage)"
-{ [ "$T" = spec-violation-fixed ] || [ "$T" = class-definition-wrong ]; } \
-  && ok "AC-15 grounded triage ($T)" || fail "AC-15 triage=$T"
-[ -n "$(echo "$F" | jq -r '.note // empty')" ] && ok "AC-15 grounding note present" || fail "AC-15 note"
+# --- guard: incomplete sidecar (missing draft-check.sh) refuses, writes nothing ---
+R4="$(mkworld nosidecar)"
+mkprop "$R4" p4; accept "$R4" p4
+mkdir -p "$R4/.touchstone/ledger/proposals/p4"
+printf -- '---\nstage: pre-commit\ncheck_name: probe\n---\np\n' > "$R4/.touchstone/ledger/proposals/p4/proposal.md"
+ERR="$(run_install "$R4" p4 2>&1 >/dev/null)"; rc=$?
+[ "$rc" -ne 0 ] && echo "$ERR" | grep -q 'draft-check.sh' && ok "sidecar guard: missing draft-check.sh named" || fail "sidecar guard rc=$rc '$ERR'"
+[ ! -e "$R4/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "sidecar guard: nothing written" || fail "sidecar guard wrote"
 
-# --- regression: facts-append failure while recording install-failed must not
-# claim a fact was recorded. Reuse the AC-15 fire-side-failure scenario but
-# hold the writer lock first so facts-append fails deterministically.
+# --- regression: fact-append failure after the copy must roll the copy back
+# and exit non-zero — never leave an installed file with no installed fact.
+# Hold the writer lock so facts-append fails deterministically.
 R8="$(mkworld lockfail)"
-mkprop "$R8" p8; accept "$R8" p8; mksidecar "$R8" p8 pre-commit "$PASSIVE"
+mkprop "$R8" p8; accept "$R8" p8; mksidecar "$R8" p8 pre-commit "$GOOD"
 LOCKDIR="$R8/.touchstone/ledger/.lock"
 mkdir "$LOCKDIR"; echo $$ > "$LOCKDIR/pid"
 export TOUCHSTONE_LEDGER_LOCK_TIMEOUT=1
 ERR="$(run_install "$R8" p8 2>&1 >/dev/null)"; rc=$?
 unset TOUCHSTONE_LEDGER_LOCK_TIMEOUT
 rm -rf "$LOCKDIR"
-[ "$rc" -ne 0 ] && ok "regression: lock-held install still exits non-zero" || fail "regression: rc=$rc"
-[ ! -e "$R8/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "regression: real repo untouched" || fail "regression: wrote"
-grep -q install-failed "$R8/.touchstone/ledger/resolutions.jsonl" 2>/dev/null \
-  && fail "regression: install-failed fact must NOT be recorded (lock held)" || ok "regression: no install-failed fact appended"
-echo "$ERR" | grep -q "fact recorded" && fail "regression: stderr falsely claims fact recorded ($ERR)" || ok "regression: stderr does not claim fact recorded"
-echo "$ERR" | grep -q "WARNING" && ok "regression: stderr carries WARNING" || fail "regression: stderr missing WARNING ($ERR)"
-
-# --- AC-25: pass-side genuine fire (check bites the clean repo) → rollback ---
-R5="$(mkworld passfire)"
-BITER="$TMP/biter.sh"; printf '#!/usr/bin/env bash\necho always-bites\nexit 1\n' > "$BITER"
-mkprop "$R5" p5; accept "$R5" p5; mksidecar "$R5" p5 pre-commit "$BITER"
-run_install "$R5" p5 >/dev/null 2>&1 && fail "AC-25 must fail" || ok "AC-25 pass-side failure non-zero"
-[ ! -e "$R5/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "AC-25 rolled back" || fail "AC-25 file remains"
-F="$(lastres "$R5")"
-[ "$(echo "$F" | jq -r .triage)" = class-definition-wrong ] \
-  && ok "AC-25 triage=class-definition-wrong (bit clean repo)" || fail "AC-25 triage"
-
-# --- AC-14: exec bit removed from the INSTALLED TARGET between the write and
-# the pass-side proof (the exec-bit death) → hook MISCONFIGURED → triage=infra.
-# Uses install.sh's documented test-only tamper seam so the tampered file is
-# the actual installed check, proving the pass side proves THE REAL install.
-R6="$(mkworld miscfg)"
-mkprop "$R6" p6; accept "$R6" p6; mksidecar "$R6" p6 pre-commit "$GOOD"
-# shellcheck disable=SC2016  # single-quoted on purpose: $1 expands later, inside install.sh's bash -c
-TOUCHSTONE_INSTALL_TEST_TAMPER='chmod 644 "$1"' run_install "$R6" p6 >/dev/null 2>&1 \
-  && fail "AC-14 must fail" || ok "AC-14 MISCONFIGURED pass side non-zero"
-[ ! -e "$R6/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "AC-14 rolled back" || fail "AC-14 rollback"
-F="$(lastres "$R6")"
-[ "$(echo "$F" | jq -r .triage)" = infra ] && ok "AC-14 triage=infra (env/tamper, not class defect)" || fail "AC-14 triage=$(echo "$F" | jq -r .triage)"
+[ "$rc" -ne 0 ] && ok "regression: lock-held install exits non-zero" || fail "regression: rc=$rc"
+[ ! -e "$R8/.touchstone/checker/pre-commit/check-probe.sh" ] && ok "regression: copied file rolled back" || fail "regression: file left behind"
+grep -q '"kind":"installed"' "$R8/.touchstone/ledger/resolutions.jsonl" 2>/dev/null \
+  && fail "regression: no installed fact must be recorded (lock held)" || ok "regression: no installed fact appended"
+echo "$ERR" | grep -q 'rolled back' && ok "regression: stderr states the rollback" || fail "regression: stderr missing rollback ($ERR)"
 
 # --- AC-16: revoke path ---
 R7="$(mkworld revoke)"
