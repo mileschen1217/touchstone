@@ -18,11 +18,11 @@
 # is a silent `exit 0` — a missing jq, malformed payload, non-gate prompt, or unwritable dir must
 # NOT block the user's command. This hook never exits non-zero.
 #
-# Storage: run-manifests are TRANSIENT machine-local observability, not repo artifacts — they
-# live under ${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs, off the project tree. /tmp
-# is cleared on reboot and macOS purges files untouched for ~3 days, so this is for
-# dogfooding-the-current-work, NOT long-term per-epic accumulation. The cost data itself is
-# durable elsewhere (~/.codex/sessions + the OTel export); the manifest is only the START marker.
+# Storage: run-manifests are machine-local observability, not repo artifacts — they live under
+# ${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}/runs, off the project tree but DURABLE
+# (a /tmp default was dropped: reboot-cleared observation data reads as fake observability —
+# windows silently vanish). The cost data itself also lives elsewhere (~/.codex/sessions + the
+# OTel export); the manifest carries the START/END markers.
 #
 # Scope limit (documented in README + metrics-report.sh): Codex attribution is cwd+window-keyed,
 # so it is reliable only when at most ONE active session runs per literal cwd at a time. Separate
@@ -78,7 +78,7 @@ session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null 
 cwd="$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null || true)"
 [ -n "$cwd" ] || cwd="$PWD"
 
-base="${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}"
+base="${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}"
 runs_dir="$base/runs"
 # Never write THROUGH a pre-existing symlink (classic /tmp symlink attack): if the base or the runs
 # dir is a symlink, bail. Observability must never become a write-primitive to an arbitrary path.

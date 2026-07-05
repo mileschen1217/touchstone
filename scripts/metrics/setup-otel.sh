@@ -86,7 +86,7 @@ say "wrote $CONFIG (sink → $SINK)"
 if [ -n "${SETUP_SKIP_AGENT:-}" ]; then
   say "SETUP_SKIP_AGENT set — not loading launchd. Start the collector yourself: $OTELCOL --config $CONFIG"
 elif [ "$(uname)" = Darwin ]; then
-  mkdir -p "$HOME/Library/LaunchAgents"
+  mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.touchstone-metrics"
   cat > "$PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -101,14 +101,14 @@ elif [ "$(uname)" = Darwin ]; then
   </array>
   <key>RunAtLoad</key>          <true/>
   <key>KeepAlive</key>          <true/>
-  <key>StandardOutPath</key>    <string>/tmp/touchstone-otel.log</string>
-  <key>StandardErrorPath</key>  <string>/tmp/touchstone-otel.err</string>
+  <key>StandardOutPath</key>    <string>${HOME}/.touchstone-metrics/otel.log</string>
+  <key>StandardErrorPath</key>  <string>${HOME}/.touchstone-metrics/otel.err</string>
 </dict>
 </plist>
 PLIST
   launchctl unload "$PLIST" 2>/dev/null || true
-  launchctl load "$PLIST" 2>/dev/null || die "launchctl load failed — check /tmp/touchstone-otel.err"
-  say "launchd agent $LABEL loaded (logs: /tmp/touchstone-otel.log)"
+  launchctl load "$PLIST" 2>/dev/null || die "launchctl load failed — check $HOME/.touchstone-metrics/otel.err"
+  say "launchd agent $LABEL loaded (logs: $HOME/.touchstone-metrics/otel.log)"
 elif command -v systemctl >/dev/null 2>&1; then
   # Linux: a systemd --user service is the launchd equivalent (per-user, restarts, starts at login).
   UNIT_DIR="${SETUP_UNIT_DIR:-$HOME/.config/systemd/user}"; mkdir -p "$UNIT_DIR"

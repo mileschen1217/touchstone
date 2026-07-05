@@ -125,7 +125,7 @@ Then open a new shell (so the env vars load) and run your touchstone gates. If `
 ### Read the report
 
 Run-manifests are stamped automatically by a plugin hook on every **design-spec / design-review /
-anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs`) — no setup, no mode
+anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}/runs`) — no setup, no mode
 toggle. The hook catches both invoke paths: `UserPromptSubmit` when you type the gate command, and
 `PreToolUse`/`Skill` when a composite (e.g. crucible) auto-invokes design-spec / design-review
 internally. Codex cost is harvested from `~/.codex/sessions` rollouts. Reading is split into a

@@ -11,7 +11,7 @@
 set -u
 
 command -v jq >/dev/null 2>&1 || exit 0
-base="${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}"
+base="${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}"
 runs_dir="$base/runs"
 [ -d "$runs_dir" ] || exit 0
 [ -L "$base" ] && exit 0

@@ -13,7 +13,7 @@ stage="${1:-}"; boundary="${2:-}"
 [ -n "$stage" ] || exit 0
 case "$boundary" in start|end) ;; *) exit 0 ;; esac
 
-base="${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}"
+base="${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}"
 [ -L "$base" ] && exit 0
 mkdir -p "$base" 2>/dev/null || exit 0
 out="$base/events.jsonl"
