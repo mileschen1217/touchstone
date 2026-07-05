@@ -95,12 +95,14 @@ TGT="$ROOT/$TGT_REL"
 mkdir -p "$(dirname "$TGT")" \
   && cp "$SDIR/draft-check.sh" "$TGT" \
   && chmod 755 "$TGT" \
-  || { rm -f "$TGT"; echo "install: cannot write the check into $TGT_REL (cleaned up)" >&2; exit 1; }
+  || { rm -f "$TGT"; rmdir "$(dirname "$TGT")" 2>/dev/null || true
+       echo "install: cannot write the check into $TGT_REL (cleaned up)" >&2; exit 1; }
 
 FACT="$(jq -c -n --arg pid "$PID" --arg ts "$(now)" --arg path "$TGT_REL" \
   --argjson eids "$(echo "$P" | jq -c '.benefit_witness')" \
   '{schema:"resolution/v1", ts:$ts, proposal_id:$pid, entry_ids:$eids, kind:"installed",
     proof:{installed_path:$path}}')"
-append_resolution "$FACT" || { rm -f "$TGT"; echo "install: fact append failed; rolled back" >&2; exit 1; }
+append_resolution "$FACT" || { rm -f "$TGT"; rmdir "$(dirname "$TGT")" 2>/dev/null || true
+  echo "install: fact append failed; rolled back" >&2; exit 1; }
 echo "installed: $TGT_REL"
 exit 0

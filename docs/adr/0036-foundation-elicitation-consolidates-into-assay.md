@@ -3,7 +3,7 @@
 - **Status:** Accepted (human-ruled 2026-07-06, assay interview)
 - **Deciders:** miles (bet-owner), AI (proposer)
 - **Triggered by:** `/touchstone:assay` (gate-reaudit run, 2026-07-06 — structural-fork case)
-- **Related ADRs:** 0035 (this executes its deferred flip-trigger), 0003 (intention-first as Baseline — the Baseline's *chain-position* moves; the Baseline itself stands)
+- **Related ADRs:** 0035 (this executes its deferred flip-trigger). The intention-first Baseline itself stands — only its chain-position moves (its classification decision predates this public ledger).
 - **Flip-trigger:** the miss ledger or an assay deviation log accumulates ≥2 entries across ≥2 epics where a wrong-scope defect passed the contract stage because intention/aim/out-of-scope was not re-elicited at design-spec time inside a crucible chain (i.e. assay's extraction missed what foundation-gate's later-positioned re-ask would have caught). Revisit point: the owning epic's insight round rules a re-split.
 - **Bet-owner:** miles
 - **Assumptions (bets, not implementation facts):**

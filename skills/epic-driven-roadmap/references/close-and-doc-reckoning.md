@@ -2,9 +2,13 @@
 
 **Failure semantics (stated once for the whole close):**
 
-- **Blocking** — the close-readiness check (step 4) and Evidence Reckoning
-  (5b; its step-4 rules): a failure blocks close until fixed, or consciously
-  waived where a waiver is allowed.
+- **Blocking** — step 0 (ship verification: zero evidence → refuse close; the
+  only bypass is the user's explicit waiver this turn), the close-readiness
+  check (step 4: fix and re-run until it passes — no waiver exists for it),
+  and Evidence Reckoning (5b: its step-1 structural floor, step-4 rules, and
+  step-5b mechanical check). `[unverified]` / waiver escape hatches exist
+  ONLY where Evidence Reckoning's step-4 rules grant them — never on a
+  live-bearing row.
 - **Advisory** — Doc Reckoning (5), Catch-attribution sweep (5c), Proposal
   reconcile (5d): failures and findings go into the close report, never
   fatal; the human may close with advisory findings accepted.

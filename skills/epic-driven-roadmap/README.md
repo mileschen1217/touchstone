@@ -8,7 +8,7 @@ Navigation pointer for this skill directory.
 |---|---|
 | `SKILL.md` | Entry point — procedures for scaffold, close, audit, bootstrap |
 | `references/close-and-doc-reckoning.md` | Close procedure + Doc Reckoning + Evidence Reckoning |
-| `references/phase-ship.md` | Phase-ship step: data-point record + insight hand-off |
+| `references/phase-ship.md` | Phase-ship moment: pre-approve Post-build pair (explainer + quiz) + post-merge data-point record & insight hand-off |
 | `references/tasks.md` | Task convention (id, contract scope, status vocabulary) |
 | `references/audit.md` | Bidirectional doc-graph integrity checks |
 | `references/bootstrap.md` | Four-step convention bootstrap for new projects |

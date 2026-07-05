@@ -6,7 +6,8 @@ Two moments per phase PR: **pre-approve** (the Post-build pair) and
 ## Pre-approve — Post-build pair (single home; close 5e cites this)
 
 After the phase PR is pushed/opened and BEFORE the human approves it, you (the
-shipping session) produce both; the human's approve waits on the quiz:
+shipping session) produce both; do not present the PR for approval until the
+quiz has been taken and passed:
 
 - [ ] **Buy-in explainer** — what changed, why, and what the reader can now do
       differently, written for the human owner (not a diff summary). Light
