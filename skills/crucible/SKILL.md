@@ -1,6 +1,6 @@
 ---
 name: crucible
-description: Front-end contract orchestrator — chains explore (ground the intent in the system) → assay (unconditional pre-contract interview: assumption laydown ⇄ tacit-intent extraction → readiness fork → guardrail block) → design-spec into one invocation so the AI forges the contract spine (why → requirements → ACs) and the human accepts once. Use at the start of a feature that needs a design spec.
+description: Front-end contract orchestrator — chains explore (ground the intent in the system) → assay (unconditional pre-contract interview — interviews the human against the explored system, hands back a guardrail contract block) → design-spec into one invocation so the AI forges the contract spine (why → requirements → ACs) and the human accepts once. Use at the start of a feature that needs a design spec.
 ---
 
 # /touchstone:crucible — Front-End Contract Orchestrator
@@ -22,7 +22,7 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 
 1. **explore** — ground the intent in the system: read the code paths, existing patterns, and constraints the contract must respect, scoped by that intent. Light when the system is already understood; heavier for an unfamiliar surface. For problem-finding work (per the router above) the heavy discovery already ran before the chain, so this phase is confirmatory. Findings feed the interview and the requirement → AC contract; they do not author it. The interview cannot lay out assumptions about a map that has not been drawn — explore always precedes it.
 
-2. **`touchstone:assay`** — unconditional interview step (proportionality lives INSIDE assay — a small subject compresses its rounds; it is never a chain skip-condition). The pre-contract interview instrument: AI assumption laydown (bold pass included) ⇄ human tacit-intent extraction → four-quadrant accounting → readiness fork (probe / flip-trigger dispositions; a structural fork is one fork case and produces an ADR that design-spec inherits via its Related field) → guardrail contract block. Crucible invokes assay at its boundary and does not know its stage internals. **Progression gate: do NOT advance to design-spec until assay's readiness ruling line (the explicit human yes) exists in the assay record.**
+2. **`touchstone:assay`** — the unconditional pre-contract interview (proportionality lives INSIDE assay — a small subject compresses its rounds; it is never a chain skip-condition). It interviews the human against the system that explore just grounded, and hands back the guardrail contract block design-spec consumes. If it surfaces a structural fork, it produces an ADR that design-spec inherits via its Related field. Crucible invokes assay at this boundary and does not know its stage internals. **Progression gate: do NOT advance to design-spec until assay's readiness ruling line (the explicit human yes) exists in the assay record.**
 
 3. **`/touchstone:design-spec`** — chain tail. Authors the requirement → AC contract, consuming assay's guardrail block (head → Scope / Invariants / Foundation facts; tail scenario skeletons → the AC layer). Its Load-vocabulary / Foundation-elicitation phase elicits intention / aim / out-of-scope from context; US-N assignment and story→requirement trace are design-spec's responsibility, not crucible's.
 
@@ -32,7 +32,7 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 
 When a change's alignment touches a ratified ADR or standing decision, **surface the conflict for human resolution** — do not assume a clear slate where a prior decision can be silently overwritten. Two dispositions:
 
-- **True structural fork** (≥2 viable paths remain after the conflict): route it into assay's readiness fork (the structural-fork case, which produces an ADR) before design-spec.
+- **True structural fork** (≥2 viable paths remain after the conflict): route it to assay (the structural-fork case of its interview — it produces an ADR) before design-spec.
 - **Decisively-resolved conflict** (the ratified decision still stands; no viable alternative remains): the **note-and-proceed disposition** — proceed, and record one inline line naming the standing decision and why it still holds. Do NOT silently proceed past a standing decision without naming it.
 
 ## Mid-chain halt (design-review Critical/High)
@@ -54,4 +54,4 @@ When a change's alignment touches a ratified ADR or standing decision, **surface
 
 ## Output
 
-An accepted `/touchstone:design-spec` carrying `## User Stories` (US-N) → `### Requirement` (traces-to: US-N) → `#### AC`. The story→requirement trace is checked by `check-spec-floor.sh`. If assay's readiness fork produced an ADR (structural-fork case), the spec's Related field references it.
+An accepted `/touchstone:design-spec` carrying `## User Stories` (US-N) → `### Requirement` (traces-to: US-N) → `#### AC`. The story→requirement trace is checked by `check-spec-floor.sh`. If assay surfaced a structural fork and produced an ADR, the spec's Related field references it.
