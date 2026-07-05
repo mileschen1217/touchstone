@@ -44,12 +44,5 @@ for f in skills/*/SKILL.md; do
   fi
 done
 
-# --- [ac8-keystone-selfcontained]: invariant in the SKILL.md BODY (REQ-3, not only references/);
-#     SKILL.md has no CONTEXT pointer ---
-grep -Fq 'minimize expected complexity' skills/keystone/SKILL.md \
-  || err "[ac8-keystone-selfcontained] keystone SKILL.md BODY missing the arch invariant 'minimize expected complexity'"
-kp=$(grep -Fc 'Design+review control axis' skills/keystone/SKILL.md); kp=${kp:-0}
-[ "$kp" -eq 0 ] || err "[ac8-keystone-selfcontained] keystone/SKILL.md still points to CONTEXT § control axis ($kp)"
-
 [ "$fail" = 0 ] && echo "phase2.8-cleanup-checks: PASS"
 exit "$fail"

@@ -78,10 +78,18 @@ if awk '/^### Requirement:/{r=NR} /^traces-to:/{t=NR} END{ exit !(r>0 && t>0 && 
   echo "ok template-traces-in-req"; else echo "FAIL template-traces-in-req"; fail=$((fail+1)); fi
 
 # chains core sub-skills
-chk "crucible-grill"       "skills/crucible/SKILL.md" "grill-with-docs"
+chk "crucible-assay"       "skills/crucible/SKILL.md" "touchstone:assay"
 chk "crucible-design-spec" "skills/crucible/SKILL.md" "touchstone:design-spec"
-# states the inline grill discharges the pre-spec grill gate
-chk "crucible-grill-disch" "skills/crucible/SKILL.md" "discharge.*grill gate|grill gate.*discharge"
+# purged chain tokens: crucible carries ZERO grill / brainstorm / retired-skill references.
+# The retired skill token is built from pieces so the literal never appears in this
+# source file (the operational sweep greps scripts/ and must return no match) — the
+# same trick as the tp token above.
+rk='key''stone'
+for tok in grill brainstorm "$rk"; do
+  if grep -qi "$tok" "$root/skills/crucible/SKILL.md"; then
+    echo "FAIL crucible-no-$tok: token present"; fail=$((fail+1))
+  else echo "ok crucible-no-$tok"; fi
+done
 # mid-chain architect-critique Critical/High halts + surfaces to clear, no Open-Questions fold, no auto-advance, then human accept
 chk "crucible-midchain-halt"  "skills/crucible/SKILL.md" "Critical or High|Critical/High"
 chk "crucible-midchain-clear" "skills/crucible/SKILL.md" "halt.*surface|surface.*clear|clear .?resolve or dismiss"
@@ -126,28 +134,29 @@ then echo "ok manifest-version-consistent"; else echo "FAIL manifest-version-con
 
 # --- NEW MODEL (Phase 2.9): standing-decision-aware crucible, native want-layer, both-arms ground-and-sweep ---
 
-# crucible: brainstorm conditional, grill unconditional, keystone conditional structural-fork
-chk "crucible-brainstorm-conditional" "skills/crucible/SKILL.md" "brainstorm[^.]{0,40}conditional|conditional[^.]{0,40}brainstorm"
-chk "crucible-grill-unconditional"    "skills/crucible/SKILL.md" "grill[^.]{0,40}unconditional|unconditional[^.]{0,40}grill"
-# crucible-keystone-conditional: require keystone + conditional + fork-token ALL within a ±3-line window.
-# A single stray "not-yet-ratified" without conditionality/keystone will FAIL.
+# crucible: assay unconditional, chain position explore -> assay -> design-spec
+chk "crucible-assay-unconditional" "skills/crucible/SKILL.md" "assay[^.]{0,40}unconditional|unconditional[^.]{0,40}assay"
 if awk '
-  /keystone/{k=NR}
-  /conditional/{c=NR}
-  /structural.?fork|not.?yet.?ratified/{f=NR}
-  k && c && f && (k-c<=3 && c-k<=3) && (k-f<=3 && f-k<=3) && (c-f<=3 && f-c<=3) {found=1}
-  END{exit !found}
+  /^## What it chains/{inchain=1; next}
+  inchain && /^## /{exit}
+  !inchain{next}
+  /\*\*explore\*\*/&&!e{e=NR}
+  /touchstone:assay/&&!a{a=NR}
+  /touchstone:design-spec/&&!d{d=NR}
+  END{exit !(e&&a&&d && e<a && a<d)}
 ' "$root/skills/crucible/SKILL.md"; then
-  echo "ok crucible-keystone-conditional"; else echo "FAIL crucible-keystone-conditional"; fail=$((fail+1)); fi
+  echo "ok crucible-chain-order"; else echo "FAIL crucible-chain-order"; fail=$((fail+1)); fi
+# crucible gates design-spec on assay's readiness ruling
+chk "crucible-readiness-gate" "skills/crucible/SKILL.md" "readiness ruling"
 chk "crucible-surfaces-conflict"      "skills/crucible/SKILL.md" "standing.?decision|ratified|conflict"
 
-# crucible chain tail = grill -> design-spec (first-match order, fence-aware, in the chain section);
+# crucible chain tail = assay -> design-spec (first-match order, in the chain section);
 # the dropped PRD-producer token ($tp) MUST NOT appear between them.
 if awk -v tp="$tp" '
   /^## What it chains/{inchain=1; next}
   inchain && /^## /{exit}
   !inchain{next}
-  /grill-with-docs/&&!g{g=NR}
+  /touchstone:assay/&&!g{g=NR}
   /touchstone:design-spec/&&!d{d=NR}
   $0 ~ tp {found_tp=NR}
   END{exit !(g&&d && g<d && found_tp==0)}
