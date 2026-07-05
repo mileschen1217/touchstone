@@ -40,7 +40,7 @@ recording:
    - Writes `docs/adr/NNNN-{title-slug}.md`
    - Appends to `docs/adr/README.md` index
 
-2. After ECC writes the ADR, add two custom header fields we use by convention:
+2. After the ADR is written — by ECC, or by hand per step 0 — add two custom header fields we use by convention:
 
    - **`Triggered by:`** — `/touchstone:assay` or `/touchstone:design-spec (spec filename)`.
      Makes the skill origin visible.

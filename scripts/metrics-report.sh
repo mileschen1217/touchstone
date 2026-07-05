@@ -462,7 +462,7 @@ build_session_summary() {
 }
 
 usage() { echo "usage: metrics-report.sh --session-id <id> [--session <transcript>] [--otel <p>] [--otel-session-scope <s>] [--prices <p>] [--now <epoch>]" >&2
-  echo "  run-manifests read from \${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}/runs; Codex from task_dir raw_codex.jsonl under \${TOUCHSTONE_CODEX_TASKDIR_ROOT:-<git-toplevel>/.touchstone}." >&2; }
+  echo "  run-manifests read from \${TOUCHSTONE_METRICS_DIR:-\$HOME/.touchstone-metrics}/runs; Codex from task_dir raw_codex.jsonl under \${TOUCHSTONE_CODEX_TASKDIR_ROOT:-<git-toplevel>/.touchstone}." >&2; }
 
 main() {
   local session="" otel="" scope="" prices="" sid_override="" now_override=""

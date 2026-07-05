@@ -44,7 +44,7 @@ When a change's alignment touches a ratified ADR or standing decision, **surface
 
 ## Terminal step — human accept
 
-- After a clean design-review (Critical+High = 0), present the `accepted-candidate` spec for **terminal human-accept** — the single human gate of the whole spine. Human accept promotes `accepted-candidate → accepted`.
+- Full-spec form: after a clean design-review (Critical+High = 0), present the `accepted-candidate` spec for **terminal human-accept** — the single human gate of the whole spine. Human accept promotes `accepted-candidate → accepted`. PRD+seams form: present the light contract directly for the same terminal human-accept (no design-review precondition — it skipped step 4).
 - Name the **build phase** as the next stage (today: the existing Stage-5 build workflow; `/build` once it lands).
 - Do NOT auto-invoke the build-phase gate or the build. The front-end stops at the contract.
 
@@ -56,4 +56,4 @@ When a change's alignment touches a ratified ADR or standing decision, **surface
 
 ## Output
 
-An accepted `/touchstone:design-spec` carrying `## User Stories` (US-N) → `### Requirement` (traces-to: US-N) → `#### AC`. The story→requirement trace is checked by `check-spec-floor.sh`. If assay surfaced a structural fork and produced an ADR, the spec's Related field references it.
+An accepted `/touchstone:design-spec` carrying `## User Stories` (US-N) → `### Requirement` (traces-to: US-N) → `#### AC` (story→requirement trace checked by `check-spec-floor.sh`), OR an accepted PRD+seams light contract (problem + batches + acceptance seams + invariants). If assay surfaced a structural fork and produced an ADR, the contract's Related field references it.
