@@ -258,4 +258,38 @@ chk "close-has-catch-attribution-sweep" \
   "skills/epic-driven-roadmap/references/close-and-doc-reckoning.md" \
   "## Catch-attribution sweep"
 
+# --- assay: pre-contract interview instrument (skill-body floor) ---
+chk "assay-frontmatter-name"    "skills/assay/SKILL.md" "^name: assay"
+chk "assay-dual-tag-loadbearing" "skills/assay/SKILL.md" "load-bearing"
+chk "assay-dual-tag-probecost"  "skills/assay/SKILL.md" "probe-cost"
+chk "assay-bold-pass"           "skills/assay/SKILL.md" "bold pass"
+chk "assay-blast-radius"        "skills/assay/SKILL.md" "blast radius"
+chk "assay-want-probe"          "skills/assay/SKILL.md" "want-vs-should-want"
+chk "assay-quadrants"           "skills/assay/SKILL.md" "unknown knowns"
+chk "assay-readiness-criterion" "skills/assay/SKILL.md" "resolved or flip-triggered"
+chk "assay-explicit-yes"        "skills/assay/SKILL.md" "explicit yes"
+chk "assay-nonyes-taxonomy"     "skills/assay/SKILL.md" "whatever you think"
+chk "assay-flip-registry"       "skills/assay/SKILL.md" "flip-trigger registry"
+chk "assay-deferred-log"        "skills/assay/SKILL.md" "deferred log"
+chk "assay-record-append"       "skills/assay/SKILL.md" "APPENDs? a new dated section"
+chk "assay-deviation-log"       "skills/assay/SKILL.md" "deviation log"
+chk "assay-honest-ceiling"      "skills/assay/SKILL.md" "never proves them zero"
+chk "assay-noninteractive"      "skills/assay/SKILL.md" "non-interactive"
+chk "assay-unformed-escape"     "skills/assay/SKILL.md" "out-of-band"
+chk "assay-writeback"           "skills/assay/SKILL.md" "admission boundary"
+chk "assay-adr-pointer"         "skills/assay/SKILL.md" "adr-authoring\.md"
+chk "assay-rubric-pointer"      "skills/assay/SKILL.md" "references/arch-rubric\.md"
+# the three structural-fork bet fields are documented in the migrated ADR procedure
+chk "assay-adr-flip-field"      "skills/assay/adr-authoring.md" "Flip-trigger:"
+chk "assay-adr-betowner-field"  "skills/assay/adr-authoring.md" "Bet-owner:"
+chk "assay-adr-assumptions-field" "skills/assay/adr-authoring.md" "Assumptions:"
+# migrated assets present
+[ -f "$root/skills/assay/adr-authoring.md" ] && echo "ok assay-adr-file" \
+  || { echo "FAIL assay-adr-file: skills/assay/adr-authoring.md missing"; fail=$((fail+1)); }
+[ -f "$root/skills/assay/references/arch-rubric.md" ] && echo "ok assay-rubric-file" \
+  || { echo "FAIL assay-rubric-file: skills/assay/references/arch-rubric.md missing"; fail=$((fail+1)); }
+# assay body size norm (guideline enforced at 200 like crucible)
+alc="$(wc -l < "$root/skills/assay/SKILL.md" 2>/dev/null || echo 999)"
+[ "$alc" -le 200 ] && echo "ok assay-line-count ($alc)" || { echo "FAIL assay-line-count: $alc > 200"; fail=$((fail+1)); }
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
