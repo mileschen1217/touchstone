@@ -1,9 +1,9 @@
-# keystone arch-evaluation rubric — substrate-neutral, three layers
+# arch-evaluation rubric — substrate-neutral, three layers
 
-keystone is substrate-neutral (ADR-0019): this instrument is domain-agnostic — NOT filtered to
-one substrate (e.g. markdown skills). It calibrates the human bet + the critique engine; it is
-a **judgment calibration**, NOT a mandatory gate-checklist (keystone is a judgment-comparator;
-ADR-0018). Score against it to inform the bet, never to block.
+This instrument is substrate-neutral: domain-agnostic — NOT filtered to one substrate
+(e.g. markdown skills). It calibrates the human bet + the critique engine; it is
+a **judgment calibration**, NOT a mandatory gate-checklist (the structural-fork case is a
+judgment-comparator). Score against it to inform the bet, never to block.
 
 ## L1 — invariant (neutral)
 
@@ -29,8 +29,8 @@ served through the L2 forces.
 | DB schema | normalization |
 | Doc / prompt-skill | deep-skill, locality (CCP), cohesion |
 
-keystone names the L2 forces + invokes the L3 canon appropriate to the artifact's substrate.
-If it cannot assess the substrate, it notes the gap (consistent with ADR-0019's honest
+The executing agent names the L2 forces + invokes the L3 canon appropriate to the artifact's
+substrate. If it cannot assess the substrate, it notes the gap (honest
 engine-limit). SOLID etc. are NOT "rejected / stale" — they are the OOP adapter, simply not
 active when the substrate is, say, markdown skills.
 

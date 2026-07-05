@@ -1,6 +1,6 @@
 ---
 name: cross-provider-architect
-description: Pattern A composite skill — architecture critique using CC `architect` + Codex `codex-adversarial-reviewer` in parallel. CC validates the design; Codex pressure-tests it. Synthesis labels divergence. Auto-falls back to CC-only when Codex unavailable. Used by `/touchstone:keystone` and `/touchstone:design-spec`.
+description: Pattern A composite skill — architecture critique using CC `architect` + Codex `codex-adversarial-reviewer` in parallel. CC validates the design; Codex pressure-tests it. Synthesis labels divergence. Auto-falls back to CC-only when Codex unavailable. Used by `/touchstone:assay` (structural-fork case) and `/touchstone:design-spec`.
 allowed-tools:
   - Bash
   - Read
@@ -82,5 +82,5 @@ Skill body's final assistant text: the synthesized review.md content.
 
 ## Dependencies
 
-- `everything-claude-code:architect` (ECC, EXTERNAL) — CC validation backend; reserved for the highest-leverage gates (`/touchstone:keystone`, `/touchstone:design-spec`).
+- `everything-claude-code:architect` (ECC, EXTERNAL) — CC validation backend; reserved for the highest-leverage gates (`/touchstone:assay` structural-fork case, `/touchstone:design-spec`).
 - `touchstone:codex-adversarial-reviewer` (plugin-local) — Codex adversarial-critique backend.

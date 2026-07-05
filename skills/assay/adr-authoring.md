@@ -1,10 +1,10 @@
 # ADR Authoring (integration with ECC skill)
 
-Referenced by `/touchstone:keystone` and `/touchstone:design-spec`. Not a standalone skill.
+Referenced by `/touchstone:assay` (structural-fork case) and `/touchstone:design-spec`. Not a standalone skill.
 
 The authoring procedure and template are owned by ECC's
 `architecture-decision-records` skill. This file documents how to invoke it
-from our skills, plus the two extra header fields we want beyond Nygard's
+from our skills, plus the extra header fields we want beyond Nygard's
 standard format.
 
 ## When to create an ADR
@@ -17,7 +17,7 @@ the decision affects future work. Skip ADRs for:
 
 ## Invocation
 
-When `/touchstone:keystone` or `/touchstone:design-spec` concludes with a decision worth
+When `/touchstone:assay` or `/touchstone:design-spec` concludes with a decision worth
 recording:
 
 1. Invoke ECC's ADR skill:
@@ -34,16 +34,25 @@ recording:
 
 2. After ECC writes the ADR, add two custom header fields we use by convention:
 
-   - **`Triggered by:`** — `/touchstone:keystone` or `/touchstone:design-spec (spec filename)`.
+   - **`Triggered by:`** — `/touchstone:assay` or `/touchstone:design-spec (spec filename)`.
      Makes the skill origin visible.
    - **`Related ADRs:`** — comma-separated list of prior ADR numbers this
      builds on (grep the `docs/adr/` directory for related topics).
 
    Add these as an additional header section between "Deciders" and "Context".
 
+   When the ADR records a structural-fork bet (assay's readiness-fork case), add
+   three more fields in the same header section:
+
+   - **`Flip-trigger:`** — the observable signal that reopens the decision, plus
+     the revisit point (who/where looks when it fires).
+   - **`Bet-owner:`** — the human owning the bet (never the AI).
+   - **`Assumptions:`** — the decision bets this ADR rests on (bets, not
+     implementation facts).
+
 3. Back-link:
    - `/touchstone:design-spec` → add the new ADR to the spec's `Related` section
-   - `/touchstone:keystone` → the review memo (if persisted) references the ADR
+   - `/touchstone:assay` → the assay record's flip-trigger registry references the ADR
 
 ## Graceful degradation
 

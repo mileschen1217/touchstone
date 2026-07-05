@@ -133,7 +133,7 @@ Then <observable outcome>
 ## Architecture
 
 > Normative per-component structural commitments, graded against
-> `skills/keystone/references/arch-rubric.md` (load, do not restate the force text).
+> `skills/assay/references/arch-rubric.md` (load, do not restate the force text).
 >
 > **Depth-stakes decision rule:** a component has **depth-stakes** — and REQUIRES a
 > commitment here — if it: hides a non-trivial implementation decision, holds or mutates state,

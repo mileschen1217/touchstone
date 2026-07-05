@@ -9,7 +9,7 @@ load-and-inject verbatim into every cold-dispatched reviewer. The feedforward ar
 (subject = delivered code vs the spec's `## Architecture` commitments).
 
 **Injector requirement (warm orchestrator, at injection time):** also load
-`${CLAUDE_PLUGIN_ROOT}/skills/keystone/references/arch-rubric.md` and inject its content
+`${CLAUDE_PLUGIN_ROOT}/skills/assay/references/arch-rubric.md` and inject its content
 into the cold prompt alongside this fragment. The cold reviewer cannot resolve plugin
 paths — the rubric must arrive as content, never as a path.
 
@@ -19,7 +19,7 @@ paths — the rubric must arrive as content, never as a path.
 
 A **structural commitment** is a normative SHALL statement in a spec's `## Architecture`
 section that constrains the shape of the delivered code — e.g. "module M SHALL be deep /
-SHALL NOT leak its orchestration sequence to callers." It is grounded in the keystone
+SHALL NOT leak its orchestration sequence to callers." It is grounded in the assay
 arch-rubric, whose force text is injected alongside this fragment — apply that injected
 content; do not go looking for a file.
 

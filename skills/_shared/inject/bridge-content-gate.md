@@ -1,5 +1,5 @@
 ---
-injected-by: [design-spec, keystone, design-review]
+injected-by: [design-spec, assay, design-review]
 referenced-by: [epic-driven-roadmap]
 kind: bridge
 kill-on: lever-discipline-mechanisation

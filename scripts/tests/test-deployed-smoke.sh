@@ -31,9 +31,9 @@ make_clean_cache() {
   mkdir -p "$FAKE_CACHE/hooks"
   mkdir -p "$FAKE_CACHE/scripts"
   mkdir -p "$FAKE_CACHE/skills/anvil"
-  mkdir -p "$FAKE_CACHE/skills/keystone"
+  mkdir -p "$FAKE_CACHE/skills/assay"
   printf '# Anvil\n' > "$FAKE_CACHE/skills/anvil/SKILL.md"
-  printf '# Keystone\n' > "$FAKE_CACHE/skills/keystone/SKILL.md"
+  printf '# Assay\n' > "$FAKE_CACHE/skills/assay/SKILL.md"
   printf '#!/usr/bin/env bash\nexit 0\n' > "$FAKE_CACHE/scripts/spec-extract.sh"
   chmod +x "$FAKE_CACHE/scripts/spec-extract.sh"
 }

@@ -6,11 +6,11 @@ A Claude Code plugin for **workflow discipline** — 10 stage skills + 5 agents,
 
 ## What it is
 
-Touchstone bundles a 6-stage workflow (Explore → Grill → Keystone → Design-Spec → Plan → Build → Review Gate) with mechanisms that hold every stage to the honesty spine. The plugin's spine is **`claim ≤ evidence`** — every artifact (spec, plan, commit, review) carries the evidence its claims rest on; missing evidence is marked `[假設]`/`[unverified]`, never papered over.
+Touchstone bundles a 6-stage workflow (Explore → Assay → Design-Spec → Plan → Build → Review Gate) with mechanisms that hold every stage to the honesty spine. The plugin's spine is **`claim ≤ evidence`** — every artifact (spec, plan, commit, review) carries the evidence its claims rest on; missing evidence is marked `[假設]`/`[unverified]`, never papered over.
 
 The spine is carried *through* four roles (not enforced by a fifth):
 
-- **Skill** — drafting / authoring (`design-spec`, `keystone`, `code-review`, ...)
+- **Skill** — drafting / authoring (`design-spec`, `assay`, `code-review`, ...)
 - **Mode** — narration discipline (`grounded-claims` — cite source, mark assumptions)
 - **Discipline** — domain stance (`source-as-truth` — code is authoritative; docs describe why)
 - **Baseline** — universal foundations (`intention-first` — name intent before mechanism)
@@ -52,10 +52,10 @@ Without `everything-claude-code`, the language-specific code reviewers and the `
 ## Skills
 
 - `touchstone:init` — Bootstrap project adoption with `.claude/touchstone.yaml`.
-- `touchstone:crucible` — Front-end contract orchestrator: brainstorm → grill → explore → keystone → design-spec, one human accept.
+- `touchstone:crucible` — Front-end contract orchestrator: explore → assay → design-spec, one human accept.
 - `touchstone:anvil` — Back-end contract executor: plan → plan-review → SDD build → final cross-vendor review, stops before ship.
 - `touchstone:insight` — Workflow-improvement loop: ledger digest → proposals → human ruling → checker install/retire.
-- `touchstone:keystone` — Structural-commitment skill: decide and record a durability bet over code, docs, or suite structure.
+- `touchstone:assay` — Pre-contract interview instrument: assumption laydown ⇄ tacit-intent extraction → readiness fork → guardrail contract block.
 - `touchstone:design-spec` — Author spec: Problem → Scope → AC (GWT) → Architecture → Interfaces.
 - `touchstone:design-review` — Gate spec/plan/ADR before Build (Pattern A).
 - `touchstone:code-review` — Per-commit + per-batch code review (Patterns C / B).

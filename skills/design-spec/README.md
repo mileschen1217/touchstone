@@ -5,19 +5,19 @@ Orientation for maintainers. The executable procedure (Load vocabulary, Draft Mo
 ## Workflow chain
 
 ```
-/touchstone:crucible (brainstorm → grill → explore → keystone) → /touchstone:design-spec
+/touchstone:crucible (explore → assay) → /touchstone:design-spec
   → human accept → /touchstone:anvil (writing-plans → plan-review → SDD → final review)
 ```
 
 ## Upstream / downstream
 
 - Front-end orchestrator (upstream): `/touchstone:crucible` — normal entry; exploration is its in-chain phase.
-- Architecture consult (upstream, conditional): `/touchstone:keystone` — resolve
-  structural-commitment questions before drafting the spec.
+- Interview instrument (upstream): `/touchstone:assay` — assumption/intent interview; its
+  readiness fork resolves structural-commitment questions (ADR) before drafting the spec.
 - ATDD chain (downstream): "ATDD — spec and test development" in global `CLAUDE.md`.
 - Plan generation (downstream): `/superpowers:writing-plans`.
 - design-review gate (downstream, consolidated): `/touchstone:design-review` — runs after crucible writes `accepted-candidate`.
-- ADR workflow: `${CLAUDE_PLUGIN_ROOT}/skills/keystone/adr-authoring.md`.
+- ADR workflow: `${CLAUDE_PLUGIN_ROOT}/skills/assay/adr-authoring.md`.
 
 ## Example
 

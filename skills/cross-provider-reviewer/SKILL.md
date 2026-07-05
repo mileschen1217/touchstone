@@ -89,5 +89,5 @@ Skill body's final assistant text: the synthesized review.md content. The orches
 
 ## Dependencies
 
-- `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — CC review backend; invoked at the high-leverage gates only (design-review / structural commitment (`/touchstone:keystone`) / design-spec).
+- `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — CC review backend; invoked at the high-leverage gates only (design-review / structural commitment (`/touchstone:assay` fork case) / design-spec).
 - `touchstone:codex-reviewer` (plugin-local) — Codex review backend.
