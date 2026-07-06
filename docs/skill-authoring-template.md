@@ -66,3 +66,65 @@ Imperative steps.
 - **State the actor for every MUST** — a prose instruction is honest as an
   instruction; never describe an LLM-followed sentence as a system-enforced
   mechanism unless an event-bound check (hook / exit code) actually enforces it.
+
+## Essence-rewrite methodology
+
+How to slim an existing skill/agent md surface without changing behavior. The
+target state is the two-sentence standard above; this section is the procedure
+for getting an already-shipped file there. The surface-wide net-byte ratchet
+(`scripts/check-md-surface-budget.sh` against `scripts/md-surface-baseline.txt`)
+enforces the outcome: any addition is funded by deletion in the same PR.
+
+### Fat classes
+
+- **F1 — enumeration without principle.** ≥3 same-shape list items with no
+  stated generating rule. Fix: state the rule once; keep 1–2 anchor examples
+  explicitly labeled as examples, not rules; cut the rest.
+- **F2 — repeated discipline.** The same rule restated at multiple points
+  (within a file or across files). Fix: declare once at first use; later sites
+  reference the declared term by name — a short pointer, never a paraphrase
+  (a paraphrase is a second copy that drifts).
+- **F3 — boundary-disclaimer density.** Per-item "this does NOT do X, that
+  lives at Y" prose. Fix: one shared boundary line for the file.
+- **F4 — README narration on an execution surface.** Mechanism / rationale /
+  roadmap text that doesn't change what the executing agent does this run.
+  Fix: move to `README.md` / `docs/` / `CONTEXT.md`.
+- **F5 — verbatim duplication across files.** The same block in ≥2 files.
+  Fix: one canonical home; every other site defers by reference.
+
+### Essence-first procedure
+
+1. Read the whole file; write its essence in ≤3 sentences: what must the
+   executing agent do differently because this file exists?
+2. Classify every paragraph against F1–F5. Each paragraph either survives
+   (it changes what the agent does this run), moves to a single home with a
+   pointer left behind, or is cut.
+3. Rewrite from the essence — do not produce the new file by deleting lines
+   from the old one (trimming preserves the old structure's fat). Then diff
+   new against old for behavior: any semantic change beyond form is a
+   halt-and-ask to the human, never a silent edit.
+4. Verify: inbound references (section anchors, file paths other surfaces
+   point at) still resolve; net bytes are down; the budget check is green.
+
+### Incompressible content (never counts as fat)
+
+- **Cold-dispatch prompts.** A cold-dispatched sub-agent sees only its prompt.
+  Every definition, enum, and lens inside an embedded dispatch prompt stays
+  inline and verbatim; a pointer never substitutes. Restating a rule inside a
+  cold prompt that also exists elsewhere is required self-containment, not F2/F5.
+- **Checkpoint safety belts.** A discipline declared once plus per-station
+  one-line specialized checkboxes is already essence form: the station lines
+  carry station-specific content and guard a long multi-stage run. Do not
+  collapse them into the single declaration.
+- **Parsed contract strings.** Sentinel lines, report fields, and schema blocks
+  a downstream consumer parses byte-for-byte stay verbatim at every consuming
+  site that needs them.
+
+### Cluster co-rewrite rule
+
+Files sharing an F5 block are one rewrite unit. Rewrite the whole cluster in
+one pass, choosing one canonical home for the shared content; editing a single
+member alone re-diverges the cluster immediately. (Worked examples of cluster
+shape: an agent quartet sharing a contract glossary; a composite-skill pair
+sharing a base procedure; a template and its workflow reference sharing field
+rules.)

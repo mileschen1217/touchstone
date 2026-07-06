@@ -1,0 +1,7 @@
+# md-surface byte baseline — enforced by scripts/check-md-surface-budget.sh.
+# Surface = skills/**/*.md + agents/**/*.md (content bytes, all files summed).
+# Ratchet rule: raise ONLY in the same PR as the growth it funds; append the
+# reason as a dated comment line here. Lowering after a slimming PR is the
+# ratchet doing its job — record it the same way.
+# 2026-07-06: initial baseline = surface total at main (md-essence-rewrite net ratchet).
+276114
