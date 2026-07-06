@@ -78,12 +78,7 @@ gate: assay is the chain's single human-elicitation surface, and its
 readiness ruling already carries the human's confirm. No assay record →
 elicit via branches a/b below.
 
-**Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section, in three existing sections:
-- `## Foundation` Intention carries the why.
-- `## User Stories` carries US-N entries.
-- `## Foundation` out-of-scope carries the boundary.
-
-Want vocabulary, conventions (As-a/so-that template, Spec-Kit WHAT/WHY-not-HOW, INVEST), and terminology live in `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate. Detailed authoring guidance: `references/draft-workflow.md § Want-layer authoring`.
+**Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section. Section mapping + authoring conventions: `references/draft-workflow.md § Want-layer authoring` (single home); vocabulary: `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate.
 
 **feedforward ground-and-sweep arm.** Before generating Acceptance Criteria, load the shared doctrine:
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/ground-and-sweep.md`

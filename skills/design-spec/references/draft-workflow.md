@@ -58,15 +58,10 @@ When drafting ## Acceptance Criteria:
 
 ### Line-width policy (mandatory)
 
-- **Prose:** soft-wrap only. One logical paragraph = one line. Do NOT insert
-  hard line breaks inside a paragraph. Markdown renderers reflow soft-wrapped
-  prose to fit any window width; hard-wrapped prose stays cramped on wide
-  screens.
-- **Code blocks, tables, ASCII/Mermaid diagrams:** keep ≤80 chars where
-  natural. These cannot reflow, so narrow widths avoid horizontal scroll.
-- **Lists:** one bullet per line; wrap continuation lines under their bullet
-  only if the bullet itself is multi-paragraph — otherwise keep each bullet
-  on one line.
+Hard-wrap only what cannot reflow: prose soft-wraps (one logical paragraph =
+one line — renderers reflow it; never insert hard breaks inside a paragraph);
+code blocks / tables / ASCII/Mermaid diagrams keep ≤80 chars where natural
+(they cannot reflow); one bullet per line.
 
 
    Construct the dispatch prompt as follows:
