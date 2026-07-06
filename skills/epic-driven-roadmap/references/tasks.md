@@ -42,7 +42,7 @@ execution session (~10+ file edits) — cut along the strongest natural seam
 
 **Distribution across executors.** When the plan mixes CC orchestration and Codex implementation:
 
-- Code change with clear contract + standard tooling (cargo build inside repo) → Codex (`codex-implementer` or `codex-tdd`).
+- Code change with clear contract + standard tooling (cargo build inside repo) → Codex (`codex-implementer`).
 - Code change requiring out-of-sandbox tooling (project-specific build wrappers, multi-repo commit ceremonies, live-bench verification) → CC (sonnet hybrid implementer or human).
 - Decision artifacts (ADR, spec revision, retrospective) → CC.
 - Test authoring against live infrastructure → CC (executor needs test-infra context that lives in CC memory).
