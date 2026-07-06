@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # reconcile.sh — read-only follow-through report at epic close: pure joins
 # over proposals × resolutions × entries × fire-log. Writes NOTHING.
-# Fire counts are attributed PER kind=installed fact over the half-open
-# interval [installed.ts, matching revoked.ts | now): phantom fire-events
-# from failed proofs predate any installed fact and never count; a
-# revoke→reinstall attributes each event to exactly one install.
+# Fire counts are RAW per checker basename since its first kind=installed
+# fact (no revoke upper bound — see the fire-count section comment); events
+# with no installed fact at all are reported separately, never hidden.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,7 +11,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/proposal-lib.sh"
 
 DIR="$(proposal_lib_resolve_dir)" || exit 1
-NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 slurp() { cat "$1" 2>/dev/null || true; }
 
@@ -30,49 +28,43 @@ jq -r -n \
   ] | if length == 0 then "accepted, not yet installed/completed: none" else .[] end'
 echo "rejected: $(jq -s '[ .[] | select(.kind=="rejected") ] | length' <(slurp "$DIR/resolutions.jsonl"))"
 
-echo "== installed checks: fire counts =="
+echo "== installed checks: fire counts (raw since first install) =="
 # fire-log.jsonl's PRODUCER (the runtime hook's fire_log(), hooks/run-project-
 # checks.sh) always resolves the ledger dir from the committing repo's git
 # toplevel — it never honors TOUCHSTONE_LEDGER_DIR. When this script is run
 # with an override, fire counts below are only meaningful if the override
 # equals <toplevel>/.touchstone/ledger; otherwise the fire-log read here is
 # simply the file the hook never wrote to.
-# commit denominator: fires alone have no rate; append the interval's commit
-# count from the repo owning the ledger dir (retirement judgment reads
-# fires ÷ commits, not raw fires). No repo resolvable → commits=n/a.
+# Attribution is RAW per basename: every fire-log event with ts >= the
+# basename's FIRST installed fact counts, with no revoke upper bound — a
+# revoke removes the file, so a live file firing after a stale revoked fact
+# is real signal, never zeroed by ledger windowing (the phantom-filtering
+# defect this replaced). Events predating the first install (historical
+# failed-proof phantoms) stay excluded.
+# commit denominator: fires alone have no rate; append the commit count since
+# first install from the repo owning the ledger dir (retirement judgment
+# reads fires ÷ commits, not raw fires). No repo resolvable → commits=n/a.
 FIRE_REPO="$(git -C "$DIR" rev-parse --show-toplevel 2>/dev/null || true)"
-jq -r -n --arg now "$NOW" \
+jq -r -n \
   --slurpfile rs <(slurp "$DIR/resolutions.jsonl") \
   --slurpfile fl <(slurp "$DIR/fire-log.jsonl") '
-  ([ $rs[] | select(.kind=="installed") ]) as $inst
-  | ($inst | map(. as $i
-      | ([ $rs[] | select(.kind=="revoked" and .proposal_id==$i.proposal_id and (.ts > $i.ts)) ]
-         | sort_by(.ts) | (.[0].ts // $now)) as $end
-      | $i + {_end: $end, _base: ($i.proof.installed_path | split("/") | last)}
-    )) as $withend
-  | ($withend | length) as $n
-  | if $n == 0 then "none" else
-      range(0; $n) as $idx
-      | $withend[$idx] as $i
-      # honest annotation, not re-keying: fire-log records basename only, so
-      # two DIFFERENT installed facts sharing a basename with overlapping
-      # install intervals would each count the same fire events — flag it
-      # rather than silently attribute.
-      | ([ range(0; $n) | select(. != $idx) | $withend[.]
-           | select(._base == $i._base and .ts < $i._end and $i.ts < ._end) ]
-         | length) as $overlap
-      | ([ $fl[] | select(.check==$i._base and .ts >= $i.ts and .ts < $i._end) ] | length) as $cnt
-      | $i.proof.installed_path + " (" + $i.proposal_id + "): fires=" + ($cnt|tostring)
-        + " in [" + $i.ts + ", " + $i._end + ")"
-        + (if $overlap > 0 then " (shared basename — counts may overlap)" else "" end)
+  ([ $rs[] | select(.kind=="installed")
+     | . + {_base: (.proof.installed_path | split("/") | last)} ]) as $inst
+  | ($inst | group_by(._base)) as $groups
+  | if ($groups | length) == 0 then "none" else
+      $groups[]
+      | (.[0]._base) as $base
+      | (map(.ts) | min) as $first
+      | (map(.proposal_id) | unique | join(", ")) as $pids
+      | ([ $fl[] | select(.check==$base and .ts >= $first) ] | length) as $cnt
+      | $base + " (" + $pids + "): fires=" + ($cnt|tostring) + " since " + $first
     end' \
 | while IFS= read -r line; do
     case "$line" in
-      *" in ["*)
-        span="${line##* in [}"; span="${span%%)*}"
-        start="${span%%, *}"; end="${span##*, }"
+      *" since "*)
+        start="${line##* since }"
         if [ -n "$FIRE_REPO" ]; then
-          commits="$(git -C "$FIRE_REPO" rev-list --count HEAD --since="$start" --until="$end" 2>/dev/null || echo n/a)"
+          commits="$(git -C "$FIRE_REPO" rev-list --count HEAD --since="$start" 2>/dev/null || echo n/a)"
         else
           commits="n/a"
         fi
@@ -81,6 +73,16 @@ jq -r -n --arg now "$NOW" \
       *) echo "$line" ;;
     esac
   done
+echo "== fire events with no installed fact (raw, outside the pipeline) =="
+jq -r -n \
+  --slurpfile rs <(slurp "$DIR/resolutions.jsonl") \
+  --slurpfile fl <(slurp "$DIR/fire-log.jsonl") '
+  ([ $rs[] | select(.kind=="installed")
+     | (.proof.installed_path | split("/") | last) ] | unique) as $known
+  | ([ $fl[] | .check as $c | select(($known | index($c)) == null) ] | group_by(.check)) as $orphans
+  | if ($orphans | length) == 0 then "none" else
+      $orphans[] | (.[0].check) + ": fires=" + (length|tostring)
+    end'
 
 echo "== possible recurrence of a resolved class — human review =="
 # A proposal can carry multiple resolution facts over the same entry_ids

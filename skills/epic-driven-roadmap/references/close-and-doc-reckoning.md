@@ -1,5 +1,24 @@
 # Close an epic
 
+**Failure semantics (stated once for the whole close):**
+
+- **Blocking** — step 0 (ship verification: zero evidence → refuse close; the
+  only bypass is the user's explicit waiver this turn), the close-readiness
+  check (step 4: fix and re-run until it passes — no waiver exists for it),
+  and Evidence Reckoning (5b: its step-1 structural floor, step-4 rules, and
+  step-5b mechanical check). `[unverified]` / waiver escape hatches exist
+  ONLY where Evidence Reckoning's step-4 rules grant them — never on a
+  live-bearing row.
+- **Advisory** — Doc Reckoning (5), Catch-attribution sweep (5c), Proposal
+  reconcile (5d): failures and findings go into the close report, never
+  fatal; the human may close with advisory findings accepted.
+- **Degrade** — a referenced script absent from the deployed plugin → skip
+  that check and say so; never false-block.
+- **Sweep stages** — an L0 extractor failure skips that source and proceeds;
+  an L1/L2 stage failure discards the staged batch atomically and leaves
+  `.last-sweep` untouched (the range re-extracts next sweep). Never proceed
+  silently — always run `report` and paste its output.
+
 0. **Verify Stage 7 ship before stamping anything.** Ship = the project-defined
    deliverable handoff landed (merged PR on `main`, pushed tag, deployed
    artifact); local commit / open PR / pushed feature branch ≠ shipped. Gather
@@ -24,35 +43,24 @@
 
 5. Run **Doc Reckoning** (§ below) and append its block to the epic index.
 
-5b. Run **Evidence Reckoning** (§ below — BLOCKING; distinct from, and never
-    weakening, the advisory Doc Reckoning). Close cannot complete until the
+5b. Run **Evidence Reckoning** (§ below). Close cannot complete until the
     table is built and every blocking rule is satisfied.
 
-5c. Run the **Catch-attribution sweep** (§ below — non-blocking; a source or
-    stage failure is reported, not fatal). Paste the `report` phase output
-    into the close report verbatim.
+5c. Run the **Catch-attribution sweep** (§ below). Paste the `report` phase
+    output into the close report verbatim.
 
-5d. Run the **Proposal reconcile** (non-blocking, read-only, like 5c):
+5d. Run the **Proposal reconcile** (read-only):
     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/proposal/reconcile.sh"`. Paste its output
     verbatim into the close report. Close never touches the checker rail —
-    proposal accept/deploy decisions happen only in the `/touchstone:insight`
-    flow, never during close (a freshly deployed pre-commit check could block
-    the close's own commit).
+    accept/deploy decisions live only in the `/touchstone:insight` flow (a
+    freshly deployed pre-commit check could block the close's own commit).
 
-5e. Produce the **Post-implementation pair** (Buy-in explainer + comprehension
-    quiz — the change is not "understood" because it merged; these two close
-    the human's map):
-    - **Buy-in explainer** — what changed, why, and what the reader can now do
-      differently, written for the human owner (not a diff summary). Light
-      epic (≲1 phase, no new contract) → a short text section in the close
-      report. Medium/heavy epic → a self-contained `.html` artifact (inline
-      CSS/JS, no external requests) rendered for the owner, stored under
-      `.touchstone/epics/<slug>/`.
-    - **Comprehension quiz** — 5–8 questions the owner should be able to
-      answer if they truly understand the change (what breaks if X, why was Y
-      retired, where does Z live now), with answers collapsed/after the
-      questions. Deliver it WITH the explainer and ask the owner to try it;
-      wrong answers mark exactly where the explainer failed — revise it there.
+5e. **Comprehension face — cite, don't redo.** Reference each phase's
+    Post-build pair (Buy-in explainer + comprehension quiz), produced at
+    phase ship pre-approve — single home: `references/phase-ship.md`. Link
+    each phase's pair artifacts in the close report; close never re-runs the
+    quiz. A phase that shipped without its pair → produce it now per
+    phase-ship.md before closing.
 
 6. Update ROADMAP: if `${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh` exists,
    `bash "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh" --root <project-root>`;
@@ -132,10 +140,10 @@ stays author judgment — intentionally NOT skillified.
 - `<spec-path>` — landed `<commit-sha>`; recommended: archive | distill <sections> → standing bridge | move-whole
 ```
 
-**Boundaries:** not a judge of bridge rung, nor of the deposit's lever choice;
-not a gate — the epic may close with advisory findings the human accepts.
+**Boundaries:** not a judge of bridge rung, nor of the deposit's lever
+choice.
 
-## Evidence Reckoning (BLOCKING — runs at close, before Commit)
+## Evidence Reckoning (runs at close, before Commit)
 
 Per-AC accounting authored ONCE at close by reading source (so it cannot rot
 like a maintained mapping).
@@ -204,8 +212,7 @@ like a maintained mapping).
        .touchstone/epics/<slug>/index.md <spec-path>
    fi
    ```
-   Non-zero BLOCKS close — fix each printed `BLOCK:` row. Absent script →
-   degrade gracefully (no false-block).
+   Non-zero BLOCKS close — fix each printed `BLOCK:` row.
 
 A healthy close has an empty `[unverified]` set.
 
@@ -213,14 +220,9 @@ A healthy close has an empty `[unverified]` set.
 
 Harvests gate-miss signal (transcript corrections, git fix-chains, Evidence
 Reckoning `[unverified]` rows, checker fire-log) from this closing epic's
-history into `.touchstone/ledger/entries.jsonl` — non-blocking.
-
-**Failure semantics (apply throughout):** an L0 extractor failure (step 1) is
-skip-and-report — that source is skipped, the others proceed. An L1/L2 stage
-failure (step 2 or 4) is atomic discard — the staged batch is thrown away and
-the `.last-sweep` timestamp left untouched, so the un-swept records
-re-extract next sweep. Neither mode proceeds silently — always run `report`
-(step 5) and paste its output into the close report even when a stage failed.
+history into `.touchstone/ledger/entries.jsonl`. Failure semantics: the
+header block at the top of this file (L0 skip-and-report; L1/L2 atomic
+discard).
 
 ### Step 1 — collect
 

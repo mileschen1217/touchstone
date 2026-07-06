@@ -24,9 +24,11 @@ This routing is orthogonal to story recognition: a story can be recognized (≥1
 
 2. **`touchstone:assay`** — the unconditional pre-contract interview (proportionality lives INSIDE assay — a small subject compresses its rounds; it is never a chain skip-condition). It interviews the human against the system that explore just grounded, and hands back the guardrail contract block design-spec consumes. If it surfaces a structural fork, it produces an ADR that design-spec inherits via its Related field. Crucible invokes assay at this boundary and does not know its stage internals. **Progression gate: do NOT advance to design-spec until assay's readiness ruling line (the explicit human yes) exists in the assay record.**
 
-3. **`/touchstone:design-spec`** — chain tail. Authors the requirement → AC contract, consuming assay's guardrail block (head → Scope / Invariants / Foundation facts; tail scenario skeletons → the AC layer). Its Load-vocabulary / Foundation-elicitation phase elicits intention / aim / out-of-scope from context; US-N assignment and story→requirement trace are design-spec's responsibility, not crucible's.
+3. **Contract form — an explicit two-way choice at the chain tail.** The guardrail block feeds ONE of two contract forms (name the choice to the human; default = full spec):
+   - **Full `/touchstone:design-spec`** — for a new contract (API / CLI / IPC / schema / skill) or work spanning 3+ files across 2+ modules. Authors the requirement → AC contract, consuming assay's guardrail block (head → Scope / Invariants / Foundation fields — its consume-or-elicit branch takes the head as the Foundation source; tail scenario skeletons → the AC layer). US-N assignment and story→requirement trace are design-spec's responsibility, not crucible's. Proceeds through step 4's gate.
+   - **PRD+seams light contract** — for batch-shaped work (mechanical sweeps, slimming, migrations): problem + batches + acceptance seams (≥1 per load-bearing ruling) + unbreakable invariants, poured from the same guardrail block. It does NOT pass the design-review gate (skip step 4); it still terminates at the same terminal human-accept.
 
-4. **Set `status: accepted-candidate`** on the spec frontmatter, then invoke `/touchstone:design-review <spec>` — the consolidated design-review gate (the union of design-soundness ∪ verification-honesty lenses). This is the 3→2 front-load: the gate runs pre-accept here, not separately after.
+4. **(Full-spec form only.) Set `status: accepted-candidate`** on the spec frontmatter, then invoke `/touchstone:design-review <spec>` — the consolidated design-review gate (the union of design-soundness ∪ verification-honesty lenses). This is the 3→2 front-load: the gate runs pre-accept here, not separately after.
 
 ## Standing-decision conflict
 
@@ -42,7 +44,7 @@ When a change's alignment touches a ratified ADR or standing decision, **surface
 
 ## Terminal step — human accept
 
-- After a clean design-review (Critical+High = 0), present the `accepted-candidate` spec for **terminal human-accept** — the single human gate of the whole spine. Human accept promotes `accepted-candidate → accepted`.
+- Full-spec form: after a clean design-review (Critical+High = 0), present the `accepted-candidate` spec for **terminal human-accept** — the single human gate of the whole spine. Human accept promotes `accepted-candidate → accepted`. PRD+seams form: present the light contract directly for the same terminal human-accept (no design-review precondition — it skipped step 4).
 - Name the **build phase** as the next stage (today: the existing Stage-5 build workflow; `/build` once it lands).
 - Do NOT auto-invoke the build-phase gate or the build. The front-end stops at the contract.
 
@@ -54,4 +56,4 @@ When a change's alignment touches a ratified ADR or standing decision, **surface
 
 ## Output
 
-An accepted `/touchstone:design-spec` carrying `## User Stories` (US-N) → `### Requirement` (traces-to: US-N) → `#### AC`. The story→requirement trace is checked by `check-spec-floor.sh`. If assay surfaced a structural fork and produced an ADR, the spec's Related field references it.
+An accepted `/touchstone:design-spec` carrying `## User Stories` (US-N) → `### Requirement` (traces-to: US-N) → `#### AC` (story→requirement trace checked by `check-spec-floor.sh`), OR an accepted PRD+seams light contract (problem + batches + acceptance seams + invariants). If assay surfaced a structural fork and produced an ADR, the contract's Related field references it.

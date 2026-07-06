@@ -1,6 +1,6 @@
 ---
 name: insight
-description: The workflow-improvement loop — reads the gate-miss ledger's open entries (plus the epic data-point record as auxiliary signal), presents a ranked evidence-backed proposal digest, and on explicit human accept records the decision as facts and installs deterministic checks with a two-sided liveness proof.
+description: The workflow-improvement loop — reads the gate-miss ledger's open entries (plus the epic data-point record as auxiliary signal), presents a ranked evidence-backed proposal digest, and on explicit human accept records the decision as facts and installs deterministic checks through the minimal install rail (copy + one installed fact; liveness is read post-hoc from the raw fire-log).
 allowed-tools: [Bash, Read, Write, Edit]
 user-invocable: true
 kind: workflow
@@ -64,10 +64,8 @@ as-is; they are the honest answer.
    - `proposal.md` — frontmatter `stage:` + `check_name:` (checker units
      only), then prose: mechanism, rationale, class description. No status
      field — status lives only in resolution facts.
-   - `draft-check.sh` + `fire-fixture.sh` — MANDATORY for `unit_type=checker`
-     (install refuses without them); `fire-fixture.sh` must create a
-     self-contained scratch git repo in the failing state and print its
-     toplevel.
+   - `draft-check.sh` — MANDATORY for `unit_type=checker` (install refuses
+     without it).
    - Set `cost_witness = {kind: "declared", note: …}` — one line naming the
      expected cost of keeping this unit (maintenance, false-block risk).
    Compose each proposal fact and append it via
@@ -80,15 +78,16 @@ as-is; they are the honest answer.
    - **Accept:** append `kind=accepted` via
      `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/facts-append.sh" resolution` FIRST; then, for a
      checker proposal, run `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/install.sh" <proposal-id>` and
-     present the resulting proof (or install-failed triage) fact verbatim.
+     present the resulting installed fact verbatim.
    - **Reject:** append `kind=rejected`.
    - **Defer:** append nothing — the proposal stays pending.
    - Non-checker accepted units are carried out manually by the human;
      when done, append `kind=completed` with a note describing what was done.
 5. **Retirement pass (run after the proposal rulings, same session).** Read
    `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/reconcile.sh"` output — each installed check's line
-   carries `fires=<n> … commits=<m>` (the interval's commit count is the
-   denominator; judge rate, never raw fires). Table a unit for the human when
+   carries `fires=<n> … commits=<m>` (raw fires since first install; the
+   commit count is the denominator — judge rate, never raw fires). Table a
+   unit for the human when
    `fires=0` across ≥2 epics AND ≥100 commits — the threshold only puts it on
    the table; the retirement judgment is **cost-to-keep**: maintenance debt,
    false-block history, cognitive surface. A zero-fire unit has three
@@ -98,9 +97,7 @@ as-is; they are the honest answer.
    retirement case). Any unit WITH fires stays (each fire = a prevented
    incident). LLM lenses have no fire-log: judge them by whether a
    feedforward instrument now covers their class, and only retire on an
-   observed drop in that class's miss rate — never on prediction. Caveat:
-   a short install interval zeroes fire counts spuriously — read raw events
-   before ruling. Retire via
+   observed drop in that class's miss rate — never on prediction. Retire via
    `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/install.sh" --revoke <proposal-id>` (also available
    on direct request any time); revoke removes the check and reopens its
    entries for future runs.

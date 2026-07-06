@@ -20,7 +20,15 @@ the decision affects future work. Skip ADRs for:
 When `/touchstone:assay` or `/touchstone:design-spec` concludes with a decision worth
 recording:
 
-1. Invoke ECC's ADR skill:
+0. **Local-first draft routing (check before invoking anything):** when the
+   project routes in-flight ADRs to a local draft dir (e.g. a `CLAUDE.local.md`
+   Doc-Routing row such as `.touchstone/docs/adr/`), author the draft THERE by
+   hand in the same format (steps 2–3 below still apply) and skip the ECC
+   skill — it writes `docs/adr/` directly, and the public ledger is a
+   promote-at-ship decision, not a draft-time one (re-check the number against
+   the public index when promoting).
+
+1. Otherwise invoke ECC's ADR skill:
    ```
    Skill: everything-claude-code:architecture-decision-records
    ```
@@ -32,7 +40,7 @@ recording:
    - Writes `docs/adr/NNNN-{title-slug}.md`
    - Appends to `docs/adr/README.md` index
 
-2. After ECC writes the ADR, add two custom header fields we use by convention:
+2. After the ADR is written — by ECC, or by hand per step 0 — add two custom header fields we use by convention:
 
    - **`Triggered by:`** — `/touchstone:assay` or `/touchstone:design-spec (spec filename)`.
      Makes the skill origin visible.

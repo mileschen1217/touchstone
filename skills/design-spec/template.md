@@ -109,9 +109,9 @@ Then <observable outcome>
 - **Power-on-able?** <can the design be exercised at the needed layer; if not, why / what's needed>
 - **Live means required:** <fixture / target / device / none>
 - **Live-bearing AC IDs:** <AC-N, AC-M | none>   ← these may NOT be carried as `[unverified]`
-  > Live-bearing = the AC's real behaviour cannot be discharged offline (un-owned
-  > process / real-scale / wired / deployed target). Invoking your OWN deterministic
-  > in-repo script in a test is owned + offline → NOT live-bearing.
+  > Live-bearing classification: apply the predicate in
+  > `skills/_shared/inject/live-bearing-predicate.md` (single home — predicate,
+  > signals, ownership counter-example, stricter-when-ambiguous tie-breaker).
   >
   > For each live-bearing AC the evidence is a **live artifact** — captured output of
   > actually exercising the behaviour against the real boundary, NOT a static proxy

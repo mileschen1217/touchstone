@@ -138,8 +138,11 @@ Emit the guardrail contract block, four parts:
 4. **Deferred log** — the non-load-bearing unknown stubs.
 
 Two consumers — name the handoff explicitly: a **full design-spec** (head →
-its Scope / Invariants / Foundation facts; tail → its AC layer) or a
-**PRD+seams light contract** (its acceptance-seam + invariant fields). Do NOT
+its Scope / Invariants sections; in a crucible chain the record also fills
+design-spec's Foundation — intention ← this record's `subject:`, aim ← head
+scope condensed, out-of-scope ← head out-of-scope — so design-spec consumes
+instead of re-eliciting; tail → its AC layer) or a **PRD+seams light
+contract** (its acceptance-seam + invariant fields). Do NOT
 modify `skills/design-spec/template.md` — the block is content the contract
 author pours into existing sections, not a template change.
 

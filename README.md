@@ -8,12 +8,12 @@ A Claude Code plugin for **workflow discipline** — 10 stage skills + 5 agents,
 
 Touchstone bundles a 6-stage workflow (Explore → Assay → Design-Spec → Plan → Build → Review Gate) with mechanisms that hold every stage to the honesty spine. The plugin's spine is **`claim ≤ evidence`** — every artifact (spec, plan, commit, review) carries the evidence its claims rest on; missing evidence is marked `[假設]`/`[unverified]`, never papered over.
 
-The spine is carried *through* four roles (not enforced by a fifth):
+The spine is carried *through* the plugin's surfaces, not enforced by a separate mechanism:
 
-- **Skill** — drafting / authoring (`design-spec`, `assay`, `code-review`, ...)
-- **Mode** — narration discipline (`grounded-claims` — cite source, mark assumptions)
-- **Discipline** — domain stance (`source-as-truth` — code is authoritative; docs describe why)
-- **Baseline** — universal foundations (`intention-first` — name intent before mechanism)
+- **Skills** — drafting / authoring (`design-spec`, `assay`, `code-review`, ...)
+- **`grounded-claims`** — narration discipline (cite source, mark assumptions)
+- **`source-as-truth`** — project discipline (code is authoritative; docs describe why)
+- **`intention-first`** — universal baseline (name intent before mechanism)
 
 ## Install
 
@@ -125,7 +125,7 @@ Then open a new shell (so the env vars load) and run your touchstone gates. If `
 ### Read the report
 
 Run-manifests are stamped automatically by a plugin hook on every **design-spec / design-review /
-anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs`) — no setup, no mode
+anvil** invocation (to `${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}/runs`) — no setup, no mode
 toggle. The hook catches both invoke paths: `UserPromptSubmit` when you type the gate command, and
 `PreToolUse`/`Skill` when a composite (e.g. crucible) auto-invokes design-spec / design-review
 internally. Codex cost is harvested from `~/.codex/sessions` rollouts. Reading is split into a

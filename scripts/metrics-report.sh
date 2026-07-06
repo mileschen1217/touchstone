@@ -2,7 +2,7 @@
 # metrics-report.sh — on-demand token/cost/wall-clock report for the auto-run gate skills
 # (design-spec / design-review / anvil). Reads DURABLE logs only; dispatches no LLM.
 #
-# Sources: run-manifests (hook-stamped, ${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs)
+# Sources: run-manifests (hook-stamped, ${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}/runs)
 # define per-run windows (each ends at the next run's START; the last run at report-time `now`);
 # CC-subagent cost <- OTel (keyed by session.id); Codex usage <- the task_dir artifact
 # `raw_codex.jsonl` that every codex agent dispatch writes (turn.completed usage events, SUMMED),
@@ -245,7 +245,7 @@ cc_subagent_cell() {
 }
 
 # build_windows_v2 <session_id> <now_epoch> → TSV `run_id<TAB>start<TAB>end<TAB>cwd<TAB>skill`
-# v2 run-manifest window model. Reads ${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs/*.json
+# v2 run-manifest window model. Reads ${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}/runs/*.json
 # (run-manifest/v1: run_id, skill, session_id, cwd, started_at, optional ended_at). Sorted by
 # started_at. A run's END: a valid `ended_at` (parseable, strictly after start — stamped by the
 # gate's terminal step via scripts/metrics/stamp-end.sh) wins; else the NEXT run's START (the
@@ -254,7 +254,7 @@ cc_subagent_cell() {
 # run mid-flight. Only session-matching manifests are windowed.
 build_windows_v2() {
   local sid="$1" now="$2"
-  local dir="${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs"
+  local dir="${TOUCHSTONE_METRICS_DIR:-$HOME/.touchstone-metrics}/runs"
   [ -d "$dir" ] || return 0
   local sorted m sa rid cwd skill ep ea eaep
   sorted="$(
@@ -462,7 +462,7 @@ build_session_summary() {
 }
 
 usage() { echo "usage: metrics-report.sh --session-id <id> [--session <transcript>] [--otel <p>] [--otel-session-scope <s>] [--prices <p>] [--now <epoch>]" >&2
-  echo "  run-manifests read from \${TOUCHSTONE_METRICS_DIR:-/tmp/touchstone-metrics}/runs; Codex from task_dir raw_codex.jsonl under \${TOUCHSTONE_CODEX_TASKDIR_ROOT:-<git-toplevel>/.touchstone}." >&2; }
+  echo "  run-manifests read from \${TOUCHSTONE_METRICS_DIR:-\$HOME/.touchstone-metrics}/runs; Codex from task_dir raw_codex.jsonl under \${TOUCHSTONE_CODEX_TASKDIR_ROOT:-<git-toplevel>/.touchstone}." >&2; }
 
 main() {
   local session="" otel="" scope="" prices="" sid_override="" now_override=""

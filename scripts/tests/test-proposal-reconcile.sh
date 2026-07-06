@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# reconcile.sh suite: read-only joins, per-install fire-count intervals,
+# reconcile.sh suite: read-only joins, raw-since-first-install fire counts,
 # recurrence flagging. Spec joins: AC-17, AC-18.
 # shellcheck disable=SC2015
 set -uo pipefail
@@ -54,7 +54,7 @@ echo "$OUT" | grep -q 'pa — T-pa' && ok "AC-17 accepted-never-installed listed
 echo "$OUT" | grep -q 'triage=infra' && ok "AC-17 failed attempt with triage shown" || fail "AC-17 triage"
 echo "$OUT" | grep 'pb' | grep -qv completed && fail "AC-17 completed non-checker flagged" || ok "AC-17 completed not flagged"
 echo "$OUT" | grep -q 'rejected: 1' && ok "AC-17 rejected count" || fail "AC-17 rejected"
-echo "$OUT" | grep -q 'check-pd.sh (pd): fires=3' && ok "AC-17 fire count 3 (phantom excluded)" || fail "AC-17 fires: $OUT"
+echo "$OUT" | grep -q 'check-pd.sh (pd): fires=3' && ok "AC-17 fire count 3 (pre-install phantom excluded)" || fail "AC-17 fires: $OUT"
 echo "$OUT" | grep -q 'total size:' && ok "AC-17 runs/ size line" || fail "AC-17 runs size"
 
 # --- AC-18: post-resolution recurrence flagged, never auto-marked ---
@@ -71,11 +71,9 @@ n_e9="$(echo "$OUT" | grep -c 'new entry e9')"
 echo "$OUT" | grep 'new entry e9' | grep -q 'ra1' && ok "AC-18 dedupe: keeps earliest resolution ra1" || fail "AC-18 dedupe: earliest"
 echo "$OUT" | grep 'new entry e9' | grep -qv 'ra2' && ok "AC-18 dedupe: drops later resolution ra2" || fail "AC-18 dedupe: ra2 leaked"
 
-# --- regression: shared-basename overlap gets an honest annotation, not a
-# silent double-count. Two DIFFERENT installed facts whose installed_path
-# basenames match ("check-shared.sh") and whose install intervals overlap
-# (both still-open — no revoke) must each carry the annotation; the
-# pre-existing single-basename fixture line (check-pd.sh) must stay unchanged.
+# --- regression: two proposals sharing a basename collapse into ONE grouped
+# line (raw counts are keyed by basename — never double-attributed); the
+# pre-existing single-proposal fixture line (check-pd.sh) must stay unchanged.
 prop pe checker '["e1"]'
 res '{"schema":"resolution/v1","id":"re1","ts":"2026-07-02T05:00:00Z","proposal_id":"pe","entry_ids":["e1"],"kind":"accepted"}'
 res '{"schema":"resolution/v1","id":"re2","ts":"2026-07-02T05:30:00Z","proposal_id":"pe","entry_ids":["e1"],"kind":"installed","proof":{"fire_exit":2,"pass_exit":0,"checked_at":"2026-07-02T05:30:00Z","installed_path":".touchstone/checker/pre-commit/check-shared.sh"}}'
@@ -83,13 +81,34 @@ prop pf checker '["e2"]'
 res '{"schema":"resolution/v1","id":"rf1","ts":"2026-07-02T06:00:00Z","proposal_id":"pf","entry_ids":["e2"],"kind":"accepted"}'
 res '{"schema":"resolution/v1","id":"rf2","ts":"2026-07-02T06:30:00Z","proposal_id":"pf","entry_ids":["e2"],"kind":"installed","proof":{"fire_exit":2,"pass_exit":0,"checked_at":"2026-07-02T06:30:00Z","installed_path":".touchstone/checker/pre-push/check-shared.sh"}}'
 OUT2="$(TOUCHSTONE_LEDGER_DIR="$L" bash "$RC")"
-echo "$OUT2" | grep 'check-shared.sh (pe)' | grep -q 'shared basename — counts may overlap' \
-  && ok "shared basename: pe line annotated" || fail "shared basename: pe not annotated: $OUT2"
-echo "$OUT2" | grep 'check-shared.sh (pf)' | grep -q 'shared basename — counts may overlap' \
-  && ok "shared basename: pf line annotated" || fail "shared basename: pf not annotated: $OUT2"
-echo "$OUT2" | grep 'check-pd.sh (pd)' | grep -q 'shared basename' \
-  && fail "shared basename: pre-existing single-basename line wrongly annotated" \
-  || ok "shared basename: pre-existing check-pd.sh line unchanged"
+n_shared="$(echo "$OUT2" | grep -c 'check-shared.sh')"
+[ "$n_shared" -eq 1 ] && ok "shared basename: one grouped line" || fail "shared basename: n=$n_shared: $OUT2"
+echo "$OUT2" | grep 'check-shared.sh' | grep -q '(pe, pf)' \
+  && ok "shared basename: both proposals named" || fail "shared basename: proposals: $OUT2"
+echo "$OUT2" | grep 'check-shared.sh' | grep -q 'since 2026-07-02T05:30:00Z' \
+  && ok "shared basename: earliest install ts kept" || fail "shared basename: ts: $OUT2"
+echo "$OUT2" | grep -q 'check-pd.sh (pd): fires=3' \
+  && ok "shared basename: pre-existing check-pd.sh line unchanged" \
+  || fail "shared basename: check-pd.sh line changed: $OUT2"
+
+# --- regression (the phantom-filtering defect): a real fire AFTER a stale
+# revoked fact still counts — raw attribution has no revoke upper bound.
+# (Live case: check-version-bump revoked in the ledger 14:38:31Z while the
+# file stayed live and fired 15:10:46Z; the windowed join reported fires=0.)
+prop pg checker '["e1"]'
+res '{"schema":"resolution/v1","id":"rg1","ts":"2026-07-02T07:00:00Z","proposal_id":"pg","entry_ids":["e1"],"kind":"accepted"}'
+res '{"schema":"resolution/v1","id":"rg2","ts":"2026-07-02T07:30:00Z","proposal_id":"pg","entry_ids":["e1"],"kind":"installed","proof":{"fire_exit":2,"pass_exit":0,"checked_at":"2026-07-02T07:30:00Z","installed_path":".touchstone/checker/pre-commit/check-pg.sh"}}'
+res '{"schema":"resolution/v1","id":"rg3","ts":"2026-07-02T08:00:00Z","proposal_id":"pg","entry_ids":["e1"],"kind":"revoked","note":"n"}'
+fire 2026-07-02T09:00:00Z check-pg.sh          # fires AFTER the revoked fact
+OUT3="$(TOUCHSTONE_LEDGER_DIR="$L" bash "$RC")"
+echo "$OUT3" | grep -q 'check-pg.sh (pg): fires=1' \
+  && ok "post-revoke fire counted (raw, no window zeroing)" || fail "post-revoke fire: $OUT3"
+
+# --- fire events with no installed fact are reported, never hidden ---
+fire 2026-07-02T10:00:00Z check-orphan.sh
+OUT4="$(TOUCHSTONE_LEDGER_DIR="$L" bash "$RC")"
+echo "$OUT4" | grep -A 3 'no installed fact' | grep -q 'check-orphan.sh: fires=1' \
+  && ok "orphan fire event surfaced in its own section" || fail "orphan fire: $OUT4"
 
 echo "pass=$pass fail=$fail"
 [ "$fail" -eq 0 ]

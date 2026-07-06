@@ -8,67 +8,6 @@ Constitution + bridge content for the source-as-truth discipline. "Constitution"
 
 Admission boundary: only cross-epic load-bearing terms enter (referenced by ≥2 epics or a shipped surface); single-epic terminology lives and dies with its epic's spec. Auditing the existing entries against this boundary is future work owned by the epic — not claimed here.
 
-## Skill / Mode / Discipline / Baseline — structural roles
-
-Constitution.
-
-Four structural roles for cross-cutting behavior in the touchstone plugin, distinguished by **activation scope**:
-
-| Role | Activation scope | How turned on | Example |
-|---|---|---|---|
-| **Skill** | per-invocation | `Skill` tool call | `grill-with-docs` |
-| **Mode** | per-session | user toggle (e.g. `/<mode-name>`) | `caveman`, `grounded-claims` |
-| **Discipline** | per-project | `.claude/touchstone.yaml` `adopted_disciplines:` | `source-as-truth` |
-| **Baseline** | per-plugin | hard-coded into plugin | `intention-first` |
-
-The four are exhaustive and mutually exclusive — every cross-cutting rule fits exactly one role.
-
-### Classification flow
-
-Three sequential questions decide where a concept goes:
-
-1. **Is it cross-cutting?** (modifies ≥2 stage skills' steps)
-   - No → it's a **skill** (one entry point, one purpose).
-2. **What's the natural activation scope?**
-   - Single moment in a task → keep as skill (manual invoke each time).
-   - Ambient within one work session, may flip mid-session → **Mode**.
-   - Ambient for the lifetime of a project, set once → **Discipline**.
-   - Cannot reasonably opt out at any scope → **Baseline**.
-3. **Is it step-level mechanisable?** (expressible as "in skill X step Y, do Z")
-   - No → it's prose, belongs in `CLAUDE.md`, not in the role taxonomy.
-
-### Why these four roles
-
-The roles map to **who has agency over the toggle**:
-
-- Skill: caller decides per-invocation.
-- Mode: user decides per-session (highest agency for ambient behavior).
-- Discipline: project owner decides at setup (institutional commitment).
-- Baseline: plugin author decides; users cannot opt out.
-
-At any one skill Step, only currently-active modes + adopted disciplines + baselines fire. Each fire is a discrete enumerable rule, not ambient mood. Adding a new role-instance should not increase per-Step cognitive load unless that Step explicitly enumerates the new rule.
-
-Roles compose; they don't accumulate as global modifiers.
-
-### Current inventory
-
-The live set of role-instances. Single source of truth — ADRs classify; this table records what exists and its status.
-
-| Instance | Role | Status | Authority |
-|---|---|---|---|
-| `source-as-truth` | Discipline | Adopted, shipped | this doc (rationale: local .touchstone/docs/adr/0004-*) |
-| `intention-first` | Baseline | Building (Epic D); legacy always-on 4Q exists | ADR-0003 |
-| `grounded-claims` | Mode | Shipped, plugin-local (`skills/grounded-claims`) | ADR-0002 |
-| `caveman` | Mode | External skill; not in plugin | global `~/.claude/skills/caveman` |
-
-`grounded-claims` was formerly named `ground-as-source`; renamed to disambiguate from the `source-as-truth` Discipline (they govern different relationships — doc↔source vs claim↔evidence; see ADR-0002).
-
-`grounded-claims` and the `testing-strategy` honesty gate are two instances of the **honesty spine** (§ Honesty spine) on different surfaces: `grounded-claims` governs **narration** (every sentence a session SAYS must cite or carry `[假設]`); `testing-strategy` governs **deliverable certification** (every AC the workflow marks done must be backed by a test at the right layer, or carry `[unverified]`). Siblings, not duplicates — narration-time vs gate-time.
-
-### Fire ordering (when multiple fire at one Step)
-
-When several baselines/disciplines/modes are active at the same skill Step, scope-framing fires before content-rules: **`intention-first` (Baseline) → `source-as-truth` (Discipline) → active Modes**. Rationale: the intention gate can reframe scope ("this is a fixture, not a spec") and abort the Step; running it first avoids wasted vocabulary-load cost.
-
 ## Honesty spine
 
 Constitution. The load-bearing principle of the plugin: **a claim never exceeds its evidence; gaps are marked, not hidden** (`claim ≤ evidence`). Every stage is accountable to this spine — it is the thread the whole workflow exists to keep honest.
@@ -78,7 +17,7 @@ The spine reaches a stage through **two arms**:
 - **Feedforward arm (anticipatory)** — *before* the work, the stage declares what it will claim and what evidence that claim needs, and marks unknowns as unknown. E.g. `design-spec` declares the Verification Strategy; `design-review` marks `[unverified]` on ambiguous live-bearing ACs.
 - **Feedback arm (verifying)** — *after* the work, a reviewer or check reads the delivered evidence, judges whether the claim was actually backed, and marks any gap. E.g. epic-close evidence reckoning; the `code-review batch` evidence-honesty criteria; `grounded-claims` per-sentence `[假設]` / citation.
 
-**Not a fifth role.** The spine is content carried *through* the four roles, not an activation scope of its own: `grounded-claims` (Mode) carries it for narration, the `testing-strategy` gate for deliverable certification, `source-as-truth` (Discipline) for doc↔source. The roles say *when* a rule fires; the spine says *what truthfulness* the rule serves.
+**Not an activation scope of its own.** The spine is content carried *through* the plugin's activation mechanisms: `grounded-claims` (session Mode) carries it for narration, the `testing-strategy` gate for deliverable certification, `source-as-truth` (project Discipline) for doc↔source. Activation says *when* a rule fires; the spine says *what truthfulness* the rule serves. (The four-role activation taxonomy this section once pointed at is retired — evolution ledger: ADR-0033.)
 
 **Audit criterion — not a completeness checklist.** A stage need not have both arms. The defect is **silent false-green**: a claim that exceeds its evidence and is caught by no mechanism, in that stage or downstream. A one-armed (or armless) stage is fine when it makes sense — it is a gap only when it emits a claim that nothing ever closes. Feedforward⇄feedback began as a general control-axis diagnostic (is the suite feedforward-heavy or feedback-heavy?); that broader *audit* was dropped, but the axis itself is real and general — the honesty spine is its **first pillar** (per-delivery trust), not the whole axis (see ADR-0018 for the two-pillar derivation). The two arms here are honesty's instantiation of the feedforward/feedback axis, not a separate lens. (Origin: the `workflow-suite-audit` epic.)
 
@@ -100,18 +39,6 @@ Enforceable-rule. `kill-on: lever-discipline-mechanisation`. Every bridge claim 
 ## Standing vs transient bridge
 
 Constitution. Bridges have a second scope-span axis: **standing** (architecture docs dir, long-lived, `kill-on:` retires it, cold-start reads it) vs **transient** (specs dir, retires when the feature lands, epic-context only). Cold-start readers enter through standing bridges + navigation, never through specs. **Full table + injectable text:** `skills/_shared/inject/standing-vs-transient-bridge.md` (single home — injected by `assay` / `design-review`).
-
-## Three layers of knowledge — complementarity rule
-
-Constitution. Navigation / Bridge / Source each answer one question. Complementary, not overlapping.
-
-| Layer | The question | Trust |
-|---|---|---|
-| Navigation | "Where does X live?" | High (pointer) |
-| Bridge | "What's the rule?" | Medium (drifts) |
-| Source | "What does it do?" | Absolute (final arbiter) |
-
-When in doubt: Where → Navigation; What's the rule → Bridge; What does it do → Source.
 
 ## Bridge proximity ladder
 
@@ -149,7 +76,7 @@ Constitution. Fields introduced by source-as-truth:
 
 ## Agent dispatch axis
 
-Constitution. Classifies *how a multi-task plan is executed* — orthogonal to the four structural roles (which classify activation scope of cross-cutting behavior). Workflow kind; human-governed.
+Constitution. Classifies *how a multi-task plan is executed* — orthogonal to activation scope (when a cross-cutting rule fires). Workflow kind; human-governed.
 
 One decision, one knob:
 
@@ -311,17 +238,3 @@ The evidence-honesty vocabulary (origin: ADR-0033 ledger). The lens these terms 
 **ground-and-sweep doctrine** — two orthogonal per-unit tests (ground-before-assert + sweep-to-dry) applied on both the feedforward (design-spec) and feedback (design-review) arms. **Single home:** `skills/_shared/ground-and-sweep.md` (dual-use carve-out — see § Template co-location and ADR-0017).
 
 **design-soundness lens (two-arm)** — the design-quality arm of the review spine: a **feedforward arm** at `design-review` (judges whether a depth-stakes component's `## Architecture` carries normative commitments) and a **feedback arm** at deliverable review (`anvil` final review + `code-review batch`, judging delivered code against those commitments). Subsystem scope, not per-diff. **Single home:** `skills/_shared/inject/design-soundness-honor-check.md` — consumers load it by path; the procedural definition and the avoid-list live there, not here.
-
-## Epic-tracker projection vocabulary
-
-The `epic-driven-roadmap` skill keeps its work-content in a local markdown index (`.touchstone/epics/<slug>/index.md`) as the single source of truth. Shared trackers (GitHub / GitLab Issues, Jira, Linear) are downstream **projections** of that index, never a second home; the agent is the shim (ADR-0012 status: superseded).
-
-**agent-as-universal-shim** — the LLM natively reads and writes any format, so no code shim sits between the skill and a backend. Forward projection (render the index onto a tracker card) and any reverse reconciliation (read a tracker via `gh` / CLI / MCP, diff, self-update the index) are both done by the agent semantically. _Avoid_: "storage adapter" / "shim layer" as a code component — the shim is the agent, not a script.
-
-**projection** — the one-way render of the index's shared subset (aim, phases-as-checklist, status, back-link) onto a tracker card, produced at need. Lossy by design: close-only internal artifacts (retrospective, Doc Reckoning, Evidence Reckoning) are not projected. _Avoid_: "sync" — implies bidirectional parity; projection is one-way local→tracker.
-
-**reconciliation** — the reverse path, built only if a real consumer needs it: the agent fetches tracker state and diffs it against the local index, then updates the index. Semantic, agent-performed, no schema or round-trip contract. Not a standing mechanism (YAGNI until a tracker is a genuine upstream author).
-
-**field-location mapping** — the only deterministic per-tracker artifact: a small declarative table of where each index field lives on a platform (which API field / card location holds slug, status, phases). Keeps field retrieval unambiguous during projection / reconciliation. Not a round-trip adapter — a lookup table.
-
-**canonical minimum** (template-field discipline) — the index template holds only what a touchstone gate reasons about (slug / status / started / landed / aim / intention / out_of_scope / phases[].{n,title,status,landed} / retrospective / open_questions). Decorative or backend-specific fields stay out of the gated set. **Review test (kept from ADR-0012):** every proposed index field must answer "which gate reads this?" — if none, it does not belong in the gated template. This is now template-design discipline for one local home, not a cross-backend contract.

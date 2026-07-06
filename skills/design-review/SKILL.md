@@ -1,161 +1,121 @@
 ---
 name: design-review
 kind: workflow
-description: Use when a design document (spec, plan, ADR) needs its pre-Build review — the consolidated design-review gate. Out of scope — anything that is not a contract-bearing design document.
-allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - Edit
-  - Grep
-  - Glob
+description: Pre-Build review gate for design documents (spec, plan, ADR). Out of scope — anything not a contract-bearing design document.
+allowed-tools: [Bash, Read, Write, Edit, Grep, Glob]
 user-invocable: true
 ---
 
-# /touchstone:design-review — Design Document Review
+# /touchstone:design-review
 
-Reviews one authored design artifact before Build by dispatching the cross-provider
-reviewer with the doc-review prompt below. This is the **single consolidated design
-gate**: it applies **design-soundness ∪ verification-honesty** (the union — passing
-one lens never discharges the other). `design-spec` is pure authoring and runs no
-review of its own; never treat "design-spec was run" as "this gate passed".
+The consolidated design gate before Build: **design-soundness ∪
+verification-honesty** — one lens never discharges the other.
+`design-spec` is pure authoring; "design-spec was run" ≠ "this gate passed".
 
-## Scope and lifecycle
+## Scope
 
-Classify the target by frontmatter `type:` (or path):
-- `type: spec` OR path matches `**/specs/**` → in scope
-- `type: plan` OR path matches `**/plans/**` → in scope
-- `type: adr` OR path matches `**/adr/**` → in scope
-- Anything else → reply "not in scope; this skill reviews specs / plans / ADRs only" and exit.
+In scope (`type:`/path): spec, plan, ADR (`**/specs/**`, `**/plans/**`,
+`**/adr/**`); else reply "not in scope — specs / plans / ADRs only" and exit.
+Normal subject: `status: accepted-candidate` (crucible invokes pre-accept;
+accept promotes on a clean pass); `accepted` → re-review; `draft` → not
+gated.
 
-The normal subject is a spec at `status: accepted-candidate` (crucible invokes this
-gate pre-accept; the human's accept promotes it only after a clean pass). An
-already-`accepted` artifact is valid for standalone re-review. A `draft` spec is not
-gated here (the pre-check skips it).
+## Phase 1 — Inject
 
-## Phase 1 — Load and inject vocabulary
+Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md` and follow it.
 
-> Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`
-> with the Read tool and follow it exactly.
+**Injection discipline (once):** Read each fragment below in full from
+`${CLAUDE_PLUGIN_ROOT}` and place it **verbatim** in the reviewer envelope — a
+lens named without its usable text is the known defect class; this path wires
+its own fragments.
 
-**Spine injections (unconditional — never gated on a discipline):**
-1. Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/live-bearing-predicate.md` AND
-   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/ac-coverage-honesty-principle.md`;
-   append both verbatim to the doc-review `system_prompt` AND carry as
-   `evidence_honesty_vocab`. Check 7 below applies them as its declaration stage.
-2. Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`;
-   prepend it verbatim to the doc-review `system_prompt`. The cold reviewer applies its
-   **feedforward duty** (subject = the document: depth-stakes test + descriptive-only
-   detection), not the feedback duty (code vs spec — that lives at deliverable review).
-3. Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/ground-and-sweep.md` and inject it verbatim into
-   the reviewer envelope (append to `system_prompt`) so the cold reviewer applies
-   sweep-to-dry over each finding's true subject. The fragment carries the saturation
-   definition and scope-resolution rule — do not restate them. **INV-NO-SILENT-PATH** —
-   this fragment fires on the review/feedback path only, and its injection must be
-   stated here, in the path that fires it, never assumed from another path's wiring.
-   Feedback deltas the reviewer applies with it: the unit is each *emitted finding*
-   (grounded in file path / line / field / AC-id — a generic assertion fails
-   ground-before-assert); saturation = a full pass over the finding's subject
-   surfaces nothing new.
+Unconditional:
+1. `skills/_shared/inject/live-bearing-predicate.md` +
+   `skills/_shared/inject/ac-coverage-honesty-principle.md` — append to
+   `system_prompt` AND carry as `evidence_honesty_vocab`.
+2. `skills/_shared/inject/design-soundness-honor-check.md` — prepend to
+   `system_prompt`; apply its **feedforward duty** (subject = the document), not
+   the feedback duty.
+3. `skills/_shared/ground-and-sweep.md` — Read and inject verbatim into the
+   reviewer envelope; the fragment carries the saturation definition and
+   scope-resolution rule. Unit = each *emitted finding* (file / line / field /
+   AC-id).
 
-**Conditional (only if `source-as-truth` is in `bundle.disciplines`):** read
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` AND
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/standing-vs-transient-bridge.md`; set
-envelope `discipline_mode: "source-as-truth"` and `source_as_truth_vocab: <verbatim
-loaded text>`. If not adopted: `discipline_mode: "none"`, omit the field. The Bridge
-content audit and standing-vs-transient classification remain THIS skill's actions;
-the fragments supply only the vocabulary.
+Conditional (`source-as-truth` in `bundle.disciplines`): read
+`skills/_shared/inject/bridge-content-gate.md` +
+`skills/_shared/inject/standing-vs-transient-bridge.md`; set
+`discipline_mode: "source-as-truth"` + `source_as_truth_vocab: <verbatim text>`;
+else `discipline_mode: "none"`. The Bridge audit stays THIS skill's action.
 
-- [ ] Every fragment named above was Read and placed in the envelope verbatim (equal
-      depth — no lens named without its full text).
+## Phase 2 — Pre-check (specs only)
 
-## Phase 2 — Deterministic pre-check (specs only)
-
-For `type: spec` targets, run each script that exists (absent script → skip, degrade
-gracefully; plan/ADR targets skip this phase):
+Run each script that exists (absent → skip; plan/ADR skip):
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/design-review-precheck.sh" <spec-path>
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-design-soundness-refs.sh" <spec-path>
 ```
 
-Non-zero exit → surface the full `BLOCK:` output verbatim and **do not dispatch**
-reviewers; the human resolves the block first. Exit zero → proceed.
-
-- [ ] Pre-check exit code read and acted on (BLOCK surfaced verbatim, or OK).
+Non-zero → surface the full `BLOCK:` output verbatim and **do not dispatch**;
+the human resolves first. Zero → proceed.
 
 ## Phase 3 — Dispatch
 
-```
-Skill(skill: "touchstone:cross-provider-reviewer", args: {
-  "task": "<full text of the doc being reviewed>",
-  "system_prompt": "<doc-review prompt below + Phase-1 injections>",
-  "discipline_mode": "<per Phase 1>",
-  "role": "design-reviewer",
-  "task_dir": "<optional: from caller context>"
-})
-```
+Invoke `Skill(skill: "touchstone:cross-provider-reviewer")`: `task` = full doc
+text, `system_prompt` = prompt below + Phase-1 injections, `discipline_mode`
+per Phase 1, `role` = `design-reviewer`.
 
-### Doc-review prompt (cold-inject — keep inline)
+### Doc-review prompt — inline
 
-> You are reviewing an authored design document (spec, plan, or ADR). Apply TWO
-> lens-sets (UNION, not substitution): **(i) design-soundness** and
-> **(ii) verification-honesty**. Passing one lens NEVER discharges the other.
+> You review an authored design document. Apply TWO lens-sets (UNION):
+> **(i) design-soundness** — the feedforward duty from the injected fragment
+> (subject = the document), plus structural validity, unhandled failure modes,
+> missed edge cases per the architecture rubric.
+> **(ii) verification-honesty** — generate checks from two principles; the named
+> instances are examples, not a closed list.
 >
-> **Design-soundness lens — feedforward arm:** apply the feedforward duty from the
-> design-soundness fragment injected above (subject = the document, not code).
-> Additionally assess structural validity, unhandled failure modes, and missed edge
-> cases against the architecture rubric.
+> **P1 — Falsifiable concreteness.** Every load-bearing statement is concrete
+> enough to be shown false: Problem / Scope / Non-goals falsifiable, not
+> aspiration; interfaces name fields, types, error returns; error handling maps to
+> scenarios; invariants are cross-cutting rules; a coined term is
+> defined at first use and used consistently; numbers agree across sections
+> (counts, totals, versions).
 >
-> **Verification-honesty lens — check:**
-> 1. Problem / Scope / Non-goals are concrete and falsifiable.
-> 2. Requirement→AC completeness (coverage DIRECTION): for EACH requirement,
->    enumerate the behaviours a user would recognize as "this requirement working" —
->    happy path, error paths, boundaries — and check each behaviour has an AC
->    witnessing it. Flag every requirement whose AC set witnesses only the happy
->    path. This pass hunts ACs that do NOT exist; critiquing the ACs that do
->    exist is the other checks' job.
-> 3. Interfaces / Contracts are specific (field names, types, error returns).
-> 4. Error Handling rows map to scenarios.
-> 5. Invariants are cross-cutting rules.
-> 6. Risks / Open Questions are not hidden.
-> 7. Verification Strategy declaration: apply the injected live-bearing predicate +
->    AC-coverage-honesty principle as a DECLARATION check (no test source exists yet
->    — never a coverage read): the doc has a non-empty `## Verification Strategy`
->    section and every live-bearing AC id appears in its `Live-bearing AC IDs`.
->    Surface a missing/empty section or an omitted live-bearing AC as a finding. Do
->    NOT read test source or judge per-AC coverage (code-review batch / epic-close
->    own those).
+> **P2 — The verification story is complete and honest.** The doc says how each
+> promise will be witnessed, hiding nothing: for EACH requirement,
+> enumerate the behaviours a user would recognize as "working" (happy, error,
+> boundary paths) and flag every requirement whose ACs witness only the happy
+> path — hunts ACs that do NOT exist; the doc has a non-empty
+> `## Verification Strategy` and every live-bearing AC id (per the injected
+> predicate + AC-coverage-honesty principle) appears in `Live-bearing AC IDs` —
+> a declaration check (no test source yet); a standing-runtime feature
+> carries an activation AC on the user-observable, never only a fixture proxy;
+> Risks / Open Questions are surfaced, not hidden.
 >
-> Tag each finding `[lens: design-soundness]` or `[lens: verification-honesty]`; a
-> zero-finding lens must be visibly stated as zero, not hidden. Return findings
-> sorted by severity (Critical, High, Medium, Low), each citing the section and a
-> concrete fix. End with verdict: approve | revise | block, then the sentinel line:
+> Shared boundary: read the document only — never test source, per-AC coverage,
+> or code (code-review batch and epic-close own those).
+>
+> Output: tag findings `[lens: design-soundness]` /
+> `[lens: verification-honesty]`; state a zero-finding lens as zero. Sort by
+> severity (Critical → Low), each citing section + concrete fix. End with
+> verdict: approve | revise | block, then the sentinel:
 > `STAGE-REVIEW-SUMMARY: critical=<n> high=<n> degraded=<true|false>`
-> (`degraded` per `cross-provider-reviewer/references/provenance.md` Operation 3).
 
 ## Phase 4 — Apply findings
 
-Sum Critical+High across reviewers:
-- **C+H ≥ 5** → apply fixes inline, then re-invoke `/touchstone:design-review <path>`
-  — the second pass is mandatory, never skipped on user discretion. Build waits for a
-  run with C+H = 0.
-- **1 ≤ C+H < 5** → surface findings; Build waits until Critical+High are resolved.
-  Second pass optional.
-- **C+H = 0** → surface Medium/Low; Build may proceed at user's discretion.
+Sum Critical+High (C+H):
 
-**Informed-consent checkpoint (orthogonal to C+H):** if the synthesis carries a
-⚠️ DEGRADED or ⚠️ PARTIAL banner, present the banner text VERBATIM and obtain
-explicit acknowledgement (AskUserQuestion or an explicit "proceed") BEFORE allowing
-Build — even at C+H = 0. A clean review (no banner) skips this checkpoint. Banner
-meaning: `${CLAUDE_PLUGIN_ROOT}/skills/cross-provider-reviewer/references/provenance.md`.
+| C+H | Action | Build |
+|---|---|---|
+| ≥ 5 | fix inline; re-invoke — 2nd pass mandatory | waits for a C+H = 0 run |
+| 1–4 | surface; 2nd pass optional | waits until C+H resolved |
+| 0 | surface Medium/Low | may proceed at user's discretion |
 
-Never auto-promote the artifact's status — the human (or caller skill) decides.
-Close this run's metrics window (silent no-op on failure):
+A ⚠️ DEGRADED / ⚠️ PARTIAL banner (orthogonal to C+H) → present VERBATIM and
+get explicit acknowledgement BEFORE Build, even at C+H = 0 (meaning:
+`cross-provider-reviewer/references/provenance.md`).
+
+Never auto-promote the artifact's status — the human (or caller) decides. Close
+the metrics window (silent no-op):
 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/metrics/stamp-end.sh"`.
-
-- [ ] C+H tier applied; banner (if any) acknowledged by the human; status untouched.
-
-## Related
-
-- Pattern + maintainer notes (invocation, history): `README.md`.
+Maintainer notes: `README.md`.

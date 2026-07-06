@@ -1,5 +1,6 @@
 ---
 injected-by: [design-review, code-review]
+referenced-by: [design-spec]
 kind: bridge
 ---
 

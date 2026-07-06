@@ -50,6 +50,17 @@ risk note verbatim (do not paraphrase): "(aim contains an unverifiable token —
 
 ## Caller contract
 
+- **Crucible-chain case (consume the assay record, don't re-elicit):** when the
+  invocation sits inside a crucible chain and an assay record exists for this
+  subject, assay is the single human-elicitation surface — the caller consumes
+  the record as the confirmed foundation (intention ← the record's `subject:`
+  frontmatter line; aim ← the guardrail head's scope, condensed to the
+  observable outcome; out-of-scope ← the head's out-of-scope) and runs NOTHING
+  from this gate (no opener, no sharpening, no confirm — the assay readiness
+  ruling already carries the human's confirm). The head's invariants and
+  contract facts are contract-body content (the spec's Invariants / Scope
+  sections), never Foundation fields. Non-chain paths (epic scaffold; direct
+  `design-spec` with no assay record) run this gate unchanged.
 - The caller may run an inheritance pre-step BEFORE the opener (e.g. `design-spec` inherits a
   parent epic's `## Foundation`); when inheritance applies, the caller uses its own inheritance
   prompt INSTEAD of the from-scratch opener. Epic scaffold is the origin — no inheritance.

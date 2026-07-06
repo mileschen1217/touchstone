@@ -127,6 +127,17 @@ The post-fix sweep above is a self-read of the fix diff, not a re-dispatch.
 Ready to commit: {yes/no}
 ```
 
+**Yield stamp (you, the reviewing session — after the report, one line, no
+hook backs this):** append one JSON line to the reviewed repo's
+`.touchstone/ledger/review-stamps.jsonl` (create the file if absent):
+
+```
+{"schema":"review-stamp/v1","ts":"<ISO8601 UTC>","mode":"per-commit","target":"<commit-ish>","critical":N,"high":N,"medium":N,"low":N}
+```
+
+This is the per-commit yield record (findings vs commits) the retirement /
+insight data reads; skipping it silently un-instruments the gate.
+
 ## Related
 
 - Rationale (Pattern B, generic-Sonnet choice, specialist cap) + Dependencies: `README.md`.
