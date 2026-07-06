@@ -39,7 +39,9 @@ Refer to `codex-implementer` for the underlying probe / dispatch / verify logic 
 
 ## Dispatch
 
-Same as `codex-implementer` — `codex exec --json --skip-git-repo-check --sandbox workspace-write` with role injected via prompt prefix. **Stdin must be redirected to `/dev/null`** (canonical rationale: `codex-reviewer.md` § Dispatch).
+Same shape as `codex-implementer`: probe `codex --version` first (unavailable → synthesized failed result.json, exit 0); then exactly ONE
+`timeout "${TIMEOUT:-1800}" codex exec --json --skip-git-repo-check --sandbox workspace-write --cd "$PROJECT_ROOT" "<role prompt + contract/task_dir paths>"`
+where `PROJECT_ROOT` = nearest git toplevel from `$TASK_DIR` (fallback `$TASK_DIR`), streaming stdout via `tee` to `$TASK_DIR/raw_codex.jsonl`; afterwards verify `result.json` exists, synthesizing the failed-status artifact if Codex didn't write it. **Stdin must be redirected to `/dev/null`** (canonical rationale: `codex-reviewer.md` § "Dispatch — Path C (prompt prefix)").
 
 ## Role system prompt
 

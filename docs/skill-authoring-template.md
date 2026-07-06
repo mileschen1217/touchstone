@@ -71,9 +71,11 @@ Imperative steps.
 
 How to slim an existing skill/agent md surface without changing behavior. The
 target state is the two-sentence standard above; this section is the procedure
-for getting an already-shipped file there. The surface-wide net-byte ratchet
-(`scripts/check-md-surface-budget.sh` against `scripts/md-surface-baseline.txt`)
-enforces the outcome: any addition is funded by deletion in the same PR.
+for getting an already-shipped file there. The surface-wide net-byte ratchet is
+`scripts/check-md-surface-budget.sh` against `scripts/md-surface-baseline.txt`
+— it runs inside the test suite, and you (the rewriting session / PR author)
+run it and keep it green before push: any addition is funded by deletion in
+the same PR.
 
 ### Fat classes
 

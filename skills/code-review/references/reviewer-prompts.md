@@ -115,9 +115,11 @@ do not restate here); these blocks are the dispatch payload only.
 **security domain block:**
 - `{DOMAIN}` = security
 - `{INVARIANT}` = adversary-controlled input must not drive a harmful capability.
-- `{CROSSINGS}` = points where untrusted input flows toward a dangerous sink
-  (an internal interface crosses only at a trust-level transition — judge the
-  actual data flow, not keyword presence).
+- `{CROSSINGS}` = points where untrusted input flows toward a dangerous sink.
+  An internal interface crosses only at a trust-level transition
+  (privileged ↔ unprivileged, authenticated ↔ unauthenticated); JWT, CORS,
+  SSRF are example pairings, not the rule — judge the actual data flow, not
+  keyword presence.
 - `{GUARANTEES}`:
   - Parameterize (prepared statements, safe API)
   - Escape/encode for the target context

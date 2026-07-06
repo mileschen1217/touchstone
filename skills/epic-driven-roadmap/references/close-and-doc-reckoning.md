@@ -375,7 +375,8 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" report
 `finalize` appends `.staging.jsonl` through the ledger writer (dedupe applies
 — an incident already recorded via a prior sweep or a label is a no-op) and,
 only on success, advances the single `.last-sweep` timestamp to this run's
-collect-start.
+collect-start. On any finalize failure the staging file is discarded whole and
+`.last-sweep` stays untouched.
 
 Paste `report`'s output — sources consumed, any skipped/incomplete lines, and
 the entries count + byte size — into the close report verbatim (step 5c above).

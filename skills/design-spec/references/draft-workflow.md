@@ -61,7 +61,8 @@ When drafting ## Acceptance Criteria:
 Hard-wrap only what cannot reflow: prose soft-wraps (one logical paragraph =
 one line — renderers reflow it; never insert hard breaks inside a paragraph);
 code blocks / tables / ASCII/Mermaid diagrams keep ≤80 chars where natural
-(they cannot reflow); one bullet per line.
+(they cannot reflow); one bullet per line (wrap continuation lines under the
+bullet only when the bullet itself is multi-paragraph).
 
 
    Construct the dispatch prompt as follows:

@@ -23,6 +23,8 @@ baseline="$(grep -v '^#' "$BASELINE_FILE" | grep -E '^[0-9]+$' | head -1)"
 
 total="$(find "$ROOT/skills" "$ROOT/agents" -type f -name '*.md' -print0 \
   | xargs -0 cat | wc -c | tr -d '[:space:]')"
+printf '%s' "$total" | grep -qE '^[0-9]+$' \
+  || { echo "ERROR: byte-count pipeline produced non-numeric total: '$total'" >&2; exit 2; }
 
 if [ "$total" -gt "$baseline" ]; then
   echo "FAIL: md surface $total bytes > baseline $baseline (+$((total - baseline)))."

@@ -28,9 +28,10 @@ as-is; they are the honest answer.
    at epic close, or ad-hoc via `"${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh"`).
 2. **Cluster + draft (the semantic step — dispatchable).** This step's
    clustering, screening, and sidecar drafting may go to a fresh-context
-   worker (sonnet dispatch); the digest presentation, human rulings, and every
-   install action stay in the main thread (the elevated-trust rule above is
-   unchanged). Read the open set:
+   worker (sonnet dispatch) — the worker authors proposal sidecars (drafts,
+   never installed check content); the digest presentation, human rulings, and
+   every install action stay in the main thread (the elevated-trust rule above
+   is unchanged). Read the open set:
    `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/report.sh" open-entries`. Optionally read the epic's
    `data-points.md` as auxiliary signal. Cluster open entries into candidate
    mechanisms (a recurring class → one candidate), then screen every candidate

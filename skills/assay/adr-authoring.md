@@ -1,6 +1,6 @@
 # ADR Authoring
 
-Referenced by `/touchstone:assay` (structural-fork case) and `/touchstone:design-spec`. Not a standalone skill. The template is `docs/adr/template.md` (single home — do not restate its format here; copy it into the project on first use).
+Referenced by `/touchstone:assay` (structural-fork case) and `/touchstone:design-spec`. Not a standalone skill. The template is `${CLAUDE_PLUGIN_ROOT}/docs/adr/template.md` (single home — do not restate its format here; copy it into the project's `docs/adr/` on first use).
 
 ## When to create an ADR
 
@@ -23,8 +23,11 @@ recording:
 
 1. Otherwise author directly into the public ledger:
    - Initialize `docs/adr/` on first use (with user consent), copying
-     `docs/adr/template.md` from this plugin's repo if the project lacks one.
-   - Assign the next number by scanning `docs/adr/` for the highest `NNNN-` prefix.
+     `${CLAUDE_PLUGIN_ROOT}/docs/adr/template.md` in as `docs/adr/template.md`
+     if the project lacks one.
+   - Assign the next number by scanning `docs/adr/` — and the project's local
+     ADR draft dir when one is routed (e.g. `.touchstone/docs/adr/`) — for the
+     highest `NNNN-` prefix (a reserved-but-unpromoted local number counts).
    - Fill the template (Nygard format — Context, Decision, Alternatives
      Considered, Consequences) and write `docs/adr/NNNN-<title-slug>.md`.
    - If the project keeps an ADR index (a `docs/adr/README.md`, or an authority

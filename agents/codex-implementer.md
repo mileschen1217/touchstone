@@ -70,9 +70,9 @@ Result artifact path: $TASK_DIR/result.json
 Read the contract, execute it (touching only Owned Files), and write result.json to the path above." </dev/null 2>&1 | tee "$TASK_DIR/raw_codex.jsonl"
 ```
 
-**`</dev/null` before `2>&1` is mandatory** — codex blocks on stdin EOF otherwise (canonical rationale + confirmed-hang record: `codex-reviewer.md` § Dispatch).
+**`</dev/null` before `2>&1` is mandatory** — codex blocks on stdin EOF otherwise (canonical rationale + confirmed-hang record: `codex-reviewer.md` § "Dispatch — Path C (prompt prefix)").
 
-Role injection = prompt prefix (canonical rationale: `codex-reviewer.md`). Sandbox `workspace-write` is scoped to `--cd <DIR>` — point `--cd` at the project root, not the task dir, or Codex cannot modify Owned Files elsewhere in the tree.
+Role injection = prompt prefix (canonical rationale: `codex-reviewer.md`, same section). Sandbox `workspace-write` is scoped to `--cd <DIR>` — point `--cd` at the project root, not the task dir, or Codex cannot modify Owned Files elsewhere in the tree.
 
 ### 3. Verify Codex wrote `result.json`
 
