@@ -112,9 +112,10 @@ for f in skills/*/SKILL.md; do
 done
 
 # ── ADR-0016 §4 — Pattern-A composite drift assert ──────────────────────────
-# The two Pattern-A composites (cross-provider-reviewer / -architect) keep a
-# ~20-line shared scaffold by DESIGN (not extracted). Guard the ADR's two flip
-# triggers mechanically where we can:
+# Amended 2026-07-06: the shared scaffold is extracted to
+# skills/_shared/pattern-a-base.md (md-essence-rewrite ruling; see the ADR's
+# dated amendment). The Codex-probe block stays inline in EACH composite.
+# Guard the ADR's flip triggers mechanically where we can:
 #  (a) 3rd composite appears  → dir count must stay 2 (else re-decide extraction)
 #  (b) probe drift            → the shared Codex-probe shape must appear exactly
 #                               once in EACH composite (total 2). Edit one and not
