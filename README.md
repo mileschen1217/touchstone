@@ -2,7 +2,7 @@
 
 > A test of what is genuine. (試金石 — a stone used to test the authenticity of metal.)
 
-A Claude Code plugin for **workflow discipline** — 10 stage skills + 7 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
+A Claude Code plugin for **workflow discipline** — 10 stage skills + 6 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
 
 ## What it is
 
@@ -64,9 +64,10 @@ The review/architecture agents (`architect`, `code-reviewer`) are vendored plugi
 
 - `touchstone:tdd` — Double-loop TDD agent (ATDD outer + unit-test inner).
 - `touchstone:codex-implementer` — Cross-vendor task execution via Codex CLI.
-- `touchstone:codex-tdd` — Cross-vendor TDD with Codex red-green-refactor.
 - `touchstone:codex-reviewer` — Read-only Codex code review (Pattern B).
 - `touchstone:codex-adversarial-reviewer` — Codex adversarial design critique.
+- `touchstone:architect` — Read-only CC architecture validation (Pattern A arm).
+- `touchstone:code-reviewer` — Read-only CC reviewer (Pattern A arm / Pattern B).
 
 ## 6-stage workflow
 

@@ -7,4 +7,7 @@
 # 276114
 # 2026-07-06: ratcheted down to the md-essence-rewrite PR's final total (B1-B6
 # rewrites - new vendored agents/base fragment - review-fix restorations).
-273616
+# 273616
+# 2026-07-06: ratcheted down — codex-tdd agent retired + security/database
+# specialist fan-out retired (user ruling; roster policy in code-review README).
+263279
