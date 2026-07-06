@@ -86,6 +86,12 @@ test, …), which is itself the checklist smell touchstone's altitude doctrine
    The test-evidence lens is therefore folded into the generic reviewer, not a
    new conditional dispatch.
 
+   > **Amendment (2026-07-06).** The two named exceptions (security, database)
+   > were retired by user ruling: the fan-out had no dispatch-yield
+   > instrumentation, and the generic reviewer's self-selected lenses carry
+   > both domains. The governance invariant itself stands — it is now the
+   > re-admission bar for any future specialist.
+
 4. **Regression-presence is a different concern with a different trigger.**
    "A bug-fix commit should carry a regression test" fires on *fix commits
    regardless of whether tests were touched* — gating it on test-files-touched
