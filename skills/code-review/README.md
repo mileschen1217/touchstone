@@ -21,25 +21,23 @@ measurably outperforms the generic reviewer. The test-evidence lens is folded in
 the generic reviewer rather than dispatched separately, precisely because test
 hygiene is *not* such a deep domain. Rationale: ADR-0025.
 
-## Why a generic Sonnet agent on per-commit (not the ECC code-reviewer)
+## Why a generic Sonnet agent on per-commit (not a dedicated reviewer agent)
 
 Per-commit is the hot path. Keeping it on a generic Sonnet agent + touchstone's own
-`generic-diff` prompt avoids a hard dependency on the everything-claude-code plugin
-and keeps the per-commit review philosophy under touchstone's control. The dedicated
-cross-vendor agents (`codex-reviewer` / `everything-claude-code:code-reviewer`) come
-in at `batch` (Pattern B), where vendor independence carries the most weight.
+`generic-diff` prompt keeps the per-commit review philosophy under touchstone's
+control. The dedicated cross-vendor agents (`touchstone:codex-reviewer` /
+`touchstone:code-reviewer`) come in at `batch` (Pattern B), where vendor
+independence carries the most weight.
 
 ## Dependencies
 
-- `everything-claude-code:code-reviewer` (ECC, EXTERNAL) — used only as the `batch`
-  (Pattern B) reviewer when the builder is Codex (cross-vendor swap). Epic B vendors
-  or makes it optional.
+- `touchstone:code-reviewer` (plugin-local, vendored 2026-07-06 — ECC dependency
+  retired) — the `batch` (Pattern B) reviewer when the builder is Codex
+  (cross-vendor swap), and the CC arm of `cross-provider-reviewer`.
 - `touchstone:codex-reviewer` (plugin-local) — Pattern B cross-vendor reviewer when CC builds.
 
 Security, database, and language scrutiny are all plugin-local: the generic Sonnet
 reviewer infers language-appropriate scrutiny from the diff, and the security/database
-specialists run touchstone's own invariant-based `specialist-reviewer` prompt (not the
-ECC `security-reviewer` / `database-reviewer` agents). Per-commit (Pattern C) therefore
-has no ECC dependency; only a `batch` review of a Codex-built range reaches for the ECC
-reviewer.
+specialists run touchstone's own invariant-based `specialist-reviewer` prompt. The
+whole review surface has no external-plugin dependency.
 

@@ -36,13 +36,13 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    - Detection requires commit-message hygiene. If a Codex agent built code without tagging commits, the swap will misroute. Override with `batch with cc` in that case.
 3. Determine reviewer:
    - If `force_reviewer = codex` → reviewer = `codex-reviewer`
-   - If `force_reviewer = cc` → reviewer = `everything-claude-code:code-reviewer`
+   - If `force_reviewer = cc` → reviewer = `touchstone:code-reviewer`
    - Else cross-vendor swap based on detected builder:
      - `builder = cc` → reviewer = `codex-reviewer`
-     - `builder = codex` → reviewer = `everything-claude-code:code-reviewer`
+     - `builder = codex` → reviewer = `touchstone:code-reviewer`
 4. Dispatch the resolved reviewer:
    - `codex-reviewer` → `Agent(subagent_type: "touchstone:codex-reviewer", description: "Codex batch review", prompt: { task: <full diff>, role: "batch-reviewer", task_dir: <optional> })`
-   - `everything-claude-code:code-reviewer` → corresponding Agent dispatch  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
+   - `touchstone:code-reviewer` (plugin-local, vendored) → corresponding Agent dispatch
 
    When `governing_specs` is non-empty (from Step 1b), the reviewer applies the
    **evidence-honesty (coverage) criteria** (these fire ONLY here at `batch` /
@@ -92,7 +92,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
 5. Single reviewer; no parallel dispatch in Pattern B.
    **Normative fallback:** if the swapped reviewer (e.g. `touchstone:codex-reviewer`)
    returns `status: failed` / a `fallback_reason` (codex unavailable), fall back to the
-   builder's OWN vendor (`everything-claude-code:code-reviewer` when builder=cc) and let
+   builder's OWN vendor (`touchstone:code-reviewer` when builder=cc) and let
    it produce the verdict. If BOTH the swap target and the builder-vendor fallback fail →
    `status: failed`, `providers_used == []`, no banner.
    **No pre-probe:** do not add a `codex --version` pre-probe here — rely on the

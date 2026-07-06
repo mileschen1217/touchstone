@@ -12,7 +12,7 @@ kind: workflow
 
 # /touchstone:cross-provider-architect — Pattern A Composite Skill
 
-Same skill-form Pattern A shape as `touchstone:cross-provider-reviewer`, but pairs CC `architect` with Codex `codex-adversarial-reviewer`. The asymmetry is intentional: CC validates, Codex critiques — different roles within Pattern A.
+Same skill-form Pattern A shape as `touchstone:cross-provider-reviewer`, but pairs CC `architect` with Codex `codex-adversarial-reviewer`. The asymmetry is intentional: CC validates, Codex critiques — different roles within Pattern A. Common procedure (dispatch discipline, provenance, banners, artifacts, failure semantics, return): read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/pattern-a-base.md` at start and follow it — single home, not restated here.
 
 ## Inputs (JSON envelope as `args`)
 
@@ -27,24 +27,16 @@ Same skill-form Pattern A shape as `touchstone:cross-provider-reviewer`, but pai
 
 ## Procedure
 
-### 1. Probe Codex (same as touchstone:cross-provider-reviewer)
+### 1. Probe Codex
 
 ```bash
 codex --version >/dev/null 2>&1 && echo "codex_healthy=1" || echo "codex_healthy=0"
 ```
 
-### 2. Parallel dispatch (single assistant message, two Agent tool calls)
+### 2. Dispatch targets (per the base procedure's parallel-dispatch rule)
 
-If `codex_healthy=1`, in ONE message issue BOTH:
-
-- `Agent(subagent_type: "everything-claude-code:architect", description: "CC architect", prompt: <task envelope>, model: "sonnet")`  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
+- `Agent(subagent_type: "touchstone:architect", description: "CC architect", prompt: <task envelope>)`
 - `Agent(subagent_type: "touchstone:codex-adversarial-reviewer", description: "Codex adversarial critique", prompt: <task envelope>)`
-
-Wait for both to return before synthesizing.
-
-If `codex_healthy=0`, call only `everything-claude-code:architect` (with `model: "sonnet"`) and proceed to synthesis with `fallback_reason: "codex unavailable"`.
-
-The `model: "sonnet"` override on the CC architect dispatch supersedes the agent's `model: opus` frontmatter — deliberate, not a bug.
 
 ### 3. Synthesis
 
@@ -54,33 +46,11 @@ The two outputs are intentionally different in tone. Synthesis must:
 - Cross-reference: when an adversarial finding contradicts a validated decision, flag explicitly
 - End with a unified verdict: approve | revise | block — choose the more conservative across both
 
-### 4. Compute provenance, prepend banners, write artifacts
+### 4. Provenance, banners, artifacts, return
 
-All actions here follow the sole canonical
-`skills/cross-provider-reviewer/references/provenance.md` (this composite reads that SAME
-reference directly — no copy, no indirection through another skill). `builder_vendor` is
-null (Pattern A). Record provenance (`providers_expected`/`providers_used`) and prepend
-the banner(s) if degraded/partial — all per that reference, which holds every
-field/operation/banner definition.
-
-Write artifacts (if `task_dir` provided):
-- `<task_dir>/raw_cc.md` — architect output
-- `<task_dir>/raw_codex.jsonl` — adversarial reviewer output (raw JSONL)
-- `<task_dir>/review.md` — synthesis (banner-prepended when degraded/partial)
-- `<task_dir>/review.result.json` — review-envelope/v1, written per `skills/cross-provider-reviewer/references/provenance.md` (sole definition of its fields and the no-derived-fields rule)
-
-### 5. Return synthesis to caller
-
-Skill body's final assistant text: the synthesized review.md content.
-
-## Failure semantics
-
-- Codex probe / dispatch fail → CC-only synthesis; record provenance + prepend the banner if applicable, per `skills/cross-provider-reviewer/references/provenance.md`.
-- Both reviewers fail → no synthesis; surface as failure and record provenance per that reference.
-- Skill itself errors (framework) → propagate to caller.
-- The review-envelope is written as `review.result.json`, per `skills/cross-provider-reviewer/references/provenance.md` (sole definition of its fields and rules).
+Per `skills/_shared/pattern-a-base.md`. Architect-specific artifact naming: `raw_cc.md` carries the architect output; `raw_codex.jsonl` the adversarial critique.
 
 ## Dependencies
 
-- `everything-claude-code:architect` (ECC, EXTERNAL) — CC validation backend; reserved for the highest-leverage gates (`/touchstone:assay` structural-fork case, `/touchstone:design-spec`).
+- `touchstone:architect` (plugin-local, vendored) — CC validation backend; reserved for the highest-leverage gates (`/touchstone:assay` structural-fork case, `/touchstone:design-spec`).
 - `touchstone:codex-adversarial-reviewer` (plugin-local) — Codex adversarial-critique backend.
