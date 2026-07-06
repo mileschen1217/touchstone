@@ -1,11 +1,6 @@
-# ADR Authoring (integration with ECC skill)
+# ADR Authoring
 
-Referenced by `/touchstone:assay` (structural-fork case) and `/touchstone:design-spec`. Not a standalone skill.
-
-The authoring procedure and template are owned by ECC's
-`architecture-decision-records` skill. This file documents how to invoke it
-from our skills, plus the extra header fields we want beyond Nygard's
-standard format.
+Referenced by `/touchstone:assay` (structural-fork case) and `/touchstone:design-spec`. Not a standalone skill. The template is `docs/adr/template.md` (single home — do not restate its format here; copy it into the project on first use).
 
 ## When to create an ADR
 
@@ -15,63 +10,32 @@ the decision affects future work. Skip ADRs for:
 - Local-scope decisions that won't affect future work
 - Patterns already captured in a prior ADR (reference the prior instead)
 
-## Invocation
+## Procedure
 
 When `/touchstone:assay` or `/touchstone:design-spec` concludes with a decision worth
 recording:
 
-0. **Local-first draft routing (check before invoking anything):** when the
-   project routes in-flight ADRs to a local draft dir (e.g. a `CLAUDE.local.md`
-   Doc-Routing row such as `.touchstone/docs/adr/`), author the draft THERE by
-   hand in the same format (steps 2–3 below still apply) and skip the ECC
-   skill — it writes `docs/adr/` directly, and the public ledger is a
-   promote-at-ship decision, not a draft-time one (re-check the number against
-   the public index when promoting).
+0. **Local-first draft routing (check first):** when the project routes
+   in-flight ADRs to a local draft dir (e.g. a `CLAUDE.local.md` Doc-Routing
+   row such as `.touchstone/docs/adr/`), author the draft THERE — the public
+   ledger is a promote-at-ship decision, not a draft-time one (re-check the
+   number against the public `docs/adr/` when promoting).
 
-1. Otherwise invoke ECC's ADR skill:
-   ```
-   Skill: everything-claude-code:architecture-decision-records
-   ```
-   This skill:
-   - Initializes `docs/adr/` + `README.md` index on first use (with user consent)
-   - Assigns next number by scanning `docs/adr/`
-   - Uses Nygard ADR format (Context, Decision, Alternatives Considered,
-     Consequences)
-   - Writes `docs/adr/NNNN-{title-slug}.md`
-   - Appends to `docs/adr/README.md` index
+1. Otherwise author directly into the public ledger:
+   - Initialize `docs/adr/` on first use (with user consent), copying
+     `docs/adr/template.md` from this plugin's repo if the project lacks one.
+   - Assign the next number by scanning `docs/adr/` for the highest `NNNN-` prefix.
+   - Fill the template (Nygard format — Context, Decision, Alternatives
+     Considered, Consequences) and write `docs/adr/NNNN-<title-slug>.md`.
+   - If the project keeps an ADR index (a `docs/adr/README.md`, or an authority
+     table in `CONTEXT.md`), append the new entry there.
 
-2. After the ADR is written — by ECC, or by hand per step 0 — add two custom header fields we use by convention:
-
-   - **`Triggered by:`** — `/touchstone:assay` or `/touchstone:design-spec (spec filename)`.
-     Makes the skill origin visible.
-   - **`Related ADRs:`** — comma-separated list of prior ADR numbers this
-     builds on (grep the `docs/adr/` directory for related topics).
-
-   Add these as an additional header section between "Deciders" and "Context".
-
-   When the ADR records a structural-fork bet (assay's readiness-fork case), add
-   three more fields in the same header section:
-
-   - **`Flip-trigger:`** — the observable signal that reopens the decision, plus
-     the revisit point (who/where looks when it fires).
-   - **`Bet-owner:`** — the human owning the bet (never the AI).
-   - **`Assumptions:`** — the decision bets this ADR rests on (bets, not
-     implementation facts).
+2. Fill the convention header fields the template carries: `Triggered by:`
+   (which skill/spec produced this) and `Related ADRs:` (grep `docs/adr/` for
+   related topics). When the ADR records a structural-fork bet (assay's
+   readiness-fork case), also fill `Flip-trigger:`, `Bet-owner:`, and
+   `Assumptions:` (uncomment the template block).
 
 3. Back-link:
    - `/touchstone:design-spec` → add the new ADR to the spec's `Related` section
    - `/touchstone:assay` → the assay record's flip-trigger registry references the ADR
-
-## Graceful degradation
-
-If ECC is not installed, fall back to manual ADR writing:
-- Use the template at `docs/adr/template.md` (created by ECC's skill) or
-  `docs/adr/0000-template.md` (existing in `claude_code_config`)
-- Apply the Nygard format directly
-- Still add `Triggered by:` and `Related ADRs:` headers
-
-## What NOT to duplicate
-
-Do not copy the ADR template, workflow, or detection signals here — they live
-in `everything-claude-code:architecture-decision-records`. This file is only
-the integration contract for our two skills.
