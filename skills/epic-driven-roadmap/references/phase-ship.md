@@ -18,7 +18,12 @@ quiz has been taken and passed:
 - [ ] **Comprehension quiz** — 5–8 questions the owner should be able to
       answer if they truly understand the change (what breaks if X, why was Y
       retired, where does Z live now), answers collapsed / after the
-      questions. Deliver it WITH the explainer and ask the owner to try it. A
+      questions. **The quiz is the explainer's acceptance test:** every
+      question must be answerable closed-book from the explainer alone (if
+      the owner must open the diff to answer, the explainer failed there);
+      each question anchors to a specific explainer section; cover only the
+      rulings and invariants that would change the approve decision — never
+      trivia. Deliver it WITH the explainer and ask the owner to try it. A
       wrong answer marks exactly where the explainer failed — revise the
       explainer there and re-ask. **Quiz not passed → do not approve**
       (informed accept, never a rubber-stamp).

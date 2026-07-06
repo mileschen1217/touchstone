@@ -26,23 +26,27 @@ as-is; they are the honest answer.
    output as-is, including the freshness line. If it prints
    "no open entries — run the sweep first", say so and stop (the sweep runs
    at epic close, or ad-hoc via `"${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh"`).
-2. **Cluster + draft (the semantic step).** Read the open set:
+2. **Cluster + draft (the semantic step — dispatchable).** This step's
+   clustering, screening, and sidecar drafting may go to a fresh-context
+   worker (sonnet dispatch); the digest presentation, human rulings, and every
+   install action stay in the main thread (the elevated-trust rule above is
+   unchanged). Read the open set:
    `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/report.sh" open-entries`. Optionally read the epic's
    `data-points.md` as auxiliary signal. Cluster open entries into candidate
    mechanisms (a recurring class → one candidate), then screen every candidate
    through the four admission rules — a candidate that fails one is not drafted
    (record the ruling as a `kind=rejected` fact whose note names which rule and
-   where the class was routed instead):
-   - **A1 Feedforward-first.** Ask: would earlier discovery work (exploring the
-     repo/context before designing, sharpening the contract's assumptions) have
-     dissolved this miss class at its source? If yes, route the class to
-     strengthening that upstream instrument — do not add a downstream check for
-     it. The rejected fact's note names the upstream destination.
-   - **A2 Merge-or-replace.** Name the existing unit (checker, lens, skill rule)
-     whose class overlaps this candidate — write it into the sidecar's
-     `overlap:` frontmatter field. Merge into it or replace it; a net-new unit
-     must argue that no existing home fits. Screening is judgment + the human's
-     ruling — no script arbitrates overlap.
+   where the class was routed instead). A1/A2/A4 share one generating
+   principle: **prefer an existing or upstream home — a net-new unit must
+   argue no existing home fits**; A3 is the orthogonal size rule.
+   - **A1 Feedforward-first.** Would earlier discovery work (exploring the
+     repo/context before designing, sharpening the contract's assumptions)
+     have dissolved this miss class at its source? Yes → strengthen that
+     upstream instrument, no downstream check; the rejected fact's note names
+     the upstream destination.
+   - **A2 Merge-or-replace.** Name the existing overlapping unit in the
+     sidecar's `overlap:` frontmatter field; merge into it or replace it.
+     Screening is judgment + the human's ruling — no script arbitrates overlap.
    - **A3 Size.** Absolute layer: the unit carries no filler — size is what the
      procedure needs (guideline ≤200 lines / ≈2.5k tokens for a skill body;
      hard cap 500 lines). Ratchet layer: the review-prompt surface's total
@@ -50,10 +54,9 @@ as-is; they are the honest answer.
      equal deletion. The size guideline covers lazy-loaded `references/*.md`
      too — a size audit that reads only SKILL.md bodies is incomplete; the
      token ratchet stays scoped to the review-prompt surface.
-   - **A4 Deterministic checks sink to checkers.** Any fully deterministic
-     check (grep-able, exit-code-able) ships as a checker script, never as an
-     LLM lens sentence; a lens containing a deterministic sub-check has that
-     sub-check carved out into a script.
+   - **A4 Deterministic checks sink to checkers.** A fully deterministic check
+     (grep-able, exit-code-able) ships as a checker script, never as an LLM
+     lens sentence; carve deterministic sub-checks out of lenses.
    **Screen each surviving candidate against what already exists** before
    drafting: list `.touchstone/checker/*/` and the repo's registered
    lints/tests — a class whose mechanism already shipped is not a candidate
@@ -87,9 +90,8 @@ as-is; they are the honest answer.
    `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/reconcile.sh"` output — each installed check's line
    carries `fires=<n> … commits=<m>` (raw fires since first install; the
    commit count is the denominator — judge rate, never raw fires). Table a
-   unit for the human when
-   `fires=0` across ≥2 epics AND ≥100 commits — the threshold only puts it on
-   the table; the retirement judgment is **cost-to-keep**: maintenance debt,
+   unit for the human when `fires=0` across ≥2 epics AND ≥100 commits; the
+   retirement judgment is **cost-to-keep**: maintenance debt,
    false-block history, cognitive surface. A zero-fire unit has three
    identities: *insurance* (cheap, guards a catastrophic class — keep),
    *habit-corrector* (the habit may be cured — human judges cured vs
@@ -98,6 +100,5 @@ as-is; they are the honest answer.
    incident). LLM lenses have no fire-log: judge them by whether a
    feedforward instrument now covers their class, and only retire on an
    observed drop in that class's miss rate — never on prediction. Retire via
-   `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/install.sh" --revoke <proposal-id>` (also available
-   on direct request any time); revoke removes the check and reopens its
-   entries for future runs.
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/install.sh" --revoke <proposal-id>`;
+   revoke removes the check and reopens its entries for future runs.
