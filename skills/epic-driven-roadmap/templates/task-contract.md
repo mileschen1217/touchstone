@@ -41,7 +41,7 @@ created: YYYY-MM-DD
 
 ---
 
-**Implementer behavioral contract** (applies to all runtimes; codex-* agent role prompts mirror this):
+**Implementer behavioral contract** (applies to all runtimes; canonical — codex-* agent role prompts defer here):
 
 1. **Free movement within Scope** — create, modify, or delete files inside Scope without consulting the planner, as long as AC is met. Every path actually written goes into `files_changed`.
 2. **Hard stop at Read-Only Boundaries and Do Not Touch** — if AC appears to require modifying any of these, do **not** modify. Set `status: failed` with `risks` naming the path and the AC that conflicts.

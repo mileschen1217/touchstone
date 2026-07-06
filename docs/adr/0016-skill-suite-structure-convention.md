@@ -52,6 +52,11 @@ Adopt this skill-suite structure convention:
 4. **Pattern-A composites are NOT merged/extracted** — accept the ~20-line shared scaffold as
    duplication guarded by a machine-checked drift assert. Flips only if a 3rd composite appears or
    the shared section exceeds ~50 lines.
+   > **Amended 2026-07-06 (md-essence-rewrite ruling):** the human-accepted essence-rewrite
+   > contract flipped this by direct ruling — the shared scaffold (provenance/artifacts/failure
+   > semantics/return) is extracted to `skills/_shared/pattern-a-base.md`. The Codex-probe block
+   > stays inline in EACH composite; the machine drift assert in
+   > `check-foundation-gate-structure.sh` (probe ×2, composite count = 2) remains live.
 5. **`keep-long` annotations** must carry a current line count, enforced by the static checker, and
    declare any orientation kept inline. Length is a ceiling, never a target.
 

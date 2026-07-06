@@ -49,6 +49,7 @@ Use `/triage` and `/to-issues` skills to move work from local drafts to GitHub.
 
 - Lint shell: `shellcheck scripts/*.sh`
 - Lint shipped refs: `bash scripts/check-shipped-refs.sh`
+- Md-surface budget (net-byte ratchet over `skills/`+`agents/`): `bash scripts/check-md-surface-budget.sh`
 - Run tests: `bash scripts/tests/run-all.sh`
 - Lint test shell: `shellcheck scripts/tests/*.sh`
 - Plugin reload after edits: `/reload-plugins`

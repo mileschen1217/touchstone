@@ -19,19 +19,20 @@ A task contract is a unit of cohesive change that an executor (CC subagent, Code
 - **One review boundary.** A reviewer can sensibly evaluate the diff as a unit without needing to context-switch between unrelated concerns.
 - **One acceptance criterion bundle.** The contract's acceptance criteria are co-satisfied by the same change. ACs that are satisfied by *different* changes belong in *different* contracts even if they touch the same file.
 
-**One contract may bundle multiple file edits when:**
+The four properties generate the bundle/split judgment; the cases below are
+anchor examples, not additional rules.
 
-- Edits are tightly coupled (signature change ripples through callers; rename and its references; struct field add and its serializer).
-- The pattern is the same across all files (one schema rule applied identically across N config files). Treat as one contract with the pattern stated once and the file list as a parameter.
-- Local helper plus its only caller — no point splitting if the helper has no other client.
+**Bundle multiple file edits when they are one decision** — e.g. a signature
+change rippling through its callers, or one schema rule applied identically
+across N files (state the pattern once, the file list is a parameter).
 
-**Split into multiple contracts when:**
-
-- A decision artifact (ADR) must land before code — the ADR is its own (CC-owned) task; the consuming implementation is a separate (potentially Codex-owned) task. Sequential dependency on a *decision*, not on code.
-- One implementation must land and be verified before another can be written or tested (sequential code dependency where the second can't even be specified without the first).
-- The runtime is a CC-vs-Codex split — Codex contracts are mechanical implementation; CC handles work needing project-specific tooling (build orchestration, multi-repo commit discipline, bench access, on-device verification).
-- Total scope is large (rule of thumb: more than ~10 file edits, or work that wouldn't fit in one focused execution session) — split along the strongest natural seam (repo, module, layer).
-- Different parts of the change need different reviewers / different vendor (e.g. Rust core change goes to a Rust reviewer; Python test goes to a Python reviewer).
+**Split when a boundary in the four properties is crossed** — e.g. a decision
+artifact (ADR) must land before the code that consumes it (its own CC-owned
+task; sequential dependency on a *decision*); one implementation must land and
+verify before the next can even be specified; the executor/reviewer changes
+(CC-vs-Codex runtime, different review surface); or scope outgrows one focused
+execution session (~10+ file edits) — cut along the strongest natural seam
+(repo, module, layer).
 
 **Cross-repo work is NOT automatically a split.** If a small cohesive feature touches 3-4 repos with 1-2 files each, and one executor can hold it all in mind, one contract listing the per-repo edits is correct. The /nos-commit-per-repo ceremony is the orchestrator's responsibility (CC plan tasks), not the contract's. Split per-repo only when the change is large enough that splitting along the repo seam aids reviewability or unblocks parallelism.
 

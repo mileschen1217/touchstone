@@ -2,7 +2,7 @@
 
 > A test of what is genuine. (試金石 — a stone used to test the authenticity of metal.)
 
-A Claude Code plugin for **workflow discipline** — 10 stage skills + 5 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
+A Claude Code plugin for **workflow discipline** — 10 stage skills + 7 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
 
 ## What it is
 
@@ -32,10 +32,6 @@ Touchstone delegates work to agents and skills that live in other plugins. Insta
 **Required:**
 
 ```bash
-# everything-claude-code — architect agent + language-specific reviewers
-claude plugin marketplace add https://github.com/your-org/everything-claude-code   # check upstream URL
-claude plugin install everything-claude-code@everything-claude-code --scope user
-
 # superpowers — writing-plans, using-git-worktrees, brainstorming, etc.
 claude plugin install superpowers@claude-plugins-official --scope user
 ```
@@ -47,7 +43,7 @@ claude plugin install superpowers@claude-plugins-official --scope user
 claude plugin install codex@openai-codex --scope user
 ```
 
-Without `everything-claude-code`, the language-specific code reviewers and the `architect` agent dispatched by `cross-provider-architect` are unavailable. Without `codex`, only single-vendor (Claude-only) review paths work — touchstone degrades gracefully but loses the parallel CC+Codex composite.
+The review/architecture agents (`architect`, `code-reviewer`) are vendored plugin-local since 0.18.0 — no external plugin is needed for any touchstone execution path. Without `codex`, only single-vendor (Claude-only) review paths work — touchstone degrades gracefully but loses the parallel CC+Codex composite. (The optional `everything-claude-code` plugin's language-testing skills remain a useful depth reference for the test-evidence lens, nothing more.)
 
 ## Skills
 

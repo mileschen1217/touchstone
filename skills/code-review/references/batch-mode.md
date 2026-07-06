@@ -36,13 +36,13 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    - Detection requires commit-message hygiene. If a Codex agent built code without tagging commits, the swap will misroute. Override with `batch with cc` in that case.
 3. Determine reviewer:
    - If `force_reviewer = codex` → reviewer = `codex-reviewer`
-   - If `force_reviewer = cc` → reviewer = `everything-claude-code:code-reviewer`
+   - If `force_reviewer = cc` → reviewer = `touchstone:code-reviewer`
    - Else cross-vendor swap based on detected builder:
      - `builder = cc` → reviewer = `codex-reviewer`
-     - `builder = codex` → reviewer = `everything-claude-code:code-reviewer`
+     - `builder = codex` → reviewer = `touchstone:code-reviewer`
 4. Dispatch the resolved reviewer:
    - `codex-reviewer` → `Agent(subagent_type: "touchstone:codex-reviewer", description: "Codex batch review", prompt: { task: <full diff>, role: "batch-reviewer", task_dir: <optional> })`
-   - `everything-claude-code:code-reviewer` → corresponding Agent dispatch  <!-- # EXTERNAL DEP — everything-claude-code (Epic B vendors this) -->
+   - `touchstone:code-reviewer` (plugin-local, vendored) → corresponding Agent dispatch
 
    When `governing_specs` is non-empty (from Step 1b), the reviewer applies the
    **evidence-honesty (coverage) criteria** (these fire ONLY here at `batch` /
@@ -75,24 +75,13 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    > (per the injected principle — an AC done with neither an asserting test nor
    > `[unverified]`) blocks the done claim.
    >
-   > **Live-bearing ACs (an extra demand, Phase 2).** For each AC listed in the
-   > governing spec's `Live-bearing AC IDs`: the evidence is a **live artifact** —
-   > captured output of actually exercising the behaviour against the real boundary.
-   > A static proxy (grep / mock / env-faked condition / deployed-file read) does
-   > NOT satisfy a live-bearing AC; if only a static proxy is offered, flag it (same
-   > block semantics as silent false-green — it may not be claimed done). The
-   > artifact must carry **provenance**: (1) which producer/invocation made it
-   > (re-runnable command or identifiable session) and (2) freshness
-   > (commit/timestamp tying it to current code). Authentication burden scales
-   > with fakeability: a hand-pasteable perf log demands strong provenance
-   > (re-runnable command + real-scale fixture reference + freshness); a real
-   > `Agent()` transcript is largely self-attesting and demands less. You
-   > authenticate the artifact — you do not re-run the producer
-   > (**producer ≠ judge**: the artifact is produced by a script/session/build run,
-   > never by you the reviewer; this is the existing builder ≠ reviewer discipline).
-   > Do NOT
-   > require cryptographic signing of artifacts (over-spec — a human is in the loop
-   > at close).
+   > **Live-bearing ACs.** For each AC listed in the governing spec's
+   > `Live-bearing AC IDs`: apply the injected live-bearing predicate's
+   > live-artifact evidence rules (static-proxy disqualification, two-part
+   > provenance, producer ≠ judge, fakeability-scaled authentication). A
+   > static-proxy-only or artifact-less live-bearing claim is flagged with the
+   > same block semantics as silent false-green — it may not be claimed done.
+   > You authenticate the artifact; you never re-run the producer.
    **Test-evidence lens (applies to per-commit AND batch).** If the
    batch diff touches test files, the reviewer must additionally apply the
    test-evidence lens defined in
@@ -103,7 +92,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
 5. Single reviewer; no parallel dispatch in Pattern B.
    **Normative fallback:** if the swapped reviewer (e.g. `touchstone:codex-reviewer`)
    returns `status: failed` / a `fallback_reason` (codex unavailable), fall back to the
-   builder's OWN vendor (`everything-claude-code:code-reviewer` when builder=cc) and let
+   builder's OWN vendor (`touchstone:code-reviewer` when builder=cc) and let
    it produce the verdict. If BOTH the swap target and the builder-vendor fallback fail →
    `status: failed`, `providers_used == []`, no banner.
    **No pre-probe:** do not add a `codex --version` pre-probe here — rely on the

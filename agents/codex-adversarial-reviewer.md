@@ -35,8 +35,7 @@ Same dispatch shape as `codex-reviewer` — only the role system prompt differs.
 
 ## Dispatch + probe + JSONL parsing + timeout + output
 
-Identical to `codex-reviewer`. See that agent's body for full procedure. Role injection = prompt prefix (locked). The role-system-prompt below is prepended to `$TASK_TEXT` via `"$ROLE_PROMPT\n\n---\n\n$TASK_TEXT"` and dispatched as `timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check "..."`.
-<!-- Intentional: no --sandbox flag — codex DEFAULT sandbox permits git temp writes (nesting -s read-only inside CC's outer sandbox blocks them,; review stays read-only by role/prompt. Do NOT add -s read-only. -->
+Identical to `codex-reviewer`. See that agent's body for full procedure — including the no-`--sandbox`-flag rule and stdin redirection. Role injection = prompt prefix (locked). The role-system-prompt below is prepended to `$TASK_TEXT` via `"$ROLE_PROMPT\n\n---\n\n$TASK_TEXT"` and dispatched as `timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check "..." </dev/null 2>&1`.
 
 Failure events: same defensive checks as `codex-reviewer` (auth.*failed, error / turn.failed, sandbox+violation; >5 malformed lines = partial). Exact Codex failure-event field names are not contractually guaranteed — pattern-match defensively.
 

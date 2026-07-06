@@ -49,7 +49,7 @@ timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check "$ROLE_PROMPT
 $TASK_TEXT" </dev/null 2>&1
 ```
 
-**`</dev/null` is mandatory.** codex 0.125.0 reads stdin even when `[PROMPT]` is supplied as an argument (per `codex exec --help`: "If stdin is piped and a prompt is also provided, stdin is appended as a `<stdin>` block"). The Claude Code Bash tool inherits an open stdin to subprocesses, so without `</dev/null` codex blocks indefinitely waiting for EOF — sleeping at 0% CPU, no network activity, no progress, eventually hitting the 600s timeout. Confirmed hang 2026-05-06 on codex-cli 0.125.0.
+**`</dev/null` is mandatory.** codex reads stdin even when `[PROMPT]` is supplied as an argument, and the Claude Code Bash tool inherits an open stdin to subprocesses — without `</dev/null` codex blocks indefinitely waiting for EOF until the timeout. Confirmed hang 2026-05-06 on codex-cli 0.125.0. (Canonical home of this rationale — the sibling codex-* agents defer here.)
 
 Where `$ROLE_PROMPT` is the role-system-prompt (see "Role system prompt" section below) and `$TASK_TEXT` is the task from the envelope. The role is injected via prompt prefix because Codex ignores `instructions=` in `[profiles.<name>]` blocks AND in `-c instructions=` CLI overrides.
 

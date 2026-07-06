@@ -64,7 +64,9 @@ What hurts today? Concrete, scoped, falsifiable. State the user or system pain w
 
 ## User Stories
 
-> The story layer (top of the contract spine). One entry per user-story; the want-layer narrative lives in THIS spec (the canonical want-home), not in a PRD. Every requirement below must `traces-to:` ≥1 of these.
+> One entry per user-story; every requirement below must `traces-to:` ≥1 of
+> these. Want-layer authoring rules (canonical want-home, section mapping,
+> aim-sharpening confirm): `references/draft-workflow.md § Want-layer authoring`.
 
 - US-1 — As a/an <actor>, I want <capability>, so that <outcome>
 
@@ -72,9 +74,7 @@ What hurts today? Concrete, scoped, falsifiable. State the user or system pain w
 
 Given/When/Then scenarios — the **outer ATDD loop's contract**. Cover happy path, error paths, boundary values. Non-negotiable: every error path and boundary named here must correspond to at least one acceptance test scenario.
 
-The verification layer/mechanism never appears in an AC's Name or Given-When-Then — coverage is derived and `[unverified]` is the only authored marker (no implementation leakage into the contract).
-
-Every AC carries a stable `AC-N` id (1-based, assigned at draft, never reused within a spec) and appears both in the index table and as a `#### AC-N` block nested under its parent `### Requirement: REQ-N`. **No stored AC→test mapping and no per-AC red/green state is kept** — coverage is DERIVED each review pass by the reviewer reading test source. The ONLY authored per-AC marker is an inline `[unverified: <reason>]` line under an AC's Given/When/Then, with a mandatory non-empty reason; a live-bearing AC (one listed in Verification Strategy) may NOT carry it.
+The verification layer/mechanism never appears in an AC's Name or Given-When-Then — coverage is derived and `[unverified]` is the only authored marker (no implementation leakage into the contract). Every AC carries a stable `AC-N` id and appears both in the index table and as a `#### AC-N` block nested under its parent `### Requirement: REQ-N`; the id/index rules, derived-coverage rule, and `[unverified]` marker rules live in `references/draft-workflow.md` § "When drafting ## Acceptance Criteria" (single home).
 
 Each requirement is authored as a `### Requirement: REQ-N — <EARS SHALL statement>` heading. The SHALL text adds rule-altitude precision over its parent story (anti-redundancy: a requirement that merely rewords its story is a restatement — apply the Subtraction / SHALL-pass-fail / New-constraint / Quantifier tests from `references/methodology.md`). An unresolved `[NEEDS CLARIFICATION: <q>]` marker on any requirement or AC line blocks the design-review gate — resolve it before the gate runs.
 
@@ -109,26 +109,11 @@ Then <observable outcome>
 - **Power-on-able?** <can the design be exercised at the needed layer; if not, why / what's needed>
 - **Live means required:** <fixture / target / device / none>
 - **Live-bearing AC IDs:** <AC-N, AC-M | none>   ← these may NOT be carried as `[unverified]`
-  > Live-bearing classification: apply the predicate in
-  > `skills/_shared/inject/live-bearing-predicate.md` (single home — predicate,
-  > signals, ownership counter-example, stricter-when-ambiguous tie-breaker).
-  >
-  > For each live-bearing AC the evidence is a **live artifact** — captured output of
-  > actually exercising the behaviour against the real boundary, NOT a static proxy
-  > (grep / mock / env-faked condition / deployed-file read). It must carry
-  > **provenance**: (1) which producer/invocation made it (re-runnable or
-  > identifiable) + (2) freshness (commit/timestamp). **Producer ≠ judge:** the
-  > artifact is produced before the gate by a script/session/build run — never by
-  > the fresh-context reviewer that authenticates it. Authentication burden scales
-  > with fakeability (a hand-pasteable perf log = high; a self-attesting `Agent()`
-  > transcript = lower). The deterministic floor checks only that the artifact
-  > exists and is referenced by its AC; the reviewer authenticates it.
-  >
-  > Producer → live-artifact examples (domain-neutral):
-  > a real-device run → serial log / scope capture;
-  > a headless browser vs a real build → screenshot / DOM snapshot;
-  > a perf script → timing log;
-  > a build session dispatching `Agent()` → subagent transcript.
+  > Classification predicate AND live-artifact evidence rules (provenance,
+  > producer ≠ judge, static-proxy disqualification, examples):
+  > `skills/_shared/inject/live-bearing-predicate.md` — single home, read it,
+  > do not restate here. The deterministic floor checks only that a claimed
+  > artifact exists and is referenced by its AC; the reviewer authenticates it.
 
 ## Architecture
 

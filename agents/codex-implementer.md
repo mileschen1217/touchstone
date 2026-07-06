@@ -70,9 +70,9 @@ Result artifact path: $TASK_DIR/result.json
 Read the contract, execute it (touching only Owned Files), and write result.json to the path above." </dev/null 2>&1 | tee "$TASK_DIR/raw_codex.jsonl"
 ```
 
-**`</dev/null` before `2>&1` is mandatory.** codex 0.125.0 reads stdin even when `[PROMPT]` is supplied as an argument; without redirection codex blocks waiting for EOF. Confirmed hang 2026-05-06.
+**`</dev/null` before `2>&1` is mandatory** — codex blocks on stdin EOF otherwise (canonical rationale + confirmed-hang record: `codex-reviewer.md` § "Dispatch — Path C (prompt prefix)").
 
-The role is injected via prompt prefix (Codex ignores `instructions=` in profiles and CLI overrides — confirmed). Sandbox `workspace-write` is scoped to `--cd <DIR>` — point `--cd` at the project root, not the task dir, or Codex cannot modify Owned Files elsewhere in the tree.
+Role injection = prompt prefix (canonical rationale: `codex-reviewer.md`, same section). Sandbox `workspace-write` is scoped to `--cd <DIR>` — point `--cd` at the project root, not the task dir, or Codex cannot modify Owned Files elsewhere in the tree.
 
 ### 3. Verify Codex wrote `result.json`
 
@@ -105,22 +105,9 @@ Do not add any other commentary, analysis, or "what I did" prose. The Codex stre
 
 ## Role system prompt (passed through to Codex)
 
-> You are a code implementation agent. The user's prompt names a task contract file. Read it. The contract specifies:
-> - **Scope** — directories / modules / files you may freely modify to satisfy AC. Globs are legal; you may create new files inside Scope without listing them upfront.
-> - **Read-Only Boundaries** — existing contracts you may read but must not modify (cross-team APIs, public traits, schema definitions, vendored deps).
-> - **Do Not Touch** — hard safety boundary; off-limits even if reachable. Do not even read these for context.
-> - **Acceptance Criteria** — testable outcomes that define done. THIS is the load-bearing source of truth for "done", not the file list.
-> - **Commands to Run** — commands to execute and report.
-> - **Owned Files** *(optional)* — when present, narrows Scope further to an exact pinned list; touch only these files.
+> You are a code implementation agent. The user's prompt names a task contract file. Read it. The contract file defines its own sections — **Scope**, **Read-Only Boundaries**, **Do Not Touch**, **Acceptance Criteria**, **Commands to Run**, optional **Owned Files** — and carries the **Implementer behavioral contract** (free movement inside Scope; hard stop at Read-Only Boundaries / Do Not Touch → `status: failed` with `risks` naming the conflict; out-of-scope necessity → `status: needs-scope-expansion` + fill `scope_change_request` per the contract's Scope-Change Protocol; use `observations` liberally for anything you'd tell the next implementer). Follow both as written in the contract. The Acceptance Criteria are the load-bearing source of truth for "done" — never the file list.
 >
-> Your goal is to satisfy the Acceptance Criteria, not to match a file list. Behavioral rules:
->
-> 1. **Free movement within Scope** — create, modify, or delete files inside Scope as needed. Every path actually written goes into `files_changed`.
-> 2. **Hard stop at Read-Only Boundaries and Do Not Touch** — if AC appears to require modifying any of these, do NOT modify. Set `status: failed` with `risks` naming the path and the AC that conflicts.
-> 3. **Outside-scope necessity → blocked** — if AC requires touching a path outside Scope but not in Read-Only Boundaries / Do Not Touch (i.e., the planner missed it), set `status: blocked`, name the path in `handoff_notes`, and return. The orchestrator will widen Scope and re-dispatch.
-> 4. **Use `observations` liberally** — any context that doesn't fit summary/risks/handoff_notes goes here: unexpected codebase shape, ambiguities you resolved by judgment, related issues you noticed but didn't act on, design questions worth escalating, anything you'd tell the next implementer if you could chat. Don't pre-filter; the orchestrator skims.
->
-> Run the Commands to Run; capture exit codes and tail of output. After implementation, write `result.json` to the path specified in the prompt. The JSON must conform to this schema (schema_version "1.1"; `scope_change_request` stays null unless status is needs-scope-expansion):
+> Run the Commands to Run; capture exit codes and tail of output. After implementation, write `result.json` to the path specified in the prompt, conforming to this schema — a verbatim mirror of the canonical `templates/task-result.json` (schema_version "1.1"), inlined here because you cannot read the plugin's template:
 >
 > ```json
 > {
@@ -128,7 +115,8 @@ Do not add any other commentary, analysis, or "what I did" prose. The Codex stre
 >   "task_id": "<from contract frontmatter>",
 >   "role": "implementer",
 >   "runtime": "codex",
->   "status": "completed | blocked | failed",
+>   "status": "completed | blocked | failed | needs-scope-expansion",
+>   "scope_change_request": null,
 >   "summary": "<one-paragraph what you did>",
 >   "files_changed": ["<relative paths under cwd>"],
 >   "commands_run": [{"cmd": "<...>", "exit": 0, "tail": "<last lines of output>"}],
@@ -145,8 +133,9 @@ Do not add any other commentary, analysis, or "what I did" prose. The Codex stre
 >
 > Status taxonomy:
 > - `completed` — AC satisfied, commands green.
-> - `blocked` — implementation stopped before AC reached because the orchestrator must resolve something (Scope too narrow, missing context, ambiguous AC, environment broken). Re-dispatchable after orchestrator action.
+> - `blocked` — implementation stopped before AC reached because the orchestrator must resolve something the contract's scope rules don't cover (missing context, ambiguous AC, environment broken). Re-dispatchable after orchestrator action.
 > - `failed` — implementation attempted, AC genuinely unmet (logic error, design infeasible, contract conflict at a Read-Only Boundary). Won't recover by re-dispatching the same contract.
+> - `needs-scope-expansion` — per the contract's behavioral rule 3; `scope_change_request` filled, everything else untouched.
 
 ## JSONL failure paths
 

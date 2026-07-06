@@ -23,9 +23,7 @@
    deliverable handoff landed (merged PR on `main`, pushed tag, deployed
    artifact); local commit / open PR / pushed feature branch ≠ shipped. Gather
    evidence (`gh pr list --state merged`, `git log origin/main`, or the
-   project's own check), propose it to the user, obtain explicit ack. Zero
-   evidence → refuse close and say to ship first. Skip only on the user's
-   explicit waiver this turn.
+   project's own check), propose it to the user, obtain explicit ack.
 1. Edit `.touchstone/epics/<slug>/index.md`: in `## Phases`, set each row's
    Status to `done` and fill Landed (YYYY-MM-DD).
 2. In the same file's frontmatter set `status: done` and `landed: <YYYY-MM-DD>`.
@@ -38,13 +36,11 @@
    bash "${CLAUDE_PLUGIN_ROOT}/skills/epic-driven-roadmap/check-close-ready.sh" .touchstone/epics/<slug>/index.md
    ```
 
-   Show the full output. Non-zero → fix and re-run until it passes; close is
-   never claimed without a passing run (claim ≤ evidence).
+   Show the full output. Non-zero → fix and re-run.
 
 5. Run **Doc Reckoning** (§ below) and append its block to the epic index.
 
-5b. Run **Evidence Reckoning** (§ below). Close cannot complete until the
-    table is built and every blocking rule is satisfied.
+5b. Run **Evidence Reckoning** (§ below).
 
 5c. Run the **Catch-attribution sweep** (§ below). Paste the `report` phase
     output into the close report verbatim.
@@ -52,8 +48,7 @@
 5d. Run the **Proposal reconcile** (read-only):
     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/proposal/reconcile.sh"`. Paste its output
     verbatim into the close report. Close never touches the checker rail —
-    accept/deploy decisions live only in the `/touchstone:insight` flow (a
-    freshly deployed pre-commit check could block the close's own commit).
+    accept/deploy decisions live only in the `/touchstone:insight` flow.
 
 5e. **Comprehension face — cite, don't redo.** Reference each phase's
     Post-build pair (Buy-in explainer + comprehension quiz), produced at
@@ -69,9 +64,11 @@
 
 ## Doc Reckoning
 
-Mechanical inventory of what this epic did to the doc graph. It lists facts;
-whether a bridge should have been written, or should downgrade to a comment,
-stays author judgment — intentionally NOT skillified.
+Mechanical inventory of what this epic did to the doc graph. It lists facts
+and surfaces candidates in the output block only; every follow-up decision
+(write/downgrade a bridge, delete, move, rung, deposit's lever, distill) is
+the human's — intentionally NOT skillified. This procedure never acts on its
+own findings.
 
 **Inputs:** epic slug; git range from the index frontmatter's `started:` /
 `landed:` dates (`git log --since "$STARTED" --until "$LANDED" …`).
@@ -89,17 +86,14 @@ stays author judgment — intentionally NOT skillified.
    present ⇒ **pending kill**.
 3b. **Stale-candidate bridges (advisory)** — for each surviving bridge this
     epic touched: bridge mtime (`git log -1 --format=%ct`) older than a
-    referenced source path's by >30 days ⇒ flag. Never auto-delete — the
-    three-principle re-audit (`skills/_shared/inject/bridge-content-gate.md`)
-    is the human follow-up.
+    referenced source path's by >30 days ⇒ flag (human follow-up = the
+    three-principle re-audit, `skills/_shared/inject/bridge-content-gate.md`).
 3c. **Rung-misclassification candidates (advisory)** — a bridge section whose
     prose cites exactly ONE source path is a rung-2/3 candidate ("which symbol
     would a `///` doc-comment attach to?" — single answer = wrong rung).
-    Output section + path; human decides move or argues cross-cutting.
 3d. **Doc-as-workaround candidates (advisory)** — bridge sections explaining
     why dead/duplicative source still exists (trigger phrases: "deprecated",
-    "kept until X ships", "do not use", "no-op stub", "legacy path"). Output
-    section + suggested action: PR removing the source, OR justify retention.
+    "kept until X ships", "do not use", "no-op stub", "legacy path").
 4. **Source-level deposit** — read each design spec's `## Source-level Deposit`
    section; record the lever it names, or "none — <stated reason>".
 5. **Built spec distill-or-archive** (classification per
@@ -108,7 +102,6 @@ stays author judgment — intentionally NOT skillified.
    `kind: diagnostic` + `evidence-for:`; standing-candidate sections → list
    which distill to `.touchstone/docs/architecture/<topic>.md` (with own
    `kill-on:`); whole-spec cross-cutting (rare) → copy whole, retire original.
-   Surfaced only — the human executes the moves.
 
 **Output — append to the epic index:**
 
@@ -140,13 +133,9 @@ stays author judgment — intentionally NOT skillified.
 - `<spec-path>` — landed `<commit-sha>`; recommended: archive | distill <sections> → standing bridge | move-whole
 ```
 
-**Boundaries:** not a judge of bridge rung, nor of the deposit's lever
-choice.
+## Evidence Reckoning
 
-## Evidence Reckoning (runs at close, before Commit)
-
-Per-AC accounting authored ONCE at close by reading source (so it cannot rot
-like a maintained mapping).
+Per-AC accounting authored ONCE at close by reading source.
 
 **Procedure**
 
@@ -156,7 +145,7 @@ like a maintained mapping).
 
 2. **Derive coverage.** Apply the evidence-honesty (coverage) criteria — the SAME
    criteria as `skills/code-review/SKILL.md` batch, **inlined here** so it is
-   greppable in this host too (AC-5: criteria present at BOTH batch AND epic-close):
+   greppable in this host too (present at BOTH batch AND epic-close by design):
 
    > Read the governing spec's ACs and the test source. For each AC, judge whether a
    > test asserts that AC's Then-clause (AC coverage, semantic — not code-coverage %,
@@ -173,7 +162,6 @@ like a maintained mapping).
    `(via: read → <file>:<line>: <asserted content present>)`. A grep/bats line
    is itself a claim to re-ground; if re-running it against the artifact fails,
    the coverage claim is ungrounded → `[unverified]` (or fix the assertion).
-   The committed artifact is authoritative over the assertion.
 
 3. **Build the reckoning table** (one row per AC across the epic's accepted specs):
 
@@ -183,8 +171,7 @@ like a maintained mapping).
    - "Covered by" = the evidence found asserting the AC; blank ⇒ none found.
      Non-live-bearing AC → a test reference. Live-bearing AC → a **live
      artifact with provenance** (producer identity + freshness —
-     commit/timestamp), NEVER a static proxy (grep / mock / env-faked
-     condition / deployed-file read). Satisfying cell shape:
+     commit/timestamp). Satisfying cell shape:
      `Covered by: live artifact .touchstone/epics/<slug>/evidence/<name>.md @ <commit-sha> via <producer>`
    - "live-bearing?" = "yes" iff the AC id is in its spec's Verification
      Strategy `Live-bearing AC IDs`.
@@ -195,7 +182,8 @@ like a maintained mapping).
 4. **Apply the blocking rules:**
    - A non-live-bearing row with no "Covered by", no `[unverified]`, and no waiver ⇒ **BLOCKS close**.
    - A live-bearing row closes ONLY with a live-artifact-with-provenance
-     "Covered by" cell. A static proxy does NOT satisfy it; `[unverified]` is
+     "Covered by" cell. A static proxy (grep / mock / env-faked condition /
+     deployed-file read) does NOT satisfy it; `[unverified]` is
      **unavailable** and a waiver is NOT allowed on a live-bearing row ⇒ any
      uncovered / proxy-only live-bearing AC **BLOCKS close** — the only honest
      path is deferring the whole AC to a later phase.
@@ -221,8 +209,7 @@ A healthy close has an empty `[unverified]` set.
 Harvests gate-miss signal (transcript corrections, git fix-chains, Evidence
 Reckoning `[unverified]` rows, checker fire-log) from this closing epic's
 history into `.touchstone/ledger/entries.jsonl`. Failure semantics: the
-header block at the top of this file (L0 skip-and-report; L1/L2 atomic
-discard).
+header block's Sweep-stages bullet.
 
 ### Step 1 — collect
 
@@ -239,8 +226,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" report
 ```
 
 If `report` prints "sources skipped (unconfigured)", one of the three envs was
-empty at collect time — fix the export and re-run `collect` before continuing
-(a silently skipped source never reaches L1/L2).
+empty at collect time — fix the export and re-run `collect` before continuing.
 
 ### Step 2 — L1 classification dispatch (haiku, one dispatch per chunk)
 
@@ -310,9 +296,7 @@ keep dispatching the rest for signal. After all chunks: if
 `.sweep-incomplete` contains a `sweep incomplete: l1` line, skip Steps 3–4
 entirely and run only Step 5's `report` (finalize would refuse; don't spend
 the L2 dispatch). An unrelated L0 line there (e.g. `sweep incomplete: git`)
-does NOT block Steps 3–5 — only `l1`/`l2` lines do. Un-swept signal is not
-lost: `.last-sweep` advances only on a successful finalize, so the next sweep
-re-extracts the same range.
+does NOT block Steps 3–5 — only `l1`/`l2` lines do.
 
 ### Step 3 — validate
 
@@ -391,8 +375,8 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" report
 `finalize` appends `.staging.jsonl` through the ledger writer (dedupe applies
 — an incident already recorded via a prior sweep or a label is a no-op) and,
 only on success, advances the single `.last-sweep` timestamp to this run's
-collect-start (over-emission across sweeps is deliberate and deduped). On any
-failure the staging file is discarded whole and `.last-sweep` is untouched.
+collect-start. On any finalize failure the staging file is discarded whole and
+`.last-sweep` stays untouched.
 
 Paste `report`'s output — sources consumed, any skipped/incomplete lines, and
 the entries count + byte size — into the close report verbatim (step 5c above).

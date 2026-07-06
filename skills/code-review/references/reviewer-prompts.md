@@ -29,6 +29,11 @@ Check for:
    actually backs it. No mechanism → the text must name the acting agent
    (you / the reviewer / the caller), keeping the MUST. Flag
    phantom-mechanism claims.
+9. Claim-vs-actual fidelity: when the commit message or task brief claims a
+   checkable result (an exit code, a passing run, a recorded count, a byte
+   delta), independently re-verify it against the repo and artifacts in
+   front of you — never accept the self-report as evidence. Flag any claim
+   you cannot reproduce.
 
 If the diff touches test files, additionally apply the test-evidence lens:
 
@@ -104,23 +109,25 @@ Report findings as a numbered list, each tagged [Critical], [High], [Medium], or
 guarantee, report "No issues found."
 ```
 
-**security domain block** — dispatched when Step 2 judges the diff alters an
-`untrusted-source → dangerous-sink` path:
+Dispatch triggers for both specialists live in SKILL.md Phase 2 (single home —
+do not restate here); these blocks are the dispatch payload only.
+
+**security domain block:**
 - `{DOMAIN}` = security
 - `{INVARIANT}` = adversary-controlled input must not drive a harmful capability.
 - `{CROSSINGS}` = points where untrusted input flows toward a dangerous sink.
+  An internal interface crosses only at a trust-level transition
+  (privileged ↔ unprivileged, authenticated ↔ unauthenticated); JWT, CORS,
+  SSRF are example pairings, not the rule — judge the actual data flow, not
+  keyword presence.
 - `{GUARANTEES}`:
   - Parameterize (prepared statements, safe API)
   - Escape/encode for the target context
   - Canonicalize before comparison (path, URL, encoding)
   - Authorize (authz check at the right layer)
   - Allowlist (restrict to known-safe values)
-- Internal interfaces are security boundaries only at trust-level transitions
-  (privileged ↔ unprivileged, authenticated ↔ unauthenticated). JWT, CORS, SSRF
-  are example pairings — judge the actual data flow, not keyword presence.
 
-**database domain block** — dispatched when Step 2 judges the diff touches
-persistence structure (schema / migration / data contract):
+**database domain block:**
 - `{DOMAIN}` = database
 - `{INVARIANT}` = committed-data integrity and correctness must hold under
   concurrency, scale, and failure.
