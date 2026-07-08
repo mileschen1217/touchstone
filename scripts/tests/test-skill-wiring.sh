@@ -288,6 +288,21 @@ chk "assay-unformed-escape"     "skills/assay/SKILL.md" "out-of-band"
 chk "assay-writeback"           "skills/assay/SKILL.md" "admission boundary"
 chk "assay-adr-pointer"         "skills/assay/SKILL.md" "adr-authoring\.md"
 chk "assay-rubric-pointer"      "skills/assay/SKILL.md" "references/arch-rubric\.md"
+# interview presentation mechanics + self-describing names (Phase 1, interview-mechanics epic)
+chk "assay-one-question-per-msg" "skills/assay/SKILL.md" "ONE question per message"
+chk "assay-question-leaning"     "skills/assay/SKILL.md" "leaning and a one-line reason"
+chk "assay-askuserquestion"      "skills/assay/SKILL.md" "AskUserQuestion"
+chk "assay-plain-dialogue"       "skills/assay/SKILL.md" "no skill-internal section names"
+chk "assay-facts-self-lookup"    "skills/assay/SKILL.md" "decisions and tacit knowledge"
+chk "assay-predict3-stop"        "skills/assay/SKILL.md" "three questions"
+chk "assay-correction-reopens"   "skills/assay/SKILL.md" "reopens the question queue"
+chk "assay-laydown-leaning"      "skills/assay/SKILL.md" "carry your leaning"
+chk "assay-unknown-sources"      "skills/assay/SKILL.md" "laydown residuals"
+chk "assay-laydown-never-skipped" "skills/assay/SKILL.md" "never skips the laydown"
+# self-describing internal names: no bare-numbered stage headings remain
+if grep -qE '^#{2,3} (Stage [0-9]|[0-9][abc]? —)' "$root/skills/assay/SKILL.md"; then
+  echo "FAIL assay-opaque-headings: bare-numbered section heading present"; fail=$((fail+1))
+else echo "ok assay-opaque-headings"; fi
 # the three structural-fork bet fields are documented in the migrated ADR procedure
 chk "assay-adr-flip-field"      "skills/assay/adr-authoring.md" "Flip-trigger:"
 chk "assay-adr-betowner-field"  "skills/assay/adr-authoring.md" "Bet-owner:"
