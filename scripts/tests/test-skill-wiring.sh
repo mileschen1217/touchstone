@@ -107,6 +107,13 @@ if grep -qE "/touchstone:design-review" "$root/skills/crucible/SKILL.md"; then
   echo "ok crucible-has-design-review-token"; else echo "FAIL crucible-has-design-review-token: /touchstone:design-review not found in crucible"; fail=$((fail+1)); fi
 if grep -qE "superpowers:writing-plans|/superpowers:writing-plans" "$root/skills/crucible/SKILL.md"; then
   echo "FAIL crucible-no-writing-plans-token"; fail=$((fail+1)); else echo "ok crucible-no-writing-plans-token"; fi
+# PRD+seams pre-accept light check (Phase 1, interview-mechanics epic)
+chk "crucible-light-check"       "skills/crucible/SKILL.md" "light check"
+chk "crucible-lc-fresh-context"  "skills/crucible/SKILL.md" "fresh-context sonnet"
+chk "crucible-lc-converge-once"  "skills/crucible/SKILL.md" "re-dispatch once"
+chk "crucible-lc-incomplete"     "skills/crucible/SKILL.md" "light check incomplete"
+chk "crucible-lc-no-fabricate"   "skills/crucible/SKILL.md" "never fabricate a verdict"
+chk "crucible-prdseams-no-drgate" "skills/crucible/SKILL.md" "not pass the design-review gate"
 # quality bar — <=200 lines
 lc="$(wc -l < "$root/skills/crucible/SKILL.md")"
 [ "$lc" -le 200 ] && echo "ok crucible-line-count ($lc)" || { echo "FAIL crucible-line-count: $lc > 200"; fail=$((fail+1)); }
