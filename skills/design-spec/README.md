@@ -13,7 +13,7 @@ Orientation for maintainers. The executable procedure (Load vocabulary, Draft Mo
 
 - Front-end orchestrator (upstream): `/touchstone:crucible` — normal entry; exploration is its in-chain phase.
 - Interview instrument (upstream): `/touchstone:assay` — assumption/intent interview; its
-  readiness fork resolves structural-commitment questions (ADR) before drafting the spec.
+  unknown-disposition fork resolves structural-commitment questions (ADR) before drafting the spec.
 - ATDD chain (downstream): "ATDD — spec and test development" in global `CLAUDE.md`.
 - Plan generation (downstream): `/superpowers:writing-plans`.
 - design-review gate (downstream, consolidated): `/touchstone:design-review` — runs after crucible writes `accepted-candidate`.
