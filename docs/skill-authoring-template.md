@@ -170,8 +170,7 @@ table.
 - **Bounded examples.** An example is allowed only where it specifies an
   abstract rule or a render/output format; ≤1 example per site; label it as
   an example, not a rule. Larger examples move to `references/` satellite
-  files. (The parsed-contract exception above stands: byte-exact contract
-  strings appear verbatim wherever consumed.)
+  files. (The "Parsed contract strings" rule above stands unchanged.)
 - **Self-describing names.** Internal section/stage names MUST be functional
   self-descriptions; opaque codes (bare stage numbers, letter suffixes) are
   banned. Coin a term only when a cross-reference genuinely needs one, and

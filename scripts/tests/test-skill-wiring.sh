@@ -108,7 +108,7 @@ if grep -qE "/touchstone:design-review" "$root/skills/crucible/SKILL.md"; then
 if grep -qE "superpowers:writing-plans|/superpowers:writing-plans" "$root/skills/crucible/SKILL.md"; then
   echo "FAIL crucible-no-writing-plans-token"; fail=$((fail+1)); else echo "ok crucible-no-writing-plans-token"; fi
 # PRD+seams pre-accept light check (Phase 1, interview-mechanics epic)
-chk "crucible-light-check"       "skills/crucible/SKILL.md" "light check"
+chk "crucible-light-check"       "skills/crucible/SKILL.md" "^Before presenting a PRD\+seams light contract"
 chk "crucible-lc-fresh-context"  "skills/crucible/SKILL.md" "fresh-context sonnet"
 chk "crucible-lc-converge-once"  "skills/crucible/SKILL.md" "re-dispatch once"
 chk "crucible-lc-incomplete"     "skills/crucible/SKILL.md" "light check incomplete"
@@ -117,7 +117,7 @@ chk "crucible-prdseams-no-drgate" "skills/crucible/SKILL.md" "not pass the desig
 # suite consistency layer in the authoring template (Phase 1, interview-mechanics epic)
 chk "authoring-fm-canon"          "docs/skill-authoring-template.md" "disable-model-invocation"
 chk "authoring-kind-nonofficial"  "docs/skill-authoring-template.md" "non-official"
-chk "authoring-negative-routing"  "docs/skill-authoring-template.md" "When NOT to use"
+chk "authoring-negative-routing"  "docs/skill-authoring-template.md" "MUST name when NOT to use it"
 chk "authoring-live-human"        "docs/skill-authoring-template.md" "live responsive user"
 chk "authoring-thin-wrapper"      "docs/skill-authoring-template.md" "in-chain composite"
 chk "authoring-bounded-example"   "docs/skill-authoring-template.md" "an example, not a rule"
@@ -304,7 +304,7 @@ chk "assay-writeback"           "skills/assay/SKILL.md" "admission boundary"
 chk "assay-adr-pointer"         "skills/assay/SKILL.md" "adr-authoring\.md"
 chk "assay-rubric-pointer"      "skills/assay/SKILL.md" "references/arch-rubric\.md"
 # interview presentation mechanics + self-describing names (Phase 1, interview-mechanics epic)
-chk "assay-one-question-per-msg" "skills/assay/SKILL.md" "ONE question per message"
+chk "assay-one-question-per-msg" "skills/assay/SKILL.md" "^- Ask exactly ONE question per message"
 chk "assay-question-leaning"     "skills/assay/SKILL.md" "leaning and a one-line reason"
 chk "assay-askuserquestion"      "skills/assay/SKILL.md" "AskUserQuestion"
 chk "assay-plain-dialogue"       "skills/assay/SKILL.md" "no skill-internal section names"

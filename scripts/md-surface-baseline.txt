@@ -15,4 +15,6 @@
 # mechanics + crucible PRD+seams light check are new instruction content on
 # the shipped surface (funded deletions insufficient; spec Error Handling
 # row 5: one-line reason presented for the human's baseline ruling at accept).
-266765
+# 266765
+# (adjusted +137 for the final-review fix wave: light-check fence instruction)
+266902

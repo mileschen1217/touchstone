@@ -62,6 +62,9 @@ sees nothing but the prompt. Include, verbatim:
 > ambiguity likely to cause rework inside a correct batch; Low = form only.
 > Reply with one verdict line, then findings sorted by severity, 15 lines max.
 
+Then append the light contract's full text inside a fenced block — the fence
+is the only other content the dispatched agent receives.
+
 Convergence: Critical/High findings → fix the contract, then re-dispatch once
 for a re-check. If the second round still reports Critical/High, present the
 findings to the human to rule — never auto-loop. Only Critical+High = 0
