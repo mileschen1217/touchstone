@@ -114,6 +114,14 @@ chk "crucible-lc-converge-once"  "skills/crucible/SKILL.md" "re-dispatch once"
 chk "crucible-lc-incomplete"     "skills/crucible/SKILL.md" "light check incomplete"
 chk "crucible-lc-no-fabricate"   "skills/crucible/SKILL.md" "never fabricate a verdict"
 chk "crucible-prdseams-no-drgate" "skills/crucible/SKILL.md" "not pass the design-review gate"
+# suite consistency layer in the authoring template (Phase 1, interview-mechanics epic)
+chk "authoring-fm-canon"          "docs/skill-authoring-template.md" "disable-model-invocation"
+chk "authoring-kind-nonofficial"  "docs/skill-authoring-template.md" "non-official"
+chk "authoring-negative-routing"  "docs/skill-authoring-template.md" "When NOT to use"
+chk "authoring-live-human"        "docs/skill-authoring-template.md" "live responsive user"
+chk "authoring-thin-wrapper"      "docs/skill-authoring-template.md" "in-chain composite"
+chk "authoring-bounded-example"   "docs/skill-authoring-template.md" "an example, not a rule"
+chk "authoring-self-desc-names"   "docs/skill-authoring-template.md" "opaque codes"
 # quality bar — <=200 lines
 lc="$(wc -l < "$root/skills/crucible/SKILL.md")"
 [ "$lc" -le 200 ] && echo "ok crucible-line-count ($lc)" || { echo "FAIL crucible-line-count: $lc > 200"; fail=$((fail+1)); }
