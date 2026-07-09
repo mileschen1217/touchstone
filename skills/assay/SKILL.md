@@ -9,7 +9,8 @@ description: |
   deferred; a structural fork produces an ADR), and emits the guardrail
   contract block the contract author consumes. Requires a live responsive
   user; the human rules readiness once. Invoke inside crucible, or directly
-  before authoring a contract.
+  before authoring a contract. Out of scope — non-interactive/CI (no live user)
+  or an intent the human cannot yet state (→ superpowers:brainstorming).
 kind: workflow
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: code-review
 description: |
-  Use when a commit or logical commit group needs review. Default: per-commit (Pattern C — generic Sonnet reviewer). `batch` keyword: logical group (Pattern B — vendor-not-builder reviews). Mode is caller-declared; no commit-count heuristic.
+  Use when a commit or logical commit group needs review. Default: per-commit (Pattern C — generic Sonnet reviewer). `batch` keyword: logical group (Pattern B — vendor-not-builder reviews). Mode is caller-declared; no commit-count heuristic. Out of scope — design-document review (specs / plans / ADRs → `/touchstone:design-review`).
 allowed-tools:
   - Bash
   - Read

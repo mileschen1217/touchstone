@@ -1,6 +1,6 @@
 ---
 name: anvil
-description: Use when an accepted contract (spec with status accepted) needs to be built — sequences entry-precondition → writing-plans → plan-review → SDD → final cross-vendor review, judging each dispatched stage through the fail-closed stage-return gate and stopping before ship.
+description: Use when an accepted contract (spec with status accepted) needs to be built — sequences entry-precondition → writing-plans → plan-review → SDD → final cross-vendor review, judging each dispatched stage through the fail-closed stage-return gate and stopping before ship. Out of scope — a spec not yet `status: accepted`, or a PRD+seams light contract (built through the light loop directly, not anvil).
 allowed-tools: [Bash, Read, Skill, Agent, Edit, Write]
 user-invocable: true
 kind: workflow

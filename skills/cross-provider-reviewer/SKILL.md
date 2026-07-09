@@ -12,7 +12,7 @@ kind: workflow
 
 # /touchstone:cross-provider-reviewer — Pattern A Composite Skill
 
-Skill body executes in main-thread context where `Agent` tool is available. Orchestrates parallel CC + Codex review and synthesizes with divergence labeling. Common procedure (dispatch discipline, provenance, banners, artifacts, failure semantics, return): read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/pattern-a-base.md` at start and follow it — single home, not restated here.
+Skill body executes in main-thread context where `Agent` tool is available. Orchestrates parallel CC + Codex review and synthesizes with divergence labeling. For a routine single-commit review `/touchstone:code-review` is lighter; reach here for a cross-provider gate (design-review) or an ad-hoc cross-provider pass, and skip when CC-only suffices. Common procedure (dispatch discipline, provenance, banners, artifacts, failure semantics, return): read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/pattern-a-base.md` at start and follow it — single home, not restated here.
 
 ## Inputs (JSON envelope as `args`)
 

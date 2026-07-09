@@ -12,7 +12,7 @@ kind: workflow
 
 # /touchstone:cross-provider-architect — Pattern A Composite Skill
 
-Same skill-form Pattern A shape as `touchstone:cross-provider-reviewer`, but pairs CC `architect` with Codex `codex-adversarial-reviewer`. The asymmetry is intentional: CC validates, Codex critiques — different roles within Pattern A. Common procedure (dispatch discipline, provenance, banners, artifacts, failure semantics, return): read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/pattern-a-base.md` at start and follow it — single home, not restated here.
+Same skill-form Pattern A shape as `touchstone:cross-provider-reviewer`, but pairs CC `architect` with Codex `codex-adversarial-reviewer`. The asymmetry is intentional: CC validates, Codex critiques — different roles within Pattern A. Reserved for high-leverage architecture gates (assay's structural-fork case, design-spec) — skip for routine code review (use `/touchstone:code-review`) or single-provider checks. Common procedure (dispatch discipline, provenance, banners, artifacts, failure semantics, return): read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/pattern-a-base.md` at start and follow it — single home, not restated here.
 
 ## Inputs (JSON envelope as `args`)
 

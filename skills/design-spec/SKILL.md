@@ -28,6 +28,8 @@ the Draft to the project's specs directory. design-spec emits only Draft;
 crucible writes accepted-candidate, runs the consolidated design-review gate,
 then human accept promotes to accepted.
 
+**Draft Mode may need a live responsive user** — standalone, Foundation elicitation prompts the human; inside crucible it consumes assay's guardrail block, so no prompt fires.
+
 ## When to Invoke
 
 Author a design spec when the change is cross-cutting or risky enough that the

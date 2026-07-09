@@ -5,6 +5,8 @@ description: Activates sentence-level epistemic discipline. Causal/factual claim
 
 # Ground in source
 
+Skip when the task makes no causal or factual claim about code/system behavior — pure formatting, prose-only edits, or non-investigative Q&A have nothing for this discipline to bind.
+
 ## The rules
 
 ### Rule 1 — Citation existence
