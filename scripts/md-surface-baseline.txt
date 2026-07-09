@@ -25,4 +25,18 @@
 # the negative routing was genuinely absent and had to be added, not moved.
 # Human ruled baseline-raise over re-slim (re-slim would delete required
 # routing signal). Per-file deltas + disposition in the epic's Phase 2 record.
-269375
+# 269375
+# 2026-07-10: raised +1377 for the Catch-attribution sweep pre-filter (Cut 2)
+# + agents-write-to-files return path (Cut 4) — new close-procedure content in
+# the lazy-loaded close-and-doc-reckoning.md reference (Step 1b prefilter +
+# Step 2 survivor-chunk + file-write dispatch). Genuinely-new mechanism, not
+# re-placeable; its RUNTIME effect is a large NET token SAVING (the pre-filter
+# stops the paid L1 haiku pass from classifying ~80% blank/tool-result records
+# per close), so the doc cost is dwarfed by the runtime win it documents.
+# 270752
+# 2026-07-10 (same PR extend): the two cold-agent sweep prompts (L1 classify,
+# L2 synth) were relocated out of close-and-doc-reckoning.md into their own
+# single-home fragments (references/sweep-l{1,2}-*.md) and injected by path —
+# the close reference dropped 400→330 lines; net surface slimmed 107 bytes as
+# the "MUST inline … verbatim" scaffolding + fences collapsed to a path pointer.
+270645

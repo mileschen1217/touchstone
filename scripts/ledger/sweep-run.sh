@@ -30,8 +30,21 @@
 #                          path: the source is skipped, the other sources
 #                          proceed, ".sweep incomplete: <src>" is recorded
 #                          for `report`.
-#   classify               chunks .digest.jsonl into approx <=200KB pieces
-#                          (line-safe; a single line is never split) and
+#   prefilter              deterministic recall-preserving pre-classify filter:
+#                          drops only structurally-empty transcript records
+#                          (blank text / bare slash-commands) into
+#                          .prefilter-dropped.jsonl, leaving survivors in
+#                          .digest-classify.jsonl; fail-open to the full digest;
+#                          NEVER drops on "already-covered" (that is recurrence
+#                          signal). A standalone phase so the epic-close
+#                          procedure — which dispatches the L1 classifier as
+#                          Agents, not via $LEDGER_L1_CMD — chunks the survivor
+#                          file instead of the raw digest. classify() runs it
+#                          internally too, so the script path needs no separate
+#                          call.
+#   classify               runs prefilter (above) then chunks the survivors
+#                          into approx <=200KB pieces (line-safe; a single line
+#                          is never split) and
 #                          pipes each chunk through $LEDGER_L1_CMD (a shell
 #                          command string run via `bash -c`), appending its
 #                          candidate/v1 output to .candidates-log.jsonl —
@@ -98,6 +111,8 @@ fi
 mkdir -p "$LDIR" || { echo "sweep-run: cannot create ledger dir $LDIR" >&2; exit 1; }
 
 DIGEST_FILE="$LDIR/.digest.jsonl"
+CLASSIFY_INPUT_FILE="$LDIR/.digest-classify.jsonl"
+PREFILTER_LOG="$LDIR/.prefilter-dropped.jsonl"
 CANDIDATES_FILE="$LDIR/.candidates-log.jsonl"
 STAGING_FILE="$LDIR/.staging.jsonl"
 CONSUMED_FILE="$LDIR/.sweep-consumed"
@@ -133,6 +148,8 @@ collect() {
   # (never deleted mid-run, survives past finalize/report as the run's
   # inspectable classification artifact).
   : > "$DIGEST_FILE"
+  : > "$CLASSIFY_INPUT_FILE"
+  : > "$PREFILTER_LOG"
   : > "$CONSUMED_FILE"
   : > "$INCOMPLETE_FILE"
   : > "$CANDIDATES_FILE"
@@ -188,13 +205,80 @@ collect() {
   return 0
 }
 
-# chunk .digest.jsonl into approx <=200KB pieces (character-length
+# prefilter_digest — deterministic, recall-preserving pre-classify filter.
+# Drops ONLY structurally-empty transcript records: a user turn whose authored
+# text is blank (a tool-result envelope) or a bare slash-command invocation
+# (e.g. `/compact`). Neither can carry a describable gate-miss, so the drop
+# cannot lose recall. It filters on STRUCTURE only — a record is NEVER dropped
+# for looking "already covered", because a covered class re-appearing is
+# recurrence signal insight reads. Non-transcript sources (git/reckoning/
+# firelog) always pass — they are high-signal by construction. Survivors go to
+# CLASSIFY_INPUT_FILE (what classify chunks); dropped records are logged to
+# PREFILTER_LOG for audit. FAIL-OPEN: any jq error classifies the FULL digest
+# (over-emit is safe; under-emit would silently lose a miss).
+prefilter_digest() {
+  local pred='(.source=="transcript") and (
+      ((.payload.text // "") | gsub("^\\s+|\\s+$";"") | length) == 0
+      or ((.payload.text // "") | test("^\\s*/[A-Za-z][A-Za-z0-9:_-]*\\s*$")) )'
+  local tmp="$CLASSIFY_INPUT_FILE.tmp"
+  if jq -c "select(($pred) | not)" "$DIGEST_FILE" > "$tmp" 2>/dev/null \
+     && mv "$tmp" "$CLASSIFY_INPUT_FILE"; then
+    # drop log is advisory (best-effort); its failure never blocks classify.
+    jq -c "select($pred)" "$DIGEST_FILE" > "$PREFILTER_LOG" 2>/dev/null || : > "$PREFILTER_LOG"
+    return 0
+  fi
+  # fail-open: pre-filter unavailable -> classify the WHOLE digest (over-emit is
+  # safe; under-emit would silently lose a miss). If even the fallback copy
+  # fails, fail CLOSED — record an l1 failure and return non-zero rather than
+  # let classify build on a partial/empty survivor set. Recall is never lost
+  # silently in either direction.
+  rm -f "$tmp"
+  : > "$PREFILTER_LOG"
+  if ! cp "$DIGEST_FILE" "$CLASSIFY_INPUT_FILE"; then
+    echo "sweep incomplete: l1" >> "$INCOMPLETE_FILE"
+    return 1
+  fi
+  return 0
+}
+
+# prefilter phase — standalone entry point so the epic-close procedure (which
+# chunks + dispatches the L1 classifier as Agents, not via classify()'s
+# $LEDGER_L1_CMD) can run the SAME recall-preserving pre-filter and then chunk
+# the survivor file $CLASSIFY_INPUT_FILE instead of the raw digest. classify()
+# also calls prefilter_digest internally, so the script path stays self-
+# contained; running this phase first is idempotent.
+prefilter_phase() {
+  if [ ! -s "$DIGEST_FILE" ]; then
+    : > "$CLASSIFY_INPUT_FILE"; : > "$PREFILTER_LOG"
+    echo "pre-filter: 0 classified, 0 dropped (empty digest)"
+    return 0
+  fi
+  if ! prefilter_digest; then
+    echo "pre-filter: FAILED — could not produce a survivor set; recorded 'sweep incomplete: l1'" >&2
+    return 1
+  fi
+  local dropped kept
+  dropped="$(grep -c . "$PREFILTER_LOG" 2>/dev/null || true)"; [ -n "$dropped" ] || dropped=0
+  kept="$(grep -c . "$CLASSIFY_INPUT_FILE" 2>/dev/null || true)"; [ -n "$kept" ] || kept=0
+  echo "pre-filter: $kept classified, $dropped dropped as non-signal (blank / bare-command transcript records)"
+  return 0
+}
+
+# chunk the pre-filtered digest into approx <=200KB pieces (character-length
 # approximation, not the byte-exact bound the fire-log atomicity contract
 # uses — this is a dispatch-batching heuristic, never splitting a line) and
 # pipe each chunk through $LEDGER_L1_CMD, appending candidate/v1 output.
 classify() {
   [ -s "$DIGEST_FILE" ] || return 0
   : "${LEDGER_L1_CMD:?sweep-run classify: LEDGER_L1_CMD must be set}"
+
+  # prefilter fails CLOSED only when it can neither filter nor fall back to the
+  # full digest (it records the l1 line itself) — classifying a partial set is
+  # never safe, so propagate the failure.
+  prefilter_digest || return 1
+  # an all-noise window leaves nothing to classify — a clean empty result,
+  # not a failure (the L1 contract binds surviving records only).
+  [ -s "$CLASSIFY_INPUT_FILE" ] || return 0
 
   local chunkdir; chunkdir="$(mktemp -d)"
   local chunk_idx=0 chunk_file="$chunkdir/chunk-0" chunk_bytes=0 line_bytes
@@ -209,7 +293,7 @@ classify() {
     fi
     printf '%s\n' "$line" >> "$chunk_file"
     chunk_bytes=$((chunk_bytes + line_bytes))
-  done < "$DIGEST_FILE"
+  done < "$CLASSIFY_INPUT_FILE"
 
   local f rc had_failure=0 in_lines out_before out_after out_delta
   for f in "$chunkdir"/chunk-*; do
@@ -361,6 +445,15 @@ finalize() {
   fi
 
   if [ "$archive_rc" -eq 0 ]; then
+    # the pre-filter's dropped-record audit trail travels with the run bundle.
+    if [ -f "$PREFILTER_LOG" ]; then
+      cp "$PREFILTER_LOG" "$runs_dir/prefilter-dropped.jsonl" || archive_rc=1
+    else
+      : > "$runs_dir/prefilter-dropped.jsonl" || archive_rc=1
+    fi
+  fi
+
+  if [ "$archive_rc" -eq 0 ]; then
     started="$(cat "$STARTED_FILE" 2>/dev/null || echo "")"
     jq -n --argjson appended "$((after - before))" \
       --arg since "$(cat "$LAST_SWEEP_FILE" 2>/dev/null || echo "")" \
@@ -399,6 +492,12 @@ report() {
   if [ -s "$SKIPPED_FILE" ]; then
     echo "sources skipped (unconfigured): $(tr '\n' ' ' < "$SKIPPED_FILE" | sed 's/ *$//')"
   fi
+  if [ -f "$PREFILTER_LOG" ]; then
+    local dropped kept
+    dropped="$(grep -c . "$PREFILTER_LOG" 2>/dev/null || true)"; [ -n "$dropped" ] || dropped=0
+    kept="$(grep -c . "$CLASSIFY_INPUT_FILE" 2>/dev/null || true)"; [ -n "$kept" ] || kept=0
+    echo "pre-filter: $kept classified, $dropped dropped as non-signal (blank / bare-command transcript records)"
+  fi
   if [ -s "$INCOMPLETE_FILE" ]; then
     cat "$INCOMPLETE_FILE"
   fi
@@ -422,13 +521,14 @@ PHASE="${1:-}"
 
 case "$PHASE" in
   collect) collect; exit $? ;;
+  prefilter) prefilter_phase; exit $? ;;
   classify) classify; exit $? ;;
   validate-candidates) validate_candidates; exit $? ;;
   stage) stage; exit $? ;;
   finalize) finalize; exit $? ;;
   report) report; exit $? ;;
   *)
-    echo "sweep-run: usage: sweep-run.sh <collect|classify|validate-candidates|stage|finalize|report>" >&2
+    echo "sweep-run: usage: sweep-run.sh <collect|prefilter|classify|validate-candidates|stage|finalize|report>" >&2
     exit 1
     ;;
 esac
