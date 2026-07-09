@@ -107,6 +107,21 @@ if grep -qE "/touchstone:design-review" "$root/skills/crucible/SKILL.md"; then
   echo "ok crucible-has-design-review-token"; else echo "FAIL crucible-has-design-review-token: /touchstone:design-review not found in crucible"; fail=$((fail+1)); fi
 if grep -qE "superpowers:writing-plans|/superpowers:writing-plans" "$root/skills/crucible/SKILL.md"; then
   echo "FAIL crucible-no-writing-plans-token"; fail=$((fail+1)); else echo "ok crucible-no-writing-plans-token"; fi
+# PRD+seams pre-accept light check (Phase 1, interview-mechanics epic)
+chk "crucible-light-check"       "skills/crucible/SKILL.md" "^Before presenting a PRD\+seams light contract"
+chk "crucible-lc-fresh-context"  "skills/crucible/SKILL.md" "fresh-context sonnet"
+chk "crucible-lc-converge-once"  "skills/crucible/SKILL.md" "re-dispatch once"
+chk "crucible-lc-incomplete"     "skills/crucible/SKILL.md" "light check incomplete"
+chk "crucible-lc-no-fabricate"   "skills/crucible/SKILL.md" "never fabricate a verdict"
+chk "crucible-prdseams-no-drgate" "skills/crucible/SKILL.md" "not pass the design-review gate"
+# suite consistency layer in the authoring template (Phase 1, interview-mechanics epic)
+chk "authoring-fm-canon"          "docs/skill-authoring-template.md" "disable-model-invocation"
+chk "authoring-kind-nonofficial"  "docs/skill-authoring-template.md" "non-official"
+chk "authoring-negative-routing"  "docs/skill-authoring-template.md" "MUST name when NOT to use it"
+chk "authoring-live-human"        "docs/skill-authoring-template.md" "live responsive user"
+chk "authoring-thin-wrapper"      "docs/skill-authoring-template.md" "in-chain composite"
+chk "authoring-bounded-example"   "docs/skill-authoring-template.md" "an example, not a rule"
+chk "authoring-self-desc-names"   "docs/skill-authoring-template.md" "opaque codes"
 # quality bar — <=200 lines
 lc="$(wc -l < "$root/skills/crucible/SKILL.md")"
 [ "$lc" -le 200 ] && echo "ok crucible-line-count ($lc)" || { echo "FAIL crucible-line-count: $lc > 200"; fail=$((fail+1)); }
@@ -288,6 +303,21 @@ chk "assay-unformed-escape"     "skills/assay/SKILL.md" "out-of-band"
 chk "assay-writeback"           "skills/assay/SKILL.md" "admission boundary"
 chk "assay-adr-pointer"         "skills/assay/SKILL.md" "adr-authoring\.md"
 chk "assay-rubric-pointer"      "skills/assay/SKILL.md" "references/arch-rubric\.md"
+# interview presentation mechanics + self-describing names (Phase 1, interview-mechanics epic)
+chk "assay-one-question-per-msg" "skills/assay/SKILL.md" "^- Ask exactly ONE question per message"
+chk "assay-question-leaning"     "skills/assay/SKILL.md" "leaning and a one-line reason"
+chk "assay-askuserquestion"      "skills/assay/SKILL.md" "AskUserQuestion"
+chk "assay-plain-dialogue"       "skills/assay/SKILL.md" "no skill-internal section names"
+chk "assay-facts-self-lookup"    "skills/assay/SKILL.md" "decisions and tacit knowledge"
+chk "assay-predict3-stop"        "skills/assay/SKILL.md" "three questions"
+chk "assay-correction-reopens"   "skills/assay/SKILL.md" "reopens the question queue"
+chk "assay-laydown-leaning"      "skills/assay/SKILL.md" "carry your leaning"
+chk "assay-unknown-sources"      "skills/assay/SKILL.md" "laydown residuals"
+chk "assay-laydown-never-skipped" "skills/assay/SKILL.md" "never skips the laydown"
+# self-describing internal names: no bare-numbered stage headings remain
+if grep -qE '^#{2,3} (Stage [0-9]|[0-9][abc]? —)' "$root/skills/assay/SKILL.md"; then
+  echo "FAIL assay-opaque-headings: bare-numbered section heading present"; fail=$((fail+1))
+else echo "ok assay-opaque-headings"; fi
 # the three structural-fork bet fields are documented in the migrated ADR procedure
 chk "assay-adr-flip-field"      "skills/assay/adr-authoring.md" "Flip-trigger:"
 chk "assay-adr-betowner-field"  "skills/assay/adr-authoring.md" "Bet-owner:"

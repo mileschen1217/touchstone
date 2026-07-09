@@ -130,3 +130,48 @@ member alone re-diverges the cluster immediately. (Worked examples of cluster
 shape: an agent quartet sharing a contract glossary; a composite-skill pair
 sharing a base procedure; a template and its workflow reference sharing field
 rules.)
+
+## Suite consistency layer
+
+Suite-wide rules every skill in this plugin converges to; future audits diff
+skills against this section.
+
+### Frontmatter canon
+
+| Field | Status | Semantics |
+|---|---|---|
+| `name` | official | Skill identifier; MUST match the skill's directory name. |
+| `description` | official | Routing signal preloaded into context; the model reads it to decide when to invoke the skill. |
+| `allowed-tools` | official | Restricts which tools the agent may use while the skill runs. |
+| `user-invocable` | official | Whether the skill is exposed to the user as a slash command. |
+| `disable-model-invocation` | official | Blocks the model from invoking or loading the skill on its own; user invocation only. |
+| `kind` | non-official | Human-read suite convention (e.g. workflow); Claude Code ignores it. |
+
+Official fields carry Claude Code's documented semantics; non-official fields
+are suite-local conventions — mark any new non-official field as such in this
+table.
+
+### Suite rules
+
+- **Negative routing.** Every skill's `description` or first body paragraph
+  MUST name when NOT to use it (a "When NOT to use" / "Skip if" clause).
+- **Live-human declaration.** A skill that requires a live responsive user
+  MUST declare that loading constraint at the top of its body, before any
+  procedure.
+- **Thin-wrapper pattern.** An entry-alias skill (body = a few forwarding
+  lines) sets `disable-model-invocation: true`. Allowed ONLY for newly created
+  entry skills; NEVER retrofit onto a composite that another skill or agent
+  invokes via the Skill tool — the field blocks ALL model loading, including
+  legitimate chain calls, and severs the chain. Discriminator (grep-testable):
+  the skill's name appears in any other skill/agent body as an invocation
+  instruction → it is an in-chain composite → the field is forbidden.
+  Dual-role skills (directly invocable AND chain-called) default conservative
+  → forbidden.
+- **Bounded examples.** An example is allowed only where it specifies an
+  abstract rule or a render/output format; ≤1 example per site; label it as
+  an example, not a rule. Larger examples move to `references/` satellite
+  files. (The "Parsed contract strings" rule above stands unchanged.)
+- **Self-describing names.** Internal section/stage names MUST be functional
+  self-descriptions; opaque codes (bare stage numbers, letter suffixes) are
+  banned. Coin a term only when a cross-reference genuinely needs one, and
+  define it inline at first occurrence.
