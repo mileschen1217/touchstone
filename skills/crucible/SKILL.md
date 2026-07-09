@@ -5,7 +5,9 @@ description: Front-end contract orchestrator — chains explore (ground the inte
 
 # /touchstone:crucible — Front-End Contract Orchestrator
 
-Forges raw intent into a precise, accepted contract in ONE invocation; the human accepts once at the end.
+Forges raw intent into a precise, accepted contract in ONE invocation; the human accepts once at the end. Skip when the work needs no full contract chain — a revision to an already-accepted spec (invoke `/touchstone:design-spec` + `/touchstone:design-review` directly), or a change contained enough to need no design contract.
+
+**Requires a live responsive user.** The chain's assay phase runs a live interview and the terminal step needs a human accept ruling — do not invoke crucible in an unattended/background context.
 
 **Applicability boundary:** crucible forges a contract by grounding the stated intent in the system and then interviewing the map-territory gap before the contract is authored. **Exploration is a phase of the chain, not a precondition.** The one exception is work where you cannot state the intent until you have looked — the router below front-loads exploration for that case.
 

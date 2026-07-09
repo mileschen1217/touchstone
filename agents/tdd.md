@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Double-loop TDD agent — drives test-first development with acceptance tests (outer loop) + unit tests (inner loop). Use for new features, bug fixes, or any task where test-first discipline matters. Enforces ONE red test at a time, no code without a failing test.
+description: Double-loop TDD agent — drives test-first development with acceptance tests (outer loop) + unit tests (inner loop). Use for new features, bug fixes, or any task where test-first discipline matters. Enforces ONE red test at a time, no code without a failing test. Skip for refactoring-only work — existing tests are the safety net, no test-first loop needed.
 model: sonnet
 ---
 

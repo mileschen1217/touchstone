@@ -10,7 +10,7 @@ kind: workflow
 
 # touchstone:init
 
-Writes `.claude/touchstone.yaml` in the current project, configuring paths and adopted disciplines for the touchstone plugin's stage skills.
+Writes `.claude/touchstone.yaml` in the current project, configuring paths and adopted disciplines for the touchstone plugin's stage skills. Skip if the yaml already exists with disciplines adopted and no `--reset`/`--migrate` is needed — Step 1 exits early with nothing to configure.
 
 ## Argument grammar
 
@@ -23,6 +23,8 @@ Writes `.claude/touchstone.yaml` in the current project, configuring paths and a
 ```
 
 `--adopt` is repeatable (one per discipline). Each flag's behaviour is detailed in the step that consumes it (`--reset` Step 1, `--migrate` Step 1, `--workspace-root` Step 2, `--adopt` Step 3).
+
+**Live-user note:** default interactive mode (Steps 2–3) prompts for workspace root and discipline adoption; pass `--workspace-root` and `--adopt` to run non-interactively without a live user.
 
 ## Step 1 — Idempotence check
 

@@ -20,6 +20,8 @@ allowed-tools:
 
 # touchstone:epic-driven-roadmap
 
+**Scaffolding a new epic requires a live responsive user** — the Foundation-elicitation gate (Scaffold procedure) pauses to ask the human and waits for an answer before the epic index is written.
+
 ## Step 0 — Load vocabulary
 
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`
@@ -73,7 +75,7 @@ Maps to the 6-stage workflow in `~/.claude/CLAUDE.md`. Concrete paths come from 
 
 Two distinct artifacts; do not conflate.
 
-- **Epic master plan (Q4a)** — sequences the epic's phases, locks cross-spec decisions (e.g. "primary gate is X, deprecate Y"), states effort + acceptance per phase, freezes scope so reactive expansion is rejected. Lives **with the epic**: `.touchstone/epics/<slug>/<short-name>.md` (e.g. `v6-3-roadmap.md`, `roadmap.md`, or `master-plan.md`). The epic index links to it. One per epic — not per phase.
+- **Epic master plan (Q4a)** — sequences the epic's phases, locks cross-spec decisions, states effort + acceptance per phase, freezes scope so reactive expansion is rejected. Lives **with the epic**: `.touchstone/epics/<slug>/<short-name>.md` (e.g. `v6-3-roadmap.md`, `roadmap.md`, or `master-plan.md`). The epic index links to it. One per epic — not per phase.
 - **Task plan (Q4b)** — per-spec implementation plan for a single design spec. Lives under `docs/superpowers/plans/` (or the project's plan path). One per spec.
 
 **When to write a master plan:** an epic that crosses 2+ design specs, locks methodology decisions that bind multiple specs, or needs effort sequencing across phases. Skinny epics (single spec, one PR) skip the master plan and go straight from epic index → spec → plan.

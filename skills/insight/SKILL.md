@@ -8,6 +8,10 @@ kind: workflow
 
 # /touchstone:insight — workflow-improvement loop
 
+Skip when the gate-miss ledger has no open entries, or the repo hasn't adopted the ledger/checker workflow (`/touchstone:init` first) — nothing to cluster, present, or install.
+
+**Requires a live responsive user.** Step 3 blocks on a human ruling accept/reject/defer per proposal before Step 4 can act — this loop cannot complete unattended.
+
 **Elevated trust, declared:** this skill causes executable, exit-code-gating
 checker scripts to be written into `.touchstone/checker/<stage>/` — content
 that blocks future commits/pushes. `/touchstone:init`'s scaffold creates the
