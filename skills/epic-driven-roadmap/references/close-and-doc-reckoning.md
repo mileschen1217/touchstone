@@ -228,9 +228,26 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" report
 If `report` prints "sources skipped (unconfigured)", one of the three envs was
 empty at collect time — fix the export and re-run `collect` before continuing.
 
+### Step 1b — prefilter (deterministic, recall-preserving)
+
+Run the pre-classify filter so the paid L1 dispatch never reads
+provably-non-signal records (blank tool-result envelopes, bare slash-commands
+— typically the large majority of a transcript window):
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ledger/sweep-run.sh" prefilter
+```
+
+Survivors go to `.digest-classify.jsonl`; dropped records to
+`.prefilter-dropped.jsonl` (audit trail); it prints `pre-filter: <kept>
+classified, <dropped> dropped`. The filter is **structural only** — it drops
+solely for empty/bare-command text, NEVER for looking "already covered" (a
+covered class re-appearing is recurrence signal `/touchstone:insight` reads).
+
 ### Step 2 — L1 classification dispatch (haiku, one dispatch per chunk)
 
-Chunk `$TOUCHSTONE_LEDGER_DIR/.digest.jsonl` into ≤200KB pieces, never
+Chunk the **survivor file** `$TOUCHSTONE_LEDGER_DIR/.digest-classify.jsonl`
+(Step 1b's output, NOT the raw `.digest.jsonl`) into ≤200KB pieces, never
 splitting a line:
 
 ```bash
@@ -243,7 +260,7 @@ awk -v maxb=200000 -v dir="$chunkdir" '
     print $0 >> file
     bytes += n
   }
-' "$TOUCHSTONE_LEDGER_DIR/.digest.jsonl"
+' "$TOUCHSTONE_LEDGER_DIR/.digest-classify.jsonl"
 ```
 
 For EACH chunk, make ONE `Agent` dispatch with **explicit `model: "haiku"`**
@@ -273,21 +290,36 @@ glosses — the spec defines only the enum):
 - false-green — a claim existed but its evidence was false
 - no-gate — no gate covers this class of defect at all
 
-Output ONE line per input record, in order, as JSON matching:
+Produce ONE line per input record, in order, as JSON matching:
 {"schema":"candidate/v1","ref":"<pass-through ref, unchanged>",
  "is_miss":true|false,"caught_by":"<locus>","should_have":"<locus>",
  "gap_class":"<missing-AC|false-green|no-gate>","note":"<short reason>"}
 caught_by, should_have, and gap_class are REQUIRED when is_miss is true;
-omit them when is_miss is false. Output candidate lines only — no prose,
-no preamble, no markdown fence.
+omit them when is_miss is false.
+
+WRITE those candidate lines to the file at <out-file-path> using the Write
+tool — one JSON object per line, no prose, no preamble, no markdown fence.
+In your REPLY, return ONLY a one-line summary: the count of lines you wrote
+and how many had is_miss:true. Do NOT paste the candidate lines back into
+your reply.
 ```
 
-Append the returned lines, in order, to
-`$TOUCHSTONE_LEDGER_DIR/.candidates-log.jsonl` (append across chunks, never
-truncate). Then compare each chunk's `wc -l` against the lines the dispatch
-returned — a shortfall (returned < input) IS a dispatch failure even at exit
-0 (`validate-candidates` only shape-checks lines that exist; a dropped chunk
-passes it unnoticed).
+Pass each chunk a distinct `<out-file-path>` (e.g. `$chunkdir/out-<idx>.jsonl`)
+so the main thread never ingests the raw candidate lines — this is why the
+prompt forbids pasting them back. After all chunks return, aggregate
+deterministically:
+
+```bash
+for out in "$chunkdir"/out-*.jsonl; do
+  [ -f "$out" ] && cat "$out" >> "$TOUCHSTONE_LEDGER_DIR/.candidates-log.jsonl"
+done
+```
+
+Then compare each chunk's `wc -l` against its `out-<idx>.jsonl` — a shortfall
+(out < chunk) IS a dispatch failure even at exit 0 (`validate-candidates` only
+shape-checks lines that exist; a dropped chunk passes it unnoticed). Find the
+`is_miss:true` set for Step 4 by `jq`-ing the aggregated file, never by
+re-reading it line by line.
 
 On any chunk failure (error, timeout, no output, shortfall): append the EXACT
 line `sweep incomplete: l1` to `$TOUCHSTONE_LEDGER_DIR/.sweep-incomplete`

@@ -615,5 +615,107 @@ else
   fail "MIXED-batch (rc=$RC_MIXED staging_exists=$([ -e "$LDIR/.staging.jsonl" ] && echo yes || echo no) last_sweep_exists=$([ -e "$LDIR/.last-sweep" ] && echo yes || echo no))"
 fi
 
+# ============================================================
+# PREFILTER — recall-preserving pre-classify filter (Cut 2): drops ONLY
+# blank / bare-slash-command TRANSCRIPT records into .prefilter-dropped.jsonl;
+# every signal-bearing transcript record and every non-transcript record
+# survives into .digest-classify.jsonl and is classified. Structural-only —
+# a record is never dropped for looking "already covered" (that is recurrence
+# signal insight reads).
+# ============================================================
+
+LDIR="$(mkl prefilter)"
+cat > "$LDIR/.digest.jsonl" <<'EOF'
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/pf#1-2","ts":"t","payload":{"text":""}}
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/pf#3-4","ts":"t","payload":{"text":"   "}}
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/pf#5-6","ts":"t","payload":{"text":"/compact"}}
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/pf#7-8","ts":"t","payload":{"text":"修正 TESTHINT:K1 這個已覆蓋的類別又再現"}}
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/pf#9-10","ts":"t","payload":{"text":"go /crucible"}}
+{"schema":"digest/v1","source":"git","ref":"git:pfsha","ts":"t","payload":{"subjects":["fix: something TESTHINT:K2"]}}
+EOF
+
+TOUCHSTONE_LEDGER_DIR="$LDIR" LEDGER_L1_CMD="$L1" bash "$SWEEP" classify >/dev/null 2>&1
+RC_PF=$?
+DROPPED_PF="$(lc "$LDIR/.prefilter-dropped.jsonl")"
+KEPT_PF="$(lc "$LDIR/.digest-classify.jsonl")"
+CAND_PF="$(lc "$LDIR/.candidates-log.jsonl")"
+# blank + whitespace + /compact -> 3 dropped; two signal records + prose-wrapped
+# "go /crucible" + git -> 3 kept and classified (one candidate each).
+if [ "$RC_PF" -eq 0 ] && [ "$DROPPED_PF" = 3 ] && [ "$KEPT_PF" = 3 ] && [ "$CAND_PF" = 3 ]; then
+  ok "prefilter: 3 non-signal (blank/whitespace/bare-command) dropped, 3 signal-bearing kept + classified"
+else
+  fail "prefilter counts (rc=$RC_PF dropped=$DROPPED_PF kept=$KEPT_PF cand=$CAND_PF)"
+fi
+
+if jq -e 'select(.ref=="transcript:/pf#7-8")' "$LDIR/.digest-classify.jsonl" >/dev/null 2>&1 \
+   && ! jq -e 'select(.ref=="transcript:/pf#7-8")' "$LDIR/.prefilter-dropped.jsonl" >/dev/null 2>&1; then
+  ok "prefilter: recall-preserving — a signal record (even one that reads 'already covered') survives, never dropped"
+else
+  fail "prefilter: signal record wrongly dropped"
+fi
+
+if jq -e 'select(.ref=="transcript:/pf#9-10")' "$LDIR/.digest-classify.jsonl" >/dev/null 2>&1; then
+  ok "prefilter: a command with surrounding prose ('go /crucible') is kept (only BARE commands drop)"
+else
+  fail "prefilter: 'go /crucible' wrongly dropped"
+fi
+
+REPORT_PF="$(TOUCHSTONE_LEDGER_DIR="$LDIR" bash "$SWEEP" report)"
+case "$REPORT_PF" in
+  *"pre-filter: 3 classified, 3 dropped"*) ok "prefilter: report prints the classified/dropped accounting" ;;
+  *) fail "prefilter report line (got: $REPORT_PF)" ;;
+esac
+
+# all-noise window -> nothing survives -> classify succeeds with zero candidates.
+LDIR="$(mkl prefilterallnoise)"
+cat > "$LDIR/.digest.jsonl" <<'EOF'
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/an#1-2","ts":"t","payload":{"text":""}}
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/an#3-4","ts":"t","payload":{"text":"/reload-plugins"}}
+EOF
+TOUCHSTONE_LEDGER_DIR="$LDIR" LEDGER_L1_CMD="$L1" bash "$SWEEP" classify >/dev/null 2>&1
+RC_AN=$?
+CAND_AN="$(lc "$LDIR/.candidates-log.jsonl")"
+if [ "$RC_AN" -eq 0 ] && [ "$CAND_AN" = 0 ]; then
+  ok "prefilter: an all-noise window classifies to zero candidates without failing"
+else
+  fail "prefilter all-noise (rc=$RC_AN cand=$CAND_AN)"
+fi
+
+# standalone `prefilter` phase — the entry point the epic-close manual Agent
+# dispatch calls to chunk the survivor file instead of the raw digest.
+LDIR="$(mkl prefilterphase)"
+cat > "$LDIR/.digest.jsonl" <<'EOF'
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/ph#1-2","ts":"t","payload":{"text":""}}
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/ph#3-4","ts":"t","payload":{"text":"真實修正訊息"}}
+EOF
+OUT_PH="$(TOUCHSTONE_LEDGER_DIR="$LDIR" bash "$SWEEP" prefilter)"
+KEPT_PH="$(lc "$LDIR/.digest-classify.jsonl")"
+if [ "$KEPT_PH" = 1 ] && printf '%s' "$OUT_PH" | grep -q "pre-filter: 1 classified, 1 dropped"; then
+  ok "prefilter phase: standalone entry point produces the survivor file + prints the accounting"
+else
+  fail "prefilter phase standalone (kept=$KEPT_PH out='$OUT_PH')"
+fi
+
+# fail-open — a malformed digest line makes the filter jq error out; the filter
+# must FALL OPEN to the full digest (classify everything, drop nothing) so recall
+# is never silently lost. The blank-text line here would normally drop; under
+# fail-open it survives, proving the whole digest passed through unfiltered.
+LDIR="$(mkl prefilterfailopen)"
+cat > "$LDIR/.digest.jsonl" <<'EOF'
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/fo#1-2","ts":"t","payload":{"text":"真實 TESTHINT:K5 訊息"}}
+this line is not valid json
+{"schema":"digest/v1","source":"transcript","ref":"transcript:/fo#3-4","ts":"t","payload":{"text":""}}
+EOF
+FULL_FO="$(lc "$LDIR/.digest.jsonl")"
+TOUCHSTONE_LEDGER_DIR="$LDIR" bash "$SWEEP" prefilter >/dev/null 2>&1
+RC_FO=$?
+KEPT_FO="$(lc "$LDIR/.digest-classify.jsonl")"
+DROP_FO="$(lc "$LDIR/.prefilter-dropped.jsonl")"
+if [ "$RC_FO" -eq 0 ] && [ "$KEPT_FO" = "$FULL_FO" ] && [ "$DROP_FO" = 0 ]; then
+  ok "prefilter: jq-error fail-open classifies the FULL digest (no filtering, zero recall loss)"
+else
+  fail "prefilter fail-open (rc=$RC_FO kept=$KEPT_FO full=$FULL_FO drop=$DROP_FO)"
+fi
+
 echo "== $pass ok, $fail fail =="
 [ "$fail" -eq 0 ]
