@@ -23,7 +23,11 @@ quiz has been taken and passed:
       the owner must open the diff to answer, the explainer failed there);
       each question anchors to a specific explainer section; cover only the
       rulings and invariants that would change the approve decision — never
-      trivia. Deliver it WITH the explainer and ask the owner to try it. A
+      trivia. **Author the quiz FIRST, then the explainer:** for each
+      question, the explainer must carry the answer as an explicit sentence a
+      reader can point to — never as an implied clause the reader must infer
+      (dense single-clause compression is the known failure form).
+      Deliver it WITH the explainer and ask the owner to try it. A
       wrong answer marks exactly where the explainer failed — revise the
       explainer there and re-ask. **Quiz not passed → do not approve**
       (informed accept, never a rubber-stamp).
