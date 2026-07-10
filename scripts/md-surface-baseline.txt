@@ -63,4 +63,18 @@
 # REJECTED as test-protected load-bearing lines (code-review self-select rule
 # + regression-presence note). Number presented for the human's baseline
 # ruling in the PR.
-257461
+# 257461
+# 2026-07-10: raised +418 — insight-accepted mechanism (epic-close round,
+# recurrence 2): batch-mode.md gains the fail-closed rule "missing
+# review.result.json = failed review, re-dispatch once" (codex wrapper
+# finishing unreliability, both incidents caught by habit not rule).
+# Genuinely-new instruction content; presented for the human's baseline
+# ruling in the PR. (+197 review-fix wave: task_dir-supplied qualifier +
+# retry-exhausted terminal semantics wired to the Normative fallback.)
+# 258076
+# 2026-07-10: raised +291 — quiz-first authoring rule in phase-ship.md
+# (user feedback after two explainer under-explanations in consecutive
+# pairs: author the quiz first, then verify each answer exists as an
+# explicit pointable sentence in the explainer). Presented for the human's
+# baseline ruling in the PR.
+258367
