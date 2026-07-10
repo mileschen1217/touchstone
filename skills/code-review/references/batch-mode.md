@@ -92,6 +92,14 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    **No pre-probe:** do not add a `codex --version` pre-probe here — rely on the
    `touchstone:codex-reviewer` agent's own `status: failed` / `fallback_reason` as the
    codex-availability signal.
+   **Missing result = failed review (fail-closed, when `task_dir` was supplied):**
+   when the dispatched wrapper returns or idles, you (the orchestrator) check its
+   `task_dir`: no `review.result.json` → the review is NOT accepted regardless of
+   what the wrapper reported — treat as failed and re-dispatch once with the
+   provenance requirement restated; if the retry also yields no
+   `review.result.json`, land on the Normative-fallback terminal semantics above
+   (`status: failed`, `providers_used == []`, no banner). A verdict is consumable
+   only from `review.result.json` plus raw execution proof.
 6. Write provenance + banners per `skills/cross-provider-reviewer/references/provenance.md`
    (sole canonical home — use the FULL plugin-relative path; a bare `references/provenance.md`
    would wrongly resolve under `skills/code-review/references/`, which does not exist).
