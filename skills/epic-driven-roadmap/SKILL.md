@@ -27,21 +27,13 @@ allowed-tools:
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`
 > with the Read tool and follow it exactly.
 
-If `source-as-truth` is in `bundle.disciplines`, read
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` and
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/standing-vs-transient-bridge.md`,
-plus § "Four doc kinds" from `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md` — which
-define the rules Doc Reckoning applies. This skill does not dispatch
-to other skills, so no envelope handoff is needed.
+If `source-as-truth` is in `bundle.disciplines`, read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` and `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/standing-vs-transient-bridge.md`, plus § "Four doc kinds" from `${CLAUDE_PLUGIN_ROOT}/CONTEXT.md`. This skill does not dispatch to other skills, so no envelope handoff is needed.
 
 If `source-as-truth` is not adopted: Doc Reckoning runs in default mode (mechanical mtime-based bridge audit only, no frontmatter kind: classification, no distill-or-archive recommendation).
 
 ## When to Invoke
 
-- **Scaffold a new epic** — user starts work on a new initiative not yet tracked.
-- **Close an epic** — all phases done, needs retrospective + move to Completed table.
-- **Audit** — weekly or on demand: status drift between ROADMAP row and epic frontmatter, stale epics, orphans, scope overlap.
-- **Bootstrap** — new project adopts this convention (ROADMAP.md + `.touchstone/epics/README.md` + first epic).
+Four procedures: **scaffold** a new epic, **close** an epic (retrospective + move to Completed), **audit** status drift / stale epics / orphans (weekly or on demand), **bootstrap** the convention in a new project.
 
 Skip if: the project doesn't use this convention (no `ROADMAP.md` or `.touchstone/epics/`).
 
@@ -57,38 +49,29 @@ Trackers may **not** contain: design prose, rationale, research findings, archit
 
 ## Question-per-stage pipeline
 
-Maps to the 6-stage workflow in `~/.claude/CLAUDE.md`. Concrete paths come from the project's CLAUDE.md § Doc Routing; projects may adjust paths — the convention is the shape, not the directory names.
+Each stage question has one doc home. Concrete paths come from the project's CLAUDE.md § Doc Routing; projects may adjust paths — the convention is the shape, not the directory names.
 
 | Q (stage) | Home (abstract) | Example concrete path |
 |---|---|---|
-| Why at all? (0) | Project vision / scope | `.touchstone/vision.md`, `ROADMAP.md` scope block |
 | Why this epic? (1) | Epic tracker index | `.touchstone/epics/<slug>/index.md` |
 | What might work? (2) | Research note | `.touchstone/research/YYYY-MM-DD-<slug>.md` |
 | What contract? (3, GWT) | Design spec | `.touchstone/specs/YYYY-MM-DD-<slug>.md` |
-| How, in order — epic-level? (4a) | **Epic master plan** (lives with the epic) | `.touchstone/epics/<slug>/<name>-roadmap.md` (only when epic spans 2+ specs) |
+| How, in order — epic-level? (4a) | Epic master plan (lives with the epic) | `.touchstone/epics/<slug>/<name>-roadmap.md` |
 | How, in order — per-spec? (4b) | Implementation plan (one per design spec) | `.touchstone/plans/YYYY-MM-DD-<slug>.md` |
-| Did it work? (5) | Commits, MRs | Commits, MRs |
 | What did we learn? (6) | Retrospective on epic index | Retrospective on epic index |
 | Did docs catch up? (7) | Doc Reckoning block on epic index (see "Close an epic + Doc Reckoning") | Doc Reckoning block on epic index |
 
 ### Master plan vs. task plan
 
-Two distinct artifacts; do not conflate.
+Write an **epic master plan (Q4a)** only when the epic crosses 2+ design specs, locks methodology decisions that bind multiple specs, or needs effort sequencing across phases; one per epic, living with the epic (e.g. `roadmap.md`, `master-plan.md`). Skinny epics (single spec, one PR) skip it and go straight from epic index → spec → task plan.
 
-- **Epic master plan (Q4a)** — sequences the epic's phases, locks cross-spec decisions, states effort + acceptance per phase, freezes scope so reactive expansion is rejected. Lives **with the epic**: `.touchstone/epics/<slug>/<short-name>.md` (e.g. `v6-3-roadmap.md`, `roadmap.md`, or `master-plan.md`). The epic index links to it. One per epic — not per phase.
-- **Task plan (Q4b)** — per-spec implementation plan for a single design spec. Lives under `docs/superpowers/plans/` (or the project's plan path). One per spec.
-
-**When to write a master plan:** an epic that crosses 2+ design specs, locks methodology decisions that bind multiple specs, or needs effort sequencing across phases. Skinny epics (single spec, one PR) skip the master plan and go straight from epic index → spec → plan.
-
-**Master plan vs. epic index:** the index is a **tracker** (one-liners, links). The master plan is **prose with tables** (decisions, phase effort, dependency graph, acceptance criteria). The index links to the master plan; it does not absorb it.
+The index stays a **tracker** (one-liners, links) and links to the master plan — **prose with tables** (decisions, phase effort, dependency graph, acceptance criteria) — never absorbs it.
 
 ## Procedures
 
 ### Scaffold a new epic
 
-Pre-scaffold candidates — ideas not yet shaped into an epic — belong in
-`<epics-dir>/_draft-brainstorm.md`; the render script lists them as a Backlog
-section in ROADMAP.html.
+Pre-scaffold candidates — ideas not yet shaped into an epic — belong in `<epics-dir>/_draft-brainstorm.md`; the render script lists them as a Backlog section in ROADMAP.html.
 
 0. **Foundation elicitation (Baseline — always runs)** — before slugging
    anything, run the 3-field elicitation gate per
@@ -118,7 +101,7 @@ section in ROADMAP.html.
    - Otherwise (host without the render script): append the row manually to
      `ROADMAP.md` § Active Epics:
      `| <slug> | <aim> | proposed | — | <epics-dir>/<slug>/index.md |`
-5. When creating content docs (research, specs, plans, ADRs) for this epic, add frontmatter `epics: [<slug>]` so the backlink exists from day one. See `templates/content-doc.md`.
+5. When creating content docs (research, specs, plans, ADRs) for this epic, add frontmatter `epics: [<slug>]`. See `templates/content-doc.md`.
 6. Commit.
 
 ### Close an epic + Doc Reckoning

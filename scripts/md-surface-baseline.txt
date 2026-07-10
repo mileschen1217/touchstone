@@ -39,4 +39,13 @@
 # single-home fragments (references/sweep-l{1,2}-*.md) and injected by path —
 # the close reference dropped 400→330 lines; net surface slimmed 107 bytes as
 # the "MUST inline … verbatim" scaffolding + fences collapsed to a path pointer.
-270645
+# 270645
+# 2026-07-10: ratcheted down -6452 — source-as-truth essence sweep Phase 1:
+# five-file essence rewrite (design-spec/template.md, agents/tdd.md,
+# epic-driven-roadmap/SKILL.md, design-spec/SKILL.md, insight/SKILL.md);
+# restatements of single-homed rules (draft-workflow AC/traces-to rules,
+# bridge-content-gate P1-P3, tdd Hard-rules negations) cut per the per-line
+# essence floor; post-review fix wave + 8 inert-clause cuts folded in;
+# aim-provisional note restored to template.md (pre-commit checker literal).
+# Number presented for the human's baseline ruling in the PR.
+264193

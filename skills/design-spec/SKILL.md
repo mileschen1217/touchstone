@@ -7,9 +7,8 @@ description: |
   is cross-cutting or risky enough that the spec's cost is repaid by catching
   scope/AC errors before build; skip when it is contained enough that the contract
   costs more than it saves. Heuristic: the change introduces a new contract
-  (API / CLI / IPC / skill) or its design decisions are expensive to get wrong
-  across modules. On first invocation in a project, runs
-  setup to record the specs directory.
+  (API / CLI / IPC / skill / agent) or its design decisions are expensive to get wrong
+  across modules. On first invocation in a project, runs setup to record the specs directory.
 allowed-tools:
   - Bash
   - Read
@@ -23,30 +22,17 @@ allowed-tools:
 
 # touchstone:design-spec
 
-Produce an ATDD + TDD double-loop-aligned design spec for a feature and write
-the Draft to the project's specs directory. design-spec emits only Draft;
-crucible writes accepted-candidate, runs the consolidated design-review gate,
-then human accept promotes to accepted.
+Produce an ATDD + TDD double-loop-aligned design spec for a feature and write the Draft to the project's specs directory. design-spec emits only Draft — promotion is downstream (see Output).
 
 **Draft Mode may need a live responsive user** — standalone, Foundation elicitation prompts the human; inside crucible it consumes assay's guardrail block, so no prompt fires.
 
 ## When to Invoke
 
-Author a design spec when the change is cross-cutting or risky enough that the
-contract's cost is repaid by catching scope/AC errors before build. Skip when
-it is contained enough that the contract costs more than it saves.
+The invoke/skip heuristic lives in the frontmatter description. Rulings it does not settle:
 
-Derived heuristic: the change introduces a new contract (public API, CLI
-command, IPC message format, Claude Code skill, or agent), or its design
-decisions are expensive to get wrong across modules. Breadth alone does not
-qualify — a mechanical multi-module sweep with fixed invariants takes the
-PRD+seams light contract (crucible's other fork), not a full spec.
-
-The user may always explicitly request a design spec — that overrides the heuristic.
-
-When the expected-value test says skip (contained change, no new contract),
-NO Verification Strategy section is authored. The evidence-honesty contract
-attaches to full specs only.
+- Breadth alone does not qualify — a mechanical multi-module sweep with fixed invariants takes the PRD+seams light contract (crucible's other fork), not a full spec.
+- The user may always explicitly request a design spec — that overrides the heuristic.
+- When the expected-value test says skip (contained change, no new contract), NO Verification Strategy section is authored — the evidence-honesty contract attaches to full specs only.
 
 ## Load vocabulary
 
@@ -134,5 +120,4 @@ Inputs to collect + the drafting workflow (template read, AC-sharpening from Fou
 ## Related
 
 - Bundled template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md`.
-- design-review gate (downstream, consolidated): `/touchstone:design-review` — runs after crucible writes `accepted-candidate`.
-- Workflow chain, other upstream/downstream skills, ADR workflow, example spec: `README.md`.
+- Workflow chain, upstream/downstream skills, ADR workflow, example spec: `README.md`.

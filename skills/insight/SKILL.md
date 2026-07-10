@@ -8,23 +8,13 @@ kind: workflow
 
 # /touchstone:insight — workflow-improvement loop
 
-Skip when the gate-miss ledger has no open entries, or the repo hasn't adopted the ledger/checker workflow (`/touchstone:init` first) — nothing to cluster, present, or install.
+Skip when the gate-miss ledger has no open entries, or the repo hasn't adopted the ledger/checker workflow (`/touchstone:init` first).
 
-**Requires a live responsive user.** Step 3 blocks on a human ruling accept/reject/defer per proposal before Step 4 can act — this loop cannot complete unattended.
+**Requires a live responsive user.** Step 3 blocks on a human ruling accept/reject/defer per proposal before Step 4 can act.
 
-**Elevated trust, declared:** this skill causes executable, exit-code-gating
-checker scripts to be written into `.touchstone/checker/<stage>/` — content
-that blocks future commits/pushes. `/touchstone:init`'s scaffold creates the
-checker directories; this skill is the sole writer of check content (always
-through `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/install.sh"`, never by hand). Never install anything
-without an explicit human accept of that specific proposal in this session.
+**Elevated trust, declared:** this skill causes executable, exit-code-gating checker scripts to be written into `.touchstone/checker/<stage>/`. `/touchstone:init`'s scaffold creates the checker directories; this skill is the sole writer of check content (always through `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/install.sh"`, never by hand). Never install anything without an explicit human accept of that specific proposal in this session.
 
-Every deterministic step of this loop is a script call under `scripts/proposal/`
-(run with the TARGET repo as cwd — the scripts resolve the ledger from the
-current repo; the ad-hoc sweep pointer in step 1 is the ledger
-family's own script). Do not re-implement a step in prose, and do not
-re-derive a script's result by judgment. Present `[unverified: …]` markers
-as-is; they are the honest answer.
+Every deterministic step of this loop is a script call under `scripts/proposal/` (run with the TARGET repo as cwd — the scripts resolve the ledger from the current repo; the ad-hoc sweep pointer in step 1 is the ledger family's own script). Do not re-implement a step in prose, and do not re-derive a script's result by judgment. Present `[unverified: …]` markers as-is; they are the honest answer.
 
 1. **Digest first.** Run `"${CLAUDE_PLUGIN_ROOT}/scripts/proposal/report.sh" digest` and present its
    output as-is, including the freshness line. If it prints
@@ -52,13 +42,7 @@ as-is; they are the honest answer.
    - **A2 Merge-or-replace.** Name the existing overlapping unit in the
      sidecar's `overlap:` frontmatter field; merge into it or replace it.
      Screening is judgment + the human's ruling — no script arbitrates overlap.
-   - **A3 Size.** Absolute layer: the unit carries no filler — size is what the
-     procedure needs (guideline ≤200 lines / ≈2.5k tokens for a skill body;
-     hard cap 500 lines). Ratchet layer: the review-prompt surface's total
-     token count never grows net — an addition over the cap is paid for by an
-     equal deletion. The size guideline covers lazy-loaded `references/*.md`
-     too — a size audit that reads only SKILL.md bodies is incomplete; the
-     token ratchet stays scoped to the review-prompt surface.
+   - **A3 Size.** No filler — size is what the procedure needs (guideline ≤200 lines / ≈2.5k tokens per skill body, hard cap 500, lazy-loaded `references/*.md` included); the review-prompt surface's total token count never grows net (an addition over the cap is paid by an equal deletion).
    - **A4 Deterministic checks sink to checkers.** A fully deterministic check
      (grep-able, exit-code-able) ships as a checker script, never as an LLM
      lens sentence; carve deterministic sub-checks out of lenses.
