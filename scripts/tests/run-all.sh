@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Aggregate test runner. Invokes every scripts/tests/*.sh EXCEPT itself.
 set -uo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit 1
 rc=0
 for t in *.sh; do
   [ "$t" = "run-all.sh" ] && continue          # self-exclusion: no recursion

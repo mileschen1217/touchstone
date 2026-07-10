@@ -48,4 +48,10 @@
 # essence floor; post-review fix wave + 8 inert-clause cuts folded in;
 # aim-provisional note restored to template.md (pre-commit checker literal).
 # Number presented for the human's baseline ruling in the PR.
-264193
+# 264193
+# 2026-07-10: ratcheted down -4011 — essence-sweep Phase 2: sweep manual
+# bookkeeping mechanized into sweep-run.sh chunk/ingest + doc-reckoning.sh;
+# close-and-doc-reckoning.md rewritten 330->149 lines (prose shell code and
+# the Doc Reckoning output template moved to their script homes; +129 for the
+# Codex-review fix wave's recovery-path clause in Step 3).
+260182

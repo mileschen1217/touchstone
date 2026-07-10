@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SC2015: the `[ ] && ok || fail` idiom is intentional (ok never fails).
+# shellcheck disable=SC2015
 # Tests for .touchstone/checker/pre-push/check-review-summary.sh
 # Single count schema: the co-located review.md STAGE-REVIEW-SUMMARY sentinel.
 # Fixtures use synthetic slugs and mktemp — no real epic state touched.

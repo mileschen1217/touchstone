@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SC2015: the `[ ] && ok || fail` idiom is intentional (ok never fails).
+# shellcheck disable=SC2015
 # Grep-based regression test for markdown skill wiring.
 # Asserts the front-end skill wiring is present in the skill sources.
 # Exit 0 = ALL GREEN; non-zero = RED.

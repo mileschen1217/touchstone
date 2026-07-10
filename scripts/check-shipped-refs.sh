@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SC2016: single-quoted awk/sed programs are deliberate ($ must not expand in bash).
+# shellcheck disable=SC2016
 # Clone-completeness guard (shipped-doc-hygiene P1). Flags a committed docs/ or
 # skills/ file that references an UNTRACKED dated artifact under the local-doc
 # workspace_root (.../{specs,research,plans}/YYYY-MM-DD-...) — such a reference
