@@ -54,4 +54,13 @@
 # close-and-doc-reckoning.md rewritten 330->149 lines (prose shell code and
 # the Doc Reckoning output template moved to their script homes; +129 for the
 # Codex-review fix wave's recovery-path clause in Step 3).
-260182
+# 260182
+# 2026-07-10: ratcheted down -2721 — essence-sweep Phase 3: per-line essence
+# re-audit of the 7 lean files (assay, anvil, codex-implementer, code-review,
+# design-review, batch-mode, init). Accepted cuts: restatements of injected
+# fragments / single-homed rules, mechanism narration, one internal
+# contradiction (codex-implementer return contract). Two auditor flags
+# REJECTED as test-protected load-bearing lines (code-review self-select rule
+# + regression-presence note). Number presented for the human's baseline
+# ruling in the PR.
+257461
