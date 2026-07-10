@@ -5,8 +5,12 @@
 # raising the baseline is legitimate ONLY in the same PR as the growth it funds,
 # with the reason appended as a comment line in the baseline file.
 #
+# Per-file line lint (no exemption mechanism): every shipped .md is also
+# checked individually — >200 lines prints a WARN (never blocks); >500 lines
+# is a hard-cap FAIL (exit 1) even when the byte total is within baseline.
+#
 # Env overrides (tests only): MD_BUDGET_ROOT, MD_BUDGET_BASELINE.
-# Exit: 0 within budget | 1 over budget | 2 operational error.
+# Exit: 0 within budget | 1 over budget or a file over the 500-line cap | 2 operational error.
 set -uo pipefail
 
 ROOT="${MD_BUDGET_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
@@ -26,11 +30,25 @@ total="$(find "$ROOT/skills" "$ROOT/agents" -type f -name '*.md' -print0 \
 printf '%s' "$total" | grep -qE '^[0-9]+$' \
   || { echo "ERROR: byte-count pipeline produced non-numeric total: '$total'" >&2; exit 2; }
 
+rc=0
 if [ "$total" -gt "$baseline" ]; then
   echo "FAIL: md surface $total bytes > baseline $baseline (+$((total - baseline)))."
   echo "      Fund the addition with deletions, or raise the baseline in THIS PR"
   echo "      with a reason comment in ${BASELINE_FILE#"$ROOT"/}."
-  exit 1
+  rc=1
+else
+  echo "OK: md surface $total bytes <= baseline $baseline ($((baseline - total)) headroom)"
 fi
-echo "OK: md surface $total bytes <= baseline $baseline ($((baseline - total)) headroom)"
-exit 0
+
+# per-file line lint: 200 warn / 500 hard cap, no exemption.
+while IFS= read -r -d '' f; do
+  lines="$(wc -l < "$f" | tr -d '[:space:]')"
+  if [ "$lines" -gt 500 ]; then
+    echo "FAIL: ${f#"$ROOT"/} $lines lines > 500 (per-file hard cap)"
+    rc=1
+  elif [ "$lines" -gt 200 ]; then
+    echo "WARN: ${f#"$ROOT"/} $lines lines > 200 (per-file guideline)"
+  fi
+done < <(find "$ROOT/skills" "$ROOT/agents" -type f -name '*.md' -print0)
+
+exit "$rc"

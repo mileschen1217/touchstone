@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SC2015: `[ ] && ok || fail` idiom intentional; SC2016: single-quoted $ in
+# generated fixture scripts is deliberate (must not expand here).
+# shellcheck disable=SC2015,SC2016
 # Fixture-based tests for check-spec-floor.sh (no bats in this repo).
 # Each case asserts exit code + a required substring in output.
 set -uo pipefail

@@ -2,10 +2,9 @@
 # Deterministic acceptance check for the Phase-2.8 skill-cleanup (Spec A). Exit 0 = complete.
 # Self-contained: the [labels] are this check's own identifiers, not external spec refs.
 set -uo pipefail
-cd "$(git rev-parse --show-toplevel)"
+cd "$(git rev-parse --show-toplevel)" || exit 1
 fail=0
 err() { echo "FAIL: $*" >&2; fail=1; }
-SELF='scripts/tests/phase2.8-cleanup-checks.sh'
 
 bodylines() { # $1 = SKILL.md path; prints body line count (frontmatter excluded)
   awk 'NR==1&&/^---$/{f=1;next} f&&/^---$/{f=0;b=1;next} b{c++} END{print c+0}' "$1"

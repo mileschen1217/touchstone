@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SC2015: the `[ ] && ok || fail` idiom is intentional (ok never fails).
+# shellcheck disable=SC2015
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 val="$here/../check-challenge-result.py"

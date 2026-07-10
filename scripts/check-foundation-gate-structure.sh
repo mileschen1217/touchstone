@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SC2016: single-quoted awk/sed programs are deliberate ($ must not expand in bash).
+# shellcheck disable=SC2016
 # Layer-1 deterministic gate for the intention-first Baseline epic.
 # Verifies the four shipped artifacts against the spec's structural ACs
 # (AC-5 template half, AC-6, AC-7 local-conditional, AC-11).

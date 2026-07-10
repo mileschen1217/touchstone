@@ -42,6 +42,15 @@
 #                          file instead of the raw digest. classify() runs it
 #                          internally too, so the script path needs no separate
 #                          call.
+#   chunk                  prefilter + split for the Agent-dispatch L1 path
+#                          (epic close): writes line-safe ~200KB chunks to
+#                          $LDIR/.chunks/ and prints one chunk path per line.
+#   ingest [dir]           merges the dispatcher's out-<idx>.jsonl files
+#                          (paired with chunk-<idx> under dir, default
+#                          $LDIR/.chunks) into .candidates-log.jsonl with the
+#                          same per-chunk shortfall check as classify; any
+#                          missing/empty/short out file records the literal
+#                          "sweep incomplete: l1" and exits non-zero.
 #   classify               runs prefilter (above) then chunks the survivors
 #                          into approx <=200KB pieces (line-safe; a single line
 #                          is never split) and
@@ -120,6 +129,7 @@ INCOMPLETE_FILE="$LDIR/.sweep-incomplete"
 SKIPPED_FILE="$LDIR/.sweep-skipped-unconfigured"
 LAST_SWEEP_FILE="$LDIR/.last-sweep"
 STARTED_FILE="$LDIR/.sweep-started"
+CHUNKS_DIR="$LDIR/.chunks"
 
 GAP_CLASSES_JSON='["missing-AC","false-green","no-gate"]'
 
@@ -247,6 +257,14 @@ prefilter_digest() {
 # the survivor file $CLASSIFY_INPUT_FILE instead of the raw digest. classify()
 # also calls prefilter_digest internally, so the script path stays self-
 # contained; running this phase first is idempotent.
+# prefilter_summary — the human-facing accounting line for the close report.
+prefilter_summary() {
+  local dropped kept
+  dropped="$(grep -c . "$PREFILTER_LOG" 2>/dev/null || true)"; [ -n "$dropped" ] || dropped=0
+  kept="$(grep -c . "$CLASSIFY_INPUT_FILE" 2>/dev/null || true)"; [ -n "$kept" ] || kept=0
+  echo "pre-filter: $kept classified, $dropped dropped as non-signal (blank / bare-command transcript records)"
+}
+
 prefilter_phase() {
   if [ ! -s "$DIGEST_FILE" ]; then
     : > "$CLASSIFY_INPUT_FILE"; : > "$PREFILTER_LOG"
@@ -257,17 +275,33 @@ prefilter_phase() {
     echo "pre-filter: FAILED — could not produce a survivor set; recorded 'sweep incomplete: l1'" >&2
     return 1
   fi
-  local dropped kept
-  dropped="$(grep -c . "$PREFILTER_LOG" 2>/dev/null || true)"; [ -n "$dropped" ] || dropped=0
-  kept="$(grep -c . "$CLASSIFY_INPUT_FILE" 2>/dev/null || true)"; [ -n "$kept" ] || kept=0
-  echo "pre-filter: $kept classified, $dropped dropped as non-signal (blank / bare-command transcript records)"
+  prefilter_summary
   return 0
 }
 
-# chunk the pre-filtered digest into approx <=200KB pieces (character-length
-# approximation, not the byte-exact bound the fire-log atomicity contract
-# uses — this is a dispatch-batching heuristic, never splitting a line) and
-# pipe each chunk through $LEDGER_L1_CMD, appending candidate/v1 output.
+# chunk_survivors <dir> — split CLASSIFY_INPUT_FILE into approx <=200KB
+# pieces under <dir> (chunk-0, chunk-1, ...). Character-length approximation,
+# not the byte-exact bound the fire-log atomicity contract uses — this is a
+# dispatch-batching heuristic, never splitting a line. Shared by classify()
+# (script-driven L1 via $LEDGER_L1_CMD) and the `chunk` phase (Agent-dispatch
+# L1 in the epic-close procedure) so the split logic has exactly one home.
+chunk_survivors() {
+  local dir="$1" line chunk_idx=0 chunk_bytes=0 line_bytes chunk_file
+  chunk_file="$dir/chunk-0"
+  : > "$chunk_file"
+  while IFS= read -r line || [ -n "$line" ]; do
+    line_bytes=$(( ${#line} + 1 ))
+    if [ "$chunk_bytes" -gt 0 ] && [ $((chunk_bytes + line_bytes)) -gt 200000 ]; then
+      chunk_idx=$((chunk_idx + 1))
+      chunk_file="$dir/chunk-$chunk_idx"
+      : > "$chunk_file"
+      chunk_bytes=0
+    fi
+    printf '%s\n' "$line" >> "$chunk_file"
+    chunk_bytes=$((chunk_bytes + line_bytes))
+  done < "$CLASSIFY_INPUT_FILE"
+}
+
 classify() {
   [ -s "$DIGEST_FILE" ] || return 0
   : "${LEDGER_L1_CMD:?sweep-run classify: LEDGER_L1_CMD must be set}"
@@ -281,20 +315,11 @@ classify() {
   [ -s "$CLASSIFY_INPUT_FILE" ] || return 0
 
   local chunkdir; chunkdir="$(mktemp -d)"
-  local chunk_idx=0 chunk_file="$chunkdir/chunk-0" chunk_bytes=0 line_bytes
-  : > "$chunk_file"
-  while IFS= read -r line || [ -n "$line" ]; do
-    line_bytes=$(( ${#line} + 1 ))
-    if [ "$chunk_bytes" -gt 0 ] && [ $((chunk_bytes + line_bytes)) -gt 200000 ]; then
-      chunk_idx=$((chunk_idx + 1))
-      chunk_file="$chunkdir/chunk-$chunk_idx"
-      : > "$chunk_file"
-      chunk_bytes=0
-    fi
-    printf '%s\n' "$line" >> "$chunk_file"
-    chunk_bytes=$((chunk_bytes + line_bytes))
-  done < "$CLASSIFY_INPUT_FILE"
+  chunk_survivors "$chunkdir"
 
+  # same rebuild semantics as ingest: this run's classification owns the log,
+  # so a retry after a failed attempt never double-appends.
+  : > "$CANDIDATES_FILE"
   local f rc had_failure=0 in_lines out_before out_after out_delta
   for f in "$chunkdir"/chunk-*; do
     [ -s "$f" ] || continue
@@ -316,7 +341,104 @@ classify() {
     echo "sweep incomplete: l1" >> "$INCOMPLETE_FILE"
     return 1
   fi
+  clear_l1_marker
   return 0
+}
+
+# chunk phase — prefilter + split for the Agent-dispatch L1 path (epic close).
+# Writes chunks to $CHUNKS_DIR (recreated each run) and prints one chunk path
+# per line on stdout for the caller to dispatch. Empty digest / all-noise
+# window prints nothing and exits 0. Prefilter failure records l1 and exits
+# non-zero (fail-closed, same as classify()).
+chunk_phase() {
+  if ! rm -rf "$CHUNKS_DIR" || ! mkdir -p "$CHUNKS_DIR"; then
+    echo "sweep-run chunk: cannot create $CHUNKS_DIR" >&2
+    return 1
+  fi
+  [ -s "$DIGEST_FILE" ] || return 0
+  prefilter_digest || return 1
+  # accounting line to stderr — stdout is reserved for chunk paths.
+  prefilter_summary >&2
+  [ -s "$CLASSIFY_INPUT_FILE" ] || return 0
+  chunk_survivors "$CHUNKS_DIR"
+  local f
+  for f in "$CHUNKS_DIR"/chunk-*; do
+    [ -s "$f" ] && printf '%s\n' "$f"
+  done
+  return 0
+}
+
+# ingest phase — merge the Agent-dispatch out files back into the pipeline.
+# For each chunk-<idx> under <dir> (default $CHUNKS_DIR) the dispatcher must
+# have written out-<idx>.jsonl beside it. Every out file that exists is
+# appended to .candidates-log.jsonl (partial signal is kept), then each chunk
+# is checked against the L1 contract — one candidate line per input record —
+# so a missing out file, an empty one, or any shortfall is an L1 STAGE
+# FAILURE: the EXACT line "sweep incomplete: l1" is recorded (the sequencing
+# guard matches exact strings) and ingest exits non-zero, which stage/finalize
+# then refuse to build on.
+ingest_phase() {
+  local dir="${1:-$CHUNKS_DIR}"
+  if [ ! -d "$dir" ]; then
+    echo "sweep-run ingest: chunk dir not found: $dir (run chunk first)" >&2
+    echo "sweep incomplete: l1" >> "$INCOMPLETE_FILE"
+    return 1
+  fi
+  # rebuild semantics: the candidates log is THIS ingest's output, so re-running
+  # after a fixed re-dispatch is idempotent (no duplicate/stale lines survive).
+  : > "$CANDIDATES_FILE"
+  local f idx out in_lines out_lines had_failure=0 chunks=0 appended=0
+  for f in "$dir"/chunk-*; do
+    [ -s "$f" ] || continue
+    chunks=$((chunks + 1))
+    # greedy strip to the LAST "chunk-" occurrence: correct because the
+    # basename is always chunk-<idx>; a dir component containing "chunk-"
+    # earlier in the path cannot win against the last occurrence.
+    idx="${f##*chunk-}"
+    out="$dir/out-$idx.jsonl"
+    in_lines="$(grep -c . "$f" 2>/dev/null || true)"; [ -n "$in_lines" ] || in_lines=0
+    if [ ! -f "$out" ]; then
+      echo "sweep-run ingest: chunk-$idx has no out file ($out)" >&2
+      had_failure=1
+      continue
+    fi
+    out_lines="$(grep -c . "$out" 2>/dev/null || true)"; [ -n "$out_lines" ] || out_lines=0
+    cat "$out" >> "$CANDIDATES_FILE"
+    appended=$((appended + out_lines))
+    if [ "$out_lines" -lt "$in_lines" ]; then
+      echo "sweep-run ingest: shortfall on chunk-$idx (in=$in_lines out=$out_lines)" >&2
+      had_failure=1
+    fi
+  done
+  # zero chunks while survivors exist = stale/mismatched chunk state (e.g. a
+  # failed chunk phase left an empty dir) — never a vacuous success.
+  if [ "$chunks" -eq 0 ] && [ -s "$CLASSIFY_INPUT_FILE" ]; then
+    echo "sweep-run ingest: no chunks under $dir but survivors exist — re-run chunk" >&2
+    had_failure=1
+  fi
+  if [ "$had_failure" -ne 0 ]; then
+    echo "sweep incomplete: l1" >> "$INCOMPLETE_FILE"
+    return 1
+  fi
+  # full success re-verified the whole L1 stage → a previously-recorded l1
+  # marker (failed earlier attempt) is stale; clear it so the documented
+  # fix-and-re-run recovery actually unblocks stage/finalize.
+  clear_l1_marker
+  echo "ingest: appended $appended candidate lines from $chunks chunk(s)"
+  return 0
+}
+
+# clear_l1_marker — drop stale "sweep incomplete: l1" lines (exact match;
+# every other line, e.g. an L0 "sweep incomplete: git", is preserved).
+# Called ONLY after an L1 classification pass re-verified COMPLETE end-to-end
+# (classify/ingest full success) — that is what makes a previously-recorded
+# l1 stale; validate-candidates never clears (shape-validity alone cannot
+# prove completeness).
+clear_l1_marker() {
+  [ -f "$INCOMPLETE_FILE" ] || return 0
+  local tmp="$INCOMPLETE_FILE.tmp"
+  grep -vxF "sweep incomplete: l1" "$INCOMPLETE_FILE" > "$tmp"
+  mv "$tmp" "$INCOMPLETE_FILE"
 }
 
 # prior_stage_failure <label> — true when this run's INCOMPLETE_FILE
@@ -522,13 +644,15 @@ PHASE="${1:-}"
 case "$PHASE" in
   collect) collect; exit $? ;;
   prefilter) prefilter_phase; exit $? ;;
+  chunk) chunk_phase; exit $? ;;
+  ingest) ingest_phase "$@"; exit $? ;;
   classify) classify; exit $? ;;
   validate-candidates) validate_candidates; exit $? ;;
   stage) stage; exit $? ;;
   finalize) finalize; exit $? ;;
   report) report; exit $? ;;
   *)
-    echo "sweep-run: usage: sweep-run.sh <collect|prefilter|classify|validate-candidates|stage|finalize|report>" >&2
+    echo "sweep-run: usage: sweep-run.sh <collect|prefilter|chunk|ingest [dir]|classify|validate-candidates|stage|finalize|report>" >&2
     exit 1
     ;;
 esac

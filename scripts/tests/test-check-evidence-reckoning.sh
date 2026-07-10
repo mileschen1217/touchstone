@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SC2015: the `[ ] && ok || fail` idiom is intentional (ok never fails).
+# shellcheck disable=SC2015
 # Tests for scripts/check-evidence-reckoning.sh
 # Fixtures use synthetic slugs (demo/fixture) — no real epic slugs.
 set -uo pipefail
