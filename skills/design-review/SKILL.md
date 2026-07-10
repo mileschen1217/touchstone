@@ -8,26 +8,20 @@ user-invocable: true
 
 # /touchstone:design-review
 
-The consolidated design gate before Build: **design-soundness ∪
-verification-honesty** — one lens never discharges the other.
-`design-spec` is pure authoring; "design-spec was run" ≠ "this gate passed".
-
 ## Scope
 
 In scope (`type:`/path): spec, plan, ADR (`**/specs/**`, `**/plans/**`,
 `**/adr/**`); else reply "not in scope — specs / plans / ADRs only" and exit.
-Normal subject: `status: accepted-candidate` (crucible invokes pre-accept;
-accept promotes on a clean pass); `accepted` → re-review; `draft` → not
-gated.
+Subject status: `accepted-candidate` is the normal subject; `accepted` →
+treat as re-review; `draft` → reply "draft — not gated" and exit.
 
 ## Phase 1 — Inject
 
 Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md` and follow it.
 
 **Injection discipline (once):** Read each fragment below in full from
-`${CLAUDE_PLUGIN_ROOT}` and place it **verbatim** in the reviewer envelope — a
-lens named without its usable text is the known defect class; this path wires
-its own fragments.
+`${CLAUDE_PLUGIN_ROOT}` and place it **verbatim** in the reviewer envelope —
+this path wires its own fragments.
 
 Unconditional:
 1. `skills/_shared/inject/live-bearing-predicate.md` +

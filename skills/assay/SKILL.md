@@ -17,9 +17,7 @@ kind: workflow
 # /touchstone:assay — Pre-Contract Interview Instrument
 
 One fused interview session that narrows the map-territory gap until the
-head/tail guardrail contract is writable. You (the executing agent) lay out
-assumptions, extract tacit intent, account the four quadrants, route unknowns
-through the disposition table, and author the guardrail block. The human does
+head/tail guardrail contract is writable. The human does
 exactly two things: answers tacit-knowledge questions and rules readiness.
 
 **Loading constraint — live user required.** In a non-interactive context
@@ -61,8 +59,8 @@ re-wiring needed):
 
 **Write-back rule (standing).** When a term resolves against the docs
 mid-session, update CONTEXT.md inline IF the term meets CONTEXT.md's
-admission boundary (cross-epic load-bearing: referenced by ≥2 epics or a shipped
-surface). Otherwise record the resolution in the assay record / epic-local
+admission boundary (cross-epic load-bearing — threshold defined there).
+Otherwise record the resolution in the assay record / epic-local
 artifact only — never grow CONTEXT.md with single-epic terminology.
 
 **Bold pass (unconditional).** Also lay out the structurally-larger moves you
@@ -165,10 +163,9 @@ Emit the guardrail contract block, four parts:
 4. **Deferred log** — the non-load-bearing unknown stubs.
 
 Two consumers — name the handoff explicitly: a **full design-spec** (head →
-its Scope / Invariants sections; in a crucible chain the record also fills
-design-spec's Foundation — intention ← this record's `subject:`, aim ← head
-scope condensed, out-of-scope ← head out-of-scope — so design-spec consumes
-instead of re-eliciting; tail → its AC layer) or a **PRD+seams light
+its Scope / Invariants sections; in a crucible chain design-spec's Foundation
+consumes this record per its own consume-or-elicit branch instead of
+re-eliciting; tail → its AC layer) or a **PRD+seams light
 contract** (its acceptance-seam + invariant fields). Do NOT
 modify `skills/design-spec/template.md` — the block is content the contract
 author pours into existing sections, not a template change.

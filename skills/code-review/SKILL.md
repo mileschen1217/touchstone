@@ -14,8 +14,6 @@ kind: workflow
 
 # /touchstone:code-review — Code Review (Patterns C and B)
 
-<!-- orientation-inline: none — rationale (why Pattern B, why generic Sonnet, specialist-roster policy) and Dependencies live in README.md. -->
-
 Dispatches a reviewer in a separate context over a diff and applies its
 findings before commit. Never review inline — always spawn a separate agent.
 
@@ -42,7 +40,7 @@ live there). The rest of this body is Pattern C.
 Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-shipped-refs.sh"` if it exists. Exit 1
 → a committed `docs/`/`skills/` file references an untracked dated local artifact;
 fix the leak before commit. Exit 2 → environment problem; resolve and re-run. Exit 0
-→ proceed. (Best-effort floor; the reviewers' grounded judgment remains the semantic catch.)
+→ proceed.
 
 Diff target: the argument if given; else the project CLAUDE.md's declared diff path;
 else `git diff HEAD`.

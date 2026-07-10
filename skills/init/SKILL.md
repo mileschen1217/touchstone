@@ -10,8 +10,6 @@ kind: workflow
 
 # touchstone:init
 
-Writes `.claude/touchstone.yaml` in the current project, configuring paths and adopted disciplines for the touchstone plugin's stage skills. Skip if the yaml already exists with disciplines adopted and no `--reset`/`--migrate` is needed — Step 1 exits early with nothing to configure.
-
 ## Argument grammar
 
 ```
@@ -58,7 +56,7 @@ Values are taken verbatim. **Sharp edge: path escape (`../../...`) is NOT reject
 For each entry in the supported discipline list (currently: `source-as-truth`), prompt: "Adopt <discipline>? [Y/n]". Skip prompt if `--adopt <discipline>` was passed.
 
 Supported disciplines (MVP):
-- `source-as-truth` — enables Bridge content audit + kill-on lifecycle + standing-vs-transient classification in stage skills that support it.
+- `source-as-truth` — the description shown to the user lives in `references/init-ui.md` (do not restate it here).
 
 ## Step 4 — Create target dirs
 
@@ -80,10 +78,6 @@ If `mkdir` fails (permission, invalid path), print error naming the path, exit n
 Run the deterministic scaffold bootstrap (idempotent; converges any partial state):
 
     bash "${CLAUDE_PLUGIN_ROOT}/scripts/init-checker-scaffold.sh" "${CLAUDE_PROJECT_DIR}"
-
-This creates `.touchstone/checker/{pre-commit,pre-push}/` (each with a `.gitkeep`)
-and applies the canonical `.gitignore` carve so committed project checks are
-trackable while the rest of `.touchstone/` stays ignored.
 
 ## Step 5 — Write yaml
 

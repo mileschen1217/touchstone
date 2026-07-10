@@ -10,19 +10,14 @@ kind: workflow
 
 Runs the accepted contract through the fixed back-end pipeline and stops at a
 reviewed deliverable on a branch. **anvil** is a plain orchestrator skill
-(sequential sub-skill invocation — the crucible precedent, NOT a Workflow-tool JS
-script). The human governs ship; anvil never crosses that boundary.
+(sequential sub-skill invocation).
 
 **Invocation:** `/touchstone:anvil <spec-path>` (frontmatter `status: accepted`).
 Execution note: prefer a fresh session for an anvil run, and let context compact
 between SDD tasks — the orchestrator carries only stage state, not build history.
 
-**Level-A** — what this skill is: deterministic stage *sequencing* + independently-
-staffed cross-vendor *final* review, procedure-borne. **Level-B** — the deferred
-deepening: re-owning SDD's inner loop so the per-task builder≠reviewer swap is
-program-enforced; NOT claimed here (SDD's soft internal swap stands). Full honest
-ceiling (what Level-A does and does not buy): `CONTEXT.md § honest ceiling (anvil)`
-— the claim boundary there governs; this body never claims past it.
+Claim boundary: `CONTEXT.md § honest ceiling (anvil)` governs — this body never
+claims past it.
 
 ## Stage sequence (un-skippable — each gate's DONE is the next's precondition)
 
@@ -39,7 +34,6 @@ stage liveness; anything that is not a well-formed DONE is treated as not-done
 - `status=DONE` → next stage.
 - `status=BLOCKED` → surface the findings/BLOCK line; halt. No downstream stage runs.
 - `status=NEEDS_HUMAN` → surface the reason; halt for explicit human ack.
-Escalate, never decide: no silent auto-resolution of a human gate.
 
 Observability (never blocks — the scripts silently no-op on failure): at each
 stage's start and end run
@@ -58,8 +52,7 @@ echo $? > "$task_dir/precheck.rc"
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/stage-return.sh" entry-precondition "$task_dir"
 ```
 
-Stale digest, unmet structural floor, or script non-zero all land as BLOCKED
-(fail-closed). On BLOCKED, surface `precheck.out` verbatim.
+On BLOCKED, surface `precheck.out` verbatim.
 
 - [ ] `status=` line read; on non-DONE, halted with the reason surfaced.
 

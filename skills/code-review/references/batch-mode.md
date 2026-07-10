@@ -1,7 +1,5 @@
 # Batch Mode (Pattern B) — Procedure
 
-Vendor-not-builder review. Invoked when `/touchstone:code-review` is called with the `batch` keyword.
-
 Provenance (schema, the 5 operations, both banner formats) is defined solely in
 `skills/cross-provider-reviewer/references/provenance.md`.
 
@@ -33,7 +31,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    - **Log the detection result so the user can spot misclassification:**
      - "Builder detection: N/M commits tagged Codex → builder = codex; reviewer swap = CC"
      - "Builder detection: no Codex trailers in M commits → builder = cc (default); reviewer swap = Codex"
-   - Detection requires commit-message hygiene. If a Codex agent built code without tagging commits, the swap will misroute. Override with `batch with cc` in that case.
+   - If a Codex agent built code without tagging commits, detection misroutes — the caller overrides with `batch with cc`.
 3. Determine reviewer:
    - If `force_reviewer = codex` → reviewer = `codex-reviewer`
    - If `force_reviewer = cc` → reviewer = `touchstone:code-reviewer`
@@ -59,12 +57,10 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
 
    Also read and inject verbatim
    `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`
-   into the reviewer envelope (append to task prompt). This is the **feedback arm (FB)**:
-   applied to the **whole deliverable** vs the **whole ## Architecture** section of the
-   governing spec. The cold reviewer applies the honor-judgment rule from the injected
-   fragment — enumerate the spec's SHALL commitments, judge each as honored / violated /
-   `[unverified: reason]`, raise one finding per violated commitment. This is subsystem
-   scope (not per-diff). Single home: load by path; never restate the body inline.
+   into the reviewer envelope (append to task prompt). Apply its **feedback duty**
+   (subject = the whole deliverable vs the governing spec's `## Architecture` section,
+   subsystem scope — not per-diff); the honor-judgment rule itself lives in the
+   injected fragment. Single home: load by path; never restate the body inline.
 
    **(b) The `code-review batch` feedback delta** — prepend this, after the injected doctrine:
 
@@ -72,8 +68,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    > test asserts that AC's Then-clause (AC coverage, semantic — not code-coverage %,
    > not tool-measured). A test that mocks the very boundary a boundary-crossing AC
    > claims does NOT discharge that claim (proxy, not coverage). A **silent false-green**
-   > (per the injected principle — an AC done with neither an asserting test nor
-   > `[unverified]`) blocks the done claim.
+   > (per the injected principle) blocks the done claim.
    >
    > **Live-bearing ACs.** For each AC listed in the governing spec's
    > `Live-bearing AC IDs`: apply the injected live-bearing predicate's
@@ -86,8 +81,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    batch diff touches test files, the reviewer must additionally apply the
    test-evidence lens defined in
    `skills/code-review/references/reviewer-prompts.md` § generic-diff prompt
-   (single canonical home — do NOT duplicate the text here). The lens asks of
-   each test: if the named behaviour silently broke, would this test go red?
+   (single canonical home — do NOT duplicate the text here).
 
 5. Single reviewer; no parallel dispatch in Pattern B.
    **Normative fallback:** if the swapped reviewer (e.g. `touchstone:codex-reviewer`)
