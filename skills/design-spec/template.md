@@ -10,73 +10,50 @@ kill-on: <epic-slug>
 
 # {{feature-name}} — Design Spec
 
-**Date:** {{YYYY-MM-DD}}
-**Status:** Draft
-
 ## Foundation
 
-> Set at the Draft Mode Foundation-elicitation phase via elicitation. Full phase version, all three
-> fields — self-contained; must not require reading the parent epic to
-> interpret. If a parent epic exists, its foundation is the starting point;
-> sharpen to this phase's specifics.
+> All three fields, self-contained — interpretable without reading the parent epic.
+> Foundation.aim is a provisional direction set at the Foundation-elicitation phase; the acceptance criteria below sharpen it into a testable form, confirmed with the user during drafting — never silently inherited.
 
-- **Intention (why):** <Full motivation: what hurts, what's broken, why
-  this work is worth doing now.>
-- **Aim:** <Observable goal: what does success look like for THIS spec's
-  scope? Name the surface that observes success (user message, test pass,
-  grep result, REST response).>
-- **Out of scope:** 
-  - <route this spec will NOT take, even if related — a route, not a
-    category>
+- **Intention (why):** <what hurts, why this work is worth doing now>
+- **Aim:** <observable goal for THIS spec's scope; name the surface that observes success (user message, test pass, grep result, REST response)>
+- **Out of scope:**
+  - <a route this spec will NOT take, even if related — a route, not a category>
   - <up to three sub-bullets total; flat list, never nested>
 
 ## Source-level Deposit
 
-> Filled by author at draft time. Names the lever (source-level change) this spec advances, or "none" with reason. Per the `source-as-truth` discipline (see `skills/_shared/inject/bridge-content-gate.md`): every feature epic carries a deposit budget. Doc Reckoning reads this field at epic close.
->
-> Skip this section entirely in projects that have NOT adopted the `source-as-truth` discipline — leave the heading off.
+> Skip this entire section (heading included) in projects that have NOT adopted the `source-as-truth` discipline.
 
-- **Lever this spec advances:** `<lever-slug>` — one of the project's lever menu (the menu is per-project; see project ROADMAP. Lever-epic concept defined in CONTEXT.md § Validation rubric (load-bearing)), or `none`.
-- **If `none`:** justify in one sentence (e.g., "pure bug fix, no source-encoding gap exposed" or "lever not yet defined for this RC").
-- **Bridge docs this spec creates (if any):** list paths with `kill-on:` lever each declares. If a doc has no `kill-on:`, justify here with the doc's kind: navigation, workflow, or diagnostic — never bridge.
-- **Bridge docs this spec will retire on landing:** list paths the lever's land deletes.
-- **Three-principle audit (per new bridge doc, per the `source-as-truth` discipline, `skills/_shared/inject/bridge-content-gate.md`):** for each bridge `.md` listed above, answer:
-  - **P1 (non-duplication):** what fact does this carry that source does NOT encode? Name the source path(s) checked. **Also reject doc-as-workaround:** if the paragraph exists to explain why dead / duplicative / obsolete source still exists, file a PR to remove the source instead; do not write the paragraph.
-  - **P2 (falsifiable):** how would a reader verify a claim in this doc? Name one concrete check (test / probe / grep).
-  - **P3 (no single host):** if you wrote this as a `///` doc-comment, which symbol would you attach it to? **One symbol** → rung 2, not a bridge. **One function body** → rung 3 (`// BRIDGE` block), not a `.md` bridge. **No answer (spans files/teams/languages, or describes negative space)** → rung 4 `.md`, justified. See `skills/_shared/inject/bridge-content-gate.md` for worked examples.
-  - If any answer is missing or weak, fix the bridge content (delete duplicates / sharpen vague claims / move to rung 2-3) before submitting the spec.
+- **Lever this spec advances:** `<lever-slug>` from the project's lever menu (see project ROADMAP), or `none` — justified in one sentence.
+- **Bridge docs this spec creates (if any):** paths with the `kill-on:` lever each declares; a doc with no `kill-on:` is justified here by kind (navigation / workflow / diagnostic — never bridge).
+- **Bridge docs this spec will retire on landing:** paths the lever's land deletes.
+- **Three-principle audit (per new bridge doc):** answer P1 non-duplication / P2 falsifiable / P3 no-single-host per the loaded `skills/_shared/inject/bridge-content-gate.md`, naming the source path(s) checked; a missing or weak answer → fix the bridge content (delete duplicates / sharpen vague claims / move to rung 2-3) before submitting the spec.
 
 ## Problem
 
-What hurts today? Concrete, scoped, falsifiable. State the user or system pain without jumping to a solution.
+What hurts today? Concrete, scoped, falsifiable — state the pain without jumping to a solution.
 
 ## Scope
 
-(Optional) Implementation-level detail only — files, modules, repos. Boundary statements live in Foundation.out-of-scope; do not use legacy framing labels here.
+(Optional) Implementation-level detail only — files, modules, repos. Boundary statements live in Foundation.out-of-scope.
 
 **Touched files/modules:**
 - <file or module path>
 
-> Foundation.aim above is a provisional direction set at the Foundation-elicitation phase. The
-> acceptance criteria below sharpen it into a testable form; that
-> sharpening is confirmed with the user during drafting — it is not
-> silently inherited.
-
 ## User Stories
 
-> One entry per user-story; every requirement below must `traces-to:` ≥1 of
-> these. Want-layer authoring rules (canonical want-home, section mapping,
-> aim-sharpening confirm): `references/draft-workflow.md § Want-layer authoring`.
+> One entry per user-story. Authoring rules + the traces-to discipline: `references/draft-workflow.md § Want-layer authoring`.
 
 - US-1 — As a/an <actor>, I want <capability>, so that <outcome>
 
 ## Acceptance Criteria
 
-Given/When/Then scenarios — the **outer ATDD loop's contract**. Cover happy path, error paths, boundary values. Non-negotiable: every error path and boundary named here must correspond to at least one acceptance test scenario.
+Given/When/Then scenarios — the **outer ATDD loop's contract**. Cover happy path, error paths, boundary values; every error path and boundary named here maps to ≥1 acceptance scenario.
 
-The verification layer/mechanism never appears in an AC's Name or Given-When-Then — coverage is derived and `[unverified]` is the only authored marker (no implementation leakage into the contract). Every AC carries a stable `AC-N` id and appears both in the index table and as a `#### AC-N` block nested under its parent `### Requirement: REQ-N`; the id/index rules, derived-coverage rule, and `[unverified]` marker rules live in `references/draft-workflow.md` § "When drafting ## Acceptance Criteria" (single home).
+AC-N id + index rules, derived coverage, and the `[unverified]` marker: `references/draft-workflow.md` § "When drafting ## Acceptance Criteria" (single home). The verification layer/mechanism never appears in an AC's Name or Given-When-Then.
 
-Each requirement is authored as a `### Requirement: REQ-N — <EARS SHALL statement>` heading. The SHALL text adds rule-altitude precision over its parent story (anti-redundancy: a requirement that merely rewords its story is a restatement — apply the Subtraction / SHALL-pass-fail / New-constraint / Quantifier tests from `references/methodology.md`). An unresolved `[NEEDS CLARIFICATION: <q>]` marker on any requirement or AC line blocks the design-review gate — resolve it before the gate runs.
+Each `### Requirement: REQ-N — <EARS SHALL statement>` heading adds rule-altitude precision over its parent story (a requirement that merely rewords its story fails the anti-redundancy tests in `references/methodology.md`). An unresolved `[NEEDS CLARIFICATION: <q>]` marker on any requirement or AC line blocks the design-review gate.
 
 ### Index
 
@@ -100,57 +77,25 @@ Then <observable outcome>
 
 ## Verification Strategy
 
-> Coarse, risk-scaled — NOT per-AC. ~4–7 lines. States which risk layers this
-> feature needs and which ACs require a live artifact. Read at design-review (presence
-> + live-bearing coherence) and at epic-close (the live-bearing list gates which
-> ACs may NOT be carried as `[unverified]`).
+> Coarse, risk-scaled — NOT per-AC; ~4–7 lines. Read at design-review and at epic-close.
 
 - **Risk layers this feature needs:** <unit? integration? contract? e2e? live? perf?>
 - **Power-on-able?** <can the design be exercised at the needed layer; if not, why / what's needed>
 - **Live means required:** <fixture / target / device / none>
 - **Live-bearing AC IDs:** <AC-N, AC-M | none>   ← these may NOT be carried as `[unverified]`
-  > Classification predicate AND live-artifact evidence rules (provenance,
-  > producer ≠ judge, static-proxy disqualification, examples):
-  > `skills/_shared/inject/live-bearing-predicate.md` — single home, read it,
-  > do not restate here. The deterministic floor checks only that a claimed
-  > artifact exists and is referenced by its AC; the reviewer authenticates it.
+  > Classification predicate + live-artifact evidence rules: `skills/_shared/inject/live-bearing-predicate.md` — single home, read it, do not restate here. The deterministic floor only checks a claimed artifact exists and is referenced by its AC; the reviewer authenticates it.
 
 ## Architecture
 
-> Normative per-component structural commitments, graded against
-> `skills/assay/references/arch-rubric.md` (load, do not restate the force text).
->
-> **Depth-stakes decision rule:** a component has **depth-stakes** — and REQUIRES a
-> commitment here — if it: hides a non-trivial implementation decision, holds or mutates state,
-> or sequences operations a caller could otherwise mis-order. Answer this question for every
-> component; the `no structural commitment — additive` escape below requires a deliberate answer,
-> not a silent skip.
->
-> **For each component with depth stakes,** author SHALL-form commitments, e.g.:
-> "Module M SHALL be deep — it SHALL hide X; it SHALL NOT leak its orchestration sequence to
-> callers." Ground each commitment in the arch-rubric forces (interface economy, cohesion,
-> coupling, YAGNI).
->
-> **For purely additive components** (adds behaviour within an existing module's established
-> interface, no depth stakes), state explicitly:
-> `no structural commitment — additive within existing module`
->
-> The prior silent "skip if additive" escape is removed. Every feature either states commitments
-> or explicitly declares zero. Include a Mermaid diagram for non-trivial flows.
+> Grade against `skills/assay/references/arch-rubric.md` (load it; do not restate the force text). A component has **depth-stakes** — and REQUIRES a SHALL-form commitment here — if it hides a non-trivial implementation decision, holds or mutates state, or sequences operations a caller could mis-order (e.g. "Module M SHALL hide X; it SHALL NOT leak its orchestration sequence to callers"). Answer the depth-stakes question for EVERY component: purely additive ones state exactly `no structural commitment — additive within existing module` — a deliberate answer, never a silent skip. Include a Mermaid diagram for non-trivial flows.
 
 ## Interfaces / Contracts
 
-Function signatures, API shapes, message formats, config schemas. **Feeds the inner TDD loop** — each contract becomes a set of unit tests covering:
-- Happy path
-- At least one error path
-- Boundary values
-- Write-then-readback (for mutations)
-
-Be specific — field names, types, optionality. Vagueness here means the inner loop has nothing concrete to assert against.
+Function signatures, API shapes, message formats, config schemas — specific (field names, types, optionality; vagueness leaves the inner loop nothing to assert against). Each contract feeds the inner TDD loop as unit tests covering happy path, ≥1 error path, boundary values, and write-then-readback for mutations.
 
 ## Error Handling
 
-Table: each row is a specific failure mode, its trigger, and the recovery behavior. Each row maps to a unit test in the inner TDD loop.
+One row per specific failure mode; each row maps to a unit test in the inner TDD loop.
 
 | Scenario | Trigger | Behavior |
 |---|---|---|
@@ -158,24 +103,14 @@ Table: each row is a specific failure mode, its trigger, and the recovery behavi
 
 ## Invariants
 
-Cross-cutting correctness rules that must hold across every code path. Good invariants become property tests or assertion sweeps.
+Cross-cutting correctness rules that must hold across every code path — they become property tests or assertion sweeps. Every invariant SHALL name its provenance: a governing ADR / inherited standing decision, the requirement(s) that necessitate it, or a carried finding / prior-phase constraint.
 
-**Source taxonomy — every invariant SHALL name its provenance:**
-1. **Governing ADRs / inherited standing decisions** — cite the ADR or decision slug.
-2. **Cross-cutting rules derived from the requirement set** — name the requirement(s) that necessitate it.
-3. **Carried findings / prior-phase constraints** — cite the source spec, phase, or finding id.
-
-An invariant without a named provenance is an ungrounded assertion — the taxonomy prevents invariant-invention with no traceable source.
-
-Examples:
-- "No operation modifies source files if the write phase fails." [source: REQ-3 + ADR-0009]
-- "Every successful run produces exactly one report." [source: REQ-1]
+Example: "No operation modifies source files if the write phase fails." [source: REQ-3 + ADR-0009]
 
 ## Risks / Open Questions
 
-Unknowns that need resolution before or during build. Don't hide them — name them so the plan step can sequence around them.
+Unknowns that need resolution before or during build — name them so the plan step can sequence around them.
 
 ## Related
 
-- Links to exploration notes, prior specs, ADRs
-- External references (papers, other projects, library docs)
+- Exploration notes, prior specs, ADRs, external references
