@@ -1,128 +1,130 @@
 ---
 name: assay
 description: |
-  Pre-contract interview instrument — the fused single-session interview that
-  runs after explore and before design-spec: the AI lays out doc-grounded
-  falsifiable assumptions (bold pass included) and extracts the human's tacit
-  intent, accounts the four knowledge quadrants, routes every known unknown
-  through the unknown-disposition table (probe now / flip-trigger bypass /
-  deferred; a structural fork produces an ADR), and emits the guardrail
-  contract block the contract author consumes. Requires a live responsive
-  user; the human rules readiness once. Invoke inside crucible, or directly
-  before authoring a contract. Out of scope — non-interactive/CI (no live user)
-  or an intent the human cannot yet state (→ superpowers:brainstorming).
+  Pre-contract interview instrument — the fused single-session interview after explore and
+  before the contract author: aligns human and AI across three arms — vocabulary (term sheet),
+  maps (falsifiable laydown + bold pass, tacit-intent extraction, published predict round),
+  territory (explore / grounded-claims wiring) — routes every known unknown through the
+  unknown-disposition table (a structural fork produces an ADR), evidences alignment with
+  human-falsifiable consequence probes, and terminates at the durable record's consensus
+  section (every entry traced to a human-confirmed row), which the contract author consumes.
+  Readiness = explicit yes + a zero-correction probe round. Requires a live responsive user;
+  invoke inside crucible or directly before a contract. Out of scope — non-interactive/CI
+  (no live user) or unformed intent (→ superpowers:brainstorming).
 kind: workflow
 ---
 
 # /touchstone:assay — Pre-Contract Interview Instrument
 
-One fused interview session that narrows the map-territory gap until the
-head/tail guardrail contract is writable. The human does
-exactly two things: answers tacit-knowledge questions and rules readiness.
+One fused interview session that aligns human and AI on everything this topic touches, across
+three arms: **vocabulary** — words carry the same self-contained working definitions; **maps** —
+the human's picture and the AI's picture, laid open to each other and mutually predicted;
+**territory** — both maps checked against the repo's actual state. The terminal deliverable is
+the durable record's consensus section, every entry traced to a row the human confirmed
+in-session. The human answers tacit-knowledge questions and rules readiness.
 
-**Loading constraint — live user required.** In a non-interactive context
-(CI, a loop, a scheduled run) do NOT guess-fill any interview answer: flag a
-blocker naming assay as the halted step, and stop.
+**Loading constraint — live user required.** In a non-interactive context (CI, a loop, a
+scheduled run) do NOT guess-fill any answer: flag a blocker naming assay, and stop.
 
-**Unformed-intent escape.** If human-side extraction cannot elicit a stateable
-intent, recommend an out-of-band `superpowers:brainstorming` run and halt
-assay — do not interview toward an intent the human does not yet hold. (That
-skill is NOT a dependency of assay; the recommendation is steering to the user.)
+**Unformed-intent escape.** If extraction cannot elicit a stateable intent, recommend an
+out-of-band `superpowers:brainstorming` run and halt assay — do not interview toward an
+intent the human does not yet hold. (Not a dependency; the recommendation is steering.)
 
-**Inputs.** Sharpened intent + explore findings already in context (you cannot
-lay out assumptions about a map that has not been drawn); the parent epic dir
-path when one exists — that is the record file's home. When no parent epic
-exists, ask the user where to home the record; do not silently pick.
+**Inputs.** Sharpened intent + explore findings already in context (you cannot lay out
+assumptions about a map that has not been drawn — explore always precedes assay); the parent
+epic dir path when one exists — the record's home. No parent epic → ask; never silently pick.
 
-## Map-alignment interview
+## Presentation protocol
 
-### AI-side laydown (doc-grounded)
+> Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/laydown-first-presentation.md`
+> with the Read tool and follow it exactly.
+
+assay's delta: the full picture is the complete alignment table — assumption rows + term sheet
++ bold pass, every row carrying its `load-bearing?` tag and its planned handling (will-ask /
+self-check / residual→disposition / deferred).
+
+## Vocabulary arm — term sheet
+
+The alignment table opens with a term sheet covering this session's key terms, pre-existing and session-coined alike. Each row MUST:
+
+- carry a **self-contained working definition** — readable without this session's context;
+  define a term before any other row uses it; never a self-coined code label.
+- carry exactly ONE **source marker**: doc-grounded / session-coined (AI or human) /
+  ledger-conflict.
+- **ledger-conflict escalation** — a conflict with CONTEXT.md / docs usage ALSO enters the
+  alignment table as its own assumption row, routed through disposition like any other.
+
+The sheet is a working alignment surface, not a new authority ledger: pre-existing terms keep their
+source of truth in CONTEXT.md / docs; session-coined terms live in the record and write back only
+past CONTEXT.md's admission boundary (write-back rule, standing).
+
+## Map arm — AI-side laydown (doc-grounded)
 
 Lay out every assumption you would otherwise silently adopt. Each entry MUST:
 
-- **be falsifiable** — name a concrete file / interface / behavior. A vibe
-  sentence ("the config handling is probably fine") is the violation form;
-  rewrite it until a probe could prove it wrong.
+- **be falsifiable** — name a concrete file / interface / behavior; rewrite a vibe sentence
+  until a probe could prove it wrong. Check each assumption against CONTEXT.md / docs/adr —
+  a conflict with that ledger IS an assumption, surfaced as its own row.
 - **be ordered by architectural impact** — most expensive-to-change first.
-- **carry both tags** — `load-bearing?` (does the design collapse if this is
-  wrong) × `probe-cost` (how expensive to verify).
-- **carry your leaning** — the disposition you would bet on, with a one-line
-  reason; the human reacts to a stated position instead of authoring one.
+- **carry both tags** — `load-bearing?` (does the design collapse if this is wrong) ×
+  `probe-cost` (how expensive to verify). `deferred` handling ⟺ `load-bearing? = no` — the
+  disposition routing the probe floor counts on.
+- **carry your leaning** — the disposition you would bet on, with a one-line reason; the
+  human reacts to a stated position instead of authoring one.
 
-Falsifiability lenses (explicit list — add a future lens HERE, no rename or
-re-wiring needed):
+**Bold pass (unconditional).** Also lay out the structurally-larger moves you suppressed under
+conservative bias, ordered by blast radius. "Change nothing structural" is itself an assumption. An
+empty bold section is permitted ONLY as the explicit line "no suppressed structural moves"; silence is the violation. Bold items enter the same unknown disposition.
 
-1. **Concrete referent** — the named file / interface / behavior above.
-2. **Doc-grounding** — check each assumption against CONTEXT.md / docs/adr;
-   when your term or claim conflicts with that ledger, the conflict IS an
-   assumption — surface it as its own table row.
+## Map arm — human-side extraction
 
-**Write-back rule (standing).** When a term resolves against the docs
-mid-session, update CONTEXT.md inline IF the term meets CONTEXT.md's
-admission boundary (cross-epic load-bearing — threshold defined there).
-Otherwise record the resolution in the assay record / epic-local
-artifact only — never grow CONTEXT.md with single-epic terminology.
-
-**Bold pass (unconditional).** Also lay out the structurally-larger moves you
-suppressed under conservative bias, ordered by blast radius. "Change nothing
-structural" is itself an assumption — put it on the table. An empty bold
-section is permitted ONLY as the explicit line "no suppressed structural
-moves"; silence is the violation. Bold items are not auto-adopted — they enter
-the same unknown disposition.
-
-### Human-side extraction
-
-Ask questions in the laydown's architectural-impact order, targeting tacit
-knowledge ONLY: intent, priority, unstated constraints, what done looks like.
-Do NOT ask architecture / API design questions — that design work is yours;
-asking the human reverses the responsibility.
-
-Presentation mechanics (instructions, not steering):
+Ask questions in the laydown's architectural-impact order, targeting tacit knowledge ONLY: intent,
+priority, unstated constraints, what done looks like. Do NOT ask architecture / API design questions — that design work is yours; asking it reverses the responsibility.
 
 - Ask exactly ONE question per message; every question carries your own
   leaning and a one-line reason.
-- When the answer options are enumerable, ask through AskUserQuestion with
-  your leaning marked "(Recommended)" — the tool is the default form, the
-  discipline is the rule; one call carries exactly one question (do not use
-  the tool's multi-question capacity).
-- Speak plainly to the user: no skill-internal section names, no self-coined
-  code labels in any message to the user; refer to a laydown entry by a
-  content phrase, never by row number.
-- Facts the repo or its docs can answer are yours to look up before asking;
+- When the answer options are enumerable, ask through AskUserQuestion with your leaning
+  marked "(Recommended)" — one call, one question (carrier limits: presentation protocol).
+- Speak plainly to the user: no skill-internal section names, no self-coined code labels;
+  refer to a table entry by a content phrase, never by row number.
+- Facts the repo or its docs can answer are yours to look up before asking (territory arm);
   bring the human only decisions and tacit knowledge.
-- Stop asking once you can predict the user's answer to the next
-  three questions (fewer left → predict all remaining; an empty queue
-  simply stops). Stopping ends the questioning round only — disposition
-  and readiness still run. One user correction reopens the question queue.
 
-Named instrument — **want-vs-should-want probe**: "if you didn't have to
-justify this choice to anyone, what would you actually want?" It catches
-sophistication-signaling answers (scalable / clean / modern offered as goals).
+Named instrument — **want-vs-should-want probe**: "if you didn't have to justify this choice to
+anyone, what would you actually want?" It catches sophistication-signaling answers (scalable /
+clean / modern offered as goals).
 
-### Four-quadrant accounting
+**A published predict round closes questioning — every path.** When you can predict the
+user's answers to the next three questions (fewer left → all remaining), PUBLISH the round:
+each remaining question WITH your predicted answer; an empty queue is published as an
+explicit empty-queue statement — closing without a published round is not a path. Questioning
+closes only after the user confirms. A missed prediction reopens that question for real
+extraction (a user correction likewise reopens the question queue); a later published round
+must pass before questioning may close.
+
+## Territory arm — wiring, not new mechanism
+
+Explore findings are the laydown's map source; claims about repo behavior follow the
+grounded-claims citation discipline. A row territory can settle is settled by lookup, never by asking.
+
+## Four-quadrant accounting
 
 | Quadrant | Disposition |
 |---|---|
-| known knowns | straight into contract facts |
+| known knowns | straight into consensus contract facts |
 | known unknowns | one disposition row each |
 | unknown knowns (human tacit) | extraction converts them to known knowns → contract facts |
-| unknown unknowns | acknowledged to exist, never claimed zero; residual goes to the review gates + deviation log |
+| unknown unknowns | acknowledged to exist, never claimed zero; residual → review gates + deviation log |
 
-**Loop rule.** An extraction answer may flip an existing laydown entry OR add
-wholly new entries to the inventory — update the table and re-converge within
-the session; do not carry a known contradiction forward.
-
-**Proportionality (steering, not a rule).** A small subject compresses rounds
-and merges tables but never skips the laydown itself (the bold pass's explicit
-empty-section line stays); judge round count by the subject's blast radius.
+**Loop rule.** An extraction answer may flip an existing table entry OR add wholly new entries —
+update the table and re-converge in-session; never carry a known contradiction forward.
+**Proportionality (steering, not a rule):** a small subject compresses rounds and merges tables but
+never skips the laydown itself (the bold pass's explicit empty-section line stays); judge round count by blast radius.
 
 ## Unknown disposition
 
-Known unknowns enter this table from three sources: laydown residuals
-(entries neither confirmed nor flipped), future-observable items, and
-suppressed items the bold pass left unresolved.
-
-Route EVERY known unknown through the disposition table:
+Known unknowns enter from three sources — laydown residuals (entries neither confirmed nor
+flipped), future-observable items, unresolved bold-pass items. Route EVERY one through:
 
 | load-bearing | probe-cost | disposition |
 |---|---|---|
@@ -130,19 +132,30 @@ Route EVERY known unknown through the disposition table:
 | yes | expensive | **flip-trigger bypass** or scope cut — never silent proceed |
 | no | — | deferred log |
 
-**Structural fork case** — a fork entry with ≥2 viable approaches and
-durability stakes: author an ADR per `adr-authoring.md` (same directory),
-carrying the flip-trigger / bet-owner / assumptions fields, with the human as
-bet-owner. Grade the structural judgment against `references/arch-rubric.md`.
-For a fork worth critique evidence, dispatch
-`touchstone:cross-provider-architect` (adaptable — omit with the reason
-recorded in the ADR).
+**Structural fork case** — a fork entry with ≥2 viable approaches and durability stakes: author an ADR
+per `adr-authoring.md` (same directory), carrying the flip-trigger / bet-owner / assumptions fields,
+with the human as bet-owner; grade the judgment against `references/arch-rubric.md`; for a fork worth
+critique evidence, dispatch `touchstone:cross-provider-architect` (adaptable — omit with the reason recorded in the ADR).
 
-**Readiness criterion.** Every load-bearing known unknown
-resolved or flip-triggered. NOT "all cells filled"; NOT "zero unknowns".
+## Consequence probes — alignment made falsifiable
 
-**The human rules readiness once.** Guard the ruling with the non-yes
-taxonomy:
+After the table converges (no open contradiction, unknowns dispositioned) and BEFORE any
+readiness ask, publish consequence probes: behavior forecasts the human can falsify — each a
+concrete "I will X / never Y / under pressure sacrifice Z first". Floor: ≥1 probe
+per load-bearing ruling (a human-confirmed resolution of a row tagged load-bearing; deferred
+rows never count), minimum one; each probe names the table row / ruling it derives from by
+stable id. A falsified probe folds back into the table, re-converges (new rows may reopen
+extraction), and fires a fresh probe round; readiness is NOT asked on the corrected round.
+
+## Readiness — explicit yes + a clean probe round
+
+Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all cells
+filled"; NOT "zero unknowns") AND the latest probe round had zero corrections — an ambiguous
+probe answer counts as a correction and folds back. Not ready → run the cheap probe(s),
+return to the table, re-converge. The record's readiness ruling cites both the explicit yes
+and the clean probe round by its dated `R-n` id.
+
+**The human rules readiness once.** Guard the ruling with the non-yes taxonomy:
 
 - "whatever you think" = delegation, not a decision → re-ask with two concrete options.
 - "sounds good" = ambiguous → ask what they would refine.
@@ -150,48 +163,36 @@ taxonomy:
 - an explicit correction ("no, that's not it") → fold it into the table, restate, loop.
 - Only an explicit yes advances.
 
-Not ready → run the cheap probe(s), return to the alignment table, re-converge.
-Ready → author the guardrail block.
+## Durable record — the terminal deliverable
 
-## Guardrail block authoring
+Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.md` — frontmatter `subject:` (one
+line; the contract author maps intention from it), `date:`, `epics:`. One record per subject;
+a re-run on the same subject APPENDs a new dated section, never overwrites. Sections, order
+fixed — consumers key on these names; a rename is a breaking change:
 
-Emit the guardrail contract block, four parts:
+- `## Term sheet` — rows `T-n`
+- `## Alignment table` — rows `A-n`: dual tags + leaning + planned handling; bold-pass rows marked
+- `## Extraction Q&A` — rulings `Q-n`; predict / probe rounds `R-n` (dated)
+- `## Consensus` — four subsections: Scope / Invariants / Contract facts / Out-of-scope; every
+  entry ends with `[trace: <stable-ids>]` (comma-separated, e.g. `[trace: A-2, T-3]`); stable ids
+  only — a free-text row name is not a parseable trace
+- `## Flip-trigger registry` — observable signal + revisit point per row
+- `## Deferred log` — the non-load-bearing unknown stubs
+- `## Readiness ruling` — explicit yes + date + the clean round's `R-n`
+- `## Deviation log` — appended during downstream execution; the standing validity metric:
+  gap / quadrant / which-stage-could-have-caught / catcher
 
-1. **Head** — scope, invariants (unbreakable boundaries), contract facts (the known-knowns list), out-of-scope.
-2. **Tail** — ≥1 acceptance seam per load-bearing decision, written as scenario skeletons that feed the contract's AC layer.
-3. **Flip-trigger registry** — every disposition bypass: named observable signal + revisit point.
-4. **Deferred log** — the non-load-bearing unknown stubs.
+**The consensus section IS the handoff.** The contract author (design-spec's consume branch, or
+crucible's PRD+seams path) derives Scope / Invariants facts from Consensus rows and itself authors
+the seam / AC layer — assay emits no contract-material packaging beyond the consensus section and
+no acceptance-seam skeletons. With no contract downstream, the record as produced IS the terminal deliverable — no extra exit branch, no empty contract stub.
 
-Two consumers — name the handoff explicitly: a **full design-spec** (head →
-its Scope / Invariants sections; in a crucible chain design-spec's Foundation
-consumes this record per its own consume-or-elicit branch instead of
-re-eliciting; tail → its AC layer) or a **PRD+seams light
-contract** (its acceptance-seam + invariant fields). Do NOT
-modify `skills/design-spec/template.md` — the block is content the contract
-author pours into existing sections, not a template change.
-
-## Durable record
-
-Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.md` — one record file
-per contract subject. A re-run on the same subject (e.g. after a not-ready
-loop) APPENDs a new dated section to the same file; never overwrite. Sections:
-
-- `## Alignment table` — merged laydown + extraction, dual tags + leaning,
-  bold-pass rows marked
-- `## Readiness ruling` — one line: explicit yes + date
-- `## Flip-trigger registry` — signal + revisit point per row
-- `## Deferred log`
-- `## Deviation log` — appended during downstream execution; the instrument's
-  standing validity metric: gap / quadrant / which-stage-could-have-caught / catcher
-
-**Execution-precision (every ruling above).** Every disposition names its
-file (and line/anchor where applicable) so a later session executes it
-without re-derivation; every flip-trigger names both an observable signal and
-a revisit point.
+**Execution-precision.** Every disposition names its file (and line/anchor where applicable)
+so a later session executes it without re-derivation; every flip-trigger names both an
+observable signal and a revisit point.
 
 ## Honest ceiling
 
-assay's done-claim is accounting-completeness: table entries falsifiable,
-unknowns dispositioned, human explicit yes. The interview NARROWS
-unknown-unknowns; it never proves them zero. Gap size is measured downstream
-by the deviation log — never claimed at interview end.
+assay's done-claim is accounting-completeness: entries falsifiable, unknowns dispositioned, alignment
+evidenced by a published clean probe round, human explicit yes. The interview NARROWS unknown-unknowns;
+it never proves them zero. Gap size is measured downstream by the deviation log — never claimed at interview end.

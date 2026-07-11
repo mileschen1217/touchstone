@@ -344,4 +344,21 @@ chk "fragment-non-universal"     "$frag" "non-universal"
 chk "fragment-user-start-gate"   "$frag" "explicitly says to start"
 chk "fragment-auq-per-item"      "$frag" "per-item rulings"
 
+# --- assay v2: three-way alignment body ---
+chk "assay-three-arms"          "skills/assay/SKILL.md" "three arms"
+chk "assay-term-sheet"          "skills/assay/SKILL.md" "term sheet"
+chk "assay-source-marker"       "skills/assay/SKILL.md" "source marker"
+chk "assay-ledger-conflict-row" "skills/assay/SKILL.md" "its own assumption row"
+chk "assay-loads-fragment"      "skills/assay/SKILL.md" "laydown-first-presentation\.md"
+chk "assay-planned-handling"    "skills/assay/SKILL.md" "planned handling"
+chk "assay-predict-published"   "skills/assay/SKILL.md" "predicted answer"
+chk "assay-empty-queue"         "skills/assay/SKILL.md" "empty-queue statement"
+chk "assay-consequence-probes"  "skills/assay/SKILL.md" "consequence probes"
+chk "assay-probe-floor"         "skills/assay/SKILL.md" "per load-bearing ruling"
+chk "assay-clean-round"         "skills/assay/SKILL.md" "zero corrections"
+chk "assay-consensus-terminus"  "skills/assay/SKILL.md" "## Consensus"
+chk "assay-trace-grammar"       "skills/assay/SKILL.md" "\[trace: "
+chk "assay-no-seam-skeletons"   "skills/assay/SKILL.md" "no acceptance-seam skeletons|authors the seam"
+chk "assay-record-frontmatter"  "skills/assay/SKILL.md" "frontmatter .subject:."
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
