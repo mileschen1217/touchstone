@@ -374,9 +374,11 @@ for pat in "Consume-or-elicit" "legacy Intention format" "foundation-gate\.md"; 
   else echo "ok ds-no-routing($pat)"; fi
 done
 
-# --- consensus handoff: crucible + foundation-gate consumer ends ---
-chk "crucible-consensus-feeds"  "skills/crucible/SKILL.md" "consensus section"
-chk "crucible-prdseams-traced"  "skills/crucible/SKILL.md" "derived from Consensus rows"
+# --- confirmed-facts handoff: crucible ---
+chk "crucible-facts-source-handoff" "skills/crucible/SKILL.md" "record path as the facts source"
+chk "crucible-points-to-contract"   "skills/crucible/SKILL.md" "confirmed-facts-source\.md"
+chk "crucible-ask-or-mark"          "skills/crucible/SKILL.md" "NEEDS CLARIFICATION"
+chk "crucible-prdseams-traced"      "skills/crucible/SKILL.md" "row-level cited rows"
 
 # retired handoff: no live surface still instructs producing/consuming a guardrail block
 # (docs/adr/ history exempt — dated ledger)
