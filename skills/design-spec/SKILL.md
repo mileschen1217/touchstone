@@ -63,10 +63,9 @@ fact never lands as an untraced Scope/Invariants entry.
 
 Per-fact principle (the only disposition — never branch on whether a source
 exists or which producer made it): for each fact the spec needs, find its
-confirmation evidence in the supplied sources and cite it at the required
-granularity — field-level citations feed `## Foundation` fields only;
-Scope / Invariants / contract-body facts require row-level citations, each
-carrying its `[trace: <id>]` — else ask or mark. The AC / acceptance-seam
+confirmation evidence in the supplied sources and cite it at the granularity
+the confirmed-facts source contract requires for that fact's target section,
+each contract-body fact carrying its `[trace: <id>]` — else ask or mark. The AC / acceptance-seam
 layer is authored HERE, by design-spec — a source hands over confirmed
 facts, never pre-drafted seams. Terms do not propagate: every term this
 spec uses carries its own self-contained definition (a session-coined
