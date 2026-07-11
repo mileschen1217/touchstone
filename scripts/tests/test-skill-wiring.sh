@@ -366,4 +366,10 @@ chk "ds-consumes-consensus" "skills/design-spec/SKILL.md" "Consensus Scope"
 chk "ds-never-silent"       "skills/design-spec/SKILL.md" "NEEDS CLARIFICATION"
 chk "ds-authors-ac-layer"   "skills/design-spec/SKILL.md" "authored HERE"
 
+# --- consensus handoff: crucible + foundation-gate consumer ends ---
+chk "crucible-consensus-feeds"  "skills/crucible/SKILL.md" "consensus section"
+chk "crucible-prdseams-traced"  "skills/crucible/SKILL.md" "derived from Consensus rows"
+chk "fg-reads-consensus"        "skills/_shared/foundation-gate.md" "Consensus Scope"
+chk "fg-never-silent"           "skills/_shared/foundation-gate.md" "never silent adoption"
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
