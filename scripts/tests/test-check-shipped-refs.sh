@@ -111,18 +111,21 @@ else
   fail=$((fail+1)); echo "FAIL - AC-7 fixtures outside scan scope"
 fi
 
-# AC-8: the fixtures are de-leaked in the REAL repo — exactly 16 carry the rewritten
+# AC-8: the fixtures are de-leaked in the REAL repo — exactly 6 carry the rewritten
 # provenance line (was 18; bypass-quick + bypass-with-vendor deleted in Phase 3.2 A1 as
-# moot modifier fixtures), and zero .swarm dated refs remain under skills/ + docs/.
+# moot modifier fixtures; was 16 pre-P2 — the 2026-07-11 design-spec-deep-module
+# refactor's survival-table execution re-cited 10 design-spec fixtures off this
+# provenance line: 5 retired outright, 5 rewritten to cite the new spec's AC-N
+# directly), and zero .swarm dated refs remain under skills/ + docs/.
 n_rewritten="$( grep -rl 'Spec authority: intention-first epic' \
   "$REPO_ROOT/skills/design-spec/tests/step0-fixtures/" \
   "$REPO_ROOT/skills/epic-driven-roadmap/tests/step0-fixtures/" 2>/dev/null | wc -l | tr -d ' ' )"
 n_swarm="$( grep -rlE '\.swarm/specs/[0-9]{4}-[0-9]{2}-[0-9]{2}' \
   "$REPO_ROOT/skills/" "$REPO_ROOT/docs/" 2>/dev/null | wc -l | tr -d ' ' )"
-if [ "$n_rewritten" -eq 16 ] && [ "$n_swarm" -eq 0 ]; then
-  pass=$((pass+1)); echo "ok   - AC-8 16 fixtures de-leaked, 0 .swarm dated refs"
+if [ "$n_rewritten" -eq 6 ] && [ "$n_swarm" -eq 0 ]; then
+  pass=$((pass+1)); echo "ok   - AC-8 6 fixtures de-leaked, 0 .swarm dated refs"
 else
-  fail=$((fail+1)); echo "FAIL - AC-8 (rewritten=$n_rewritten want 16; swarm=$n_swarm want 0)"
+  fail=$((fail+1)); echo "FAIL - AC-8 (rewritten=$n_rewritten want 6; swarm=$n_swarm want 0)"
 fi
 
 # AC-9: SKILL.md wires the guard (greppable call-site) AND the guard passes on the real tree
