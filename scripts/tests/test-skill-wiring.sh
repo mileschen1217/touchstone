@@ -361,4 +361,9 @@ chk "assay-trace-grammar"       "skills/assay/SKILL.md" "\[trace: "
 chk "assay-no-seam-skeletons"   "skills/assay/SKILL.md" "no acceptance-seam skeletons|authors the seam"
 chk "assay-record-frontmatter"  "skills/assay/SKILL.md" "frontmatter .subject:."
 
+# --- consensus handoff: design-spec consumer end ---
+chk "ds-consumes-consensus" "skills/design-spec/SKILL.md" "Consensus Scope"
+chk "ds-never-silent"       "skills/design-spec/SKILL.md" "NEEDS CLARIFICATION"
+chk "ds-authors-ac-layer"   "skills/design-spec/SKILL.md" "authored HERE"
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi

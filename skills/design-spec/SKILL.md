@@ -24,7 +24,7 @@ allowed-tools:
 
 Produce an ATDD + TDD double-loop-aligned design spec for a feature and write the Draft to the project's specs directory. design-spec emits only Draft — promotion is downstream (see Output).
 
-**Draft Mode may need a live responsive user** — standalone, Foundation elicitation prompts the human; inside crucible it consumes assay's guardrail block, so no prompt fires.
+**Draft Mode may need a live responsive user** — standalone, Foundation elicitation prompts the human; inside crucible it consumes the assay record's consensus section, so no prompt fires.
 
 ## When to Invoke
 
@@ -60,15 +60,25 @@ reuse check applies only within the same invocation.
 
 **Consume-or-elicit (checked FIRST, before branches a/b):** when an assay
 record exists for this subject (the crucible chain hands it over; standalone,
-look for `<epics-dir>/<slug>/assay-*-<subject>.md`), consume the record as
-the confirmed foundation — intention ← the record's `subject:` frontmatter
-line; aim ← the guardrail head's scope, condensed to the observable outcome;
-out-of-scope ← the head's out-of-scope — and record it per step g. The head's
-invariants and contract facts are contract-body content (this spec's
-Invariants / Scope sections), never Foundation fields. Do NOT run the shared
-gate: assay is the chain's single human-elicitation surface, and its
-readiness ruling already carries the human's confirm. No assay record →
-elicit via branches a/b below.
+look for `<epics-dir>/<slug>/assay-*-<subject>.md`), consume the record's
+`## Consensus` section as the confirmed foundation — intention ← the record's
+`subject:` frontmatter line; aim ← the Consensus Scope subsection, condensed
+to the observable outcome; out-of-scope ← the Consensus Out-of-scope
+subsection — and record it per step g. The Consensus Invariants and Contract
+facts subsections are contract-body content: pour them into this spec's
+Invariants / Scope sections carrying each row's `[trace: ...]` tag. The AC /
+acceptance-seam layer is authored HERE, by design-spec — the record hands
+over confirmed facts, never pre-drafted seams. **Never-silent rule:** a
+load-bearing fact needed at spec time that is absent from the Consensus
+section, contradicts a confirmed Consensus row, or rests on an entry whose
+trace tag is missing or unparseable enters the spec ONLY as a question to
+the human or a `[NEEDS CLARIFICATION]` marker — never as an untraced
+Scope/Invariants entry, never as a silent overwrite of a row the human
+confirmed. Terms do not propagate: every term this spec uses carries its own
+self-contained definition (the record keeps session-coined terms' source of
+truth). Do NOT run the shared gate: assay is the chain's single
+human-elicitation surface, and its readiness ruling already carries the
+human's confirm. No assay record → elicit via branches a/b below.
 
 **Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section. Section mapping + authoring conventions: `references/draft-workflow.md § Want-layer authoring` (single home); vocabulary: `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate.
 
