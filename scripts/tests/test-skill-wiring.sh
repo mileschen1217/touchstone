@@ -372,4 +372,19 @@ chk "crucible-prdseams-traced"  "skills/crucible/SKILL.md" "derived from Consens
 chk "fg-reads-consensus"        "skills/_shared/foundation-gate.md" "Consensus Scope"
 chk "fg-never-silent"           "skills/_shared/foundation-gate.md" "never silent adoption"
 
+# retired handoff: no live surface still instructs producing/consuming a guardrail block
+# (docs/adr/ history exempt — dated ledger)
+for gf in skills/assay/SKILL.md skills/design-spec/SKILL.md skills/crucible/SKILL.md \
+          skills/_shared/foundation-gate.md CONTEXT.md README.md; do
+  if grep -qi "guardrail" "$root/$gf"; then
+    echo "FAIL no-guardrail-handoff: token present in $gf"; fail=$((fail+1))
+  else echo "ok no-guardrail-handoff($(basename "$gf"))"; fi
+done
+# presentation-protocol fragment has exactly one consumer this epic (assay)
+extra="$(grep -rln "laydown-first-presentation" "$root/skills" "$root/agents" 2>/dev/null \
+  | grep -v "skills/assay/SKILL.md" | grep -v "_shared/inject/laydown-first-presentation.md" || true)"
+if [ -n "$extra" ]; then
+  echo "FAIL fragment-single-consumer: unexpected consumer(s): $extra"; fail=$((fail+1))
+else echo "ok fragment-single-consumer"; fi
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
