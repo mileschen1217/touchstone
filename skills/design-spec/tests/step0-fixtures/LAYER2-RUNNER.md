@@ -1,14 +1,26 @@
 # Foundation-elicitation fixture replay runner — PENDING (Phase D, OQ-1 deferred)
 
-The 18 Foundation-elicitation-phase fixtures in `skills/*/tests/step0-fixtures/` are authored and
-ready, but no replay runner is wired yet. This file records the pending
-decision and the execution contract for whoever wires it.
+The 18 Foundation-elicitation-phase fixtures in `skills/*/tests/step0-fixtures/` were authored and
+ready as of the 2026-05-23 baseline (`BASELINE.md`), but no replay runner is
+wired yet. This file records the pending decision and the execution contract
+for whoever wires it.
+
+**2026-07-12 update:** the 2026-07-11 design-spec-deep-module refactor
+retired 5 and rewrote 5 of design-spec's fixtures per a per-item survival
+table — see `BASELINE.md § 2026-07-12 update` for the disposition list. Current
+count: 8 design-spec + 3 epic-driven-roadmap (untouched, AC-11) = **11
+fixtures total**, down from 18 historical / 16 pre-refactor. The AC-N labels
+below (AC-1/2/3/13) are this file's own pre-refactor numbering (the
+intention-first epic's), not the P2 spec's — they identify the same
+behavioral classes (shallow boundary / elicitation happy-path / decline vague
+aim / hand-off confirm) that the rewritten fixtures now anchor on the P2
+spec's new AC numbers instead (see each rewritten fixture's own header).
 
 ## Status by verification tier (per ADR-0005 + the spec's two-layer model)
 
 | Tier | What | Status |
 |---|---|---|
-| Structural Layer-1 | greps/awk over the four shipped files (AC-6, AC-7 local-conditional, AC-11, AC-5 template half) | **GREEN now** via `scripts/check-foundation-gate-structure.sh` — triggered by pre-commit checker |
+| Structural Layer-1 | greps/awk over `skills/design-spec/SKILL.md`'s `^### Foundation & facts intake` region (rewritten anchor, post-P2) plus the epic-scaffold-side checks (AC-11, AC-5 template half) | **GREEN now** via `scripts/check-foundation-gate-structure.sh` — triggered by pre-commit checker |
 | Behavioral Layer-1 (replay) | replay each fixture, assert deterministic fields (`required-phrases`, `forbidden-substrings`, `expected-foundation` incl. `aim-not-contains`, `expected-risk-notes`, `expected-artifacts`, `awk-shape`) | **pending-harness** (not-scheduled) — needs the replay runner; runner has not been created and is not scheduled for creation |
 | Layer-2 rubric | judge AC-1 / AC-2 / AC-3 / AC-13 rubrics over `runs` with `min-pass` | **pending-runner** (not-scheduled) — depends on the same unscheduled runner |
 

@@ -1,10 +1,12 @@
-# Fixture: bypass-yaml-no-intention-first — AC-7 (Baseline always-on: Foundation-elicitation phase reached when yaml present but adopted_disciplines empty)
+# Fixture: bypass-yaml-no-intention-first — AC-1 (routing-branches-removed: no yaml-based skip) + AC-2 (standalone-degenerate-form)
 # Harness contract: skills/<skill>/tests/step0-fixtures/ two-layer schema
-# Spec authority: intention-first epic § AC-7
+# Spec authority: 2026-07-11-design-spec-deep-module.md § AC-1, AC-2
 #
 # .claude/touchstone.yaml is present but adopted_disciplines is empty
-# (intention-first not listed); must NOT skip the Foundation-elicitation phase.
-# This fixture proves it is REACHED.
+# (intention-first not listed); must NOT skip Foundation & facts intake.
+# No facts source is supplied, so intake takes the standalone degenerate
+# form: the fixed steering line, then pointwise elicitation. This fixture
+# proves intake is REACHED regardless of adopted_disciplines.
 
 ```yaml
 invocation: { skill: design-spec, args: "" }
@@ -19,7 +21,7 @@ setup:
 
 # ── Layer 1 (deterministic) ──────────────────────────────────────────────
 required-phrases:
-  - "Please describe the intended work in your own words."   # full exact emit (Foundation-elicitation phase reached)
+  - "This subject has no qualified confirmed-facts source — the designed path is the crucible chain (assay interview); continuing standalone, I will elicit each missing fact pointwise."   # full exact steering line (intake reached)
 
 forbidden-substrings:
   # Setup-Mode mis-route guard: the specs-dir question must NOT appear
