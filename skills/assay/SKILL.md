@@ -41,7 +41,8 @@ epic dir path when one exists — the record's home. No parent epic → ask; nev
 
 assay's delta: the full picture is the complete alignment table — assumption rows + term sheet
 + bold pass, every row carrying its `load-bearing?` tag and its planned handling (will-ask /
-self-check / residual→disposition / deferred).
+self-check / residual→disposition / deferred); rows queued for extraction questioning count as
+awaiting the human's attention in the fragment's depth tiering.
 
 ## Vocabulary arm — term sheet
 
@@ -182,8 +183,8 @@ fixed — consumers key on these names; a rename is a breaking change:
 - `## Deviation log` — appended during downstream execution; the standing validity metric:
   gap / quadrant / which-stage-could-have-caught / catcher
 
-**The consensus section IS the handoff.** The contract author (design-spec's consume branch, or
-crucible's PRD+seams path) derives Scope / Invariants facts from Consensus rows and itself authors
+**The consensus section IS the handoff.** The record is an implementation of the confirmed-facts source contract
+(`skills/_shared/inject/confirmed-facts-source.md`). The contract author derives Scope / Invariants facts from Consensus rows and itself authors
 the seam / AC layer — assay emits no contract-material packaging beyond the consensus section and
 no acceptance-seam skeletons. With no contract downstream, the record as produced IS the terminal deliverable — no extra exit branch, no empty contract stub.
 

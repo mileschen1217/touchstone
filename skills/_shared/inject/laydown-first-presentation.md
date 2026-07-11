@@ -24,6 +24,20 @@ human. A consumer loads this file and follows it, carrying only its own delta
 - While the human grills or adds rows: answer, fold changes into the
   picture, re-present the delta — still no per-item questioning.
 
+## Tiered depth
+
+- The end-turn message is **coverage-complete** — every row of the full
+  picture is present — with depth tiered by ONE principle: a row still
+  awaiting the human's ruling or attention this turn gets **full text**
+  (anchor examples: a row about to be questioned, a row conflicting with
+  the human's existing ledger, an AI-proposed larger move — examples, not
+  an exhaustive rule); a resolved row gets a **one-line digest** (anchor
+  examples: settled by the AI's own lookup, already ruled by the human).
+- On collision, full text wins: a row meeting any full-text condition gets
+  full text.
+- The durable record always carries the full table — it is the full-text
+  layer's home; tiering applies to the end-turn message only.
+
 ## User-start gate
 
 - Per-item questioning begins only when the user explicitly says to start.

@@ -343,6 +343,8 @@ chk "fragment-record-mirror"     "$frag" "durable record"
 chk "fragment-non-universal"     "$frag" "non-universal"
 chk "fragment-user-start-gate"   "$frag" "explicitly says to start"
 chk "fragment-auq-per-item"      "$frag" "per-item rulings"
+chk "fragment-tiered-depth"     "$frag" "coverage-complete"
+chk "fragment-full-table-home"  "$frag" "record always carries the full table"
 
 # --- assay v2: three-way alignment body ---
 chk "assay-three-arms"          "skills/assay/SKILL.md" "three arms"
