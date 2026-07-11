@@ -387,4 +387,31 @@ if [ -n "$extra" ]; then
   echo "FAIL fragment-single-consumer: unexpected consumer(s): $extra"; fail=$((fail+1))
 else echo "ok fragment-single-consumer"; fi
 
+# --- assay v2 P2: confirmed-facts source contract fragment (single home) ---
+cfs="skills/_shared/inject/confirmed-facts-source.md"
+[ -f "$root/$cfs" ] && echo "ok cfs-file" \
+  || { echo "FAIL cfs-file: $cfs missing"; fail=$((fail+1)); }
+chk "cfs-injected-by"        "$cfs" "^injected-by: \[design-spec, crucible\]"
+# three-part qualification
+chk "cfs-part-marked-area"   "$cfs" "marked.*confirmed.*facts|confirmed-facts area"
+chk "cfs-part-per-fact-cite" "$cfs" "per-fact.*citation|stable.*per-fact"
+chk "cfs-part-confirm-stamp" "$cfs" "confirmation event stamp"
+# two citation-granularity levels
+chk "cfs-field-level"        "$cfs" "field-level"
+chk "cfs-row-level"          "$cfs" "row-level"
+# four never-silent triggers — one chk EACH (dropping any one goes RED; AC-9)
+chk "cfs-trigger-absent"      "$cfs" "\*\*absent\*\*"
+chk "cfs-trigger-contradict"  "$cfs" "\*\*contradict\*\*"
+chk "cfs-trigger-missing"     "$cfs" "\*\*missing\*\*"
+chk "cfs-trigger-unparseable" "$cfs" "\*\*unparseable\*\*"
+chk "cfs-disposition"        "$cfs" "NEEDS CLARIFICATION"
+# naming rule: the class is "confirmed-facts source", never a seam
+chk "cfs-naming-rule"        "$cfs" "never.*seam|not.*a seam"
+# examples are implementations, not qualifying conditions
+chk "cfs-examples-not-condition" "$cfs" "example implementations|examples?, n(ot|ever) .*(qualifying|condition)"
+# the seam-name is forbidden on ALL shipped surfaces (AC-7)
+if grep -rqi "confirmed-facts seam" "$root/skills" "$root/agents" "$root/commands" "$root/CONTEXT.md" "$root/README.md" 2>/dev/null; then
+  echo "FAIL cfs-no-seam-name: 'confirmed-facts seam' present on a shipped surface"; fail=$((fail+1))
+else echo "ok cfs-no-seam-name"; fi
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
