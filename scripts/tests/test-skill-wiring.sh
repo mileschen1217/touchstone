@@ -333,4 +333,15 @@ chk "assay-adr-assumptions-field" "skills/assay/adr-authoring.md" "Assumptions:"
 alc="$(wc -l < "$root/skills/assay/SKILL.md" 2>/dev/null || echo 999)"
 [ "$alc" -le 200 ] && echo "ok assay-line-count ($alc)" || { echo "FAIL assay-line-count: $alc > 200"; fail=$((fail+1)); }
 
+# --- assay v2: laydown-first presentation fragment (single home) ---
+frag="skills/_shared/inject/laydown-first-presentation.md"
+[ -f "$root/$frag" ] && echo "ok fragment-file" \
+  || { echo "FAIL fragment-file: $frag missing"; fail=$((fail+1)); }
+chk "fragment-injected-by-assay" "$frag" "^injected-by: \[assay\]"
+chk "fragment-end-turn-carrier"  "$frag" "end-turn plain-text"
+chk "fragment-record-mirror"     "$frag" "durable record"
+chk "fragment-non-universal"     "$frag" "non-universal"
+chk "fragment-user-start-gate"   "$frag" "explicitly says to start"
+chk "fragment-auq-per-item"      "$frag" "per-item rulings"
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi
