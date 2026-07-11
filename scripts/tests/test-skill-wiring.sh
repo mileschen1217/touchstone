@@ -361,10 +361,18 @@ chk "assay-trace-grammar"       "skills/assay/SKILL.md" "\[trace: "
 chk "assay-no-seam-skeletons"   "skills/assay/SKILL.md" "no acceptance-seam skeletons|authors the seam"
 chk "assay-record-frontmatter"  "skills/assay/SKILL.md" "frontmatter .subject:."
 
-# --- consensus handoff: design-spec consumer end ---
-chk "ds-consumes-consensus" "skills/design-spec/SKILL.md" "Consensus Scope"
+# --- confirmed-facts consume: design-spec (deep component) ---
+chk "ds-generic-interface"  "skills/design-spec/SKILL.md" "facts sources in"
+chk "ds-points-to-contract" "skills/design-spec/SKILL.md" "confirmed-facts-source\.md"
 chk "ds-never-silent"       "skills/design-spec/SKILL.md" "NEEDS CLARIFICATION"
 chk "ds-authors-ac-layer"   "skills/design-spec/SKILL.md" "authored HERE"
+chk "ds-standalone-steering" "skills/design-spec/SKILL.md" "no qualified confirmed-facts source"
+# retired routing knowledge must be gone (AC-1) — SKILL.md and references/
+for pat in "Consume-or-elicit" "legacy Intention format" "foundation-gate\.md"; do
+  if grep -rqiE "$pat" "$root/skills/design-spec/SKILL.md" "$root/skills/design-spec/references" 2>/dev/null; then
+    echo "FAIL ds-no-routing($pat): retired token present"; fail=$((fail+1))
+  else echo "ok ds-no-routing($pat)"; fi
+done
 
 # --- consensus handoff: crucible + foundation-gate consumer ends ---
 chk "crucible-consensus-feeds"  "skills/crucible/SKILL.md" "consensus section"
