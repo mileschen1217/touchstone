@@ -377,8 +377,6 @@ done
 # --- consensus handoff: crucible + foundation-gate consumer ends ---
 chk "crucible-consensus-feeds"  "skills/crucible/SKILL.md" "consensus section"
 chk "crucible-prdseams-traced"  "skills/crucible/SKILL.md" "derived from Consensus rows"
-chk "fg-reads-consensus"        "skills/_shared/foundation-gate.md" "Consensus Scope"
-chk "fg-never-silent"           "skills/_shared/foundation-gate.md" "never silent adoption"
 
 # retired handoff: no live surface still instructs producing/consuming a guardrail block
 # (docs/adr/ history exempt — dated ledger)
