@@ -329,6 +329,8 @@ chk "assay-render-reuses-laydown" "skills/assay/SKILL.md" "consensus render.*lay
 chk "assay-render-tier-status"    "skills/assay/SKILL.md" "load-bearing STATUS|not a literal .load-bearing"
 # REQ-1 AC-14: re-render on a correction before the next readiness ask
 chk "assay-render-recorrection"   "skills/assay/SKILL.md" "re-render.*before the next readiness|never lands on a stale render"
+# AC-14 re-render cross-referenced at its trigger site (falsified-probe path) — locks the final-review M2 fix
+chk "assay-rerender-probe-site"   "skills/assay/SKILL.md" "re-renders the consensus"
 # self-describing internal names: no bare-numbered stage headings remain
 if grep -qE '^#{2,3} (Stage [0-9]|[0-9][abc]? —)' "$root/skills/assay/SKILL.md"; then
   echo "FAIL assay-opaque-headings: bare-numbered section heading present"; fail=$((fail+1))
@@ -374,6 +376,8 @@ chk "fragment-scale-fulltext-safe" "$frag" "full-text tier is never collapsed|ne
 chk "fragment-scale-ambiguous"   "$frag" "ambiguous, collapse the digest tier"
 # REQ-2 AC-15: human expand override, reversible
 chk "fragment-scale-expand"      "$frag" "expand request|reversible by the human"
+# carrier rule allows a consumer-declared deferred record section — locks the final-review M1 fix
+chk "fragment-deferred-carrier"  "$frag" "record section \*\*deferred\*\*|deferred content into the record"
 # REQ-3 AC-9: canonical tier-split rendering example incl. the scale-collapsed form
 chk "fragment-canonical-example" "$frag" "[Cc]anonical rendering example"
 chk "fragment-example-three-forms" "$frag" "scale-collapsed"

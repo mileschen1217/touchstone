@@ -12,7 +12,11 @@ human. A consumer loads this file and follows it, carrying only its own delta
 
 - Full-picture content travels on exactly two carriers, together: (1) an
   **end-turn plain-text message** — the turn's final text, after all tool
-  calls — and (2) a mirror into the consumer's **durable record** file.
+  calls — and (2) a mirror into the consumer's **durable record** file. A
+  consumer MAY declare a record section **deferred** — written only at a
+  later consent point (e.g. a pre-yes render whose record section lands at
+  the yes): the message carrier fires now, the file carrier only at that
+  point. Never mirror deferred content into the record early.
 - Never carry load-bearing content ONLY in text emitted before a tool call
   or in AskUserQuestion option previews — both are known non-universal
   carriers (some client surfaces do not display them).

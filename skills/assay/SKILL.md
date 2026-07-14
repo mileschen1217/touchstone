@@ -14,7 +14,7 @@ description: |
 kind: workflow
 ---
 
-<!-- keep-long: 231 lines. All main-path — the full interview procedure (vocabulary/map/territory arms, unknown-disposition, consensus render, consequence probes, readiness ask) is read every invocation; no orientation-only content to extract. -->
+<!-- keep-long: 232 lines. All main-path — the full interview procedure (vocabulary/map/territory arms, unknown-disposition, consensus render, consequence probes, readiness ask) is read every invocation; no orientation-only content to extract. Interim: an essence re-compression of the procedure prose is deferred to Phase 2 of alignment-surface-review-bandwidth (this build added the consensus-render step; token/essence audit folded there). -->
 
 # /touchstone:assay — Pre-Contract Interview Instrument
 
@@ -177,7 +177,8 @@ concrete "I will X / never Y / under pressure sacrifice Z first". Floor: ≥1 pr
 per load-bearing ruling (a human-confirmed resolution of a row tagged load-bearing; deferred
 rows never count), minimum one; each probe names the table row / ruling it derives from by
 stable id. A falsified probe folds back into the table, re-converges (new rows may reopen
-extraction), and fires a fresh probe round; readiness is NOT asked on the corrected round.
+extraction), re-renders the consensus (per the Consensus-render step), and fires a fresh probe
+round; readiness is NOT asked on the corrected round.
 
 ## Readiness — explicit yes + a clean probe round
 
@@ -193,7 +194,7 @@ and the clean probe round by its dated `R-n` id.
 - "whatever you think" = delegation, not a decision → re-ask with two concrete options.
 - "sounds good" = ambiguous → ask what they would refine.
 - silence + "let's start" = abandonment, not convergence → stop; ask what is missing.
-- an explicit correction ("no, that's not it") → fold it into the table, restate, loop.
+- an explicit correction ("no, that's not it") → fold it into the table, re-render the consensus, restate, loop.
 - Only an explicit yes advances.
 
 ## Durable record — the terminal deliverable
