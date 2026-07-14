@@ -345,6 +345,18 @@ chk "fragment-user-start-gate"   "$frag" "explicitly says to start"
 chk "fragment-auq-per-item"      "$frag" "per-item rulings"
 chk "fragment-tiered-depth"     "$frag" "coverage-complete"
 chk "fragment-full-table-home"  "$frag" "record always carries the full table"
+# REQ-2 AC-8: scale trigger is AI-judged one-pass scannability, not a hardcoded count
+chk "fragment-scale-trigger"     "$frag" "one-pass scannab"
+chk "fragment-scale-not-hardcoded" "$frag" "not a hardcoded"
+# REQ-2 AC-6: digest tier collapses to a counted record-file pointer WHERE mirrored; else stays inline
+chk "fragment-scale-collapse"    "$frag" "counted.*record-file|count \+ .*record-file path"
+chk "fragment-scale-not-persisted-inline" "$frag" "not yet persisted|stays one-line inline"
+# REQ-2 AC-7: full-text tier is never collapsed
+chk "fragment-scale-fulltext-safe" "$frag" "full-text tier is never collapsed|never collapse the full-text"
+# REQ-2 AC-8: ambiguous → collapse digest (stricter), never silently drop
+chk "fragment-scale-ambiguous"   "$frag" "ambiguous, collapse the digest tier"
+# REQ-2 AC-15: human expand override, reversible
+chk "fragment-scale-expand"      "$frag" "expand request|reversible by the human"
 
 # --- assay v2: three-way alignment body ---
 chk "assay-three-arms"          "skills/assay/SKILL.md" "three arms"

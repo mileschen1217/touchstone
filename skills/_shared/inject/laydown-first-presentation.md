@@ -35,6 +35,20 @@ human. A consumer loads this file and follows it, carrying only its own delta
   examples: settled by the AI's own lookup, already ruled by the human).
 - On collision, full text wins: a row meeting any full-text condition gets
   full text.
+- **Scale notch.** When the tiered end-turn message would exceed
+  **one-pass scannability** (the AI's functional judgement — NOT a hardcoded row or token count),
+  collapse the DIGEST tier. WHERE that digest content is already mirrored to the persisted record,
+  replace its rows in the message with an explicit count + the record-file path holding their full content
+  (never dropped, never a cherry-picked subset). WHERE the digest content is not yet persisted
+  (a consumer whose record section is deferred), the digest tier stays one-line inline
+  instead of pointing at a not-yet-written location.
+  The **full-text tier is never collapsed.** Which rows collapse is the consumer's objective tier
+  criterion — the whole digest set, never an AI pick of individual rows to hide.
+  When the judgement is ambiguous, collapse the digest tier (the stricter default), signposted —
+  never silently drop rows, never collapse the full-text tier.
+  Every collapse signposts the count + record-file path AND a short expand request the human can give;
+  on that request the collapsed digest is rendered inline (or by pointing at the exact record
+  section / rows) — the collapse is reversible by the human, not a dead end.
 - The durable record always carries the full table — it is the full-text
   layer's home; tiering applies to the end-turn message only.
 
