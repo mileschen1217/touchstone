@@ -329,9 +329,13 @@ chk "assay-adr-assumptions-field" "skills/assay/adr-authoring.md" "Assumptions:"
   || { echo "FAIL assay-adr-file: skills/assay/adr-authoring.md missing"; fail=$((fail+1)); }
 [ -f "$root/skills/assay/references/arch-rubric.md" ] && echo "ok assay-rubric-file" \
   || { echo "FAIL assay-rubric-file: skills/assay/references/arch-rubric.md missing"; fail=$((fail+1)); }
-# assay body size norm (guideline enforced at 200 like crucible)
+# assay body size norm (200-line guideline is a WARN not a gate fail, matching
+# check-md-surface-budget.sh's per-file policy; 500 is the hard cap — plan
+# Global Constraints blessed assay/SKILL.md crossing 200 in REQ-3)
 alc="$(wc -l < "$root/skills/assay/SKILL.md" 2>/dev/null || echo 999)"
-[ "$alc" -le 200 ] && echo "ok assay-line-count ($alc)" || { echo "FAIL assay-line-count: $alc > 200"; fail=$((fail+1)); }
+if [ "$alc" -le 200 ]; then echo "ok assay-line-count ($alc)"
+elif [ "$alc" -le 500 ]; then echo "WARN assay-line-count: $alc > 200 (guideline, not a gate)"
+else echo "FAIL assay-line-count: $alc > 500 (hard cap)"; fail=$((fail+1)); fi
 
 # --- assay v2: laydown-first presentation fragment (single home) ---
 frag="skills/_shared/inject/laydown-first-presentation.md"
@@ -357,6 +361,15 @@ chk "fragment-scale-fulltext-safe" "$frag" "full-text tier is never collapsed|ne
 chk "fragment-scale-ambiguous"   "$frag" "ambiguous, collapse the digest tier"
 # REQ-2 AC-15: human expand override, reversible
 chk "fragment-scale-expand"      "$frag" "expand request|reversible by the human"
+# REQ-3 AC-9: canonical tier-split rendering example incl. the scale-collapsed form
+chk "fragment-canonical-example" "$frag" "[Cc]anonical rendering example"
+chk "fragment-example-three-forms" "$frag" "scale-collapsed"
+# REQ-3 AC-10: tags render as scannable badges; id is a handle beside the phrase
+chk "fragment-example-badges"    "$frag" "badge"
+chk "fragment-example-id-handle" "$frag" "handle beside"
+# REQ-3 AC-11: §90 tightened to "never by row number alone" + id-handle permitted
+chk "assay-row-number-alone"     "skills/assay/SKILL.md" "row number alone"
+chk "assay-id-handle-permitted"  "skills/assay/SKILL.md" "id.*handle beside|visible.*id"
 
 # --- assay v2: three-way alignment body ---
 chk "assay-three-arms"          "skills/assay/SKILL.md" "three arms"

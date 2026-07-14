@@ -61,3 +61,28 @@ human. A consumer loads this file and follows it, carrying only its own delta
 
 - AskUserQuestion is for per-item rulings AFTER the full picture is already
   visible — never for delivering the picture itself.
+
+## Canonical rendering example
+
+Synthetic content; the FORM is canonical, not the wording. Tags render as distinct
+scannable **badges**; a row's stable **id appears as a handle beside** the content
+phrase (phrase-primary), never as an id-alone reference. Three renderings to keep
+in sync — full-text, one-line digest, and the scale-collapsed digest — are three
+RENDERINGS of the two-valued tier axis (full-text / digest), not a third tier value.
+
+**Awaiting zone (full text):**
+
+> `[load-bearing? yes] [probe-cost cheap]` **the record is written incrementally**
+> `(A-3)` — I am assuming the durable record is mirrored row-by-row during the
+> interview, not only at the terminal step; this gates the collapse-to-pointer path.
+> Leaning: confirm by lookup before relying on it.
+
+**Resolved zone (one-line digest):**
+
+> `[settled]` **term "readiness" = explicit yes + a clean probe round** `(T-2)` —
+> ruled at Q-4.
+
+**Scale-collapsed digest (large laydown, digest content already mirrored):**
+
+> **Resolved rows: 18** — full content in `<record-file>.md § Alignment table`.
+> To see any in full, say "expand the resolved rows" (or name one by its phrase).

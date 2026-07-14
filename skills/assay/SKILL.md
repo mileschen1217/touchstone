@@ -88,7 +88,8 @@ priority, unstated constraints, what done looks like. Do NOT ask architecture / 
 - When the answer options are enumerable, ask through AskUserQuestion with your leaning
   marked "(Recommended)" — one call, one question (carrier limits: presentation protocol).
 - Speak plainly to the user: no skill-internal section names, no self-coined code labels;
-  refer to a table entry by a content phrase, never by row number.
+  refer to a table entry by a content phrase — a visible stable-id handle beside the phrase
+  is fine — never by row number alone.
 - Facts the repo or its docs can answer are yours to look up before asking (territory arm);
   bring the human only decisions and tacit knowledge.
 
