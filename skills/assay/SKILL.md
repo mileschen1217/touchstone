@@ -14,6 +14,8 @@ description: |
 kind: workflow
 ---
 
+<!-- keep-long: 231 lines. All main-path — the full interview procedure (vocabulary/map/territory arms, unknown-disposition, consensus render, consequence probes, readiness ask) is read every invocation; no orientation-only content to extract. -->
+
 # /touchstone:assay — Pre-Contract Interview Instrument
 
 One fused interview session that aligns human and AI on everything this topic touches, across
@@ -140,6 +142,33 @@ per `adr-authoring.md` (same directory), carrying the flip-trigger / bet-owner /
 with the human as bet-owner; grade the judgment against `references/arch-rubric.md`; for a fork worth
 critique evidence, dispatch `touchstone:cross-provider-architect` (adaptable — omit with the reason recorded in the ADR).
 
+## Consensus render — the object of the yes
+
+After the table converges (no open contradiction, unknowns dispositioned) and
+BEFORE publishing the consequence probes, render the `## Consensus` section as a
+pre-yes end-turn message: the four subsections — Scope / Invariants / Contract
+facts / Out-of-scope — every entry traced to its stable ids. This render is the
+object the human's explicit yes lands on; the readiness ask refers the human to
+it.
+
+- **Presentation reuses the loaded `laydown-first-presentation.md`.** Delta: the
+  full picture = the consensus section; the depth-tier axis is the entry's
+  **load-bearing STATUS** — Scope / Invariants / Contract-facts entries (the
+  load-bearing contract) get full text, Out-of-scope entries get one line —
+  derived from the subsection and its traced source rows, NOT a literal
+  `load-bearing?` tag column (consensus entries carry `[trace:]`, not tags). The
+  render covers exactly the four `## Consensus` subsections; the record's
+  `## Deferred log` is NOT part of it.
+- **Render before persist.** The record's `## Consensus` is NOT written before the
+  explicit yes — it is persisted only at/after the yes. Because the consensus
+  content is not yet persisted at render time, the render's digest tier (the
+  short Out-of-scope subsection) stays one-line inline rather than collapsing to a
+  record-file pointer (the scale notch's not-yet-persisted case).
+- **Re-render on a correction.** On any correction — a falsified probe, or an
+  explicit correction at the readiness ask — the table re-converges and the
+  consensus is re-rendered on the corrected state before the next readiness ask;
+  the eventual yes never lands on a stale render.
+
 ## Consequence probes — alignment made falsifiable
 
 After the table converges (no open contradiction, unknowns dispositioned) and BEFORE any
@@ -157,6 +186,7 @@ filled"; NOT "zero unknowns") AND the latest probe round had zero corrections �
 probe answer counts as a correction and folds back. Not ready → run the cheap probe(s),
 return to the table, re-converge. The record's readiness ruling cites both the explicit yes
 and the clean probe round by its dated `R-n` id.
+ The ask refers the human to the pre-yes consensus render as the object of the yes.
 
 **The human rules readiness once.** Guard the ruling with the non-yes taxonomy:
 
