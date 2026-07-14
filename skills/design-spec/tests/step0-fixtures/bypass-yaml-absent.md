@@ -1,6 +1,5 @@
-# Fixture: bypass-yaml-absent — AC-1 (routing-branches-removed: no yaml-based skip) + AC-2 (standalone-degenerate-form)
+# Fixture: bypass-yaml-absent — routing-branches-removed (no yaml-based skip) + standalone-degenerate-form
 # Harness contract: skills/<skill>/tests/step0-fixtures/ two-layer schema
-# Spec authority: 2026-07-11-design-spec-deep-module.md § AC-1, AC-2
 #
 # .claude/touchstone.yaml is absent; must NOT skip Foundation & facts intake.
 # No facts source is supplied, so intake takes the standalone degenerate

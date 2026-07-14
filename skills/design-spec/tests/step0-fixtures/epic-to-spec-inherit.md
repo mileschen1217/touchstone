@@ -1,6 +1,5 @@
-# Fixture: epic-to-spec-inherit — AC-6 (citation-granularity-two-level, field-level consume)
+# Fixture: epic-to-spec-inherit — citation-granularity-two-level (field-level consume)
 # Harness contract: skills/<skill>/tests/step0-fixtures/ two-layer schema
-# Spec authority: 2026-07-11-design-spec-deep-module.md § AC-6
 #
 # Parent epic `## Foundation` is a qualified confirmed-facts source at
 # field-level granularity: it feeds Foundation fields with a section-level
@@ -14,7 +13,7 @@ setup:
 
 # ── Layer 1 (deterministic) ──────────────────────────────────────────────
 forbidden-substrings:
-  - "Does this spec's scope differ?"                          # retired branch-a prompt (AC-1)
+  - "Does this spec's scope differ?"                          # retired branch-a prompt
   - "This subject has no qualified confirmed-facts source"    # standalone path must NOT fire — a qualified source is supplied
   - "describe the intended work in your own words"            # from-scratch opener must NOT fire
   # harness-wide guard (implicit per spec § Interfaces "Harness-wide

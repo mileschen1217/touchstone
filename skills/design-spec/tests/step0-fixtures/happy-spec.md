@@ -1,6 +1,5 @@
-# Fixture: happy-spec — AC-2 (standalone-degenerate-form, elicitation happy path)
+# Fixture: happy-spec — standalone-degenerate-form (elicitation happy path)
 # Harness contract: skills/<skill>/tests/step0-fixtures/ two-layer schema
-# Spec authority: 2026-07-11-design-spec-deep-module.md § AC-2
 #
 # No parent epic, no facts source: intake takes the standalone degenerate
 # form (one steering line, then pointwise elicitation, no multi-round
@@ -11,7 +10,7 @@ invocation: { skill: design-spec, args: "" }
 
 # ── Layer 1 ──────────────────────────────────────────────────────────────
 required-phrases:
-  - "This subject has no qualified confirmed-facts source — the designed path is the crucible chain (assay interview); continuing standalone, I will elicit each missing fact pointwise."   # full exact steering line (AC-2)
+  - "This subject has no qualified confirmed-facts source — the designed path is the crucible chain (assay interview); continuing standalone, I will elicit each missing fact pointwise."   # full exact steering line
 
 forbidden-substrings:
   # harness-wide guard (implicit per spec § Interfaces "Harness-wide
@@ -39,7 +38,7 @@ expected-artifacts:
     - path: "*.md"
       section: "## Foundation"
       contains: ["**Out of scope:**"]   # boundary routes live ONLY here
-      awk-shape: out-of-scope-subbullets # AC-11 awk: 1-3 children, none nested
+      awk-shape: out-of-scope-subbullets # awk: 1-3 children, none nested
 
 # ── Layer 2 ──────────────────────────────────────────────────────────────
 runs: 5

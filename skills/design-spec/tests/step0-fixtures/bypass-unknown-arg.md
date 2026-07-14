@@ -1,6 +1,5 @@
-# Fixture: bypass-unknown-arg — AC-1 (routing-branches-removed: no arg-based skip) + AC-2 (standalone-degenerate-form)
+# Fixture: bypass-unknown-arg — routing-branches-removed (no arg-based skip) + standalone-degenerate-form
 # Harness contract: skills/<skill>/tests/step0-fixtures/ two-layer schema
-# Spec authority: 2026-07-11-design-spec-deep-module.md § AC-1, AC-2
 #
 # "report-export" is parsed as feature_name (not a flag); must NOT skip
 # Foundation & facts intake. No facts source is supplied, so intake takes

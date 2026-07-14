@@ -17,7 +17,7 @@ this doc + `LAYER2-RUNNER.md`):
   `same-session-reuse-spec.md`, `vague-aim-user-override.md`, `vague-aim.md`.
   Each tested foundation-gate.md machinery (shallow-boundary deflection,
   legacy-Intention fallback, same-invocation reuse, vague-aim-token checks)
-  that design-spec no longer inherits — AC-1 removes its reference to
+  that design-spec no longer inherits — the deep-module refactor removes its reference to
   `_shared/foundation-gate.md` outright. That machinery survives unchanged
   for epic-scaffold (foundation-gate.md itself, untouched); no design-spec-side
   fixture targets it after this refactor.
@@ -39,7 +39,7 @@ Fixture-count arithmetic (yaml files only, excluding this doc and
 `LAYER2-RUNNER.md`): 13 design-spec (pre-refactor) − 5 retired = 8
 surviving/rewritten design-spec fixtures. Cross-skill aggregate: 8
 design-spec + 3 epic-driven-roadmap (`skills/epic-driven-roadmap/tests/step0-fixtures/`,
-untouched per AC-11) = **11 total**, down from the pre-refactor 13 + 3 = 16
+untouched by this refactor) = **11 total**, down from the pre-refactor 13 + 3 = 16
 (itself down from the historical 18 recorded below — 2 modifier fixtures
 removed in Phase 3.2 A1).
 
