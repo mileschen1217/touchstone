@@ -39,10 +39,11 @@ epic dir path when one exists — the record's home. No parent epic → ask; nev
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/laydown-first-presentation.md`
 > with the Read tool and follow it exactly.
 
-assay's delta: the full picture is the complete alignment table — assumption rows + term sheet
-+ bold pass, every row carrying its `load-bearing?` tag and its planned handling (will-ask /
-self-check / residual→disposition / deferred); rows queued for extraction questioning count as
-awaiting the human's attention in the fragment's depth tiering.
+assay's delta: the full picture is the complete alignment table — term-sheet rows (each
+carrying its source marker) + assumption and bold-pass rows (each carrying its `load-bearing?`
+× `probe-cost` tags) — every row also carrying its planned handling (will-ask / self-check /
+residual→disposition / deferred); rows queued for extraction questioning count as awaiting the
+human's attention in the fragment's depth tiering.
 
 ## Vocabulary arm — term sheet
 
@@ -101,7 +102,7 @@ each remaining question WITH your predicted answer; an empty queue is published 
 explicit empty-queue statement — closing without a published round is not a path. Questioning
 closes only after the user confirms. A missed prediction reopens that question for real
 extraction (a user correction likewise reopens the question queue); a later published round
-must pass before questioning may close.
+must pass before questioning may close. Each published round — predict or probe — takes the next id in a SINGLE dated sequence of `R-n` ids (one shared counter across both round types, never two per-type counters that could each emit `R-1`).
 
 ## Territory arm — wiring, not new mechanism
 

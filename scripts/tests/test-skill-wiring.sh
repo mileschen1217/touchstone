@@ -362,6 +362,10 @@ chk "assay-consensus-terminus"  "skills/assay/SKILL.md" "## Consensus"
 chk "assay-trace-grammar"       "skills/assay/SKILL.md" "\[trace: "
 chk "assay-no-seam-skeletons"   "skills/assay/SKILL.md" "no acceptance-seam skeletons|authors the seam"
 chk "assay-record-frontmatter"  "skills/assay/SKILL.md" "frontmatter .subject:."
+# REQ-4 AC-12: R-n defined at first use as a single dated sequence (not two per-type counters)
+chk "assay-rn-single-sequence"  "skills/assay/SKILL.md" "single dated sequence"
+# REQ-4 AC-13: load-bearing? tag scoped to assumption rows in the delta line (term-sheet rows carry a source marker)
+chk "assay-delta-tag-scoped"    "skills/assay/SKILL.md" "assumption and bold-pass rows"
 
 # --- confirmed-facts consume: design-spec (deep component) ---
 chk "ds-generic-interface"  "skills/design-spec/SKILL.md" "facts sources in"
