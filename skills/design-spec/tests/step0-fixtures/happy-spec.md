@@ -1,34 +1,30 @@
-# Fixture: happy-spec — AC-2 (Elicitation happy path, design spec) + AC-5 (no within-doc duplication)
+# Fixture: happy-spec — standalone-degenerate-form (elicitation happy path)
 # Harness contract: skills/<skill>/tests/step0-fixtures/ two-layer schema
-# Spec authority: intention-first epic § AC-2, AC-5
+#
+# No parent epic, no facts source: intake takes the standalone degenerate
+# form (one steering line, then pointwise elicitation, no multi-round
+# mini-interview).
 
 ```yaml
 invocation: { skill: design-spec, args: "" }
 
 # ── Layer 1 ──────────────────────────────────────────────────────────────
 required-phrases:
-  - "Please describe the intended work in your own words."   # b1 from-scratch opener (full exact emit)
-  - "Intention (why):"
-  - "Aim:"
-  - "Out of scope:"
-  - "Please confirm or edit this foundation."   # exact Foundation-elicitation confirm
+  - "This subject has no qualified confirmed-facts source — the designed path is the crucible chain (assay interview); continuing standalone, I will elicit each missing fact pointwise."   # full exact steering line
 
 forbidden-substrings:
-  - "Parent epic uses legacy Intention format"  # b1 (no parent epic): the
-                                                # AC-14 legacy note must NOT
-                                                # fire on the no-epic path
   # harness-wide guard (implicit per spec § Interfaces "Harness-wide
   # premature-hand-off invariant"): this fixture is NOT aim-handoff.
   - "Sharpened the Foundation aim into testable acceptance criteria — confirm or edit."
 forbidden-mode: literal
 
-# (legacy four-question-string absence is AC-6's grep gate, not re-asserted.)
 expected-foundation:
   intention: "<fixture-fixed>"
   aim: "<fixture-fixed>"
   out-of-scope: ["<fixture-fixed route>"]
 
-# AC-5 — no within-document foundation duplication (spec § AC-5)
+# No within-document Foundation/Scope duplication — pre-existing behavior,
+# untouched by this refactor (not itself a P2 AC; kept as a live witness).
 expected-artifacts:
   specs_dir_delta: 1
   files:
@@ -42,7 +38,7 @@ expected-artifacts:
     - path: "*.md"
       section: "## Foundation"
       contains: ["**Out of scope:**"]   # boundary routes live ONLY here
-      awk-shape: out-of-scope-subbullets # AC-11 awk: 1-3 children, none nested
+      awk-shape: out-of-scope-subbullets # awk: 1-3 children, none nested
 
 # ── Layer 2 ──────────────────────────────────────────────────────────────
 runs: 5

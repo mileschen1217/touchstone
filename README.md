@@ -51,7 +51,7 @@ The review/architecture agents (`architect`, `code-reviewer`) are vendored plugi
 - `touchstone:crucible` — Front-end contract orchestrator: explore → assay → design-spec, one human accept.
 - `touchstone:anvil` — Back-end contract executor: plan → plan-review → SDD build → final cross-vendor review, stops before ship.
 - `touchstone:insight` — Workflow-improvement loop: ledger digest → proposals → human ruling → checker install/retire.
-- `touchstone:assay` — Pre-contract interview instrument: assumption laydown ⇄ tacit-intent extraction → readiness fork → guardrail contract block.
+- `touchstone:assay` — Pre-contract interview instrument: three-way alignment (vocabulary / maps / territory) — laydown-first full table ⇄ tacit-intent extraction → published predict round → consequence probes → readiness (explicit yes + clean round) → record consensus section the contract author consumes.
 - `touchstone:design-spec` — Author spec: Problem → Scope → AC (GWT) → Architecture → Interfaces.
 - `touchstone:design-review` — Gate spec/plan/ADR before Build (Pattern A).
 - `touchstone:code-review` — Per-commit + per-batch code review (Patterns C / B).

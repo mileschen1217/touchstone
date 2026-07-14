@@ -46,11 +46,11 @@ expect_absent grep -REn \
 # region below would be empty and the forbidden-conditional grep would
 # print 0 and false-pass (no region = no violation counted).
 expect_count 1 grep -cE '^0\. \*\*Foundation elicitation' skills/epic-driven-roadmap/SKILL.md
-expect_count 1 grep -cE '^### Foundation elicitation' skills/design-spec/SKILL.md
+expect_count 1 grep -cE '^### Foundation & facts intake' skills/design-spec/SKILL.md
 expect_count 0 bash -c "set -o pipefail; awk '/^0\\. \\*\\*Foundation elicitation/{f=1} /^1\\. /{f=0} f' \
   skills/epic-driven-roadmap/SKILL.md \
   | grep -cE 'adopted_disciplines|intention-first|--skip|\\bquick\\b|if .*yaml'"
-expect_count 0 bash -c "set -o pipefail; awk '/^### Foundation elicitation/{f=1} /^### /{if(f&&!/Foundation elicitation/)f=0} f' \
+expect_count 0 bash -c "set -o pipefail; awk '/^### Foundation & facts intake/{f=1} /^### /{if(f&&!/Foundation & facts intake/)f=0} f' \
   skills/design-spec/SKILL.md \
   | grep -cE 'adopted_disciplines|intention-first|--skip|\\bquick\\b|if .*yaml'"
 

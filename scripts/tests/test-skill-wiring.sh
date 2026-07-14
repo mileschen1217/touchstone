@@ -333,4 +333,95 @@ chk "assay-adr-assumptions-field" "skills/assay/adr-authoring.md" "Assumptions:"
 alc="$(wc -l < "$root/skills/assay/SKILL.md" 2>/dev/null || echo 999)"
 [ "$alc" -le 200 ] && echo "ok assay-line-count ($alc)" || { echo "FAIL assay-line-count: $alc > 200"; fail=$((fail+1)); }
 
+# --- assay v2: laydown-first presentation fragment (single home) ---
+frag="skills/_shared/inject/laydown-first-presentation.md"
+[ -f "$root/$frag" ] && echo "ok fragment-file" \
+  || { echo "FAIL fragment-file: $frag missing"; fail=$((fail+1)); }
+chk "fragment-injected-by-assay" "$frag" "^injected-by: \[assay\]"
+chk "fragment-end-turn-carrier"  "$frag" "end-turn plain-text"
+chk "fragment-record-mirror"     "$frag" "durable record"
+chk "fragment-non-universal"     "$frag" "non-universal"
+chk "fragment-user-start-gate"   "$frag" "explicitly says to start"
+chk "fragment-auq-per-item"      "$frag" "per-item rulings"
+chk "fragment-tiered-depth"     "$frag" "coverage-complete"
+chk "fragment-full-table-home"  "$frag" "record always carries the full table"
+
+# --- assay v2: three-way alignment body ---
+chk "assay-three-arms"          "skills/assay/SKILL.md" "three arms"
+chk "assay-term-sheet"          "skills/assay/SKILL.md" "term sheet"
+chk "assay-source-marker"       "skills/assay/SKILL.md" "source marker"
+chk "assay-ledger-conflict-row" "skills/assay/SKILL.md" "its own assumption row"
+chk "assay-loads-fragment"      "skills/assay/SKILL.md" "laydown-first-presentation\.md"
+chk "assay-planned-handling"    "skills/assay/SKILL.md" "planned handling"
+chk "assay-predict-published"   "skills/assay/SKILL.md" "predicted answer"
+chk "assay-empty-queue"         "skills/assay/SKILL.md" "empty-queue statement"
+chk "assay-consequence-probes"  "skills/assay/SKILL.md" "consequence probes"
+chk "assay-probe-floor"         "skills/assay/SKILL.md" "per load-bearing ruling"
+chk "assay-clean-round"         "skills/assay/SKILL.md" "zero corrections"
+chk "assay-consensus-terminus"  "skills/assay/SKILL.md" "## Consensus"
+chk "assay-trace-grammar"       "skills/assay/SKILL.md" "\[trace: "
+chk "assay-no-seam-skeletons"   "skills/assay/SKILL.md" "no acceptance-seam skeletons|authors the seam"
+chk "assay-record-frontmatter"  "skills/assay/SKILL.md" "frontmatter .subject:."
+
+# --- confirmed-facts consume: design-spec (deep component) ---
+chk "ds-generic-interface"  "skills/design-spec/SKILL.md" "facts sources in"
+chk "ds-points-to-contract" "skills/design-spec/SKILL.md" "confirmed-facts-source\.md"
+chk "ds-never-silent"       "skills/design-spec/SKILL.md" "NEEDS CLARIFICATION"
+chk "ds-authors-ac-layer"   "skills/design-spec/SKILL.md" "authored HERE"
+chk "ds-standalone-steering" "skills/design-spec/SKILL.md" "no qualified confirmed-facts source"
+# retired routing knowledge must be gone (AC-1) — SKILL.md and references/
+for pat in "Consume-or-elicit" "legacy Intention format" "foundation-gate\.md"; do
+  if grep -rqiE "$pat" "$root/skills/design-spec/SKILL.md" "$root/skills/design-spec/references" 2>/dev/null; then
+    echo "FAIL ds-no-routing($pat): retired token present"; fail=$((fail+1))
+  else echo "ok ds-no-routing($pat)"; fi
+done
+
+# --- confirmed-facts handoff: crucible ---
+chk "crucible-facts-source-handoff" "skills/crucible/SKILL.md" "record path as the facts source"
+chk "crucible-points-to-contract"   "skills/crucible/SKILL.md" "confirmed-facts-source\.md"
+chk "crucible-ask-or-mark"          "skills/crucible/SKILL.md" "NEEDS CLARIFICATION"
+chk "crucible-prdseams-traced"      "skills/crucible/SKILL.md" "row-level cited rows"
+
+# retired handoff: no live surface still instructs producing/consuming a guardrail block
+# (docs/adr/ history exempt — dated ledger)
+for gf in skills/assay/SKILL.md skills/design-spec/SKILL.md skills/crucible/SKILL.md \
+          skills/_shared/foundation-gate.md CONTEXT.md README.md; do
+  if grep -qi "guardrail" "$root/$gf"; then
+    echo "FAIL no-guardrail-handoff: token present in $gf"; fail=$((fail+1))
+  else echo "ok no-guardrail-handoff($(basename "$gf"))"; fi
+done
+# presentation-protocol fragment has exactly one consumer this epic (assay)
+extra="$(grep -rln "laydown-first-presentation" "$root/skills" "$root/agents" 2>/dev/null \
+  | grep -v "skills/assay/SKILL.md" | grep -v "_shared/inject/laydown-first-presentation.md" || true)"
+if [ -n "$extra" ]; then
+  echo "FAIL fragment-single-consumer: unexpected consumer(s): $extra"; fail=$((fail+1))
+else echo "ok fragment-single-consumer"; fi
+
+# --- assay v2 P2: confirmed-facts source contract fragment (single home) ---
+cfs="skills/_shared/inject/confirmed-facts-source.md"
+[ -f "$root/$cfs" ] && echo "ok cfs-file" \
+  || { echo "FAIL cfs-file: $cfs missing"; fail=$((fail+1)); }
+chk "cfs-injected-by"        "$cfs" "^injected-by: \[design-spec, crucible\]"
+# three-part qualification
+chk "cfs-part-marked-area"   "$cfs" "marked.*confirmed.*facts|confirmed-facts area"
+chk "cfs-part-per-fact-cite" "$cfs" "per-fact.*citation|stable.*per-fact"
+chk "cfs-part-confirm-stamp" "$cfs" "confirmation event stamp"
+# two citation-granularity levels
+chk "cfs-field-level"        "$cfs" "field-level"
+chk "cfs-row-level"          "$cfs" "row-level"
+# four never-silent triggers — one chk EACH (dropping any one goes RED; AC-9)
+chk "cfs-trigger-absent"      "$cfs" "\*\*absent\*\*"
+chk "cfs-trigger-contradict"  "$cfs" "\*\*contradict\*\*"
+chk "cfs-trigger-missing"     "$cfs" "\*\*missing\*\*"
+chk "cfs-trigger-unparseable" "$cfs" "\*\*unparseable\*\*"
+chk "cfs-disposition"        "$cfs" "NEEDS CLARIFICATION"
+# naming rule: the class is "confirmed-facts source", never a seam
+chk "cfs-naming-rule"        "$cfs" "never.*seam|not.*a seam"
+# examples are implementations, not qualifying conditions
+chk "cfs-examples-not-condition" "$cfs" "example implementations|examples?, n(ot|ever) .*(qualifying|condition)"
+# the seam-name is forbidden on ALL shipped surfaces (AC-7)
+if grep -rqi "confirmed-facts seam" "$root/skills" "$root/agents" "$root/commands" "$root/CONTEXT.md" "$root/README.md" 2>/dev/null; then
+  echo "FAIL cfs-no-seam-name: 'confirmed-facts seam' present on a shipped surface"; fail=$((fail+1))
+else echo "ok cfs-no-seam-name"; fi
+
 if [ "$fail" -eq 0 ]; then echo "ALL GREEN"; exit 0; else echo "RED: $fail failed"; exit 1; fi

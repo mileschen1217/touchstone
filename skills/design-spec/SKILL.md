@@ -24,7 +24,9 @@ allowed-tools:
 
 Produce an ATDD + TDD double-loop-aligned design spec for a feature and write the Draft to the project's specs directory. design-spec emits only Draft — promotion is downstream (see Output).
 
-**Draft Mode may need a live responsive user** — standalone, Foundation elicitation prompts the human; inside crucible it consumes assay's guardrail block, so no prompt fires.
+**Draft Mode may need a live responsive user** — with no qualified facts
+source supplied, pointwise elicitation prompts the human; with a supplied
+confirmed-facts source, no prompt fires.
 
 ## When to Invoke
 
@@ -45,30 +47,45 @@ text into context.
 
 ## Draft Mode
 
-### Foundation elicitation (Baseline — always runs)
+### Foundation & facts intake (always runs)
 
-Before collecting design inputs or reading implementation source files,
-locate and read the parent epic index if one is in context, then run the
-elicitation gate per
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/foundation-gate.md` — read it and
-follow it exactly (reuse check, from-scratch opener, sharpening, synthesise,
-confirm; all canonical emit strings live there). design-spec wraps that gate
-with an assay consume-or-elicit branch, parent-epic inheritance + a reframe
-exit. Note: a FRESH invocation whose parent epic already has a populated
-`## Foundation` takes branch a (inheritance), NOT a reuse hit — the gate's
-reuse check applies only within the same invocation.
+design-spec's whole intake interface is: **facts sources in → Draft spec
+out**. Sources are those the caller or user supplies, or already in
+context — never glob or hunt for epic indexes or assay records yourself.
 
-**Consume-or-elicit (checked FIRST, before branches a/b):** when an assay
-record exists for this subject (the crucible chain hands it over; standalone,
-look for `<epics-dir>/<slug>/assay-*-<subject>.md`), consume the record as
-the confirmed foundation — intention ← the record's `subject:` frontmatter
-line; aim ← the guardrail head's scope, condensed to the observable outcome;
-out-of-scope ← the head's out-of-scope — and record it per step g. The head's
-invariants and contract facts are contract-body content (this spec's
-Invariants / Scope sections), never Foundation fields. Do NOT run the shared
-gate: assay is the chain's single human-elicitation surface, and its
-readiness ruling already carries the human's confirm. No assay record →
-elicit via branches a/b below.
+Source qualification, citation granularity, and the validation-failure
+trigger classes live in the confirmed-facts source contract — read
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/confirmed-facts-source.md`
+with the Read tool and follow it exactly. design-spec's own delta on that
+contract: a validation failure (any trigger class) is dispositioned by
+asking the human in-session or marking `[NEEDS CLARIFICATION]` — a failed
+fact never lands as an untraced Scope/Invariants entry.
+
+Per-fact principle (the only disposition — never branch on whether a source
+exists or which producer made it): for each fact the spec needs, find its
+confirmation evidence in the supplied sources and cite it at the granularity
+the confirmed-facts source contract requires for that fact's target section,
+each contract-body fact carrying its `[trace: <id>]` — else ask or mark. The AC / acceptance-seam
+layer is authored HERE, by design-spec — a source hands over confirmed
+facts, never pre-drafted seams. Terms do not propagate: every term this
+spec uses carries its own self-contained definition (a session-coined
+term's source of truth stays in its source).
+
+Degenerate form — when no qualified source is supplied and Foundation facts
+are unresolvable from context, emit ONE steering line: "This subject has
+no qualified confirmed-facts source — the designed path is the crucible
+chain (assay interview); continuing standalone, I will elicit each missing
+fact pointwise." Then elicit each missing fact pointwise (the human's
+in-session confirmation is field-level evidence for Foundation fields). No
+multi-round mini-interview.
+
+**Reframe exit** — if the user reframes during intake (e.g. "this should be
+a fixture, not a spec"), STOP. Do not draft a spec and do not write any
+file under specs_dir. Report: "Scope reframed to [X] — a design spec is not
+needed. Exiting Draft Mode."
+
+**Record** — write the confirmed foundation into the spec under
+`## Foundation` (all three fields — the spec has no tracker headline).
 
 **Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section. Section mapping + authoring conventions: `references/draft-workflow.md § Want-layer authoring` (single home); vocabulary: `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate.
 
@@ -76,29 +93,6 @@ elicit via branches a/b below.
 > Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/ground-and-sweep.md`
 
 feedforward application delta (AC generation): `requirement × current-repo-state` — ground each AC in concrete repo facts (file path, line number, value); sweep the AC's true subject set to saturation, not first-hit. When **generating** acceptance criteria, each generated AC is the unit; saturation = every subject element has ≥1 AC.
-
-a. **Inherit** — if the parent epic index has a populated `## Foundation`:
-   pre-fill from it, restate the epic's intention / aim / out-of-scope, then
-   ask with this EXACT phrase verbatim (fixed emit string — do not paraphrase,
-   do not substitute your own questions):
-   "Does this spec's scope differ? If so, sharpen each field for this phase."
-   Do NOT run the shared gate's from-scratch opener.
-
-b. **No inheritable `## Foundation`** — run the shared gate from its
-   from-scratch opener. Two sub-cases:
-   - b1. No parent epic at all: run the gate; do NOT emit the legacy note.
-   - b2. Parent epic uses the legacy `## Intention` format (not `## Foundation`):
-     FIRST emit this EXACT note: "Parent epic uses legacy Intention format —
-     consider updating it.", THEN run the gate. (The legacy note fires in b2
-     ONLY; it must be absent in b1.)
-
-f. **Reframe exit** — if the user reframes during sharpening (e.g. "this
-   should be a fixture, not a spec"), STOP. Do not draft a spec and do not
-   write any file under specs_dir. Report:
-   "Scope reframed to [X] — a design spec is not needed. Exiting Draft Mode."
-
-g. **Record** — write the confirmed foundation into the spec under
-   `## Foundation` (all three fields — the spec has no tracker headline).
 
 ### Draft inputs & workflow
 

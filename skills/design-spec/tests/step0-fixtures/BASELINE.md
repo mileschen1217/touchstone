@@ -3,6 +3,52 @@
 Baseline of the 18 intention-first Foundation-elicitation-phase fixtures. **Two verification modes
 were used** (faithful replay is the gold standard; static is a dry-run).
 
+## 2026-07-12 update — design-spec deep-module refactor (P2)
+
+The 2026-07-11 design-spec-deep-module spec replaced design-spec's a/b/b1/b2
+source-routing branches with one generic per-fact consume principle
+(field-level citation feeds `## Foundation`; row-level `[trace:]` feeds
+contract-body facts; no qualified source → one steering line, then pointwise
+elicitation). A per-item survival table governed the affected
+`skills/design-spec/tests/step0-fixtures/` surface (13 fixture yaml files +
+this doc + `LAYER2-RUNNER.md`):
+
+- **Retired (5)** — `design-slide-attempt.md`, `legacy-epic.md`,
+  `same-session-reuse-spec.md`, `vague-aim-user-override.md`, `vague-aim.md`.
+  Each tested foundation-gate.md machinery (shallow-boundary deflection,
+  legacy-Intention fallback, same-invocation reuse, vague-aim-token checks)
+  that design-spec no longer inherits — the deep-module refactor removes its reference to
+  `_shared/foundation-gate.md` outright. That machinery survives unchanged
+  for epic-scaffold (foundation-gate.md itself, untouched); no design-spec-side
+  fixture targets it after this refactor.
+- **Rewritten (5)** — `bypass-unknown-arg.md`, `bypass-yaml-absent.md`,
+  `bypass-yaml-no-intention-first.md`, `epic-to-spec-inherit.md`,
+  `happy-spec.md`. Required-phrases/forbidden-substrings moved off the
+  retired shared-gate opener/branch-label strings onto the new observables:
+  the standalone degenerate-form steering line ("no qualified confirmed-facts
+  source... continuing standalone, I will elicit each missing fact
+  pointwise") for the three bypass fixtures and `happy-spec`; field-level
+  consume (Foundation fields populated from the epic's `## Foundation`
+  section, no re-elicitation prompt, no "Does this spec's scope differ?")
+  for `epic-to-spec-inherit`.
+- **Survives (3)** — `aim-handoff.md`, `bypass-invalid-vendor.md`,
+  `scope-reframe.md`. Untouched; none asserted a removed branch-label or
+  gate-opener phrase.
+
+Fixture-count arithmetic (yaml files only, excluding this doc and
+`LAYER2-RUNNER.md`): 13 design-spec (pre-refactor) − 5 retired = 8
+surviving/rewritten design-spec fixtures. Cross-skill aggregate: 8
+design-spec + 3 epic-driven-roadmap (`skills/epic-driven-roadmap/tests/step0-fixtures/`,
+untouched by this refactor) = **11 total**, down from the pre-refactor 13 + 3 = 16
+(itself down from the historical 18 recorded below — 2 modifier fixtures
+removed in Phase 3.2 A1).
+
+The verification status below (2026-05-23 pass@5 + faithful-replay results)
+is historical — it predates this refactor and no longer describes the
+rewritten fixtures' current assertions. `LAYER2-RUNNER.md`'s replay runner
+remains pending-harness/not-scheduled; no runner has re-verified the
+rewritten fixtures against a live agent as of this build.
+
 ## Modes
 
 - **Faithful replay** (gold): the orchestrator (Agent tool + SendMessage)
