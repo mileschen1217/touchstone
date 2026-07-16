@@ -83,4 +83,11 @@
 # handoff text at three consumers; funded partly by retiring the former
 # block-authoring section. Presented for the human's baseline ruling in
 # the PR.
-263506
+# 263506
+# 2026-07-16: ratcheted down -2954 — P2 essence re-compression: assay body
+# 232→200 lines (keep-long annotation retired) + laydown-first fragment
+# rewrite (P1 consensus-render/scale-notch token debt paid back; all
+# ~70 wiring chks green with zero pattern edits); funds Batch-1/2 additions
+# (design-spec REQ-headline discipline, design-review post-review
+# re-distill). Number presented for the human's baseline ruling in the PR.
+260552

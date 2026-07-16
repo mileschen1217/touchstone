@@ -14,12 +14,11 @@ human. A consumer loads this file and follows it, carrying only its own delta
   **end-turn plain-text message** — the turn's final text, after all tool
   calls — and (2) a mirror into the consumer's **durable record** file. A
   consumer MAY declare a record section **deferred** — written only at a
-  later consent point (e.g. a pre-yes render whose record section lands at
-  the yes): the message carrier fires now, the file carrier only at that
-  point. Never mirror deferred content into the record early.
+  later consent point: the message carrier fires now, the file carrier at
+  that point. Never mirror deferred content into the record early.
 - Never carry load-bearing content ONLY in text emitted before a tool call
   or in AskUserQuestion option previews — both are known non-universal
-  carriers (some client surfaces do not display them).
+  carriers.
 
 ## Full picture before per-item
 
@@ -30,29 +29,21 @@ human. A consumer loads this file and follows it, carrying only its own delta
 
 ## Tiered depth
 
-- The end-turn message is **coverage-complete** — every row of the full
-  picture is present — with depth tiered by ONE principle: a row still
-  awaiting the human's ruling or attention this turn gets **full text**
-  (anchor examples: a row about to be questioned, a row conflicting with
-  the human's existing ledger, an AI-proposed larger move — examples, not
-  an exhaustive rule); a resolved row gets a **one-line digest** (anchor
-  examples: settled by the AI's own lookup, already ruled by the human).
-- On collision, full text wins: a row meeting any full-text condition gets
-  full text.
-- **Scale notch.** When the tiered end-turn message would exceed
-  **one-pass scannability** (the AI's functional judgement — NOT a hardcoded row or token count),
-  collapse the DIGEST tier. WHERE that digest content is already mirrored to the persisted record,
-  replace its rows in the message with an explicit count + the record-file path holding their full content
-  (never dropped, never a cherry-picked subset). WHERE the digest content is not yet persisted
-  (a consumer whose record section is deferred), the digest tier stays one-line inline
-  instead of pointing at a not-yet-written location.
-  The **full-text tier is never collapsed.** Which rows collapse is the consumer's objective tier
-  criterion — the whole digest set, never an AI pick of individual rows to hide.
-  When the judgement is ambiguous, collapse the digest tier (the stricter default), signposted —
-  never silently drop rows, never collapse the full-text tier.
-  Every collapse signposts the count + record-file path AND a short expand request the human can give;
-  on that request the collapsed digest is rendered inline (or by pointing at the exact record
-  section / rows) — the collapse is reversible by the human, not a dead end.
+- The end-turn message is **coverage-complete** — every row present — with
+  depth tiered by ONE principle: a row still awaiting the human's ruling or
+  attention this turn gets **full text**; a resolved row gets a **one-line
+  digest**. On collision, full text wins.
+- **Scale notch.** When the tiered message would exceed **one-pass scannability**
+  (the AI's functional judgement — not a hardcoded row or token count),
+  collapse the DIGEST tier: rows already mirrored to the persisted record are
+  replaced by an explicit count + the record-file path holding their full
+  content — always the whole digest set, never a cherry-picked subset; rows
+  not yet persisted (a deferred record section) stay one-line inline instead.
+  The full-text tier is never collapsed. When the judgement is
+  ambiguous, collapse the digest tier (the stricter default), signposted.
+  Every collapse names the count + record-file path AND a short expand
+  request the human can give to render the collapsed rows inline — the
+  collapse is reversible by the human.
 - The durable record always carries the full table — it is the full-text
   layer's home; tiering applies to the end-turn message only.
 
@@ -68,11 +59,10 @@ human. A consumer loads this file and follows it, carrying only its own delta
 
 ## Canonical rendering example
 
-Synthetic content; the FORM is canonical, not the wording. Tags render as distinct
-scannable **badges**; a row's stable **id appears as a handle beside** the content
-phrase (phrase-primary), never as an id-alone reference. Three renderings to keep
-in sync — full-text, one-line digest, and the scale-collapsed digest — are three
-RENDERINGS of the two-valued tier axis (full-text / digest), not a third tier value.
+Synthetic content — the FORM is canonical, not the wording: tags as distinct
+scannable **badges**; the stable id as a **handle beside** the content phrase,
+never id-alone. Three renderings of the ONE two-valued tier axis (full-text /
+digest), not a third tier value:
 
 **Awaiting zone (full text):**
 
