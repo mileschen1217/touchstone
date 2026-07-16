@@ -109,6 +109,12 @@ A ⚠️ DEGRADED / ⚠️ PARTIAL banner (orthogonal to C+H) → present VERBAT
 get explicit acknowledgement BEFORE Build, even at C+H = 0 (meaning:
 `cross-provider-reviewer/references/provenance.md`).
 
+**Post-review re-distill (spec artifacts, once C+H = 0).** You, the reviewing
+session, re-distill the spec's REQ/AC surface before the status decision: each
+`### Requirement:` headline back to ONE normative SHALL sentence; clauses the
+review churn absorbed re-homed to their own sections; duplicates deleted.
+Review only ever adds text — this step is where the surface is reclaimed.
+
 Never auto-promote the artifact's status — the human (or caller) decides. Close
 the metrics window (silent no-op):
 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/metrics/stamp-end.sh"`.
