@@ -316,6 +316,21 @@ chk "assay-correction-reopens"   "skills/assay/SKILL.md" "reopens the question q
 chk "assay-laydown-leaning"      "skills/assay/SKILL.md" "carry your leaning"
 chk "assay-unknown-sources"      "skills/assay/SKILL.md" "laydown residuals"
 chk "assay-laydown-never-skipped" "skills/assay/SKILL.md" "never skips the laydown"
+# REQ-1 AC-1: consensus render precedes the consequence-probe step
+chk "assay-consensus-render-step" "skills/assay/SKILL.md" "[Cc]onsensus render"
+chk "assay-render-before-probes"  "skills/assay/SKILL.md" "before.*consequence probe|BEFORE.*probes"
+# REQ-1 AC-2: render precedes the readiness ask; the yes lands on it
+chk "assay-yes-object-render"     "skills/assay/SKILL.md" "object of the .*yes|refers the human to that.*render"
+# REQ-1 AC-3: record ## Consensus not persisted before the yes
+chk "assay-no-preyes-persist"     "skills/assay/SKILL.md" "not.*written before the.*yes|persisted only at/after the.*yes"
+# REQ-1 AC-4: reuses laydown-first with a one-line delta (single home)
+chk "assay-render-reuses-laydown" "skills/assay/SKILL.md" "consensus render.*laydown-first|reuses.*laydown-first-presentation"
+# REQ-1 AC-5: tier axis is load-bearing STATUS, not a literal load-bearing? tag column
+chk "assay-render-tier-status"    "skills/assay/SKILL.md" "load-bearing STATUS|not a literal .load-bearing"
+# REQ-1 AC-14: re-render on a correction before the next readiness ask
+chk "assay-render-recorrection"   "skills/assay/SKILL.md" "re-render.*before the next readiness|never lands on a stale render"
+# AC-14 re-render cross-referenced at its trigger site (falsified-probe path) — locks the final-review M2 fix
+chk "assay-rerender-probe-site"   "skills/assay/SKILL.md" "re-renders the consensus"
 # self-describing internal names: no bare-numbered stage headings remain
 if grep -qE '^#{2,3} (Stage [0-9]|[0-9][abc]? —)' "$root/skills/assay/SKILL.md"; then
   echo "FAIL assay-opaque-headings: bare-numbered section heading present"; fail=$((fail+1))
@@ -329,9 +344,13 @@ chk "assay-adr-assumptions-field" "skills/assay/adr-authoring.md" "Assumptions:"
   || { echo "FAIL assay-adr-file: skills/assay/adr-authoring.md missing"; fail=$((fail+1)); }
 [ -f "$root/skills/assay/references/arch-rubric.md" ] && echo "ok assay-rubric-file" \
   || { echo "FAIL assay-rubric-file: skills/assay/references/arch-rubric.md missing"; fail=$((fail+1)); }
-# assay body size norm (guideline enforced at 200 like crucible)
+# assay body size norm (200-line guideline is a WARN not a gate fail, matching
+# check-md-surface-budget.sh's per-file policy; 500 is the hard cap — plan
+# Global Constraints blessed assay/SKILL.md crossing 200 in REQ-3)
 alc="$(wc -l < "$root/skills/assay/SKILL.md" 2>/dev/null || echo 999)"
-[ "$alc" -le 200 ] && echo "ok assay-line-count ($alc)" || { echo "FAIL assay-line-count: $alc > 200"; fail=$((fail+1)); }
+if [ "$alc" -le 200 ]; then echo "ok assay-line-count ($alc)"
+elif [ "$alc" -le 500 ]; then echo "WARN assay-line-count: $alc > 200 (guideline, not a gate)"
+else echo "FAIL assay-line-count: $alc > 500 (hard cap)"; fail=$((fail+1)); fi
 
 # --- assay v2: laydown-first presentation fragment (single home) ---
 frag="skills/_shared/inject/laydown-first-presentation.md"
@@ -345,6 +364,29 @@ chk "fragment-user-start-gate"   "$frag" "explicitly says to start"
 chk "fragment-auq-per-item"      "$frag" "per-item rulings"
 chk "fragment-tiered-depth"     "$frag" "coverage-complete"
 chk "fragment-full-table-home"  "$frag" "record always carries the full table"
+# REQ-2 AC-8: scale trigger is AI-judged one-pass scannability, not a hardcoded count
+chk "fragment-scale-trigger"     "$frag" "one-pass scannab"
+chk "fragment-scale-not-hardcoded" "$frag" "not a hardcoded"
+# REQ-2 AC-6: digest tier collapses to a counted record-file pointer WHERE mirrored; else stays inline
+chk "fragment-scale-collapse"    "$frag" "counted.*record-file|count \+ .*record-file path"
+chk "fragment-scale-not-persisted-inline" "$frag" "not yet persisted|stays one-line inline"
+# REQ-2 AC-7: full-text tier is never collapsed
+chk "fragment-scale-fulltext-safe" "$frag" "full-text tier is never collapsed|never collapse the full-text"
+# REQ-2 AC-8: ambiguous → collapse digest (stricter), never silently drop
+chk "fragment-scale-ambiguous"   "$frag" "ambiguous, collapse the digest tier"
+# REQ-2 AC-15: human expand override, reversible
+chk "fragment-scale-expand"      "$frag" "expand request|reversible by the human"
+# carrier rule allows a consumer-declared deferred record section — locks the final-review M1 fix
+chk "fragment-deferred-carrier"  "$frag" "record section \*\*deferred\*\*|deferred content into the record"
+# REQ-3 AC-9: canonical tier-split rendering example incl. the scale-collapsed form
+chk "fragment-canonical-example" "$frag" "[Cc]anonical rendering example"
+chk "fragment-example-three-forms" "$frag" "scale-collapsed"
+# REQ-3 AC-10: tags render as scannable badges; id is a handle beside the phrase
+chk "fragment-example-badges"    "$frag" "badge"
+chk "fragment-example-id-handle" "$frag" "handle beside"
+# REQ-3 AC-11: §90 tightened to "never by row number alone" + id-handle permitted
+chk "assay-row-number-alone"     "skills/assay/SKILL.md" "row number alone"
+chk "assay-id-handle-permitted"  "skills/assay/SKILL.md" "id.*handle beside|visible.*id"
 
 # --- assay v2: three-way alignment body ---
 chk "assay-three-arms"          "skills/assay/SKILL.md" "three arms"
@@ -362,6 +404,10 @@ chk "assay-consensus-terminus"  "skills/assay/SKILL.md" "## Consensus"
 chk "assay-trace-grammar"       "skills/assay/SKILL.md" "\[trace: "
 chk "assay-no-seam-skeletons"   "skills/assay/SKILL.md" "no acceptance-seam skeletons|authors the seam"
 chk "assay-record-frontmatter"  "skills/assay/SKILL.md" "frontmatter .subject:."
+# REQ-4 AC-12: R-n defined at first use as a single dated sequence (not two per-type counters)
+chk "assay-rn-single-sequence"  "skills/assay/SKILL.md" "single dated sequence"
+# REQ-4 AC-13: load-bearing? tag scoped to assumption rows in the delta line (term-sheet rows carry a source marker)
+chk "assay-delta-tag-scoped"    "skills/assay/SKILL.md" "assumption and bold-pass rows"
 
 # --- confirmed-facts consume: design-spec (deep component) ---
 chk "ds-generic-interface"  "skills/design-spec/SKILL.md" "facts sources in"
