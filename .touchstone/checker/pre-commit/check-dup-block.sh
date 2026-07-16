@@ -46,8 +46,11 @@ hits="$(awk -v K="$K" -v baseline="$baseline" -v FPMODE="${DUP_BLOCK_FP:-0}" '
   FNR == 1 { fi++; fname[fi] = FILENAME; infence = 0 }
   {
     l = $0
-    if (l ~ /^ *(```|~~~)/) { infence = !infence; next }
-    if (infence) next
+    if (!infence && l ~ /^ *(```|~~~)/) { infence = 1; fmark = (l ~ /^ *```/) ? "b" : "t"; next }
+    if (infence) {
+      if ((fmark == "b" && l ~ /^ *```/) || (fmark == "t" && l ~ /^ *~~~/)) infence = 0
+      next
+    }
     gsub(/[^A-Za-z0-9]+/, " ", l)
     l = tolower(l)
     n = split(l, w, " ")

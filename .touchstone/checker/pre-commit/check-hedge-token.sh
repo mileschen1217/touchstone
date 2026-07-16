@@ -31,8 +31,11 @@ awk '
   FNR == 1 { infence = 0 }
   {
     l = $0
-    if (l ~ /^ *(```|~~~)/) { infence = !infence; next }
-    if (infence) next
+    if (!infence && l ~ /^ *(```|~~~)/) { infence = 1; fmark = (l ~ /^ *```/) ? "b" : "t"; next }
+    if (infence) {
+      if ((fmark == "b" && l ~ /^ *```/) || (fmark == "t" && l ~ /^ *~~~/)) infence = 0
+      next
+    }
     norm = tolower(l)
     gsub(/[^a-z0-9]+/, " ", norm)
     norm = " " norm " "
