@@ -34,11 +34,13 @@ awk -v N="$N" '
   FNR == 1 { close_run(); curfile = FILENAME; infence = 0 }
   {
     l = $0
-    if (!infence && l ~ /^ *(```|~~~)/) { infence = 1; fmark = (l ~ /^ *```/) ? "b" : "t"; close_run(); next }
-    if (infence) {
-      if ((fmark == "b" && l ~ /^ *```/) || (fmark == "t" && l ~ /^ *~~~/)) infence = 0
+    if (match(l, /^ *(```+|~~~+)/)) {
+      m = substr(l, 1, RLENGTH); sub(/^ */, "", m)
+      if (!infence) { infence = 1; fchar = substr(m, 1, 1); flen = length(m); close_run(); next }
+      if (substr(m, 1, 1) == fchar && length(m) >= flen) infence = 0
       next
     }
+    if (infence) next
     if (l ~ /^[ \t]*$/) next                     # blank keeps run alive
     ind = l; sub(/[^ ].*$/, "", ind)             # leading spaces
     item = ""

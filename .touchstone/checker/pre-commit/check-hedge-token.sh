@@ -31,11 +31,13 @@ awk '
   FNR == 1 { infence = 0 }
   {
     l = $0
-    if (!infence && l ~ /^ *(```|~~~)/) { infence = 1; fmark = (l ~ /^ *```/) ? "b" : "t"; next }
-    if (infence) {
-      if ((fmark == "b" && l ~ /^ *```/) || (fmark == "t" && l ~ /^ *~~~/)) infence = 0
+    if (match(l, /^ *(```+|~~~+)/)) {
+      m = substr(l, 1, RLENGTH); sub(/^ */, "", m)
+      if (!infence) { infence = 1; fchar = substr(m, 1, 1); flen = length(m); next }
+      if (substr(m, 1, 1) == fchar && length(m) >= flen) infence = 0
       next
     }
+    if (infence) next
     norm = tolower(l)
     gsub(/[^a-z0-9]+/, " ", norm)
     norm = " " norm " "

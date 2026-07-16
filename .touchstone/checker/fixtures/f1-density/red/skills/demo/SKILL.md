@@ -4,6 +4,10 @@
 ~~~ (a stray other-marker line inside this backtick fence must not desync the fence state)
 ```
 
+````
+``` (a shorter same-char fence line inside this longer fence must not close it)
+````
+
 - **Alpha rule** — do the first thing when alpha happens.
 - **Beta rule** — do the second thing when beta happens.
 - **Gamma rule** — do the third thing when gamma happens.
