@@ -187,11 +187,11 @@ re-run APPENDs a new dated section, never overwrites. Sections, order fixed — 
 - `## Deviation log` — appended during downstream execution: gap / quadrant / which-stage-could-have-caught / catcher
 
 **The consensus section IS the handoff** — an implementation of the confirmed-facts source
-contract (`skills/_shared/inject/confirmed-facts-source.md`). The contract author derives
-Scope / Invariants facts from Consensus rows and itself authors the seam / AC layer — assay
-emits no acceptance-seam skeletons. With no contract downstream, the record as produced IS the
-terminal deliverable. Every disposition names its file (and line/anchor where applicable) so a
-later session executes it without re-derivation.
+contract (`skills/_shared/inject/confirmed-facts-source.md`). The contract author derives Scope /
+Invariants facts from Consensus rows and itself authors the seam / AC layer — assay emits no
+contract-material packaging beyond the consensus section, no acceptance-seam skeletons. With no
+contract downstream, the record as produced IS the terminal deliverable. Every disposition names
+its file (and line/anchor where applicable) so a later session executes it without re-derivation.
 
 ## Honest ceiling
 

@@ -90,4 +90,7 @@
 # ~70 wiring chks green with zero pattern edits); funds Batch-1/2 additions
 # (design-spec REQ-headline discipline, design-review post-review
 # re-distill). Number presented for the human's baseline ruling in the PR.
-260552
+# 260552
+# 2026-07-16 (same PR): +61 — review-caught dropped rule restored (assay
+# "no contract-material packaging beyond the consensus section").
+260613
