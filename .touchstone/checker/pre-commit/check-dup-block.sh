@@ -9,8 +9,11 @@
 # tests/ paths are skipped: test fixtures are synthetic data, not governed prose.
 # Pre-existing accepted/deferred duplication is ratcheted via the baseline file
 # (.touchstone/checker/baselines/dup-block-baseline.txt — one fingerprint per line,
-# the first K normalized words of the run; populated only through calibration review):
-# baselined runs stay silent, NEW duplication blocks.
+# the FULL normalized word run; populated only through calibration review):
+# baselined runs stay silent, NEW duplication blocks. Full-run matching means a
+# baselined block extended with a new tail, or a fresh copy with a different
+# extent, produces a different fingerprint and still blocks (no prefix aliasing);
+# any edit inside a baselined run re-flags it for re-review (ratchet semantics).
 # KNOWN LIMITATION: tokenization is A-Za-z0-9 word-based; CJK prose is invisible
 # to this check (the governed form rules are English-form text).
 # K is a project-local binding (fixture-calibrated); override: DUP_BLOCK_MIN_WORDS.
@@ -93,7 +96,7 @@ hits="$(awk -v K="$K" -v baseline="$baseline" -v FPMODE="${DUP_BLOCK_FP:-0}" '
           while (p <= wcount[f] && matched[f, p]) p++
           e = p - 1
           fp = word[f, s]
-          for (j = 1; j < K && s + j <= e; j++) fp = fp " " word[f, s + j]
+          for (j = 1; s + j <= e; j++) fp = fp " " word[f, s + j]
           if (FPMODE) { printf "%s  # %s:%d-%d (%d words)\n", fp, fname[f], wline[f, s], wline[f, e], e - s + 1; p++; continue }
           if (fp in base) continue
           lim = (e - s + 1 < 10) ? e - s + 1 : 10

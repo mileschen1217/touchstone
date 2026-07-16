@@ -1,0 +1,4 @@
+# baseline holds ONLY the original (shorter) run — the extended copy in the two
+# files above starts with this baselined prefix but has a new tail; a
+# prefix-keyed baseline would wrongly suppress it. Full-run matching must flag it.
+every reviewer must confirm that the dispatch prompt names the goal the acceptance condition and the report format before any subagent run starts
