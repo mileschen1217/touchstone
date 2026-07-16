@@ -1,0 +1,59 @@
+# dup-block baseline — pre-existing duplication ratchet (quality-spine P1, 2026-07-16).
+# One fingerprint per line = first 12 normalized words of an accepted/deferred run;
+# everything after "#" is a comment. A run NOT listed here blocks the commit.
+# Populate only through calibration review (verdicts + rates:
+# .touchstone/epics/quality-spine/calibration.md). Regenerate candidates with
+# DUP_BLOCK_FP=1 .touchstone/checker/pre-commit/check-dup-block.sh
+#
+# ── codex agent trio (agents/codex-*.md) — cold system prompts; self-containment
+#    is required by the template's incompressible-content rule; cluster co-rewrite
+#    discipline applies on future edits. Verdict: exempt (false positive as defect).
+model sonnet tools bash timeout seconds 600 you are a thin forwarding
+to codex exec do not do anything else strict prohibitions do not
+task to codex exec do not do anything else strict prohibitions do
+do not retry or iterate one forward then return do not narrate
+if task dir is set write task dir raw codex jsonl full
+# ── cross-provider composite pair — the matched text IS the pointer sentence to
+#    the single home (skills/_shared/pattern-a-base.md) plus shared skeleton
+#    (frontmatter, description routing). Verdict: exempt (pointer, not restatement).
+common procedure dispatch discipline provenance banners artifacts failure semantics return read claude
+4 provenance banners artifacts return per skills shared pattern a base md
+allowed tools bash read write agent user invocable true kind workflow touchstone
+auto falls back to cc only when codex unavailable used by touchstone
+# ── inject-instruction lines — "Read and inject verbatim …/_shared/inject/…" at
+#    each consumer is the pointer pattern itself. Verdict: exempt.
+read and inject verbatim claude plugin root skills shared inject design soundness
+read claude plugin root skills shared inject bridge content gate md and
+skills shared inject bridge content gate md skills shared inject standing vs
+load vocabulary read claude plugin root skills shared config resolver md with
+read claude plugin root skills shared config resolver md with the read
+# ── parsed contract strings / cold-prompt schema enums. Verdict: exempt
+#    (incompressible: sentinel + schema text a consumer parses byte-for-byte).
+the sentinel stage review summary critical n high n degraded true false
+caught by locus should have locus gap class missing ac false green
+# ── declared dual-home: evidence-honesty criteria inlined at BOTH batch review
+#    and epic close "by design … greppable in this host too". Verdict: accepted
+#    by declaration — borderline, listed for human sampling in calibration.
+read the governing spec s acs and the test source for each
+a test that mocks the very boundary a boundary crossing ac claims
+unverified reason for any ac you cannot confirm never pass by default
+# ── inject fragments sharing their loading-contract header sentence — each
+#    fragment must be self-contained when injected. Verdict: exempt.
+a consumer loads this file and follows it carrying only its own
+# ── chain-handoff description shared across crucible/assay ends + crucible
+#    description restated in its own body. Verdict: uncertain — human ruling
+#    requested in calibration (candidate true F2/F5, shipped surface → P2/P3).
+cannot lay out assumptions about a map that has not been drawn
+hands back the durable record whose consensus section the contract author consumes
+the record is an implementation of the confirmed facts source contract skills
+# ── template family sharing field rules (design-spec template × epic-index
+#    template) — named worked example of an F5 cluster in the authoring template.
+#    Verdict: true positive, deferred (shipped surface; P1 invariant forbids fix).
+will not take even if related a route not a category up
+# ── README orientation boilerplate (code-review × design-review READMEs).
+#    Verdict: true positive (minor), deferred (shipped surface).
+review maintainer notes orientation for maintainers the executable procedure lives in skill
+# ── form-economy size figures restated in insight/SKILL.md vs the authoring
+#    template (single home). Verdict: true positive, deferred (shipped surface;
+#    P1 invariant forbids fix — P2/P3 essence-rewrite candidate).
+guideline 200 lines 2 5k tokens per skill body hard cap 500
