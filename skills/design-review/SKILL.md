@@ -19,24 +19,20 @@ treat as re-review; `draft` → reply "draft — not gated" and exit.
 
 Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md` and follow it.
 
-**Injection discipline (once).** Graded by fragment size: a ≤20-line spine fragment is
-injected **verbatim**; a >20-line reachable fragment is dispatched by
-**path+attestation** per
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/path-attestation-dispatch.md` (single home of the
-dispatch form + shared fallback).
+**Injection discipline (once):** Read each fragment below in full from
+`${CLAUDE_PLUGIN_ROOT}` and place it **verbatim** in the reviewer envelope —
+this path wires its own fragments.
 
-Verbatim (≤20L, append to `system_prompt`):
+Unconditional:
 1. `skills/_shared/inject/live-bearing-predicate.md` +
-   `skills/_shared/inject/ac-coverage-honesty-principle.md` — also carry as
-   `evidence_honesty_vocab`.
-2. Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/ground-and-sweep.md` and inject it verbatim
-   into the reviewer envelope — it carries the saturation definition and scope-resolution
-   rule. Unit = each *emitted finding* (file / line / field / AC-id).
-
-Path+attestation (>20L, resolved path in `system_prompt`, read-first + attestation):
-3. `skills/_shared/inject/design-soundness-honor-check.md` — apply its
-   **feedforward duty** (subject = the document), not the feedback duty. Its injector
-   requirement's `arch-rubric.md` travels the same path+attestation way (not pasted).
+   `skills/_shared/inject/ac-coverage-honesty-principle.md` — append to
+   `system_prompt` AND carry as `evidence_honesty_vocab`.
+2. `skills/_shared/inject/design-soundness-honor-check.md` — prepend to
+   `system_prompt`; apply its **feedforward duty** (subject = the document), not
+   the feedback duty.
+3. `skills/_shared/ground-and-sweep.md` — Read and inject verbatim into the
+   reviewer envelope; the fragment carries the saturation definition and
+   scope-resolution rule. Unit = each *emitted finding* (file / line / field / AC-id).
 
 Conditional (`source-as-truth` in `bundle.disciplines`): read
 `skills/_shared/inject/bridge-content-gate.md` +

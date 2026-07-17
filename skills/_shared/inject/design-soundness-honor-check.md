@@ -8,11 +8,10 @@ load-and-inject verbatim into every cold-dispatched reviewer. The feedforward ar
 `design-review` (subject = the spec document); the feedback arm fires at deliverable review
 (subject = delivered code vs the spec's `## Architecture` commitments).
 
-**Injector requirement (at injection time):**
-`${CLAUDE_PLUGIN_ROOT}/skills/assay/references/arch-rubric.md` travels by the same
-path+attestation dispatch as this fragment — see
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/path-attestation-dispatch.md` (dispatch form +
-shared fallback). Its force text is not pasted.
+**Injector requirement (warm orchestrator, at injection time):** also load
+`${CLAUDE_PLUGIN_ROOT}/skills/assay/references/arch-rubric.md` and inject its content
+into the cold prompt alongside this fragment. The cold reviewer cannot resolve plugin
+paths — the rubric must arrive as content, never as a path.
 
 ---
 
@@ -21,8 +20,8 @@ shared fallback). Its force text is not pasted.
 A **structural commitment** is a normative SHALL statement in a spec's `## Architecture`
 section that constrains the shape of the delivered code — e.g. "module M SHALL be deep /
 SHALL NOT leak its orchestration sequence to callers." It is grounded in the assay
-arch-rubric, which arrives by the graded injection policy (read-first by its resolved
-path, or pasted content on the fallback) — apply the rubric you were given.
+arch-rubric, whose force text is injected alongside this fragment — apply that injected
+content; do not go looking for a file.
 
 A commitment is **normative** when it uses SHALL or SHALL NOT and names a component +
 constraint. A section that merely describes the system shape without these constraints

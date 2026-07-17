@@ -69,16 +69,3 @@ guideline 200 lines 2 5k tokens per skill body hard cap 500
 #    inject-instruction cluster above. Calibration: calibration.md § U-stop.
 the severity tiered stopping rule claude plugin root skills shared inject severity tiered stopping rule md single home
 read claude plugin root skills shared inject severity tiered stopping rule md and apply it as this
-# ── reviewer-witness-lines pointer lines (P2 REQ-5/AC-13) — pointer sentences to
-#    the single home (skills/_shared/inject/reviewer-witness-lines.md) at the two
-#    dispatch sites (cross-provider-reviewer constructor + batch-mode's own
-#    dispatch). Verdict: exempt (pointer, not restatement). Calibration § U-stop.
-a fabricated witness voids the verdict per the fragment s fabrication consequence clause
-read claude plugin root skills shared inject reviewer witness lines md and inject it into the reviewer envelope
-# ── path+attestation dispatch pointer lines (P2 REQ-11/AC-26) — pointer sentences
-#    naming the single home (skills/_shared/path-attestation-dispatch.md) + the
-#    honor-check fragment + the site's own duty, at the 3 honor-check dispatch sites
-#    (design-review / batch-mode / anvil). Verdict: exempt (pointer, not restatement).
-#    Calibration § U-stop.
-by path attestation per claude plugin root skills shared path attestation dispatch md single home of the dispatch form shared fallback
-dispatch claude plugin root skills shared inject design soundness honor check md and its injector requirement arch rubric md by path attestation per claude plugin root skills shared path attestation dispatch md single home of the dispatch form shared fallback apply its feedback duty

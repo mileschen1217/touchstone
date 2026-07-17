@@ -106,15 +106,13 @@ commits, not tokens; observing it means re-owning the loop — Level-B deferred)
 
 ## Stage 5 — final cross-vendor review (dispatched)
 
-**Design-soundness feedback arm:** dispatch
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md` (and its
-injector-requirement `arch-rubric.md`) by **path+attestation** per
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/path-attestation-dispatch.md` (single home of the
-dispatch form + shared fallback). Apply its feedback duty to the WHOLE deliverable vs the
-governing spec's structural commitments (the **depth-stakes REQ set** for six-section
-specs; the `## Architecture` section for pre-P2 specs; subsystem scope, not per-diff):
-enumerate the spec's SHALL commitments and judge each honored / violated /
-`[unverified: reason]`. Never restate the fragment body.
+**Design-soundness feedback arm:** read and inject verbatim
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`
+into the reviewer `system_prompt` — the feedback duty applied to the WHOLE
+deliverable vs the governing spec's structural commitments (the **depth-stakes REQ
+set** for six-section specs; the `## Architecture` section for pre-P2 specs;
+subsystem scope, not per-diff): enumerate the spec's SHALL commitments and judge
+each honored / violated / `[unverified: reason]`. Load by path; never restate the body.
 *Skip condition:* if `/touchstone:code-review batch` already ran CLEAN (C+H=0, no
 banner) on this same range in this session, skip THIS fragment injection only — the
 standard cross-vendor review below still runs in full.

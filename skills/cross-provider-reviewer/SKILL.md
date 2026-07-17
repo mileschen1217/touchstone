@@ -39,17 +39,6 @@ codex --version >/dev/null 2>&1 && echo "codex_healthy=1" || echo "codex_healthy
 - `Agent(subagent_type: "touchstone:code-reviewer", description: "CC review", prompt: <task envelope with system_prompt prefix>)`
 - `Agent(subagent_type: "touchstone:codex-reviewer", description: "Codex review", prompt: <task envelope>)`
 
-**Witness requirement (both dispatches inherit it — design-review and anvil route
-through here).** Read
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/reviewer-witness-lines.md` and inject
-it into the reviewer envelope (append to `system_prompt`): the verdict MUST carry
-the fragment's READ/RUN witness lines. At intake, reject a verdict lacking them
-before acting on its findings — run
-`bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-witness-lines.sh" <verdict-file>`
-(presence + format; ≥1 READ floor). A fabricated witness voids the verdict per the
-fragment's fabrication-consequence clause (one re-dispatch, incident logged;
-second fabrication → the stopping rule's blocked path).
-
 ### 3. Synthesis (deterministic)
 
 Sort raw inputs by provider name (`cc` then `codex`).

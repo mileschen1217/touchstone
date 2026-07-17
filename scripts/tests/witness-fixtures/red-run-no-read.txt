@@ -1,2 +1,0 @@
-Verdict: approve
-RUN:  bash scripts/tests/run-all.sh | ALL GREEN

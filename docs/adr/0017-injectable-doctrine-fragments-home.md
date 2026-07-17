@@ -72,11 +72,8 @@ shared instruction blocks:
   skills deliver different text to cold reviewers.
 - CONTEXT.md stops growing as doctrine accretes. New injected doctrine gets its own
   fragment file, not a new section in the vocabulary file.
-- Cold-reviewer self-containment is preserved. A fragment is a complete unit. Whether it
-  arrives as pasted content or as a resolved path the agent reads first is the **graded
-  injection policy** (Addendum 2026-07-18): a small fragment is pasted verbatim; a large
-  fragment reachable by an agent that can read it is dispatched as path + read-first +
-  attestation. Either way the agent ends up with the full predicate/rule.
+- Cold-reviewer self-containment is preserved. A fragment is a complete unit; a cold
+  agent receives the full predicate/rule, not a pointer it cannot follow.
 - `referenced-by:` frontmatter makes warm-orchestrator citation visible in the fragment
   itself, so a reader of the fragment knows which skills cite it without grepping.
 
@@ -103,30 +100,6 @@ there. It is not required to relocate to `skills/_shared/inject/`. `ground-and-s
 is the first instance of this carve-out; its dual `referenced-by: [design-spec]` +
 `injected-by: [design-review]` frontmatter makes both consumers visible.
 
-## Addendum (2026-07-18, graded injection policy — quality-spine P2 REQ-10)
-
-The original decision treated verbatim injection as an unconditional hard bar ("a cold agent
-receives the full predicate/rule, not a pointer"). Measurement replaces the hard bar with a
-**graded policy**, on evidence: the P2 attestation-measurement ledger
-(`.touchstone/epics/quality-spine/attestation-ledger.md`) recorded **n = 11**
-path+attestation dispatches, of which **10 were attestation-correct** (1 partial, an em-dash
-encoding artifact) — strict majority. Cold agents that can read a resolved path DO attest
-reading it correctly.
-
-Graded policy:
-
-- **≤ 20-line fragment** (frontmatter excluded) → **verbatim injection**, unchanged. The spine
-  fragments under `skills/_shared/inject/` stay pasted.
-- **> 20-line fragment reachable by the agent** (a resolvable absolute path AND the agent has a
-  Read tool) → **path + read-first + attestation**: the dispatch gives the resolved absolute
-  path and requires the agent to read it first and emit a witness/attestation line; the body is
-  not pasted into the prompt.
-- **Shared fallback** — a dispatch that fails its attestation is re-dispatched once, then the
-  gate halts loudly. Never a silent fallback to pasted text, never a silently-dropped doctrine.
-
-The per-gate conversions this authorizes (honor-check, arch-rubric, laydown-first) live in the
-consuming skills; this ADR is their governing decision. The `20`-line boundary is the single
-crisp cutoff (REQ-9's small-fragment bound).
 
 ## Related ADRs
 
