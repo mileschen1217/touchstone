@@ -1,14 +1,18 @@
 # Skill authoring template
 
-The committed home of touchstone's skill-body form. The binding standard is two
-sentences (also in `CLAUDE.md § Skill-body content conventions`):
+The committed home of touchstone's skill-body form (authoring rules live here
+and only here; `CLAUDE.md § Skill-body content conventions` carries project
+deltas). The binding standard is two sentences:
 
 1. **Layer calibration** — where deviation is a defect, write an instruction
    (unconditional imperative); where deviation is legitimate judgment, write
    steering (name the goal and the trade-off, not a pseudo-rule).
 2. **Form economy** — every line must change what the executing agent does on
    this run; guideline ≤200 lines / ≈2.5k tokens per skill body, hard cap 500
-   lines; the review-prompt surface's total token count never grows net.
+   lines; the review-prompt surface's total token count never grows net (add
+   over the cap only by deleting an equal amount). The bar tightens as models
+   strengthen: prose shrinks, and a rule the executor agrees with yet still
+   violates is a deterministic check to build, not a sentence to restate.
 
 ## Template
 
@@ -63,8 +67,9 @@ Imperative steps.
   phrasing) is a contract — show it verbatim.
 - **No history, no version narration, no ADR numbers in the body** — rationale lives
   in `README.md` / `CONTEXT.md`; cite the named concept, not the ledger entry.
-- **State the actor for every MUST** — a prose instruction is honest as an
-  instruction; never describe an LLM-followed sentence as a system-enforced
+- **State the actor for every MUST** — a prose instruction directed at the
+  executing agent is honest at full imperative strength (write who acts, keep
+  the MUST); never describe an LLM-followed sentence as a system-enforced
   mechanism unless an event-bound check (hook / exit code) actually enforces it.
 
 ## Essence-rewrite methodology
@@ -90,7 +95,9 @@ the same PR.
   lives at Y" prose. Fix: one shared boundary line for the file.
 - **F4 — README narration on an execution surface.** Mechanism / rationale /
   roadmap text that doesn't change what the executing agent does this run.
-  Fix: move to `README.md` / `docs/` / `CONTEXT.md`.
+  Fix: move to `README.md` / `docs/` / `CONTEXT.md` — or, for a future
+  capability's context, the epic that owns it (not the skill it will one day
+  extend).
 - **F5 — verbatim duplication across files.** The same block in ≥2 files.
   Fix: one canonical home; every other site defers by reference.
 
@@ -175,3 +182,7 @@ table.
   self-descriptions; opaque codes (bare stage numbers, letter suffixes) are
   banned. Coin a term only when a cross-reference genuinely needs one, and
   define it inline at first occurrence.
+- **Name for the destination, not the current shape.** A skill that is a lean
+  first cut of something that will grow is named for what it *is for*, not the
+  thin thing it does today — so adding the later capability forces no rename
+  and no reference-sweep.

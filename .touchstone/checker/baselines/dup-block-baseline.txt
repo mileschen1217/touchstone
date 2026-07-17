@@ -1,0 +1,69 @@
+# dup-block baseline — pre-existing duplication ratchet (quality-spine P1, 2026-07-17 v2).
+# One fingerprint per line = the FULL normalized word run (no prefix aliasing:
+# an extended/shortened/edited copy fingerprints differently and still blocks);
+# everything after "#" is a comment. A run NOT listed here blocks the commit.
+# Populate only through calibration review (verdicts + rates:
+# .touchstone/epics/quality-spine/calibration.md). Regenerate candidates with
+# DUP_BLOCK_FP=1 .touchstone/checker/pre-commit/check-dup-block.sh
+#
+# ── codex agent trio (agents/codex-*.md) — cold system prompts; self-containment
+#    is required by the template's incompressible-content rule; cluster co-rewrite
+#    discipline applies on future edits. Verdict: exempt (false positive as defect).
+model sonnet tools bash timeout seconds 600 you are a thin forwarding wrapper around the codex cli for
+to codex exec do not do anything else strict prohibitions do not read files you have no read tool do not use bash for cat sed n head tail less awk
+task to codex exec do not do anything else strict prohibitions do not read files you have no read tool do not use bash for cat sed n head tail less awk python heredocs that print file contents or any other read substitute do not grep find ls beyond
+do not retry or iterate one forward then return do not narrate return only the verbatim codex stdout if you are tempted to
+if task dir is set write task dir raw codex jsonl full event stream
+# ── cross-provider composite pair — the matched text IS the pointer sentence to
+#    the single home (skills/_shared/pattern-a-base.md) plus shared skeleton
+#    (frontmatter, description routing). Verdict: exempt (pointer, not restatement).
+common procedure dispatch discipline provenance banners artifacts failure semantics return read claude plugin root skills shared pattern a base md at start and follow it single home not restated here inputs json envelope as args procedure 1 probe codex 2 dispatch targets per the base procedure s parallel dispatch rule agent subagent type touchstone
+4 provenance banners artifacts return per skills shared pattern a base md
+allowed tools bash read write agent user invocable true kind workflow touchstone cross provider
+auto falls back to cc only when codex unavailable used by touchstone
+# ── inject-instruction lines — "Read and inject verbatim …/_shared/inject/…" at
+#    each consumer is the pointer pattern itself. Verdict: exempt.
+read and inject verbatim claude plugin root skills shared inject design soundness honor check md into the reviewer
+read claude plugin root skills shared inject bridge content gate md and
+skills shared inject bridge content gate md skills shared inject standing vs transient bridge md
+load vocabulary read claude plugin root skills shared config resolver md with the read tool and follow it exactly
+load vocabulary read claude plugin root skills shared config resolver md with the read tool and follow it exactly if source as truth is in bundle disciplines
+load vocabulary read claude plugin root skills shared config resolver md with the read tool and follow it exactly if source as truth is in bundle disciplines read claude plugin root skills shared inject bridge content gate md and
+read claude plugin root skills shared config resolver md with the read tool and follow it exactly if source as truth is in bundle disciplines
+read claude plugin root skills shared config resolver md with the read tool and follow it exactly
+# ── parsed contract strings / cold-prompt schema enums. Verdict: exempt
+#    (incompressible: sentinel + schema text a consumer parses byte-for-byte).
+the sentinel stage review summary critical n high n degraded true false
+caught by locus should have locus gap class missing ac false green no gate
+# ── declared dual-home: evidence-honesty criteria inlined at BOTH batch review
+#    and epic close "by design … greppable in this host too". Verdict (human,
+#    2026-07-17): keep baselined; open item — whether both copies are truly
+#    needed, and if so whether they should stay word-identical or diverge into
+#    site-precise wording (calibration.md § 不確定項 U-a → P2/P3).
+read the governing spec s acs and the test source for each ac judge whether a test asserts that ac s then clause ac coverage semantic not code coverage not tool measured
+read the governing spec s acs and the test source for each ac judge whether a test asserts that ac s then clause ac coverage semantic not code coverage not tool measured a test that mocks the very boundary a boundary crossing ac claims does not discharge that claim proxy not coverage
+a test that mocks the very boundary a boundary crossing ac claims does not discharge that claim proxy not coverage
+unverified reason for any ac you cannot confirm never pass by default unverified is honest and allowed informed consent
+# ── inject fragments sharing their loading-contract header sentence — each
+#    fragment must be self-contained when injected. Verdict: exempt.
+a consumer loads this file and follows it carrying only its own delta
+# ── chain-handoff description shared across crucible/assay ends + crucible
+#    description restated in its own body. Verdict (human, 2026-07-17):
+#    TP-deferred — assay owns the interview+contract responsibility; crucible
+#    is meant to be a thin wrapper/router and should not restate the handoff
+#    in its body; convergence = crucible slimming (shipped surface → P2/P3;
+#    calibration.md § 不確定項 U-b).
+cannot lay out assumptions about a map that has not been drawn explore always precedes
+hands back the durable record whose consensus section the contract author consumes
+the record is an implementation of the confirmed facts source contract skills shared inject confirmed facts source md
+# ── template family sharing field rules (design-spec template × epic-index
+#    template) — named worked example of an F5 cluster in the authoring template.
+#    Verdict: true positive, deferred (shipped surface; P1 invariant forbids fix).
+will not take even if related a route not a category up to three sub bullets total flat list never nested
+# ── README orientation boilerplate (code-review × design-review READMEs).
+#    Verdict: true positive (minor), deferred (shipped surface).
+review maintainer notes orientation for maintainers the executable procedure lives in skill md
+# ── form-economy size figures restated in insight/SKILL.md vs the authoring
+#    template (single home). Verdict: true positive, deferred (shipped surface;
+#    P1 invariant forbids fix — P2/P3 essence-rewrite candidate).
+guideline 200 lines 2 5k tokens per skill body hard cap 500
