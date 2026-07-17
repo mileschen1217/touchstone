@@ -53,9 +53,11 @@ a consumer loads this file and follows it carrying only its own delta
 #    is meant to be a thin wrapper/router and should not restate the handoff
 #    in its body; convergence = crucible slimming (shipped surface → P2/P3;
 #    calibration.md § 不確定項 U-b).
-cannot lay out assumptions about a map that has not been drawn explore always precedes
+#    (Re-fingerprinted 2026-07-17: the v0.25.0 assay essence-rewrite shifted the
+#    runs — ratchet re-flagged them at the next commit as designed; same verdict
+#    re-admitted. Two pre-rewrite fingerprints dropped as stale.)
 hands back the durable record whose consensus section the contract author consumes
-the record is an implementation of the confirmed facts source contract skills shared inject confirmed facts source md
+an implementation of the confirmed facts source contract skills shared inject confirmed facts source md
 # ── template family sharing field rules (design-spec template × epic-index
 #    template) — named worked example of an F5 cluster in the authoring template.
 #    Verdict: true positive, deferred (shipped surface; P1 invariant forbids fix).
