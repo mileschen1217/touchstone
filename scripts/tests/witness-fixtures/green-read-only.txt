@@ -1,0 +1,2 @@
+Verdict: revise
+READ: docs/adr/0017-injectable-doctrine-fragments-home.md | first heading: "# ADR-0017: Injectable doctrine fragments live in `skills/_shared/inject/`, not in CONTEXT.md sections"

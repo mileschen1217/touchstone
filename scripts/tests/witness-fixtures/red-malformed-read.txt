@@ -1,0 +1,2 @@
+Verdict: approve
+READ: skills/anvil/SKILL.md

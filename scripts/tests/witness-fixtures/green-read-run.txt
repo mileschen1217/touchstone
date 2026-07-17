@@ -1,0 +1,4 @@
+Verdict: approve
+READ: skills/anvil/SKILL.md | first heading: "# /touchstone:anvil — Back-End Contract Executor"
+RUN:  bash scripts/tests/run-all.sh | ALL GREEN
+Finding: none.

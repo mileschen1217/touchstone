@@ -42,6 +42,15 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    - `codex-reviewer` → `Agent(subagent_type: "touchstone:codex-reviewer", description: "Codex batch review", prompt: { task: <full diff>, role: "batch-reviewer", task_dir: <optional> })`
    - `touchstone:code-reviewer` (plugin-local, vendored) → corresponding Agent dispatch
 
+   **Witness requirement (this site's delta — batch builds its own dispatch,
+   outside the parallel constructor).** Read
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/reviewer-witness-lines.md` and
+   inject it into the reviewer envelope; the verdict MUST carry its READ/RUN
+   witness lines. At intake, reject a verdict lacking them —
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-witness-lines.sh" <verdict-file>`
+   (≥1 READ floor) — before acting on findings; a fabricated witness voids the
+   verdict per the fragment's fabrication-consequence clause.
+
    When `governing_specs` is non-empty (from Step 1b), the reviewer applies the
    **evidence-honesty (coverage) criteria** (these fire ONLY here at `batch` /
    epic-close, where test source exists — never at design-review, never on
