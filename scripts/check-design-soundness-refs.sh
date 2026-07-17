@@ -7,7 +7,7 @@
 #   If no commitments (additive sentinel OR no ## Architecture section): vacuous pass.
 #   Emits NO honor verdict. Never parses commitment body text. Never judges depth.
 #
-# ZERO-VS-NONZERO COMMITMENT PREDICATE (non-semantic) — P2 REQ-6/AC-40:
+# ZERO-VS-NONZERO COMMITMENT PREDICATE (non-semantic):
 #   New form (six-section template): a `depth-stakes:` marker line under a REQ
 #     signals a structural commitment. Any such line → nonzero.
 #   Legacy fallback (pre-P2 specs, no depth-stakes marker): the old ## Architecture

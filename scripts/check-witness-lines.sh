@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # check-witness-lines.sh <verdict-file> — STRUCTURAL presence + format check for
-# reviewer witness lines (P2 REQ-5 / AC-14). Single home of the format: the
+# reviewer witness lines. Single home of the format: the
 # reviewer-witness-lines.md fragment. This checker renders the Tier A verdict
 # ONLY (presence + format validity); it NEVER judges count-adequacy against
 # claimed acts or authenticity — those are Tier B/C reviewer spot-checks.

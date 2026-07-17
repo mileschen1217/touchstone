@@ -5,7 +5,7 @@
 # lines may still print, non-fatal). Non-zero + report on orphan / no-declaration /
 # malformed / new-vs-legacy disagreement.
 #
-# TWO ACCEPTED HOMES (P2 REQ-8):
+# TWO ACCEPTED HOMES for the Live-bearing declaration:
 #   new form    — the `- **Live-bearing AC IDs:**` line inside `## Acceptance Criteria`
 #                 (authoritative), paired with the Index Live-bearing column.
 #   legacy form — the same line inside `## Verification Strategy` (pre-P2 specs,
