@@ -114,7 +114,7 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
    and apply it as this batch's stopping rule (single home — same T, same bounded
    re-verify, same blocked escalation; do not restate it). The batch's C/H verdict
-   feeds the initial-round table; a surviving Critical after the one re-verify is
+   feeds the initial round; a surviving Critical after the one re-verify is
    blocked and surfaced at the batch report.
 8. **Informed-consent checkpoint (CONSENT-3):** if the verdict carries a ⚠️ DEGRADED or
    ⚠️ PARTIAL banner, present the banner to the user and obtain explicit acknowledgement

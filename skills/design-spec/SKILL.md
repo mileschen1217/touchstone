@@ -90,7 +90,7 @@ needed. Exiting Draft Mode."
 **Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section. Section mapping + authoring conventions: `references/draft-workflow.md § Want-layer authoring` (single home); vocabulary: `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate.
 
 **REQ-headline discipline.** A `### Requirement:` headline is ONE normative SHALL sentence — write it, then stop (the `traces-to:` line below the heading is a separate line, not part of the sentence).
-Every disambiguation or overflow clause lives in its own section (Interfaces / Error Handling / Invariants) — re-home any clause the headline absorbed during review churn.
+Every disambiguation or overflow clause lives in the REQ/AC layer, not the headline — an error path becomes an error-path AC, an invariant an EARS unwanted-behavior REQ, an interface a fenced block under its owning REQ; re-home any clause the headline absorbed during review churn.
 Delete duplicates: a clause already homed in a downstream section never repeats in the headline.
 
 **feedforward ground-and-sweep arm.** Before generating Acceptance Criteria, load the shared doctrine:

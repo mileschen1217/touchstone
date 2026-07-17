@@ -47,8 +47,8 @@ When a change's alignment touches a ratified ADR or standing decision, **surface
 
 ## Mid-chain halt (design-review Critical/High)
 
-- If the consolidated `/touchstone:design-review` returns **Critical or High** findings, **halt and surface** them to the human to clear (resolve inline and re-invoke `/touchstone:design-review`). The spec stays `accepted-candidate` until a clean pass. No auto-loop.
-- Do NOT silently fold findings into Open Questions; do NOT auto-advance.
+- The `/touchstone:design-review` gate governs its own convergence — bounded single re-verify, blocked escalation, no unauthorized further round (the rule it applies is homed at `skills/_shared/inject/severity-tiered-stopping-rule.md`). Crucible only surfaces that gate's terminal outcome to the human: a clean close advances; a blocked line halts here at `accepted-candidate` for the human's ruling.
+- Do NOT silently fold findings into Open Questions; do NOT auto-advance; do NOT impose a separate re-invoke loop on top of the gate's own.
 
 ## PRD+seams pre-accept light check
 

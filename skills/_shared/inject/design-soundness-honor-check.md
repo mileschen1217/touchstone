@@ -6,7 +6,8 @@ kind: bridge
 **design-soundness honor-check** — the two-arm definition the touchstone review surfaces
 load-and-inject verbatim into every cold-dispatched reviewer. The feedforward arm fires at
 `design-review` (subject = the spec document); the feedback arm fires at deliverable review
-(subject = delivered code vs the spec's `## Architecture` commitments).
+(subject = delivered code vs the spec's structural commitments — its `depth-stakes:` REQs in
+six-section form, or its `## Architecture` section in legacy form).
 
 **Injector requirement (warm orchestrator, at injection time):** also load
 `${CLAUDE_PLUGIN_ROOT}/skills/assay/references/arch-rubric.md` and inject its content
@@ -17,9 +18,10 @@ paths — the rubric must arrive as content, never as a path.
 
 ## Shared: what a structural commitment is
 
-A **structural commitment** is a normative SHALL statement in a spec's `## Architecture`
-section that constrains the shape of the delivered code — e.g. "module M SHALL be deep /
-SHALL NOT leak its orchestration sequence to callers." It is grounded in the assay
+A **structural commitment** is a normative SHALL statement that constrains the shape of the
+delivered code — homed in a `depth-stakes:` REQ (six-section form) or a `## Architecture`
+section (legacy form) — e.g. "module M SHALL be deep / SHALL NOT leak its orchestration
+sequence to callers." It is grounded in the assay
 arch-rubric, whose force text is injected alongside this fragment — apply that injected
 content; do not go looking for a file.
 
@@ -74,12 +76,15 @@ A component is **purely additive** only if it adds behaviour within an existing 
 established interface without introducing any of the above. The `no structural commitment —
 additive` escape requires explicitly answering this question, not a silent skip.
 
-**Descriptive-only detection:** if the spec has a `## Architecture` section that is
-**descriptive-only** (old-style system shape with no normative SHALL commitments) on a feature
-whose components have depth stakes per the rule above, raise a design-soundness finding:
-"structural commitment is missing — the ## Architecture section is descriptive-only; it
-should state per-component SHALL commitments grounded in arch-rubric.md."
+**Missing-commitment detection (six-section form, the default):** a component with depth
+stakes per the rule above MUST carry a `depth-stakes:` REQ marker with a per-component SHALL
+commitment grounded in the arch-rubric. A depth-stakes component with no such marker/SHALL →
+raise a design-soundness finding: "structural commitment is missing — component <X> has depth
+stakes but no `depth-stakes:` REQ marker with a SHALL." A purely additive component needs no
+marker (no finding).
 
-If `## Architecture` states `no structural commitment — additive` explicitly, treat as
-zero commitments (no finding). If `## Architecture` is absent entirely, the floor passes
-vacuously; a depth-stakes feature with no section should still receive a finding here.
+**Legacy form (pre-P2 specs with a `## Architecture` section):** if the section is
+**descriptive-only** (old-style system shape, no normative SHALL) on a depth-stakes feature,
+raise the same missing-commitment finding; an explicit `no structural commitment — additive`
+is zero commitments (no finding); an absent `## Architecture` section on a depth-stakes
+feature still receives the finding.
