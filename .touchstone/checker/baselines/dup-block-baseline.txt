@@ -36,9 +36,10 @@ read claude plugin root skills shared config resolver md with the read tool and 
 the sentinel stage review summary critical n high n degraded true false
 caught by locus should have locus gap class missing ac false green no gate
 # ── declared dual-home: evidence-honesty criteria inlined at BOTH batch review
-#    and epic close "by design … greppable in this host too". Verdict:
-#    PENDING-HUMAN-RULING (admitted provisionally; ruling due before ship —
-#    calibration.md § 不確定項 U-a).
+#    and epic close "by design … greppable in this host too". Verdict (human,
+#    2026-07-17): keep baselined; open item — whether both copies are truly
+#    needed, and if so whether they should stay word-identical or diverge into
+#    site-precise wording (calibration.md § 不確定項 U-a → P2/P3).
 read the governing spec s acs and the test source for each ac judge whether a test asserts that ac s then clause ac coverage semantic not code coverage not tool measured
 read the governing spec s acs and the test source for each ac judge whether a test asserts that ac s then clause ac coverage semantic not code coverage not tool measured a test that mocks the very boundary a boundary crossing ac claims does not discharge that claim proxy not coverage
 a test that mocks the very boundary a boundary crossing ac claims does not discharge that claim proxy not coverage
@@ -47,8 +48,11 @@ unverified reason for any ac you cannot confirm never pass by default unverified
 #    fragment must be self-contained when injected. Verdict: exempt.
 a consumer loads this file and follows it carrying only its own delta
 # ── chain-handoff description shared across crucible/assay ends + crucible
-#    description restated in its own body. Verdict: PENDING-HUMAN-RULING
-#    (admitted provisionally; ruling due before ship — calibration.md § 不確定項 U-b).
+#    description restated in its own body. Verdict (human, 2026-07-17):
+#    TP-deferred — assay owns the interview+contract responsibility; crucible
+#    is meant to be a thin wrapper/router and should not restate the handoff
+#    in its body; convergence = crucible slimming (shipped surface → P2/P3;
+#    calibration.md § 不確定項 U-b).
 cannot lay out assumptions about a map that has not been drawn explore always precedes
 hands back the durable record whose consensus section the contract author consumes
 the record is an implementation of the confirmed facts source contract skills shared inject confirmed facts source md
