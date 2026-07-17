@@ -69,3 +69,11 @@ review maintainer notes orientation for maintainers the executable procedure liv
 #    template (single home). Verdict: true positive, deferred (shipped surface;
 #    P1 invariant forbids fix — P2/P3 essence-rewrite candidate).
 guideline 200 lines 2 5k tokens per skill body hard cap 500
+# ── severity-tiered stopping-rule pointer lines (P2 REQ-1/AC-41) — the matched
+#    text IS the pointer sentence to the single home
+#    (skills/_shared/inject/severity-tiered-stopping-rule.md) at each of the 5
+#    wiring sites; site bodies carry only their own delta, never the rule body.
+#    Verdict: exempt (pointer, not restatement) — same class as the
+#    inject-instruction cluster above. Calibration: calibration.md § U-stop.
+the severity tiered stopping rule claude plugin root skills shared inject severity tiered stopping rule md single home
+read claude plugin root skills shared inject severity tiered stopping rule md and apply it as this

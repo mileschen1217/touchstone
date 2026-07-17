@@ -76,10 +76,12 @@ sees nothing but the prompt. Include, verbatim:
 Then append the light contract's full text inside a fenced block — the fence
 is the only other content the dispatched agent receives.
 
-Convergence: Critical/High findings → fix the contract, then re-dispatch once
-for a re-check. If the second round still reports Critical/High, present the
-findings to the human to rule — never auto-loop. Only Critical+High = 0
-proceeds to the terminal human-accept.
+Convergence: apply the severity-tiered stopping rule
+(`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`,
+single home — T threshold, bounded single re-verify, blocked escalation; do not
+restate it). Critical/High → fix the contract → ONE re-dispatch; a Critical
+surviving the re-verify is a blocked line the human rules at the terminal accept
+(never auto-loop). Only Critical+High = 0 proceeds to the terminal human-accept.
 
 Dispatch failure: if the dispatch fails or the reply cannot be parsed,
 re-dispatch once (a technical retry, independent of the convergence re-check

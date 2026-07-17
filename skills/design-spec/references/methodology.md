@@ -22,7 +22,7 @@ The challenge-pass is one Example Mapping session applied to the requirement→A
 | **Example** (green) | `#### AC-N` — a GWT scenario instantiating the rule |
 | **Question** (red) | `[NEEDS CLARIFICATION: <q>]` — a gap or ambiguity emitted as a finding |
 
-Run each requirement through the techniques below. For each gap or ambiguity, emit a `[NEEDS CLARIFICATION: <q>]` finding tied to that REQ-N. Stop emitting when no new red cards (open questions) emerge across all techniques.
+Run each requirement through the techniques below. For each gap or ambiguity, emit a `[NEEDS CLARIFICATION: <q>]` finding tied to that REQ-N. Emit every finding the techniques surface; never self-declare saturation ("no new cards emerged" is a sampling artifact, not proof). The loop's round bounding is the orchestrator's, not yours — see the stop note below.
 
 ---
 
@@ -51,7 +51,7 @@ For each requirement, run all five passes in order:
 4. **Additional outcomes** — does the action in any AC have secondary observable effects not yet captured? Emit a question for each.
 5. **Different contexts, same outcome** — is the same outcome produced via a different path or context not yet represented? Each such path deserves its own AC or a question.
 
-**Stop condition:** no new green card (AC) and no new red card (question) emerged in a full pass of all 5 techniques.
+**Stop note (round bounding — not per-pass saturation).** The challenge loop is bounded by the challenge-pass adaptation in the severity-tiered stopping rule (`skills/_shared/inject/severity-tiered-stopping-rule.md`, single home): initial challenge + ONE re-challenge after resolutions; every unresolved marker blocks; US/REQ-semantic markers route to the human, AC-level markers to the authoring AI; the terminal human accept covers both. Within a pass, run all 5 techniques and emit what they surface — do not stop on an empty sample.
 
 ---
 

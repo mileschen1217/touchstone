@@ -97,15 +97,16 @@ per Phase 1, `role` = `design-reviewer`.
 
 ## Phase 4 — Apply findings
 
-Sum Critical+High (C+H):
+Convergence rule: read
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
+and apply it as this gate's stopping rule (single home — do not restate it). This
+gate's C/H verdict feeds the initial-round table; the boundary pin (H=T re-verify
+/ H=T−1 close-with-diff), the bounded single re-verify, blocked escalation, and
+the no-unauthorized-third-round rule all govern here. Build waits until the rule
+closes the loop (a clean close, or a human ruling on a blocked line); no severity
+count leaves the next action undefined.
 
-| C+H | Action | Build |
-|---|---|---|
-| ≥ 5 | fix inline; re-invoke — 2nd pass mandatory | waits for a C+H = 0 run |
-| 1–4 | surface; 2nd pass optional | waits until C+H resolved |
-| 0 | surface Medium/Low | may proceed at user's discretion |
-
-A ⚠️ DEGRADED / ⚠️ PARTIAL banner (orthogonal to C+H) → present VERBATIM and
+A ⚠️ DEGRADED / ⚠️ PARTIAL banner (orthogonal to the severity tiers) → present VERBATIM and
 get explicit acknowledgement BEFORE Build, even at C+H = 0 (meaning:
 `cross-provider-reviewer/references/provenance.md`).
 

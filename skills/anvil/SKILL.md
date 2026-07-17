@@ -123,6 +123,13 @@ capture-then-gate two-step as plan-review:
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/stage-return.sh" final-review "$task_dir"
 ```
 
+Convergence: this review and the per-task reviewers converge under the
+severity-tiered stopping rule
+(`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`,
+single home — same tiers, same bounded re-verify budget, same blocked
+escalation; do not restate it). The stage-return gate's BLOCKED is the rule's
+blocked-line surfacing.
+
 - [ ] Fragment injected (or skip condition explicitly noted in the run log);
       `status=` acted on — a BLOCKED result is never presented as a clean deliverable.
 
