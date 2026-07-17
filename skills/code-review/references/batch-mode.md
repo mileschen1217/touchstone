@@ -64,12 +64,14 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    discipline — inject regardless of which disciplines are adopted (do NOT gate it on
    `source-as-truth`).
 
-   Also read and inject verbatim
-   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`
-   into the reviewer envelope (append to task prompt). Apply its **feedback duty**
-   (subject = the whole deliverable vs the governing spec's `## Architecture` section,
-   subsystem scope — not per-diff); the honor-judgment rule itself lives in the
-   injected fragment. Single home: load by path; never restate the body inline.
+   Also dispatch
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md` (and
+   its injector-requirement `arch-rubric.md`) by **path+attestation** per
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/path-attestation-dispatch.md` (single home of
+   the dispatch form + shared fallback). Apply its **feedback duty** (subject = the whole
+   deliverable vs the governing spec's depth-stakes REQ set / legacy `## Architecture`
+   section, subsystem scope — not per-diff); the honor-judgment rule lives in the
+   fragment. Never restate the body.
 
    **(b) The `code-review batch` feedback delta** — prepend this, after the injected doctrine:
 
