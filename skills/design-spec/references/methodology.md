@@ -34,7 +34,7 @@ Run each requirement through the techniques below. For each gap or ambiguity, em
 | Multi-condition rule | **Decision table** (+ cause-effect graph for boolean interactions) | Every non-collapsed column = 1 AC |
 | Workflow / lifecycle / mode | **State-transition** (0-switch baseline; 1-switch practical ceiling) | Every transition (0-sw) / every adjacent pair (1-sw); + invalid-transition ACs |
 | Data entity | **CRUD completeness** matrix | Every entity × operation cell ≥ 1 AC; + write-then-readback AC |
-| General BDD rule (none of the above) | **Nagy's 5** (see below) | No new Example emerges from all 5 passes AND no open red cards remain |
+| General BDD rule (none of the above) | **Nagy's 5** (see below) | All 5 passes applied to the requirement (coverage of the techniques — not "no new card emerged", which is a sampling artifact per the stop note) |
 | Changes a **shared artifact** (record / schema / message / format crossing an actor boundary) | **party sweep** — enumerate every party that touches the artifact (producer / consumer / migrator are common roles, NOT an exhaustive list) | every touching party has ≥ 1 AC; first-hit on one party (e.g. validator-only) is the failure — this is `ground-and-sweep` at the requirement level |
 
 Apply as many techniques as the requirement warrants. A numeric requirement with workflow implications needs both EP/BVA and state-transition passes.
