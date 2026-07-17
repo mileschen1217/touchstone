@@ -73,14 +73,10 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    section, subsystem scope — not per-diff); the honor-judgment rule lives in the
    fragment. Never restate the body.
 
-   **(b) The `code-review batch` feedback delta** — prepend this, after the injected doctrine:
+   **(b) The `code-review batch` feedback delta.** Read and inject verbatim
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/ac-coverage-criteria.md` (the
+   coverage core — single home; ≤20L). Then prepend this site delta after it:
 
-   > Read the governing spec's ACs and the test source. For each AC, judge whether a
-   > test asserts that AC's Then-clause (AC coverage, semantic — not code-coverage %,
-   > not tool-measured). A test that mocks the very boundary a boundary-crossing AC
-   > claims does NOT discharge that claim (proxy, not coverage). A **silent false-green**
-   > (per the injected principle) blocks the done claim.
-   >
    > **Live-bearing ACs.** For each AC listed in the governing spec's
    > `Live-bearing AC IDs` declaration (the AC-section intro for six-section specs,
    > or a `## Verification Strategy` section for legacy pre-P2 specs): apply the

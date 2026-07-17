@@ -48,16 +48,12 @@ Per-AC accounting authored ONCE at close by reading source.
 
 1. **Structural floor first.** For each `status: Accepted` spec of this epic: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-spec-floor.sh" <spec-path>`. Non-zero BLOCKS close — fix the spec before continuing.
 
-2. **Derive coverage.** Apply the evidence-honesty (coverage) criteria — the SAME criteria as `skills/code-review/SKILL.md` batch, **inlined here** so it is greppable in this host too (present at BOTH batch AND epic-close by design):
-
-   > Read the governing spec's ACs and the test source. For each AC, judge whether a
-   > test asserts that AC's Then-clause (AC coverage, semantic — not code-coverage %,
-   > not tool-measured). If an AC is claimed done but no test in source asserts it and
-   > it carries no `[unverified]` → report **silent false-green** (blocks the done
-   > claim). A test that mocks the very boundary a boundary-crossing AC claims does
-   > NOT discharge that claim (proxy, not coverage). Emit `[unverified: reason]` for
-   > any AC you cannot confirm — never pass by default. `[unverified]` is honest and
-   > allowed (informed-consent); surface findings, do not force passing.
+2. **Derive coverage.** Load the coverage core —
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/ac-coverage-criteria.md` (single home;
+   the same core `code-review batch` injects) — and apply it. Close's own delta on top:
+   also apply the honesty spine's `[unverified]` emission rule (single home:
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/ac-coverage-honesty-principle.md`) —
+   surface an honest `[unverified: reason]` rather than force a pass on any AC it cannot confirm.
 
 2b. **Ground every coverage judgment.** The evidence is the **committed artifact** the AC asserts about — never the plan/test assertion pointing at it. Cite freshly per `grounded-claims`: `(via: read → <file>:<line>: <asserted content present>)`. A grep/bats line is itself a claim to re-ground; if re-running it against the artifact fails, the coverage claim is ungrounded → `[unverified]` (or fix the assertion).
 
