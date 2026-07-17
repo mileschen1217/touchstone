@@ -16,14 +16,14 @@ scan() {
     base="$(basename "$entry")"
     if [ -d "$entry" ]; then
       case "$base" in
-        pre-commit|pre-push) : ;;
+        pre-commit|pre-push|standalone|fixtures|baselines) : ;;
         *) echo "[stray-subdir] $entry"; found=1 ;;
       esac
     else
       echo "[stray-file] $entry (checks must live under a stage subdir)"; found=1
     fi
   done
-  for stage in pre-commit pre-push; do
+  for stage in pre-commit pre-push standalone; do
     for chk in "$root/$stage"/check-*.sh; do
       [ -e "$chk" ] || continue
       [ -x "$chk" ] || { echo "[non-executable] $chk"; found=1; }
