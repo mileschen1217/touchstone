@@ -24,11 +24,34 @@ bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-25 clean → 0" || fail "AC-25 nonzer
 s="$TMP/orphan.md"; vs "$s" "x" "AC-9"
 bash "$CHK" "$s" >/dev/null 2>&1 && fail "AC-23 orphan should be nonzero" || ok "AC-23 orphan flagged"
 
-# AC-26: no VS section → [unverified: no VS], nonzero
+# AC-26 / AC-21: neither form declares Live-bearing → [unverified: no declaration], nonzero
 s="$TMP/novs.md"; printf '## Acceptance Criteria\n#### AC-1 — x\n' > "$s"
 out="$(bash "$CHK" "$s" 2>&1)"; rc=$?
-{ [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "unverified: no Verification Strategy"; } \
-  && ok "AC-26 no-VS unverified" || fail "AC-26 out=$out rc=$rc"
+{ [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "no live-bearing declaration"; } \
+  && ok "AC-21 neither-form unverified" || fail "AC-21 out=$out rc=$rc"
+
+# --- P2 REQ-8/AC-21: new form (Live-bearing in the AC-section intro) + both-forms ---
+newform() { # <path> <ac-body-given> <ac-intro-live-bearing-value>
+  # shellcheck disable=SC2016
+  printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** %s\n\n#### AC-1 — x\n```\nGiven %s\n```\n' "$3" "$2" > "$1"
+}
+bothform() { # <path> <new-value> <legacy-value>
+  # shellcheck disable=SC2016
+  printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** %s\n\n#### AC-1 — x\n```\nGiven z\n```\n\n## Verification Strategy\n- **Live-bearing AC IDs:** %s\n' "$2" "$3" > "$1"
+}
+# new-form clean → 0
+s="$TMP/new-ok.md"; newform "$s" "a precondition" "AC-1"
+bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-21 new-form clean → 0" || fail "AC-21 new-form nonzero on clean"
+# new-form orphan → nonzero
+s="$TMP/new-orphan.md"; newform "$s" "x" "AC-9"
+bash "$CHK" "$s" >/dev/null 2>&1 && fail "AC-21 new-form orphan should be nonzero" || ok "AC-21 new-form orphan flagged"
+# both forms, same set → 0 (new authoritative, no disagreement)
+s="$TMP/both-agree.md"; bothform "$s" "AC-1" "AC-1"
+bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-21 both-forms agree → 0" || fail "AC-21 both-agree nonzero"
+# both forms, different sets → nonzero (disagreement)
+s="$TMP/both-disagree.md"; printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** AC-1\n\n#### AC-1 — x\n#### AC-2 — y\n\n## Verification Strategy\n- **Live-bearing AC IDs:** AC-2\n' > "$s"
+out="$(bash "$CHK" "$s" 2>&1)"; rc=$?
+{ [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "disagreement"; } && ok "AC-21 both-forms disagree flagged" || fail "AC-21 disagree rc=$rc out=$out"
 
 # AC-27: `none` is valid syntax → not reported missing/malformed; candidate sweep still runs
 s="$TMP/none.md"; vs "$s" "the deployed hook fires on a real session" "none"

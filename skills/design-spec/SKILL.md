@@ -34,7 +34,7 @@ The invoke/skip heuristic lives in the frontmatter description. Rulings it does 
 
 - Breadth alone does not qualify — a mechanical multi-module sweep with fixed invariants takes the PRD+seams light contract (crucible's other fork), not a full spec.
 - The user may always explicitly request a design spec — that overrides the heuristic.
-- When the expected-value test says skip (contained change, no new contract), NO Verification Strategy section is authored — the evidence-honesty contract attaches to full specs only.
+- When the expected-value test says skip (contained change, no new contract), NO Live-bearing declaration is authored (no AC-section intro Live-bearing line, no Index Live-bearing column) — the evidence-honesty contract attaches to full specs only.
 
 ## Load vocabulary
 

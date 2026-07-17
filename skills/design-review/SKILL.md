@@ -79,9 +79,10 @@ per Phase 1, `role` = `design-reviewer`.
 > promise will be witnessed, hiding nothing: for EACH requirement,
 > enumerate the behaviours a user would recognize as "working" (happy, error,
 > boundary paths) and flag every requirement whose ACs witness only the happy
-> path — hunts ACs that do NOT exist; the doc has a non-empty
-> `## Verification Strategy` and every live-bearing AC id (per the injected
-> predicate + AC-coverage-honesty principle) appears in `Live-bearing AC IDs` —
+> path — hunts ACs that do NOT exist; the doc carries a `Live-bearing AC IDs`
+> declaration in EITHER accepted home — the AC-section intro (six-section form) or a
+> `## Verification Strategy` section (legacy pre-P2 specs) — and every live-bearing
+> AC id (per the injected predicate + AC-coverage-honesty principle) appears in it —
 > a declaration check (no test source yet); a standing-runtime feature
 > carries an activation AC on the user-observable, never only a fixture proxy;
 > Risks / Open Questions are surfaced, not hidden.

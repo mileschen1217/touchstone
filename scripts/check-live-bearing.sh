@@ -1,42 +1,72 @@
 #!/usr/bin/env bash
-# check-live-bearing.sh <spec> — STRUCTURAL-ONLY check over a spec's Verification
-# Strategy Live-bearing declaration. NEVER renders the semantic live-bearing verdict
-# (that stays reviewer judgment). Exit 0 = VS integrity holds + no orphan (advisory
-# candidate lines may still print to stdout, non-fatal). Non-zero + report on
-# orphan / no-VS / malformed. Candidate heuristic signals sourced from
-# skills/_shared/inject/live-bearing-predicate.md (documented, inspectable).
+# check-live-bearing.sh <spec> — STRUCTURAL-ONLY check over a spec's Live-bearing
+# declaration. NEVER renders the semantic live-bearing verdict (that stays reviewer
+# judgment). Exit 0 = declaration integrity holds + no orphan (advisory candidate
+# lines may still print, non-fatal). Non-zero + report on orphan / no-declaration /
+# malformed / new-vs-legacy disagreement.
+#
+# TWO ACCEPTED HOMES (P2 REQ-8):
+#   new form    — the `- **Live-bearing AC IDs:**` line inside `## Acceptance Criteria`
+#                 (authoritative), paired with the Index Live-bearing column.
+#   legacy form — the same line inside `## Verification Strategy` (pre-P2 specs,
+#                 grandfathered).
+# A spec carrying NEITHER form fails (same class as today's missing-VS exit). When
+# BOTH are present the new form is authoritative; the two MUST declare the same id
+# set or the check fails.
 #
 # Candidate heuristic grep signals (structural, advisory — NOT semantic verdict):
-#   deployed       — wired/deployed target boundary
-#   real session   — real Claude Code session (cannot be discharged offline)
-#   real Bash      — real Bash shell invocation (live subprocess)
-#   live session   — live/wired session
-#   out-of-band    — out-of-band trigger (external)
-#   real .*session — "real <adjective> session" variants
-#   really fires   — execution that genuinely fires (not a dry-run)
-# These are heuristics; the predicate is behavioural — reviewers apply the full
-# predicate; this check surfaces candidates for their attention only.
+#   deployed / real session / real Bash / live session / out-of-band /
+#   real .*session / really fires — reviewers apply the full behavioural predicate
+#   (skills/_shared/inject/live-bearing-predicate.md); this check only surfaces
+#   candidates for their attention.
 set -uo pipefail
 spec="${1:-}"; [ -f "$spec" ] || { echo "usage: check-live-bearing.sh <spec>" >&2; exit 2; }
 
-# 1. Extract the VS section + the Live-bearing value.
-vs="$(awk '/^## Verification Strategy/{f=1} f{print}' "$spec")"
-if [ -z "$vs" ]; then
-  echo "[unverified: no Verification Strategy] $spec" >&2
+# Extract the Live-bearing value scoped to one `## <section>` .. next `## `.
+# Prints the raw value (may be empty) for the FIRST matching line in that section.
+extract_lb() {
+  awk -v sec="$1" '
+    $0 ~ ("^## " sec "([[:space:]]*$)") { inx=1; next }
+    inx && /^## / { inx=0 }
+    inx && /Live-bearing AC IDs:\*\*/ {
+      sub(/.*Live-bearing AC IDs:\*\*[[:space:]]*/, ""); sub(/[[:space:]]*$/, "")
+      print; exit
+    }
+  ' "$2"
+}
+
+# Normalize a raw value to its leading well-formed id-list (or `none`), discarding
+# trailing prose regardless of separator (arrow / em-dash / hyphen / bare title).
+normalize_lb() {
+  local raw="$1" ext
+  ext="$(printf '%s' "$raw" | grep -oE '^(none|AC-[0-9]+([, ]+AC-[0-9]+)*)' || true)"
+  [ -n "$ext" ] && printf '%s' "$ext" || printf '%s' "$raw"
+}
+# Sorted id set (for the both-forms agreement compare); `none` → empty set.
+id_set() { printf '%s' "$1" | grep -oE 'AC-[0-9]+' | sort -u; }
+
+new_raw="$(extract_lb "Acceptance Criteria" "$spec")"
+legacy_raw="$(extract_lb "Verification Strategy" "$spec")"
+
+have_new=0; have_legacy=0
+[ -n "$new_raw" ] && have_new=1
+[ -n "$legacy_raw" ] && have_legacy=1
+
+if [ "$have_new" -eq 0 ] && [ "$have_legacy" -eq 0 ]; then
+  echo "[unverified: no live-bearing declaration] $spec (neither AC-section intro nor Verification Strategy declares Live-bearing AC IDs)" >&2
   exit 1
 fi
-val="$(printf '%s' "$vs" | sed -n 's/.*Live-bearing AC IDs:\*\*[[:space:]]*//p' | head -1 \
-        | sed 's/[[:space:]]*$//')"
-# Extract the LEADING well-formed id-list (or `none`), discarding any trailing prose
-# regardless of separator (arrow ←, em-dash —, space-hyphen, or a bare title). Extracting
-# the valid prefix — rather than stripping at the first separator char — avoids corrupting
-# the hyphen INSIDE `AC-1` (a naive `s/-.*//` would). A value that does NOT start with a
-# valid token (e.g. `TBD`, `see above`) yields no match → we keep the raw value so the
-# format check below fails a malformed value. Em-dash trailing prose is handled (a real reviewer catch).
-extracted="$(printf '%s' "$val" | grep -oE '^(none|AC-[0-9]+([, ]+AC-[0-9]+)*)' || true)"
-[ -n "$extracted" ] && val="$extracted"
 
-# 2. Validate syntax: `none` OR a list of AC-N tokens.
+# New form authoritative when present; on both-present, sets must agree.
+if [ "$have_new" -eq 1 ] && [ "$have_legacy" -eq 1 ]; then
+  if [ "$(id_set "$(normalize_lb "$new_raw")")" != "$(id_set "$(normalize_lb "$legacy_raw")")" ]; then
+    echo "[disagreement] new-form and legacy-form Live-bearing AC ID sets differ — reconcile them" >&2
+    exit 1
+  fi
+fi
+if [ "$have_new" -eq 1 ]; then val="$(normalize_lb "$new_raw")"; else val="$(normalize_lb "$legacy_raw")"; fi
+
+# Validate syntax: `none` OR a list of AC-N tokens.
 if [ "$val" = "none" ]; then
   listed=""
 elif printf '%s' "$val" | grep -qE '^(AC-[0-9]+)([, ]+AC-[0-9]+)*$'; then
@@ -46,22 +76,21 @@ else
   exit 1
 fi
 
-# 3. Orphan check: each listed AC-N must have a matching #### AC-N heading.
+# Orphan check: each listed AC-N must have a matching #### AC-N heading.
 rc=0
 for ac in $listed; do
-  grep -qE "^#### $ac( |—|\$)" "$spec" || { echo "[orphan] VS lists $ac but no '#### $ac' heading" >&2; rc=1; }
+  grep -qE "^#### $ac( |—|\$)" "$spec" || { echo "[orphan] declaration lists $ac but no '#### $ac' heading" >&2; rc=1; }
 done
 
-# 4. Advisory candidate sweep (ALWAYS runs, even under `none`). Structural signals
-# from the predicate: an AC whose GWT carries a live-artifact signal but is not listed.
+# Advisory candidate sweep (ALWAYS runs, even under `none`).
 signals='deployed|real session|real Bash|live session|out-of-band|real .*session|really fires'
 awk -v sig="$signals" '
   /^#### AC-/ { ac=$2; body="" }
   /^#### AC-/,/^$/ { body=body" "$0 }
   /^$/ { if (ac!="" && body ~ sig) print ac; ac="" }
-  END  { if (ac!="" && body ~ sig) print ac }   # last AC at EOF (no trailing blank line)
+  END  { if (ac!="" && body ~ sig) print ac }
 ' "$spec" | while read -r cand; do
-  echo "$listed" | grep -qx "$cand" || echo "[candidate] $cand carries a live-artifact signal but is absent from the VS list (reviewer to judge)"
+  echo "$listed" | grep -qx "$cand" || echo "[candidate] $cand carries a live-artifact signal but is absent from the declaration (reviewer to judge)"
 done
 
 exit "$rc"

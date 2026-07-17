@@ -67,7 +67,7 @@ Per-AC accounting authored ONCE at close by reading source.
    |----|----------------------------------------|----------------------|---------------|--------|-------|
 
    - "Covered by" = the evidence found asserting the AC; blank ⇒ none found. Non-live-bearing AC → a test reference. Live-bearing AC → a **live artifact with provenance** (producer identity + freshness — commit/timestamp). Satisfying cell shape: `Covered by: live artifact .touchstone/epics/<slug>/evidence/<name>.md @ <commit-sha> via <producer>`
-   - "live-bearing?" = "yes" iff the AC id is in its spec's Verification Strategy `Live-bearing AC IDs`.
+   - "live-bearing?" = "yes" iff the AC id is in its spec's `Live-bearing AC IDs` declaration, homed either in its AC-section intro (new form) or its legacy `## Verification Strategy` section (pre-P2 specs).
    - "waiver" = a human-written rationale to consciously proceed past a NON-LIVE gap.
    - "Issue" = the filed debt issue for each `[unverified]` / waiver row.
 

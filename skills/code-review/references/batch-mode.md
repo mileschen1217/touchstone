@@ -80,7 +80,9 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    > (per the injected principle) blocks the done claim.
    >
    > **Live-bearing ACs.** For each AC listed in the governing spec's
-   > `Live-bearing AC IDs`: apply the injected live-bearing predicate's
+   > `Live-bearing AC IDs` declaration (the AC-section intro for six-section specs,
+   > or a `## Verification Strategy` section for legacy pre-P2 specs): apply the
+   > injected live-bearing predicate's
    > live-artifact evidence rules (static-proxy disqualification, two-part
    > provenance, producer ≠ judge, fakeability-scaled authentication). A
    > static-proxy-only or artifact-less live-bearing claim is flagged with the

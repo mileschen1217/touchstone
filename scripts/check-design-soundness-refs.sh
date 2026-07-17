@@ -7,13 +7,14 @@
 #   If no commitments (additive sentinel OR no ## Architecture section): vacuous pass.
 #   Emits NO honor verdict. Never parses commitment body text. Never judges depth.
 #
-# ZERO-VS-NONZERO COMMITMENT PREDICATE (non-semantic):
-#   Zero commitments iff:
-#     (a) spec has no "## Architecture" section, OR
-#     (b) spec's ## Architecture section contains the literal sentinel:
-#         "no structural commitment — additive"
+# ZERO-VS-NONZERO COMMITMENT PREDICATE (non-semantic) — P2 REQ-6/AC-40:
+#   New form (six-section template): a `depth-stakes:` marker line under a REQ
+#     signals a structural commitment. Any such line → nonzero.
+#   Legacy fallback (pre-P2 specs, no depth-stakes marker): the old ## Architecture
+#     predicate — zero iff no "## Architecture" section, or its section carries the
+#     literal "no structural commitment — additive" sentinel with no SHALL.
 #   Otherwise: nonzero (requires fragment ref in every named consumer).
-#   The floor never reads what the commitment says — only whether the section/sentinel exists.
+#   The floor never reads what a commitment says — only whether the marker/section exists.
 #
 # PINNED FRAGMENT PATH:
 FRAGMENT_PATH="skills/_shared/inject/design-soundness-honor-check.md"
@@ -89,28 +90,26 @@ fi
 # Step 1: Determine zero-vs-nonzero commitment predicate (non-semantic)
 # ---------------------------------------------------------------------------
 
-# Check for ## Architecture section
-if ! grep -qE "^## Architecture" "$spec" 2>/dev/null; then
-  # No ## Architecture section → zero commitments → vacuous pass
-  exit 0
-fi
+# New-form predicate: any `depth-stakes:` marker line under a REQ → nonzero commitment.
+has_depth_stakes=0
+grep -qE '^depth-stakes:' "$spec" 2>/dev/null && has_depth_stakes=1
 
-# Check for additive sentinel within the ## Architecture section
-# Extract text from ## Architecture to next ## heading (or EOF)
-arch_section="$(awk '/^## Architecture/{found=1; next} found && /^## /{found=0} found{print}' "$spec")"
-
-# Additive sentinel counts as zero ONLY when the section carries the EXACT
-# documented sentinel AND no normative SHALL marker alongside it. This means
-# "zero NORMATIVE commitments": a section that asserts a SHALL commitment cannot
-# be zeroed by a waiver phrase. Fail closed — a contradictory section (exact
-# sentinel + a SHALL) is treated as commitment-bearing, so it still requires the
-# fragment reference. Matching the literal sentinel + detecting the SHALL marker
-# is commitment-PRESENCE detection (the floor's job); it never reads what a
-# commitment says (no honor judgment, no content parse — reference-presence only).
-if printf '%s' "$arch_section" | grep -qF "no structural commitment — additive" \
-   && ! printf '%s' "$arch_section" | grep -qwE "SHALL"; then
-  # Explicit additive waiver, no commitment marker → zero commitments → vacuous pass
-  exit 0
+if [ "$has_depth_stakes" -eq 0 ]; then
+  # No new-form marker → fall back to the legacy ## Architecture predicate (pre-P2 specs).
+  if ! grep -qE "^## Architecture" "$spec" 2>/dev/null; then
+    # No depth-stakes marker and no ## Architecture section → zero commitments → vacuous pass
+    exit 0
+  fi
+  arch_section="$(awk '/^## Architecture/{found=1; next} found && /^## /{found=0} found{print}' "$spec")"
+  # Additive sentinel counts as zero ONLY when the section carries the EXACT
+  # documented sentinel AND no normative SHALL marker alongside it. Fail closed —
+  # a contradictory section (exact sentinel + a SHALL) is treated as
+  # commitment-bearing. Reference-presence only; never reads what a commitment says.
+  if printf '%s' "$arch_section" | grep -qF "no structural commitment — additive" \
+     && ! printf '%s' "$arch_section" | grep -qwE "SHALL"; then
+    # Explicit legacy additive waiver, no commitment marker → zero commitments → vacuous pass
+    exit 0
+  fi
 fi
 
 # ---------------------------------------------------------------------------

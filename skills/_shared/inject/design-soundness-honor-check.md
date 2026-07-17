@@ -31,13 +31,15 @@ is **descriptive-only** — it does not constitute a structural commitment.
 
 ## Feedback arm (deliverable review — code vs spec)
 
-**Scope:** apply this arm to the **whole deliverable** against the **whole ## Architecture**
-section of the governing spec. This is a subsystem-level check, not per-diff.
+**Scope:** apply this arm to the **whole deliverable** against the governing spec's
+structural commitments — for six-section specs, the **depth-stakes REQ set** (REQs carrying a
+`depth-stakes:` marker); for pre-P2 specs, the **whole ## Architecture** section. This is a
+subsystem-level check, not per-diff.
 
 **Honor-judgment rule:**
 
-1. Read the spec's `## Architecture` section and enumerate its structural commitments (SHALL
-   / SHALL NOT statements).
+1. Read the spec's structural commitments — the depth-stakes REQs (new form) or the
+   `## Architecture` section (legacy) — and enumerate its SHALL / SHALL NOT statements.
 2. For each commitment, inspect the delivered code and judge:
    - **Honored** — the code satisfies the commitment (e.g. the module is deep: callers need
      not know internal state or sequencing). Raise no finding for this commitment.

@@ -25,13 +25,16 @@ If not provided in the invocation:
 1. **Read** the template from the path in the config (default: skill's own
    `template.md`)
 2. **Read** all exploration references provided
-3. **Draft** each template section. Follow the template's section order and
-   guidance. Do not skip Foundation, Acceptance Criteria, Error Handling, or
-   Invariants — Foundation locks scope; the other three feed the ATDD+TDD
-   double loop. All four are mandatory.
-   Also draft the ## Verification Strategy section (coarse, risk-scaled) — state the
-   risk layers, power-on-ability, live means, and the Live-bearing AC IDs list. It is
-   mandatory for a full spec (the skip-spec path is exempt — see SKILL.md Skip when).
+3. **Draft** each of the six template sections (Foundation / Source-level Deposit /
+   User Stories / Acceptance Criteria / Risks-Open Questions / Related). Foundation
+   and Acceptance Criteria are mandatory — Foundation locks scope; the AC layer homes
+   all normative content: every requirement, error-path AC, invariant (as an EARS
+   unwanted-behavior REQ carrying its provenance trace), interface (a fenced block
+   under its owning REQ), and depth-stakes structural commitment (a `depth-stakes:`
+   REQ marker). The AC-section intro carries the **Live-bearing AC IDs** line + the
+   one-line risk-layer note (the residue of the former Verification Strategy), and the
+   Index gains a **Live-bearing** column. There is no separate Error Handling /
+   Invariants / Architecture / Interfaces / Verification Strategy section.
 
 When drafting ## Acceptance Criteria:
 - Treat Foundation.aim as a provisional DIRECTION (set shallow at the

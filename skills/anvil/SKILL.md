@@ -109,9 +109,10 @@ commits, not tokens; observing it means re-owning the loop — Level-B deferred)
 **Design-soundness feedback arm:** read and inject verbatim
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`
 into the reviewer `system_prompt` — the feedback duty applied to the WHOLE
-deliverable vs the WHOLE `## Architecture` section of the governing spec (subsystem
-scope, not per-diff): enumerate the spec's SHALL commitments and judge each
-honored / violated / `[unverified: reason]`. Load by path; never restate the body.
+deliverable vs the governing spec's structural commitments (the **depth-stakes REQ
+set** for six-section specs; the `## Architecture` section for pre-P2 specs;
+subsystem scope, not per-diff): enumerate the spec's SHALL commitments and judge
+each honored / violated / `[unverified: reason]`. Load by path; never restate the body.
 *Skip condition:* if `/touchstone:code-review batch` already ran CLEAN (C+H=0, no
 banner) on this same range in this session, skip THIS fragment injection only — the
 standard cross-vendor review below still runs in full.
