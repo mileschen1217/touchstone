@@ -113,9 +113,9 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
 7. Surface findings; Critical / High block merge. Convergence: read
    `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
    and apply it as this batch's stopping rule (single home — same T, same bounded
-   re-verify, same enumeration clause and blocked escalation; do not restate it).
-   The batch's C/H verdict feeds the initial-round table; a surviving Critical
-   after the one re-verify is a blocked line at the batch report.
+   re-verify, same blocked escalation; do not restate it). The batch's C/H verdict
+   feeds the initial-round table; a surviving Critical after the one re-verify is
+   blocked and surfaced at the batch report.
 8. **Informed-consent checkpoint (CONSENT-3):** if the verdict carries a ⚠️ DEGRADED or
    ⚠️ PARTIAL banner, present the banner to the user and obtain explicit acknowledgement
    (an `AskUserQuestion` choice or an explicit user "proceed") BEFORE reporting the batch
