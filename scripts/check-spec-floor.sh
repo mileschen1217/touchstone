@@ -74,8 +74,14 @@ if [ "$has_us" = "yes" ]; then
       REQ) printf '%s\n' "$reqset"   | grep -qx "$tg" || note "$rq dangling REQ trace (no such requirement $tg)" ;;
       ADR) ls "$adr_dir/${tg#ADR-}"*.md >/dev/null 2>&1 || note "$rq unresolvable ADR-ref ($tg not under $adr_dir)" ;;
       finding)
-        fpath="${tg#finding:}"; fpath="${fpath%%#*}"
-        [ -f "$finding_root/$fpath" ] || note "$rq unresolvable carried-finding-ref ($tg — no file $fpath)" ;;
+        fbody="${tg#finding:}"; fpath="${fbody%%#*}"; fanchor="${fbody#*#}"
+        if [ ! -f "$finding_root/$fpath" ]; then
+          note "$rq unresolvable carried-finding-ref ($tg — no file $fpath)"
+        elif [ -z "$fanchor" ] || [ "$fanchor" = "$fbody" ]; then
+          note "$rq carried-finding-ref missing #<stable-id> anchor ($tg)"
+        elif ! grep -qF "$fanchor" "$finding_root/$fpath"; then
+          note "$rq carried-finding-ref anchor not in artifact ($tg — no '$fanchor' in $fpath)"
+        fi ;;
     esac
   done < <(printf '%s\n' "$tracedpairs")
 fi

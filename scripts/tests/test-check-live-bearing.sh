@@ -53,6 +53,18 @@ s="$TMP/both-disagree.md"; printf '## Acceptance Criteria\n- **Live-bearing AC I
 out="$(bash "$CHK" "$s" 2>&1)"; rc=$?
 { [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "disagreement"; } && ok "AC-21 both-forms disagree flagged" || fail "AC-21 disagree rc=$rc out=$out"
 
+# --- P2 REQ-8/AC-20: the Index Live-bearing column is a second new-form source ---
+# intro line + Index column AGREE → pass
+s="$TMP/idx-agree.md"; printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** AC-1\n\n| Req | AC | Name | Live-bearing |\n|---|---|---|---|\n| REQ-1 | AC-1 | a | yes |\n| REQ-1 | AC-2 | b | |\n\n#### AC-1 — x\n#### AC-2 — y\n' > "$s"
+bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-20 intro + Index agree → 0" || fail "AC-20 idx-agree nonzero"
+# intro line + Index column DISAGREE → nonzero
+s="$TMP/idx-disagree.md"; printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** AC-1\n\n| Req | AC | Name | Live-bearing |\n|---|---|---|---|\n| REQ-1 | AC-1 | a | |\n| REQ-1 | AC-2 | b | yes |\n\n#### AC-1 — x\n#### AC-2 — y\n' > "$s"
+out="$(bash "$CHK" "$s" 2>&1)"; rc=$?
+{ [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "different AC sets"; } && ok "AC-20 intro vs Index disagree flagged" || fail "AC-20 idx-disagree rc=$rc out=$out"
+# Index column ONLY (no intro line) → Index is the declaration; orphan still caught
+s="$TMP/idx-only.md"; printf '## Acceptance Criteria\n\n| Req | AC | Name | Live-bearing |\n|---|---|---|---|\n| REQ-1 | AC-1 | a | yes |\n\n#### AC-1 — x\n' > "$s"
+bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-20 Index-only declaration → 0" || fail "AC-20 idx-only nonzero"
+
 # AC-27: `none` is valid syntax → not reported missing/malformed; candidate sweep still runs
 s="$TMP/none.md"; vs "$s" "the deployed hook fires on a real session" "none"
 out="$(bash "$CHK" "$s" 2>&1)"; rc=$?

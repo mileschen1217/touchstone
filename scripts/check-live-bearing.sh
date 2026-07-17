@@ -48,6 +48,27 @@ id_set() { printf '%s' "$1" | grep -oE 'AC-[0-9]+' | sort -u; }
 new_raw="$(extract_lb "Acceptance Criteria" "$spec")"
 legacy_raw="$(extract_lb "Verification Strategy" "$spec")"
 
+# New-form second source: the AC Index `Live-bearing` column (last cell of each
+# data row, non-empty/`yes` → that row's AC is live-bearing). When BOTH the AC-intro
+# line and the Index column declare, they MUST agree (else the spec is inconsistent).
+index_lb="$(awk '
+  /^## Acceptance Criteria/ { inac=1; next }
+  inac && /^## / { inac=0 }
+  inac && /^[[:space:]]*\|/ {
+    n=split($0, c, "|"); ac=c[3]; lb=c[n-1]
+    gsub(/^[[:space:]]+|[[:space:]]+$/,"",ac); gsub(/^[[:space:]]+|[[:space:]]+$/,"",lb)
+    if (ac ~ /^AC-[0-9]+$/ && (tolower(lb) ~ /yes/ || lb ~ /^AC-[0-9]+/)) print ac
+  }
+' "$spec" | sort -u)"
+if [ -n "$new_raw" ] && [ -n "$index_lb" ]; then
+  if [ "$(id_set "$(normalize_lb "$new_raw")")" != "$(printf '%s' "$index_lb" | tr ' ' '\n' | sort -u)" ]; then
+    echo "[disagreement] AC-intro Live-bearing line and Index Live-bearing column declare different AC sets — reconcile them" >&2
+    exit 1
+  fi
+fi
+# If only the Index column declares (no intro line), it IS the new-form declaration.
+[ -z "$new_raw" ] && [ -n "$index_lb" ] && new_raw="$(printf '%s' "$index_lb" | tr '\n' ',' | sed 's/,$//')"
+
 have_new=0; have_legacy=0
 [ -n "$new_raw" ] && have_new=1
 [ -n "$legacy_raw" ] && have_legacy=1

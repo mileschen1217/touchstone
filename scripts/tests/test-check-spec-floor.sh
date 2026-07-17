@@ -68,6 +68,7 @@ assert trace-finding-green      0 "pass"                          trace-finding-
 assert trace-req-dangling       1 "dangling REQ trace"            trace-req-dangling.md
 assert trace-adr-unresolvable   1 "unresolvable ADR-ref"          trace-adr-unresolvable.md
 assert trace-finding-unresolv   1 "unresolvable carried-finding"  trace-finding-unresolvable.md
+assert trace-finding-bad-anchor 1 "anchor not in artifact"        trace-finding-bad-anchor.md
 assert trace-us-orphan          1 "orphaned user-story"           trace-us-orphan.md
 unset SPEC_FLOOR_ADR_DIR SPEC_FLOOR_FINDING_ROOT
 assert story-multiline    0 "pass"                     story-multiline.md
