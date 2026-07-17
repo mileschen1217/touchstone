@@ -52,12 +52,32 @@ if [ "$has_us" = "yes" ]; then
   if [ -z "$storyset" ]; then note "## User Stories present but holds zero parseable US-N entries"; fi
   for u in $(printf '%s\n' "$rawstories" | sort | uniq -d); do note "$u is a duplicated user-story id"; done
 
+  # Type-tagged pairs: `<req> <type> <target>` (type ∈ US|REQ|ADR|finding).
+  # The trace-target type is the deterministic routing signal — no per-REQ marker.
   tracedpairs="$(bash "$ex" traces "$spec")" || { echo "FAIL: spec-extract traces failed"; exit 1; }
-  tracedset="$(printf '%s\n' "$tracedpairs" | awk 'NF{print $2}' | sort -u)"
+  us_targets="$(printf '%s\n' "$tracedpairs" | awk '$2=="US"{print $3}' | sort -u)"
 
-  for u in $storyset; do printf '%s\n' "$tracedset" | grep -qx "$u" || note "$u has no requirement (untraced story)"; done
-  for u in $tracedset; do [ -n "$u" ] && { printf '%s\n' "$storyset" | grep -qx "$u" || note "$u dangling traces-to (no such user-story)"; }; done
+  # Resolution roots for the extended target vocabulary (env-overridable for tests).
+  adr_dir="${SPEC_FLOOR_ADR_DIR:-$(cd "$(dirname "$0")/.." && pwd)/docs/adr}"
+  finding_root="${SPEC_FLOOR_FINDING_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+
+  # no-orphan-US: every declared US-N has ≥1 requirement tracing to it.
+  for u in $storyset; do printf '%s\n' "$us_targets" | grep -qx "$u" || note "$u has no requirement (orphaned user-story)"; done
+  # every REQ has ≥1 traces-to of some valid type.
   for r in $reqset; do printf '%s\n' "$tracedpairs" | grep -q "^$r " || note "$r untraced requirement (no traces-to)"; done
+
+  # Per-type target resolvability (the target type routes the check).
+  while read -r rq ty tg; do
+    [ -n "$ty" ] || continue
+    case "$ty" in
+      US)  printf '%s\n' "$storyset" | grep -qx "$tg" || note "$rq dangling US trace (no such user-story $tg)" ;;
+      REQ) printf '%s\n' "$reqset"   | grep -qx "$tg" || note "$rq dangling REQ trace (no such requirement $tg)" ;;
+      ADR) ls "$adr_dir/${tg#ADR-}"*.md >/dev/null 2>&1 || note "$rq unresolvable ADR-ref ($tg not under $adr_dir)" ;;
+      finding)
+        fpath="${tg#finding:}"; fpath="${fpath%%#*}"
+        [ -f "$finding_root/$fpath" ] || note "$rq unresolvable carried-finding-ref ($tg — no file $fpath)" ;;
+    esac
+  done < <(printf '%s\n' "$tracedpairs")
 fi
 
 if [ -n "$reqset" ]; then

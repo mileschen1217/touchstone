@@ -52,10 +52,24 @@ assert req-self-trip     0 "pass"           req-self-trip.md
 
 assert story-happy        0 "pass"                    story-happy.md
 assert story-dropped      1 "US-2 has no requirement"     story-dropped.md
-assert story-dangling     1 "US-9 dangling traces-to"      story-dangling.md
+assert story-dangling     1 "dangling US trace"      story-dangling.md
 assert story-zerotrace    1 "REQ-2 untraced requirement"   story-zerotrace.md
 assert story-zerotrace-e  1 "REQ-2 untraced requirement"   story-zerotrace-empty.md
 assert story-multitoken   0 "pass"                     story-multitoken.md
+
+# --- P2 REQ-7/AC-19: extended traces-to vocabulary {US|REQ|ADR|carried-finding} ---
+# ADR-refs resolve under a fixture ADR dir; finding-refs under a fixture root.
+# Fabricated-US temptation: the honest fix for an orphaned US is a real requirement
+# that needs it, or deleting the unused US — NEVER a throwaway REQ tracing to it to
+# green the check. The orphan case below stays RED by design; do not "fix" it that way.
+export SPEC_FLOOR_ADR_DIR="$fix/fixture-adrs" SPEC_FLOOR_FINDING_ROOT="$fix"
+assert trace-adr-green          0 "pass"                          trace-adr-green.md
+assert trace-finding-green      0 "pass"                          trace-finding-green.md
+assert trace-req-dangling       1 "dangling REQ trace"            trace-req-dangling.md
+assert trace-adr-unresolvable   1 "unresolvable ADR-ref"          trace-adr-unresolvable.md
+assert trace-finding-unresolv   1 "unresolvable carried-finding"  trace-finding-unresolvable.md
+assert trace-us-orphan          1 "orphaned user-story"           trace-us-orphan.md
+unset SPEC_FLOOR_ADR_DIR SPEC_FLOOR_FINDING_ROOT
 assert story-multiline    0 "pass"                     story-multiline.md
 assert story-sep-variants 0 "pass"                     story-sep-variants.md
 assert story-empty        1 "User Stories"             story-empty.md
@@ -64,7 +78,7 @@ assert story-fenced-head  0 "pass"                     story-fenced-heading.md
 assert story-fence        0 "pass"                     story-fence.md
 assert story-draft        0 "skipped: draft"           story-draft.md
 assert story-legacy-trace 0 "pass"                     story-legacy-trace.md
-assert story-no-req       1 "untraced story"           story-no-req.md
+assert story-no-req       1 "orphaned user-story"           story-no-req.md
 
 # stories extractor non-zero -> checker fails closed (not treated as empty set)
 tmp="$(mktemp -d)"
