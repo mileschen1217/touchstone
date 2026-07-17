@@ -3,3 +3,5 @@
 {"event":"advisor_intent","moment_id":1,"decision_type":"entry-gate","why":"topology choice for a 15-REQ/42-AC doc+script build under a retained-anvil-obligations wrapper","ts":"2026-07-17T18:25:40Z"}
 {"event":"advisor_unavailable","moment_id":1,"note":"CC advisor transport not attached (no /advisor config this session); commander proceeds on own judgment, confidence degraded","ts":"2026-07-17T18:25:40Z"}
 {"event":"judgment_moment","moment_id":1,"decision_type":"entry-gate","disposition":"frozen","ts":"2026-07-17T18:25:40Z"}
+{"event":"judgment_moment","moment_id":2,"decision_type":"acceptance-ambiguity","disposition":"frozen","ts":"2026-07-17T19:20:33Z"}
+{"event":"dispatch","task_id":"final-review","tier":"mid","resolved_model":"claude-sonnet-5","read_only":true,"wave":7,"contract":"inline-final-cross-vendor-review","card":"fresh-verifier@33ec134","brief_tokens_est":4000,"w_est":6000,"ts":"2026-07-17T19:20:33Z"}
