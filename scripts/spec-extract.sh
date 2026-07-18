@@ -50,6 +50,11 @@ raw_reqs() {
     /^### Requirement:[[:space:]]+REQ-[0-9]+/ { match($0,/REQ-[0-9]+/); print substr($0,RSTART,RLENGTH) }
   ' "$spec"
 }
+# Type-tagged trace pairs: one line per traces-to target, `<req> <type> <target>`.
+# Target vocabulary (the type is the deterministic routing signal): US-N | REQ-N |
+# ADR-NNNN | finding:<path>#<id>. Finding-refs are extracted+stripped FIRST (their
+# path may embed other tokens); the remainder is scanned for US / ADR / REQ.
+# The digest path (attested_section) is untouched by this function.
 traces() {
   awk '
     /^```/ { fence = !fence; next }
@@ -58,7 +63,13 @@ traces() {
     inac && /^## / { inac=0 }
     !inac  { next }
     /^### Requirement:[[:space:]]+REQ-[0-9]+/ { match($0,/REQ-[0-9]+/); cur=substr($0,RSTART,RLENGTH); next }
-    /^traces-to:/ && cur!="" { line=$0; while (match(line,/US-[0-9]+/)) { print cur " " substr(line,RSTART,RLENGTH); line=substr(line,RSTART+RLENGTH) } }
+    /^traces-to:/ && cur!="" {
+      line=$0
+      while (match(line,/finding:[^ ,]+#[^ ,]+/)) { print cur " finding " substr(line,RSTART,RLENGTH); line=substr(line,1,RSTART-1) substr(line,RSTART+RLENGTH) }
+      tmp=line; while (match(tmp,/US-[0-9]+/))  { print cur " US "  substr(tmp,RSTART,RLENGTH); tmp=substr(tmp,RSTART+RLENGTH) }
+      tmp=line; while (match(tmp,/ADR-[0-9]+/)) { print cur " ADR " substr(tmp,RSTART,RLENGTH); tmp=substr(tmp,RSTART+RLENGTH) }
+      tmp=line; while (match(tmp,/REQ-[0-9]+/)) { print cur " REQ " substr(tmp,RSTART,RLENGTH); tmp=substr(tmp,RSTART+RLENGTH) }
+    }
   ' "$spec"
 }
 

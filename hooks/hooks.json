@@ -1,26 +1,6 @@
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start-observability.sh" }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh" }
-        ]
-      }
-    ],
     "PreToolUse": [
-      {
-        "matcher": "Skill",
-        "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stamp-run.sh" }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [

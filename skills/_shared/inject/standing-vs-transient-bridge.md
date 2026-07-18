@@ -1,6 +1,5 @@
 ---
-injected-by: [assay, design-review]
-referenced-by: [epic-driven-roadmap]
+injected-by: [design-review]
 kind: workflow
 ---
 

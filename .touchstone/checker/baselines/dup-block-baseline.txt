@@ -35,27 +35,21 @@ read claude plugin root skills shared config resolver md with the read tool and 
 #    (incompressible: sentinel + schema text a consumer parses byte-for-byte).
 the sentinel stage review summary critical n high n degraded true false
 caught by locus should have locus gap class missing ac false green no gate
-# ── declared dual-home: evidence-honesty criteria inlined at BOTH batch review
-#    and epic close "by design … greppable in this host too". Verdict (human,
-#    2026-07-17): keep baselined; open item — whether both copies are truly
-#    needed, and if so whether they should stay word-identical or diverge into
-#    site-precise wording (calibration.md § 不確定項 U-a → P2/P3).
-read the governing spec s acs and the test source for each ac judge whether a test asserts that ac s then clause ac coverage semantic not code coverage not tool measured
-read the governing spec s acs and the test source for each ac judge whether a test asserts that ac s then clause ac coverage semantic not code coverage not tool measured a test that mocks the very boundary a boundary crossing ac claims does not discharge that claim proxy not coverage
-a test that mocks the very boundary a boundary crossing ac claims does not discharge that claim proxy not coverage
-unverified reason for any ac you cannot confirm never pass by default unverified is honest and allowed informed consent
+# ── (P2 REQ-14/AC-36) U-a evidence-honesty dual-home RESOLVED: the shared core
+#    now lives in the single-home fragment skills/_shared/inject/ac-coverage-criteria.md
+#    (sibling of ac-coverage-honesty-principle), load-and-injected at code-review batch
+#    and epic-close; the 4 U-a exempt fingerprints below are deleted (no restatement
+#    remains to exempt).
 # ── inject fragments sharing their loading-contract header sentence — each
 #    fragment must be self-contained when injected. Verdict: exempt.
 a consumer loads this file and follows it carrying only its own delta
-# ── chain-handoff description shared across crucible/assay ends + crucible
-#    description restated in its own body. Verdict (human, 2026-07-17):
-#    TP-deferred — assay owns the interview+contract responsibility; crucible
-#    is meant to be a thin wrapper/router and should not restate the handoff
-#    in its body; convergence = crucible slimming (shipped surface → P2/P3;
-#    calibration.md § 不確定項 U-b).
-cannot lay out assumptions about a map that has not been drawn explore always precedes
-hands back the durable record whose consensus section the contract author consumes
-the record is an implementation of the confirmed facts source contract skills shared inject confirmed facts source md
+# ── (P2 REQ-13/AC-31) U-b crucible-restates-assay-handoff RESOLVED: crucible's body
+#    now routes to assay/design-spec by pointer + its own delta (Step 2 no longer
+#    restates the consensus handoff; Step 3 points to the confirmed-facts-source
+#    fragment rather than restating "an implementation of the ... contract"). The 2
+#    U-b fingerprints are deleted (no body restatement remains to exempt). crucible's
+#    frontmatter description keeps its one-line handoff summary — a description IS the
+#    routing signal, single occurrence, not a body restatement.
 # ── template family sharing field rules (design-spec template × epic-index
 #    template) — named worked example of an F5 cluster in the authoring template.
 #    Verdict: true positive, deferred (shipped surface; P1 invariant forbids fix).
@@ -67,3 +61,11 @@ review maintainer notes orientation for maintainers the executable procedure liv
 #    template (single home). Verdict: true positive, deferred (shipped surface;
 #    P1 invariant forbids fix — P2/P3 essence-rewrite candidate).
 guideline 200 lines 2 5k tokens per skill body hard cap 500
+# ── severity-tiered stopping-rule pointer lines (P2 REQ-1/AC-41) — the matched
+#    text IS the pointer sentence to the single home
+#    (skills/_shared/inject/severity-tiered-stopping-rule.md) at each of the 5
+#    wiring sites; site bodies carry only their own delta, never the rule body.
+#    Verdict: exempt (pointer, not restatement) — same class as the
+#    inject-instruction cluster above. Calibration: calibration.md § U-stop.
+the severity tiered stopping rule claude plugin root skills shared inject severity tiered stopping rule md single home
+read claude plugin root skills shared inject severity tiered stopping rule md and apply it as this

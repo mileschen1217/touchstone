@@ -3,7 +3,7 @@
 # Usage: bash check-evidence-reckoning.sh <index-path> <spec-path>
 #
 # Reads the ## Evidence Reckoning table from the epic index file and applies
-# the five blocking rules from close-and-doc-reckoning.md § Evidence Reckoning step 4.
+# the five blocking rules from epic-driven-roadmap references/close.md § Evidence Reckoning.
 # Non-zero exit means at least one BLOCK rule fired; prints BLOCK: lines per violation.
 #
 # COVERAGE HONESTY — which rules are deterministic vs heuristic/uncovered:

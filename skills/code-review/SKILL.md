@@ -1,7 +1,7 @@
 ---
 name: code-review
 description: |
-  Use when a commit or logical commit group needs review. Default: per-commit (Pattern C — generic Sonnet reviewer). `batch` keyword: logical group (Pattern B — vendor-not-builder reviews). Mode is caller-declared; no commit-count heuristic. Out of scope — design-document review (specs / plans / ADRs → `/touchstone:design-review`).
+  Use when a logical commit group needs review before merge — cross-vendor batch review: the reviewer is never the vendor that built the code. Out of scope — single-commit ad-hoc review (use Claude Code's built-in `/code-review`) and design-document review (specs / plans / ADRs → `/touchstone:design-review`).
 allowed-tools:
   - Bash
   - Read
@@ -12,112 +12,109 @@ user-invocable: true
 kind: workflow
 ---
 
-# /touchstone:code-review — Code Review (Patterns C and B)
+# /touchstone:code-review — Batch Review
 
-Dispatches a reviewer in a separate context over a diff and applies its
-findings before commit. Never review inline — always spawn a separate agent.
+Dispatches a cross-vendor reviewer over a logical commit group and applies its
+findings before merge. Never review inline — spawn a separate agent whose
+vendor never matches the code's builder.
 
 ## Usage
 
 ```
-/touchstone:code-review                          # HEAD commit, Pattern C
-/touchstone:code-review <commit-ish>             # named single commit, Pattern C
-/touchstone:code-review batch [<range>]          # logical group (default <main>..HEAD), Pattern B
-/touchstone:code-review [batch] with <codex|cc>  # override reviewer vendor
+/touchstone:code-review [<range>]        # default <main>..HEAD (or <master>..HEAD)
+/touchstone:code-review with <codex|cc>  # force reviewer vendor
 ```
 
-Parse args left-to-right:
-1. First token `batch` → `mode = batch`.
-2. Next token, unless `with`, is the commit-ish (Pattern C) or range (Pattern B).
-3. `with <vendor>` → `force_reviewer = <vendor>`; validate against {`codex`, `cc`}; fail loudly otherwise.
+## Phase 1 — Range, governing spec, builder, reviewer
 
-**Batch mode:** on the `batch` keyword, read `references/batch-mode.md` and follow it
-(builder detection, evidence-honesty criteria, provenance, fallback, CONSENT-3 all
-live there). The rest of this body is Pattern C.
+Range: the given argument, else `$(git merge-base HEAD main)..HEAD` (project
+CLAUDE.md may override the base branch).
 
-## Phase 1 — Guard and scope
+Governing spec (needed for Phase 2's evidence-honesty criteria): resolve the
+active epic from `touchstone.yaml` `epics_dir`, or from an `epic`/
+`governing_specs` field the caller passed in. Unresolvable → skip to Phase 2's
+no-governing-spec path. Otherwise read that epic index, enumerate its
+`status: Accepted` specs, carry the path(s) forward as `governing_specs`.
 
-Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-shipped-refs.sh"` if it exists. Exit 1
-→ a committed `docs/`/`skills/` file references an untracked dated local artifact;
-fix the leak before commit. Exit 2 → environment problem; resolve and re-run. Exit 0
-→ proceed.
+Builder — always detect, even under a forced reviewer (`builder_vendor` must
+still be set): `git log --format=%B <range> | grep -iE '^Co-Authored-By:.*(codex|gpt-?5|openai)'`.
+Any hit → `builder = codex`; otherwise → `builder = cc` (default). Log the
+result so misdetection is visible: "Builder detection: N/M commits tagged
+Codex → builder = codex; reviewer swap = CC" (or the inverse). If a Codex agent
+built without tagging commits, override with `with cc`.
 
-Diff target: the argument if given; else the project CLAUDE.md's declared diff path;
-else `git diff HEAD`.
+Reviewer = the vendor opposite `builder` (`touchstone:codex-reviewer` when
+`builder = cc`; `touchstone:code-reviewer` when `builder = codex`), unless
+`with <vendor>` forces it — force also waives the vendor-correctness check,
+never builder detection.
 
-- [ ] Shipped-ref guard exit code acted on; diff target resolved.
+## Phase 2 — Dispatch
 
-## Phase 2 — Reviewer scope
+Dispatch the resolved reviewer `run_in_background: true` with
+`{ task: <full diff>, role: "batch-reviewer", task_dir: <optional> }`.
 
-The generic reviewer **self-selects domain lenses** from the diff (idioms, type
-safety, performance, security, persistence — no enumerated catalogue, no separate
-specialist dispatch; scrutinize at the depth the diff's risk surface demands).
+No `governing_specs` from Phase 1 above → skip the evidence-honesty criteria below,
+emit exactly one line, `no governing spec — coverage not audited` — never
+silently pass. Otherwise read and inject the following **verbatim** into the
+reviewer's `system_prompt` (`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/`,
+unconditional, load-and-inject — never restate):
 
-**Regression-presence note:** "a fix commit should carry a regression test" fires on
-fix commits regardless of whether test files are touched (gating on test-files-touched
-would skip exactly the commits that need it). It belongs to the generic review
-(check 7 of the generic-diff prompt), not the test-evidence lens.
+- `live-bearing-predicate.md` + `ac-coverage-honesty-principle.md` — also
+  carry as `evidence_honesty_vocab`.
+- `design-soundness-honor-check.md` — apply its feedback duty (subject = the
+  whole deliverable against the governing spec's depth-stakes REQ set,
+  subsystem scope, not per-diff).
+- `ac-coverage-criteria.md`, then this delta: for each AC in the spec's
+  `Live-bearing AC IDs` declaration, apply the live-bearing predicate's
+  evidence rules (static-proxy disqualification, two-part provenance,
+  producer ≠ judge) — a static-proxy-only or artifact-less claim blocks the
+  same as silent false-green; you authenticate the artifact, never re-run
+  the producer.
 
-## Phase 3 — Dispatch
+Diff touches test files → additionally inject the checklist and test-evidence
+lens from `references/reviewer-prompts.md` (single canonical home).
 
-Launch the reviewer `run_in_background: true`:
+## Phase 3 — Fallback and provenance
 
-- **Primary:** generic Sonnet reviewer (`model: "sonnet"`) with the `generic-diff`
-  prompt from `references/reviewer-prompts.md`. If `force_reviewer = codex`, dispatch
-  `codex-reviewer` instead, with the Pattern-B envelope shape
-  `{ task: <diff>, role: "reviewer", task_dir: <optional> }`.
-- **Specific-file invocation** (`/touchstone:code-review path/to/file`): use the
-  `specific-file` prompt.
+Single reviewer; no parallel dispatch, no pre-probe of vendor availability —
+rely on the reviewer agent's own `status`/`fallback_reason`. Swapped reviewer
+returns `status: failed` / a `fallback_reason` (e.g. Codex unavailable) → fall
+back to the builder's own vendor. That fallback also fails → `status: failed`,
+`providers_used: []`, no banner. `task_dir` supplied but the wrapper returns
+with no `review.result.json` written → not accepted regardless of what was
+reported; re-dispatch once restating the provenance requirement; still missing
+→ the same total-failure terminal state.
 
-- [ ] Reviewer dispatched as a separate agent; nothing reviewed inline.
+Write provenance and any banners per
+`skills/cross-provider-reviewer/references/provenance.md` (sole canonical
+home — use the full plugin-relative path, not a bare `references/`):
+`builder_vendor` = the Phase 1 detection (always set, including under `with`);
+`providers_used`/`providers_expected` for this invocation; degraded or partial
+→ prepend the banner(s) to the verdict text and to `<task_dir>/review.md`;
+write `<task_dir>/review.result.json` (`review-envelope/v1`).
 
-## Phase 4 — Aggregate and fix
+## Phase 4 — Converge, consent, report
 
-Wait for the reviewer, then act on its findings table:
+Critical/High findings block merge. Convergence: read
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
+and apply it as this gate's stopping rule (single home — do not restate it).
 
-1. **Critical/High** — fix immediately, no asking.
-2. **Medium** — note in report, defer to batch review.
-3. **Low** — fix inline only if trivial (≤2 lines, no structural change); else note.
-   No cross-commit ledger of deferred Lows.
-4. **Post-fix sweep** — after any Critical/High fix, re-read the fix diff itself:
-   is it complete, does it break an adjacent behaviour, does the same defect survive
-   at a sibling site? Fixes are the one diff no reviewer saw.
-5. **Changed-AC re-check** — when the commit claims an AC discharged (AC id in the
-   commit message or task brief), confirm that AC's Then-clause against the diff.
-   Changed ACs only, never the full table; a green suite is not the confirmation.
-
-No re-review loop in Pattern C — per-commit scope is too small (batch owns that).
-The post-fix sweep above is a self-read of the fix diff, not a re-dispatch.
-
-- [ ] Every Critical/High fixed + post-fix sweep done; claimed ACs re-checked.
-
-## Phase 5 — Report
+Verdict carries a ⚠️ DEGRADED or ⚠️ PARTIAL banner → present it verbatim to the
+user and get explicit acknowledgement (`AskUserQuestion` or an explicit
+"proceed") BEFORE reporting the batch as ready to merge — applies even at
+Critical+High == 0. A clean, no-banner review triggers nothing.
 
 ```markdown
-## Patch Review: {target}
-
-**Reviewer dispatched:** {generic Sonnet | codex-reviewer}
-
-| # | Issue | Severity | Source | Action |
-|---|---|---|---|---|
-| 1 | ... | Critical | Sonnet | Fixed: ... |
-| 2 | ... | Medium | Sonnet | Deferred to /touchstone:code-review batch |
-| 3 | ... | Low | Sonnet | Fixed inline (trivial) |
-
-Ready to commit: {yes/no}
+## Batch Review: {range}
+**Builder:** {cc|codex}  **Reviewer:** {codex-reviewer|code-reviewer}
+| # | Issue | Severity | Action |
+|---|---|---|---|
+| 1 | ... | Critical | Fixed: ... |
+Ready to merge: {yes/no}
 ```
 
-**Yield stamp (you, the reviewing session — after the report, one line, no
-hook backs this):** append one JSON line to the reviewed repo's
-`.touchstone/ledger/review-stamps.jsonl` (create the file if absent):
+**Gate stamp:** append one line to `.touchstone/eval/stamps.jsonl` (create if absent):
 
 ```
-{"schema":"review-stamp/v1","ts":"<ISO8601 UTC>","mode":"per-commit","target":"<commit-ish>","critical":N,"high":N,"medium":N,"low":N}
+{"date":"<ISO8601 UTC>","gate":"code-review-batch","target":"<range>","findings":{"C":n,"H":n,"M":n,"L":n},"fixed":n,"rounds":n}
 ```
-
-This is the per-commit yield record (findings vs commits) the retirement /
-insight data reads; skipping it silently un-instruments the gate.
-
-## Related
-
-- Rationale (Pattern B, generic-Sonnet choice, specialist-roster policy) + Dependencies: `README.md`.

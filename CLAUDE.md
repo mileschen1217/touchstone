@@ -38,12 +38,11 @@ Use `/triage` and `/to-issues` skills to move work from local drafts to GitHub.
 ## Build / Test
 
 - Lint shell: `shellcheck scripts/*.sh`
-- Lint shipped refs: `bash scripts/check-shipped-refs.sh`
-- Md-surface budget (net-byte ratchet over `skills/`+`agents/`): `bash scripts/check-md-surface-budget.sh`
-- Run tests: `bash scripts/tests/run-all.sh`
-- Lint test shell: `shellcheck scripts/tests/*.sh`
+- Prose budget (R1 ratchet: <=3000 lines total, <=200 per file): `bash .touchstone/checker/pre-commit/check-prose-budget.sh`
+- Run tests: `bash scripts/tests-smoke/run-smoke.sh`
+- Lint test shell: `shellcheck scripts/tests-smoke/*.sh`
 - Plugin reload after edits: `/reload-plugins`
-- Smoke test: install plugin in a clean repo, run `/touchstone:init`, exercise stage skills. After deploying a new version (`/plugins update` → `/reload-plugins`), run `bash scripts/deployed-smoke.sh` to verify the cache.
+- Smoke test: install plugin in a clean repo, run `/touchstone:init`, exercise stage skills. After deploying a new version (`/plugins update` → `/reload-plugins`), exercise one stage skill to verify the cache.
 
 ## Versioning (the plugin is the deliverable)
 
