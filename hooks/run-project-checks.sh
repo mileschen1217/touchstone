@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # run-project-checks.sh — CC PreToolUse(Bash) handler: run a repo's own
 # .touchstone/checker/<stage>/check-*.sh before the agent's git commit/push.
-# SAFETY CONTRACT (mirrors stamp-run.sh): every infra failure exits 0; ONLY a
+# SAFETY CONTRACT: every infra failure exits 0; ONLY a
 # covered command whose project check fails exits 2. Checks are locus-agnostic.
 set -u
 

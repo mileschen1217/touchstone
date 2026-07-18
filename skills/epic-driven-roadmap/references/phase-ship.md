@@ -27,22 +27,21 @@ quiz has been taken and passed:
       question, the explainer must carry the answer as an explicit sentence a
       reader can point to — never as an implied clause the reader must infer
       (dense single-clause compression is the known failure form).
-      Deliver it WITH the explainer and ask the owner to try it. A
-      wrong answer marks exactly where the explainer failed — revise the
-      explainer there and re-ask. **Quiz not passed → do not approve**
-      (informed accept, never a rubber-stamp).
+      Deliver it WITH the explainer and ask the owner to try it. A wrong
+      answer marks exactly where the explainer failed — revise the explainer
+      there, re-ask, AND record the miss as a use-point failure event: one
+      `gate-miss.md` line (`date | artifact | event | expected locus |
+      actual locus | severity`) per wrong answer. **Quiz not passed → do not
+      approve** (informed accept, never a rubber-stamp).
 
-Epic close cites each phase's pair (close step 5e); it never re-runs the quiz.
+Epic close cites each phase's pair (close step 2); it never re-runs the quiz.
 
 ## Post-merge — record
 
-Run these two lines (cwd = the target repo root) at the moment the phase's
-deliverable ships (PR merged / release tagged):
+At the moment the phase's deliverable ships (PR merged / release tagged),
+cwd = the target repo root, run:
 
-- [ ] **Deterministic:** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/metrics/phase-record.sh" <epic-slug> <phase-label>`
+- [ ] `bash "${CLAUDE_PLUGIN_ROOT}/scripts/metrics/phase-record.sh" <epic-slug> <phase-label>`
       — appends the phase's gate-run metrics and the current open-entry count
       to `.touchstone/epics/<slug>/data-points.md` (cells honestly
       `[unverified: …]` when OTel is absent; never hand-copy the numbers).
-      Running it also bounds the last still-open gate-run window.
-- [ ] **Semantic:** invoke `/touchstone:insight` — ranked proposal digest over
-      the full open-entry set; every ruling is recorded as a fact.

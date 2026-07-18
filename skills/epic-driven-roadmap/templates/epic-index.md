@@ -7,15 +7,10 @@ landed:                     # set on close
 
 # <Epic Title>
 
-**Aim:** <One-sentence observable deliverable. THIS is the single home
-for the aim field at epic level — do not repeat it below.>
+**Aim:** <One-sentence observable deliverable. Single home for the aim
+field at epic level — do not repeat it below.>
 
 ## Foundation
-
-> Set at scaffold time via elicitation (Step 0). One-line version of each
-> field — enough to route and incremental-load without opening a spec. The
-> aim field lives in the **Aim:** headline above; this block carries the
-> other two foundation fields. The spec carries the full phase version.
 
 - **Intention (why):** <One line: motivation / pain driving this epic.>
 - **Out of scope:**
@@ -39,7 +34,7 @@ for the aim field at epic level — do not repeat it below.>
 
 ## Retrospective
 
-*(filled on close. If `scope-changes.jsonl` exists in this epic dir, review it for scope-expansion patterns — recurring expansions signal contracts scoped too narrowly upstream.)*
+*(filled on close — see references/close.md)*
 
 **What worked**
 - …

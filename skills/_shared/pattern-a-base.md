@@ -3,7 +3,7 @@
 The common procedure of the two Pattern-A composites (`cross-provider-reviewer`,
 `cross-provider-architect`). The composite's own SKILL.md defines its inputs
 envelope, its two dispatch targets, its synthesis rule, and keeps the Codex
-probe inline (drift-guarded by `check-foundation-gate-structure.sh`); you — the
+probe inline; you — the
 session executing the composite — read this file at composite start and follow
 everything below.
 
