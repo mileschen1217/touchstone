@@ -36,9 +36,9 @@ PRD+seams light contract instead. An explicit user request overrides the
 heuristic either way.
 
 **Load vocabulary** — follow
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`. When the resolved
-bundle adopts `source-as-truth`, additionally load
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md`.
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`, then load
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md`
+(source-as-truth is always on).
 
 ## Draft Mode
 

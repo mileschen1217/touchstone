@@ -9,7 +9,7 @@ inline its logic.
 Read `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml`.
 
 - **Absent** → no config; use `workspace_root = .touchstone`
-  (default) and `disciplines = []`. Continue. (But first check
+  (default). Continue. (But first check
   migration detection §3 — a stale plugin `.swarm/` with no yaml
   is an old-config case.)
 - **Present but malformed (parse error)** → print the filename
@@ -17,7 +17,7 @@ Read `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml`.
   continue with defaults; exit non-zero.
 - **Present + parseable** → continue.
 
-## 2. Derive the path bundle (7 fields)
+## 2. Derive the path bundle (6 fields)
 
 Let `W = workspace_root` (the parsed value, or `.touchstone` when
 the key is absent). Derive:
@@ -28,9 +28,9 @@ the key is absent). Derive:
     bundle.plans       = W/plans
     bundle.archive     = W/archive/specs
     bundle.research    = W/research
-    bundle.disciplines = <adopted_disciplines list or []>
 
-Always return all seven fields. Do NOT branch on which caller
+Always return all six fields. A legacy `adopted_disciplines` yaml key is
+ignored — `source-as-truth` is always on. Do NOT branch on which caller
 invoked the resolver — every caller gets the same bundle.
 
 ## 3. Legacy state detection → propose → confirm → execute

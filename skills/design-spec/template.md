@@ -11,12 +11,10 @@ kill-on: <epic-slug>
 
 # {{feature-name}} — Design Spec
 
-> Six sections: Foundation / Source-level Deposit (conditional) / User Stories /
+> Six sections: Foundation / Source-level Deposit / User Stories /
 > Acceptance Criteria / Risks-Open Questions / Related. All normative content is
 > homed in the REQ/AC layer — there is no Problem / Scope / Architecture /
-> Interfaces / Error Handling / Invariants / Verification Strategy section. In a
-> project without the source-as-truth discipline, Source-level Deposit is absent
-> and the five-section spec is compliant.
+> Interfaces / Error Handling / Invariants / Verification Strategy section.
 
 ## Foundation
 
@@ -31,9 +29,11 @@ kill-on: <epic-slug>
 
 ## Source-level Deposit
 
-> Skip this entire section (heading included) in projects that have NOT adopted the `source-as-truth` discipline.
+> Consumed at epic close by the Disposition pass (`epic-driven-roadmap`
+> `references/close.md`) — declared here so close is a checklist, not archaeology.
 
-- **Lever this spec advances:** `<lever-slug>` from the project's lever menu (see project ROADMAP), or `none` — justified in one sentence.
+- **Durable residue & promote target:** decisions / vocabulary this spec produces that must outlive the epic, each with its canonical home (`docs/adr/` / CONTEXT.md / README), or `none`.
+- **Lever this spec advances:** the source-level extension point it builds on or creates (`file:line` or mechanism name + when a future epic would pull it), or `none`.
 - **Bridge docs this spec creates (if any):** paths with the `kill-on:` lever each declares; a doc with no `kill-on:` is justified here by kind (navigation / workflow / diagnostic — never bridge).
 - **Bridge docs this spec will retire on landing:** paths the lever's land deletes.
 - **Three-principle audit (per new bridge doc):** answer P1 non-duplication / P2 falsifiable / P3 no-single-host per the loaded `skills/_shared/inject/bridge-content-gate.md`, naming the source path(s) checked; a missing or weak answer → fix the bridge content (delete duplicates / sharpen vague claims / move to rung 2-3) before submitting the spec.

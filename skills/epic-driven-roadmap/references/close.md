@@ -3,7 +3,9 @@
 **Failure semantics.** Blocking — step 0 (ship verification), step 3 (the
 close-readiness check), and Evidence Reckoning's blocking rules (§ below).
 Advisory — docs-current and eval reckon: findings go in the close report,
-never fatal; the human may close with advisory findings noted.
+never fatal; the human may close with advisory findings noted. The
+Disposition pass (step 5) is an action list, not a gate — skipping an item
+leaves a dual-home and is noted in the close report.
 
 0. **Verify ship before stamping anything.** Ship = the project-defined
    deliverable handoff landed (merged PR on `main`, pushed tag, deployed
@@ -28,9 +30,12 @@ never fatal; the human may close with advisory findings noted.
    Show the full output. Non-zero → fix and re-run.
 4. Run Evidence Reckoning, the docs-current check, and eval reckon (§
    below); append their sections to the epic index.
-5. Update `ROADMAP.md`: move the epic's row from § Active to § Completed
-   with the landed date.
-6. Commit.
+5. Run the Disposition pass (§ below).
+6. Update `ROADMAP.md`: move the epic's row from § Active to § Completed
+   with the landed date, pointing at the archived index path.
+7. Move the whole epic dir to `.touchstone/archive/epics/<slug>/`, then
+   commit. An empty `epics/` dir means no in-flight work — that invariant
+   is the workspace's status indicator.
 
 ## Evidence Reckoning
 
@@ -61,6 +66,22 @@ BLOCKS close. An un-reckoned AC (no row at all) BLOCKS close. A healthy
 close has an empty `[unverified]` set.
 
 Append the table to the index as `## Evidence Reckoning`.
+
+## Disposition pass
+
+Every artifact in the epic dir is a short-lived delta; truth lives in
+source code and the canonical homes (`docs/adr/`, CONTEXT.md, README).
+Read each accepted spec's Source-level Deposit section, then:
+
+- promote each declared durable residue to its named canonical home
+  (a decision → an ADR; vocabulary → CONTEXT.md past its admission
+  boundary; behavior → already in source, nothing to copy);
+- retire the bridge docs the spec listed, and check every `kill-on:`
+  trigger across the project's standing docs — fired → retire now;
+- everything not promoted simply rides into the step-7 archive move.
+
+Record the pass as `## Disposition` in the index: promoted (path → home),
+retired (path), kill-on checked (fired/quiet), or `all none`.
 
 ## Docs-current check
 
