@@ -3,7 +3,7 @@
 - **Status:** accepted
 - **Date:** 2026-07-18
 - **Deciders:** Miles Chen
-- **Triggered by:** quality-spine P2 build (`.touchstone/specs/2026-07-17-quality-spine-p2-loop-hardening-design.md`) — the spec's own review loop churned ~8 rounds of plausible-per-round fixes, and only a lagging net-byte baseline caught the accreted bloat.
+- **Triggered by:** the quality-spine P2 loop-hardening build — the spec's own review loop churned ~8 rounds of plausible-per-round fixes, and only a lagging net-byte baseline caught the accreted bloat.
 - **Related ADRs:** 0015, 0026, 0027
 
 ## Context
@@ -44,8 +44,8 @@ general never reach zero, precisely because the cleanliness axis never
 exhausts. But the suite's only fallback was a hard round-count (2), with no
 early signal distinguishing a converging loop from a churning one.
 
-The research synthesis (`.touchstone/research/2026-07-18-prose-oracle-and-skill-eval.md`,
-primary sources: Anthropic / OpenAI / practitioner blogs) confirms the direction:
+A prose-oracle research synthesis (primary sources: Anthropic / OpenAI /
+practitioner blogs) confirms the direction:
 termination for a prose deliverable is **measured convergence / signal
 exhaustion**, and its true oracle is **downstream** (the behavioural eval of what
 gets built), not the text review itself.

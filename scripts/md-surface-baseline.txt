@@ -93,4 +93,12 @@
 # 260552
 # 2026-07-16 (same PR): +61 — review-caught dropped rule restored (assay
 # "no contract-material packaging beyond the consensus section").
-260613
+# 260613
+# 2026-07-18: raised +7465 — coverage-axis termination machinery (ADR-0038):
+# finding-classification schema (challenge-result v3 type/provenance), the
+# loop-level termination structure in the stopping rule (frozen-backlog
+# burn-down), and the crucible PRD+seams coverage qualification. Genuinely-new
+# normative content that makes the review loop converge; the methodology
+# essence-rewrite (-492B) funds only a fraction — re-slim cannot delete
+# load-bearing gate mechanism. Human ruled baseline-raise over re-slim.
+268078
