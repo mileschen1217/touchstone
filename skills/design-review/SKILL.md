@@ -61,10 +61,4 @@ Never auto-promote the artifact's status — the human (or caller) decides.
 
 ## Gate stamp
 
-After the run resolves (any outcome), append one line to `<project>/.touchstone/eval/stamps.jsonl` (create the file/dir if absent):
-
-```
-{"date":"<ISO8601>","gate":"design-review","target":"<doc-path>","findings":{"C":n,"H":n,"M":n,"L":n},"fixed":n,"rounds":n}
-```
-
-Plain append, no other machinery — skipping it silently un-instruments the gate.
+After the run resolves (any outcome): follow the shared stamp schema at `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/gate-stamp.md` with gate-id `design-review` and the doc path as target.

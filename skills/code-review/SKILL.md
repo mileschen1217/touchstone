@@ -113,8 +113,4 @@ Critical+High == 0. A clean, no-banner review triggers nothing.
 Ready to merge: {yes/no}
 ```
 
-**Gate stamp:** append one line to `.touchstone/eval/stamps.jsonl` (create if absent):
-
-```
-{"date":"<ISO8601 UTC>","gate":"code-review-batch","target":"<range>","findings":{"C":n,"H":n,"M":n,"L":n},"fixed":n,"rounds":n}
-```
+**Gate stamp:** execute the stamp step in `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/gate-stamp.md`, gate-id `code-review-batch`, target = the reviewed range.

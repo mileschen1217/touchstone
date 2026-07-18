@@ -92,11 +92,29 @@ it was updated in this epic's changes, or note why not. Advisory only.
 
 ## Eval reckon
 
-Read `.touchstone/eval/stamps.jsonl` (gate stamps), `.touchstone/gate-miss.md`
-(use-point failure events), and this epic's deviation log — treat any as
-empty/absent if not yet created. Write one page: per gate touched by this
-epic, a keep / adjust / kill verdict with the evidence line that earned it.
+Three line-citable sources: `.touchstone/eval/stamps.jsonl` (gate stamps),
+`.touchstone/gate-miss.md` (use-point failure events), and the epic's
+§ Deviation log (epic index and assay record) — treat any as empty if
+absent. Write one page, appended to the index as `## Eval Reckon`:
+
+- One verdict row per gate in the roster (the gate-id enum in
+  `skills/_shared/inject/gate-stamp.md`): keep / adjust / kill, each citing
+  ≥1 source line. Sole exception — zero relevant lines across all three
+  sources → `keep — no data`; fabricating a citation or ruling from
+  impression is the defect this page exists to prevent.
+- Flag in the page, never silently skip: unparseable stamp lines, gate-ids
+  outside the roster, byte-identical duplicates (instrumentation defects).
+- An adjust/kill verdict names its concrete follow-up (the path to edit or
+  delete). Kill executes within this same close, or is recorded blocked +
+  reason + owner; a kill whose target lives in the plugin repo while close
+  runs in a consumer project always takes the blocked branch.
+- A script/automation proposal names its pain class and lists the ≥3
+  same-class gate-miss lines it groups (class = adjudication-time grouping,
+  not a stored column) plus the epic index where the rule already ran as
+  prose — otherwise mark it inadmissible; it enters no backlog.
+
 Ask the fixed recall question — "這個 epic 裡,你抓到哪些 gates 沒抓到的?" —
-and append every answer to `gate-miss.md` as a new line (`date | artifact |
-event | expected locus | actual locus | severity`). Append the page to the
-index as `## Eval Reckon`.
+and append every answer to `gate-miss.md` in the six-field primitive
+(`date | artifact | 事件 | 應然 locus | 實然 locus | severity`); an answer of
+"none" appends nothing — the page records `recall: none` as evidence the
+question ran.

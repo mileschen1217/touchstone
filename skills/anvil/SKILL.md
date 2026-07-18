@@ -64,12 +64,9 @@ survive intact to Evidence Reckoning. Convergence follows
 (single home). Critical/High block; a ⚠️ DEGRADED / ⚠️ PARTIAL banner is
 presented verbatim for explicit acknowledgement.
 
-Gate stamp — when the review resolves, record its yield in
-`.touchstone/eval/stamps.jsonl` (create if absent), one line:
-
-```
-{"date":"<ISO8601>","gate":"anvil-final-review","target":"<spec-path>","findings":{"C":n,"H":n,"M":n,"L":n},"fixed":n,"rounds":n}
-```
+Gate stamp — when the review resolves, record its yield per
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/gate-stamp.md` (gate-id
+`anvil-final-review`; target = the spec path).
 
 ## Terminal — reviewed deliverable on a branch
 
