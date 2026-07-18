@@ -306,12 +306,15 @@ def main():
     out_dir = sys.argv[2]
 
     epics_dir      = os.path.join(root, '.touchstone', 'epics')
+    archive_dir    = os.path.join(root, '.touchstone', 'archive', 'epics')
     brainstorm_path = os.path.join(epics_dir, '_draft-brainstorm.md')
 
-    # Collect epics
+    # Collect epics (close moves finished epic dirs to archive/epics/; scan
+    # both so completed rows keep their archived index link)
     epics = []
     if os.path.isdir(epics_dir):
-        for idx_path in sorted(glob.glob(os.path.join(epics_dir, '*/index.md'))):
+        for idx_path in sorted(glob.glob(os.path.join(epics_dir, '*/index.md'))
+                               + glob.glob(os.path.join(archive_dir, '*/index.md'))):
             # Skip files that live inside _draft-brainstorm.md (shouldn't exist, safety)
             if '_draft-brainstorm' in idx_path:
                 continue

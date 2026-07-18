@@ -50,7 +50,7 @@ Values are taken verbatim. **Sharp edge: path escape (`../../...`) is NOT reject
 
 ## Step 3 — Create target dirs
 
-Create all six derived subpaths under `workspace_root`:
+Create all seven derived subpaths under `workspace_root`:
 
 ```bash
 mkdir -p "${CLAUDE_PROJECT_DIR}/<workspace_root>/specs"
@@ -58,6 +58,7 @@ mkdir -p "${CLAUDE_PROJECT_DIR}/<workspace_root>/docs/adr"
 mkdir -p "${CLAUDE_PROJECT_DIR}/<workspace_root>/epics"
 mkdir -p "${CLAUDE_PROJECT_DIR}/<workspace_root>/plans"
 mkdir -p "${CLAUDE_PROJECT_DIR}/<workspace_root>/archive/specs"
+mkdir -p "${CLAUDE_PROJECT_DIR}/<workspace_root>/archive/epics"
 mkdir -p "${CLAUDE_PROJECT_DIR}/<workspace_root>/research"
 ```
 

@@ -33,8 +33,9 @@ leaves a dual-home and is noted in the close report.
 5. Run the Disposition pass (§ below).
 6. Update `ROADMAP.md`: move the epic's row from § Active to § Completed
    with the landed date, pointing at the archived index path.
-7. Move the whole epic dir to `.touchstone/archive/epics/<slug>/`, then
-   commit. An empty `epics/` dir means no in-flight work — that invariant
+7. Move the whole epic dir to `.touchstone/archive/epics/<slug>/`
+   (`mkdir -p .touchstone/archive/epics` first — pre-always-on workspaces
+   lack it), then commit. An empty `epics/` dir means no in-flight work — that invariant
    is the workspace's status indicator.
 
 ## Evidence Reckoning
