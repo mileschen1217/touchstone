@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # check-prose-budget.sh — R1 ratchet: shipped prose (skills/**/*.md, agents/**/*.md,
 # CONTEXT.md) <= TOTAL budget lines AND every file <= FILE budget lines.
-# STANDALONE during the v2 sweep (v1 surface still present would fail it);
-# promote to pre-commit/ when batch B3 lands. Overrides for fixtures/tests:
+# Pre-commit blocking rail (R1). Overrides for fixtures/tests:
 # TOUCHSTONE_CHECK_ROOT, PROSE_TOTAL_BUDGET, PROSE_FILE_BUDGET.
 # Self-test: check-prose-budget.sh --self-test (runs the green and red fixtures).
 set -uo pipefail

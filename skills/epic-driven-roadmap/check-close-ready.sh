@@ -22,8 +22,10 @@ FILE="${1:-}"
 ERRORS=()
 fail() { ERRORS+=("$1"); }
 
-frontmatter=$(awk '/^---$/{if(depth==0){depth=1;next}else{exit}} depth==1{print}' "$FILE")
-body=$(awk '/^---$/{c++; if(c==2){b=1; next}; next} b{print}' "$FILE")
+fences=$(grep -c "^---" "$FILE")
+[ "$fences" -ge 2 ] || fail "frontmatter fence unclosed (found $fences '---' lines, need 2)"
+frontmatter=$(awk '{gsub(/\r$/,"")} /^---$/{if(depth==0){depth=1;next}else{exit}} depth==1{print}' "$FILE")
+body=$(awk '{gsub(/\r$/,"")} /^---$/{c++; if(c==2){b=1; next}; next} b{print}' "$FILE")
 
 status=$(echo "$frontmatter" | grep -E '^status:[ \t]*' | sed 's/^status:[ \t]*//' | tr -d '\r' | head -1)
 

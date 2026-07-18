@@ -24,7 +24,7 @@ spec="$1"
 [ -f "$spec" ] || { echo "FAIL: file not found: $spec" >&2; exit 2; }
 
 # draft exemption — read frontmatter status (between the first two `---` lines)
-status="$(awk 'NR==1&&/^---$/{f=1;next} f&&/^---$/{exit} f&&/^status:/{print tolower($2)}' "$spec")"
+status="$(awk '{gsub(/\r$/,"")} NR==1&&/^---$/{f=1;next} f&&/^---$/{exit} f&&/^status:/{print tolower($2)}' "$spec")"
 if [ "$status" = "draft" ]; then echo "skipped: draft spec"; exit 0; fi
 
 violations=0

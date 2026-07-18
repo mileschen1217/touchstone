@@ -2,7 +2,7 @@
 
 > A test of what is genuine. (試金石 — a stone used to test the authenticity of metal.)
 
-A Claude Code plugin for **workflow discipline** — 10 stage skills + 5 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
+A Claude Code plugin for **workflow discipline** — 11 skills + 4 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
 
 ## What it is
 
@@ -14,6 +14,7 @@ The spine is carried *through* the plugin's surfaces, not enforced by a separate
 - **`grounded-claims`** — narration discipline (cite source, mark assumptions)
 - **`source-as-truth`** — project discipline (code is authoritative; docs describe why)
 - **`intention-first`** — universal baseline (name intent before mechanism)
+- **eval loop** — every gate stamps its yield (`.touchstone/eval/stamps.jsonl`); epic close reckons keep / adjust / kill per gate
 
 ## Install
 
@@ -29,12 +30,8 @@ claude plugin install touchstone@touchstone --scope user
 
 Touchstone delegates work to agents and skills that live in other plugins. Install these before running touchstone skills.
 
-**Required:**
-
-```bash
-# superpowers — writing-plans, using-git-worktrees, brainstorming, etc.
-claude plugin install superpowers@claude-plugins-official --scope user
-```
+**Optional (build orchestration):** the `conductor` plugin — `anvil` builds through
+`conductor:orchestration-mode`; absent, anvil falls back to the light loop.
 
 **Optional (cross-vendor review path):**
 
@@ -49,11 +46,11 @@ The review/architecture agents (`architect`, `code-reviewer`) are vendored plugi
 
 - `touchstone:init` — Bootstrap project adoption with `.claude/touchstone.yaml`.
 - `touchstone:crucible` — Front-end contract orchestrator: explore → assay → design-spec, one human accept.
-- `touchstone:anvil` — Back-end contract executor: plan → plan-review → SDD build → final cross-vendor review, stops before ship.
+- `touchstone:anvil` — Back-end contract executor: entry check → conductor orchestration-mode (AC-coverage floor) → final cross-vendor review, stops before ship.
 - `touchstone:assay` — Pre-contract interview instrument: three-way alignment (vocabulary / maps / territory) — laydown-first full table ⇄ tacit-intent extraction → published predict round → consequence probes → readiness (explicit yes + clean round) → record consensus section the contract author consumes.
-- `touchstone:design-spec` — Author spec: Problem → Scope → AC (GWT) → Architecture → Interfaces.
-- `touchstone:design-review` — Gate spec/plan/ADR before Build (Pattern A).
-- `touchstone:code-review` — Per-commit + per-batch code review (Patterns C / B).
+- `touchstone:design-spec` — Author the contract spine: Foundation → User Stories (US-N) → Requirements (REQ-N, `traces-to`) → ACs (GWT), challenge-stamped.
+- `touchstone:design-review` — Gate spec/plan/ADR before Build (cross-provider doc review).
+- `touchstone:code-review` — Cross-vendor batch review of a logical commit group (single-commit ad-hoc review → Claude Code built-in `/code-review`).
 - `touchstone:epic-driven-roadmap` — Pure-tracker ROADMAP + per-epic index convention.
 - `touchstone:grounded-claims` — Narration mode: cite source, mark `[假設]`.
 - `touchstone:cross-provider-architect` — Parallel CC + Codex architecture review.
@@ -61,7 +58,6 @@ The review/architecture agents (`architect`, `code-reviewer`) are vendored plugi
 
 ## Agents
 
-- `touchstone:tdd` — Double-loop TDD agent (ATDD outer + unit-test inner).
 - `touchstone:codex-reviewer` — Read-only Codex code review (Pattern B).
 - `touchstone:codex-adversarial-reviewer` — Codex adversarial design critique.
 - `touchstone:architect` — Read-only CC architecture validation (Pattern A arm).
@@ -107,7 +103,7 @@ An unrecognised commit variant silently skips its checks, so the covered command
 
 ## Status
 
-`0.15.0` (see `.claude-plugin/plugin.json` for the current version). Experimental. Used by the author on one project. Cross-project portability is unverified — see `docs/comparisons.md` for scope boundaries.
+`2.0.0` — the distilled rewrite (see `.claude-plugin/plugin.json`). Experimental. Used by the author on one project. Cross-project portability is unverified — see `docs/comparisons.md` for scope boundaries.
 
 ## License
 
