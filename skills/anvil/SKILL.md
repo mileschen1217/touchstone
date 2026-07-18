@@ -88,9 +88,9 @@ Invoke `/superpowers:subagent-driven-development` in-session (continuous executi
 no routine human stops). Two orchestrator duties in the SDD prompts:
 1. **Adversarial-input duty** — when a task builds or tests a parser / extractor /
    guard, carry this question into that task's prompt: which of the shapes the
-   contract admits (empty input, zero-byte file, success-with-empty-output,
-   multi-line records, legally-empty fields, half-open vs inclusive boundaries)
-   does the suite feed? An unfed shape is unwitnessed behaviour.
+   contract admits (empty or zero-byte input, success-with-empty-output,
+   multi-line records, legally-empty fields, boundary conventions) does the
+   suite feed? An unfed shape is unwitnessed behaviour.
 2. **Final-reviewer suppression** — instruct SDD to skip its own end-of-run holistic
    review pass: anvil's final cross-vendor review (next stage) is the deliverable's
    final gate, and doubling it buys a second same-scope pass, not new coverage.

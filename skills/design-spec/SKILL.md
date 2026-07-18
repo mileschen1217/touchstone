@@ -20,102 +20,110 @@ allowed-tools:
   - Skill
 ---
 
-# touchstone:design-spec
+# design-spec
 
-Produce an ATDD + TDD double-loop-aligned design spec for a feature and write the Draft to the project's specs directory. design-spec emits only Draft — promotion is downstream (see Output).
+Produce a requirement/AC design spec for a feature and write the Draft to the
+project's specs directory. This skill emits only Draft — promotion (accept,
+build) is downstream.
 
-**Draft Mode may need a live responsive user** — with no qualified facts
-source supplied, pointwise elicitation prompts the human; with a supplied
-confirmed-facts source, no prompt fires.
+**Draft Mode may need a live responsive user** — with no qualified
+confirmed-facts source supplied, pointwise elicitation prompts the human; with
+a supplied source, no prompt fires.
 
-## When to Invoke
+**When to invoke** — the heuristic lives in the frontmatter description above.
+Breadth alone does not qualify — a fixed-invariant multi-module sweep takes a
+PRD+seams light contract instead. An explicit user request overrides the
+heuristic either way.
 
-The invoke/skip heuristic lives in the frontmatter description. Rulings it does not settle:
-
-- Breadth alone does not qualify — a mechanical multi-module sweep with fixed invariants takes the PRD+seams light contract (crucible's other fork), not a full spec.
-- The user may always explicitly request a design spec — that overrides the heuristic.
-- When the expected-value test says skip (contained change, no new contract), NO Live-bearing declaration is authored (no AC-section intro Live-bearing line, no Index Live-bearing column) — the evidence-honesty contract attaches to full specs only.
-
-## Load vocabulary
-
-> Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`
-> with the Read tool and follow it exactly.
-
-If `source-as-truth` is in `bundle.disciplines`, also read
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md` and load the
-text into context.
+**Load vocabulary** — follow
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`. When the resolved
+bundle adopts `source-as-truth`, additionally load
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md`.
 
 ## Draft Mode
 
-### Foundation & facts intake (always runs)
+### 1. Foundation & facts intake (always runs)
 
-design-spec's whole intake interface is: **facts sources in → Draft spec
-out**. Sources are those the caller or user supplies, or already in
-context — never glob or hunt for epic indexes or assay records yourself.
+Interface: **facts sources in → Draft spec out.** Sources are those the caller
+or user supplies, or already in context — never glob or hunt for epic indexes
+or interview records yourself.
 
-Source qualification, citation granularity, and the validation-failure
-trigger classes live in the confirmed-facts source contract — read
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/confirmed-facts-source.md`
-with the Read tool and follow it exactly. design-spec's own delta on that
-contract: a validation failure (any trigger class) is dispositioned by
-asking the human in-session or marking `[NEEDS CLARIFICATION]` — a failed
-fact never lands as an untraced Scope/Invariants entry.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/confirmed-facts-source.md`
+and follow it exactly for qualification and citation granularity. Delta: a
+validation failure (any trigger class) is dispositioned by asking the human or
+marking `[NEEDS CLARIFICATION]` — never a silent Scope/Invariants entry. The
+AC / acceptance-seam layer is authored HERE — a source hands over confirmed
+facts, never pre-drafted seams.
 
-Per-fact principle (the only disposition — never branch on whether a source
-exists or which producer made it): for each fact the spec needs, find its
-confirmation evidence in the supplied sources and cite it at the granularity
-the confirmed-facts source contract requires for that fact's target section,
-each contract-body fact carrying its `[trace: <id>]` — else ask or mark. The AC / acceptance-seam
-layer is authored HERE, by design-spec — a source hands over confirmed
-facts, never pre-drafted seams. Terms do not propagate: every term this
-spec uses carries its own self-contained definition (a session-coined
-term's source of truth stays in its source).
+**Degenerate form** (no qualified source, facts unresolvable from context):
+emit "This subject has no qualified confirmed-facts source — continuing
+standalone, I will elicit each missing fact pointwise," then elicit pointwise.
+No multi-round mini-interview.
 
-Degenerate form — when no qualified source is supplied and Foundation facts
-are unresolvable from context, emit ONE steering line: "This subject has
-no qualified confirmed-facts source — the designed path is the crucible
-chain (assay interview); continuing standalone, I will elicit each missing
-fact pointwise." Then elicit each missing fact pointwise (the human's
-in-session confirmation is field-level evidence for Foundation fields). No
-multi-round mini-interview.
+**Reframe exit** (user reframes during intake, e.g. "this should be a fixture,
+not a spec"): STOP, write no file, report "Scope reframed to [X] — a design
+spec is not needed. Exiting Draft Mode."
 
-**Reframe exit** — if the user reframes during intake (e.g. "this should be
-a fixture, not a spec"), STOP. Do not draft a spec and do not write any
-file under specs_dir. Report: "Scope reframed to [X] — a design spec is not
-needed. Exiting Draft Mode."
+**Record** the confirmed foundation under `## Foundation` (all three fields).
 
-**Record** — write the confirmed foundation into the spec under
-`## Foundation` (all three fields — the spec has no tracker headline).
+### 2. Want-layer (always-on)
 
-**Want-layer (always-on).** This spec IS the canonical want-home — author the want-layer here, always, with no separate PRD section. Section mapping + authoring conventions: `references/draft-workflow.md § Want-layer authoring` (single home); vocabulary: `CONTEXT.md § Requirement-layer vocabulary` — point there, do not restate.
+This spec IS the canonical want-home — no separate PRD section. Authoring
+conventions (US-N template, traces-to discipline):
+`references/authoring.md § Want-layer authoring`.
 
-**REQ-headline discipline.** A `### Requirement:` headline is ONE normative SHALL sentence — write it, then stop (the `traces-to:` line below the heading is a separate line, not part of the sentence).
-Every disambiguation or overflow clause lives in the REQ/AC layer, not the headline — an error path becomes an error-path AC, an invariant an EARS unwanted-behavior REQ, an interface a fenced block under its owning REQ; re-home any clause the headline absorbed during review churn.
-Delete duplicates: a clause already homed in a downstream section never repeats in the headline.
+**REQ-headline discipline.** A `### Requirement:` headline is ONE normative
+SHALL sentence — write it, then stop (`traces-to:` is a separate line below).
+Every disambiguation lives in the REQ/AC layer, not the headline: an error
+path becomes an error-path AC, an invariant an unwanted-behavior REQ, an
+interface a fenced block under its owning REQ. A clause already homed
+downstream never repeats in the headline.
 
-**feedforward ground-and-sweep arm.** Before generating Acceptance Criteria, load the shared doctrine:
-> Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/ground-and-sweep.md`
+### 3. Acceptance criteria (feedforward ground-and-sweep)
 
-feedforward application delta (AC generation): `requirement × current-repo-state` — ground each AC in concrete repo facts (file path, line number, value); sweep the AC's true subject set to saturation, not first-hit. When **generating** acceptance criteria, each generated AC is the unit; saturation = every subject element has ≥1 AC.
+> Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/ground-and-sweep.md` before
+> generating ACs. Application: `requirement × current-repo-state` — ground
+> each AC in concrete repo facts (file path, line, value); sweep the true
+> subject set to saturation, not first-hit. Drafting conventions (index
+> table, `[unverified]` marker, live-bearing line): `references/authoring.md`.
 
-### Draft inputs & workflow
+### 4. Challenge pass (independent, fresh-context)
 
-Inputs to collect + the drafting workflow (template read, AC-sharpening from Foundation.aim, mandatory line-width policy, write steps) → [`references/draft-workflow.md`](references/draft-workflow.md).
+Dispatch a fresh-context challenger agent (challenger ≠ this authoring
+session) to pressure-test the want-layer + AC layer for missing behaviour
+boundaries. Mechanics and technique catalogue: `references/authoring.md §
+Challenge pass`. Place every gating finding (`coverage-gap` /
+`real-defect`) inline as a `[NEEDS CLARIFICATION: <q>]` marker on its REQ or
+AC line; a `refinement` finding never blocks. Resolve or defer per
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
+§ "Challenge-pass loop".
 
-### Output
+When the round closes, stamp the frontmatter — the sole challenge attestation,
+no separate result file: `challenged-by: <challenger's own session/transcript
+id> / <YYYY-MM-DD> / <commit sha, or "uncommitted">`. The id MUST be the
+challenger's own identity, never this session's — independence is
+forcing-grade.
+
+**5. Internal coverage audit** — for each US-N: if every requirement tracing
+to it also traces to ≥1 other want, surface it as a demote-to-invariant
+candidate for human judgment — never auto-demote. If none, emit "Coverage
+audit: no demote-to-invariant candidates."
+
+## Output
 
 - One file at `<specs_dir>/YYYY-MM-DD-<feature-name>-design.md`
-- Terminal summary with: spec path, `Status: Draft`
-- Next step: crucible writes `accepted-candidate`, then `/touchstone:design-review` runs the consolidated gate before human accept
-
-## Usage
-
-```
-/touchstone:design-spec                          # interactive draft
-/touchstone:design-spec <feature-name>           # skip name prompt
-```
+- Terminal summary: spec path, `Status: Draft`
+- Next: crucible writes `accepted-candidate`, then `/touchstone:design-review`
+  runs the consolidated gate before human accept
+- Usage: `/touchstone:design-spec` (interactive) or
+  `/touchstone:design-spec <feature-name>` (skip name prompt)
 
 ## Related
 
-- Bundled template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md`.
-- Workflow chain, upstream/downstream skills, ADR workflow, example spec: `README.md`.
+- Bundled template: `${CLAUDE_PLUGIN_ROOT}/skills/design-spec/template.md`;
+  drafting inputs, want-layer authoring, challenge-pass mechanics:
+  `references/authoring.md`.
+- Structural floor (every US ≥1 requirement, every requirement ≥1 AC, zero
+  unresolved clarification markers), checked downstream by
+  `${CLAUDE_PLUGIN_ROOT}/scripts/check-spec-floor.sh` and
+  `${CLAUDE_PLUGIN_ROOT}/scripts/check-live-bearing.sh`.

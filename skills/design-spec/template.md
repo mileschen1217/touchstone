@@ -3,6 +3,7 @@ type: spec
 kind: bridge
 date: YYYY-MM-DD
 status: draft
+challenged-by: <unset until the challenge pass closes — see SKILL.md § Challenge pass>
 epics: []
 related: []
 kill-on: <epic-slug>
@@ -39,7 +40,7 @@ kill-on: <epic-slug>
 
 ## User Stories
 
-> One entry per user-story. Authoring rules + the traces-to discipline: `references/draft-workflow.md § Want-layer authoring`.
+> One entry per user-story. Authoring rules + the traces-to discipline: `references/authoring.md § Want-layer authoring`.
 
 - US-1 — As a/an <actor>, I want <capability>, so that <outcome>
 
@@ -50,14 +51,14 @@ Given/When/Then scenarios — the **outer ATDD loop's contract**. Cover happy pa
 - **Live-bearing AC IDs:** <AC-N, AC-M | none>   ← these may NOT be carried as `[unverified]`. This line (+ the Index Live-bearing column) is the normative home of the live-bearing declaration; classification predicate + live-artifact evidence rules: `skills/_shared/inject/live-bearing-predicate.md` (single home — do not restate here).
 - **Risk layers this feature needs:** <unit? integration? contract? e2e? live? perf?; power-on-able? live means required?> — one coarse, risk-scaled line, not per-AC.
 
-AC-N id + index rules, derived coverage, and the `[unverified]` marker: `references/draft-workflow.md` § "When drafting ## Acceptance Criteria" (single home). The verification layer/mechanism never appears in an AC's Name or Given-When-Then.
+AC-N id + index rules, derived coverage, and the `[unverified]` marker: `references/authoring.md` § "When drafting ## Acceptance Criteria" (single home). The verification layer/mechanism never appears in an AC's Name or Given-When-Then.
 
-Each `### Requirement: REQ-N — <EARS SHALL statement>` heading adds rule-altitude precision over its parent story (a requirement that merely rewords its story fails the anti-redundancy tests in `references/methodology.md`). An unresolved `[NEEDS CLARIFICATION: <q>]` marker on any requirement or AC line blocks the design-review gate. The normative content the former standalone sections carried relocates INTO requirements:
+Each `### Requirement: REQ-N — <one SHALL sentence>` heading adds rule-altitude precision over its parent story (a requirement that merely rewords its story fails the subtraction test in `references/authoring.md`). An unresolved `[NEEDS CLARIFICATION: <q>]` marker on any requirement or AC line blocks the design-review gate. The normative content the former standalone sections carried relocates INTO requirements:
 
 - **Error paths** → error-path ACs under the owning REQ (one per specific failure mode; each feeds a unit test).
-- **Invariants** (cross-cutting correctness rules) → EARS unwanted-behavior REQs ("the <system> SHALL NOT <forbidden behavior>"); every such REQ names its provenance (governing ADR / requirement / carried finding) via a traces-to ADR-ref or carried-finding-ref.
+- **Invariants** (cross-cutting correctness rules) → unwanted-behavior REQs ("the <system> SHALL NOT <forbidden behavior>"); every such REQ names its provenance (governing ADR / requirement / carried finding) via a traces-to ADR-ref or carried-finding-ref.
 - **Interfaces / contracts** (signatures, schemas, message formats) → a fenced block under the owning REQ; a shared schema is homed under ONE REQ and pointed to from the others.
-- **Depth-stakes structural commitments** → a `depth-stakes:` marker line directly under the REQ heading, plus a SHALL commitment in the REQ. A component has **depth-stakes** — and REQUIRES the marker + SHALL — if it hides a non-trivial implementation decision, holds or mutates state, or sequences operations a caller could mis-order (e.g. "Module M SHALL hide X; it SHALL NOT leak its orchestration sequence to callers"). Grade against `skills/assay/references/arch-rubric.md` (load it; do not restate the force text). A purely additive component needs no marker. A Mermaid diagram for a non-trivial flow is optional, non-normative, and outside the digest.
+- **Depth-stakes structural commitments** → a `depth-stakes:` marker line directly under the REQ heading, plus a SHALL commitment in the REQ. A component has **depth-stakes** — and REQUIRES the marker + SHALL — if it hides a non-trivial implementation decision, holds or mutates state, or sequences operations a caller could mis-order (e.g. "Module M SHALL hide X; it SHALL NOT leak its orchestration sequence to callers"). Grade against `skills/assay/references/arch-rubric.md` (load it; do not restate the force text). A purely additive component needs no marker. A Mermaid diagram for a non-trivial flow is optional and non-normative.
 
 ### Index
 
@@ -67,7 +68,7 @@ Each `### Requirement: REQ-N — <EARS SHALL statement>` heading adds rule-altit
 
 ---
 
-### Requirement: REQ-1 — the <system> SHALL <response> [EARS template — replace this text]
+### Requirement: REQ-1 — the <system> SHALL <response> [replace this text with a single SHALL sentence]
 
 traces-to: US-1
 depth-stakes: <one line — ONLY when this REQ carries a structural commitment; omit the line entirely for additive REQs>
