@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # check-local-artifact-refs.sh — pre-push gate: outgoing diff must not add
 # machine-local AC-N labels (from gitignored specs) to cold-reader surfaces.
-# scripts/tests/** is exempt (Evidence Reckoning join keys); a line carrying
+# scripts/tests-smoke/** is exempt (fixtures deliberately carry AC-N); a line carrying
 # <!-- local-ref-ok --> — or the added line directly after one — is exempt.
 set -uo pipefail
 root="${TOUCHSTONE_CHECK_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}" || exit 0
@@ -15,7 +15,7 @@ fi
 bad=""
 while IFS= read -r f; do
   case "$f" in
-    scripts/tests/*|.touchstone/*) continue ;;
+    scripts/tests-smoke/*|.touchstone/*) continue ;;
   esac
   [ -f "$f" ] || continue
   hits="$(git diff "$range" -- "$f" | awk '
