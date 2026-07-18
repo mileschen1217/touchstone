@@ -92,9 +92,7 @@ bullet only when the bullet itself is multi-paragraph).
    - `author_id` and `challenger_id` MUST be taken from real dispatch identities — not invented by this session.
    - `challenger_id` MUST differ from `author_id` (independence is forcing-grade; the gate rejects equal ids).
    - `findings[]` is the ONLY semantic output field; there is NO field for a completeness verdict.
-   - Each finding object is exactly `{id, marker, req, type, provenance}` — no extra property at any level. `type` and `provenance` are the classification the bounded-review termination structure gates on, decided by the subtraction test (delete the finding's target — does any pass/fail behaviour change?):
-     - `type` ∈ `coverage-gap` (an uncovered behaviour/party/path — gates, enters the backlog) · `real-defect` (contradiction / undefined term / wrong value / broken reference — gates, enters the backlog) · `refinement` (existing covered text, no behaviour-boundary change — never gates, rides to the human).
-     - `provenance` ∈ `original` (against the frozen artifact) · `fix-induced` (against a prior round's fix text — may not re-open a round unless it is a genuine `real-defect` the fix introduced).
+   - Each finding object is exactly `{id, marker, req, type, provenance}` — no extra property at any level. `type` ∈ {`coverage-gap`, `real-defect`, `refinement`} and `provenance` ∈ {`original`, `fix-induced`} are the classification the bounded-review termination structure gates on; the validator enum-checks both, and how the challenger decides them lives in `methodology.md` (the subtraction test). Do not restate their semantics here.
    - `input_digest` is computed by `bash "${CLAUDE_PLUGIN_ROOT}/scripts/spec-extract.sh" digest <spec>` over the **whole attested surface** (`## Foundation` + `## User Stories` + `## Acceptance Criteria`), so a post-accept edit to any of those sections staleness-invalidates this record.
 
    After writing the record, place the surfaced `[NEEDS CLARIFICATION: <q>]` markers inline into the spec (on the relevant requirement or AC line) for the human to resolve before the design-review gate runs.
