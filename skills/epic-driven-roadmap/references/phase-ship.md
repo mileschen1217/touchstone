@@ -30,8 +30,8 @@ quiz has been taken and passed:
       Deliver it WITH the explainer and ask the owner to try it. A wrong
       answer marks exactly where the explainer failed — revise the explainer
       there, re-ask, AND record the miss as a use-point failure event: one
-      `gate-miss.md` line (`date | artifact | event | expected locus |
-      actual locus | severity`) per wrong answer. **Quiz not passed → do not
+      `gate-miss.md` line in the canonical six-field primitive (its header
+      states the fields) per wrong answer. **Quiz not passed → do not
       approve** (informed accept, never a rubber-stamp).
 
 Epic close cites each phase's pair (close step 2); it never re-runs the quiz.

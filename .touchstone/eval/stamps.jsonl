@@ -1,0 +1,4 @@
+{"date":"2026-07-18T13:05:00Z","gate":"code-review-batch","target":"bf7455b..HEAD(v2-dilute)","findings":{"C":4,"H":3,"M":1,"L":2},"fixed":8,"rounds":1}
+{"date":"2026-07-18T15:41:25Z","gate":"code-review-batch","target":"source-as-truth always-on (2 commits)","findings":{"C":0,"H":1,"M":1,"L":0},"fixed":2,"rounds":1}
+{"date":"2026-07-18T16:43:32Z","gate":"design-review","target":".touchstone/specs/2026-07-18-eval-mechanism-design.md","findings":{"C":0,"H":2,"M":4,"L":2},"fixed":7,"rounds":2}
+{"date":"2026-07-18T17:34:47Z","gate":"anvil-final-review","target":".touchstone/specs/2026-07-18-eval-mechanism-design.md","findings":{"C":0,"H":1,"M":2,"L":0},"fixed":3,"rounds":2}
