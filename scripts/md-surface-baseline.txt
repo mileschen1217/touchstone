@@ -101,4 +101,8 @@
 # normative content that makes the review loop converge; the methodology
 # essence-rewrite (-492B) funds only a fraction — re-slim cannot delete
 # load-bearing gate mechanism. Human ruled baseline-raise over re-slim.
-268078
+# (+207 review-fix wave: cross-vendor review found the essence-rewrite dropped
+# the challenger's anti-saturation directive; restored to methodology.md, since
+# the cold challenger reads only that file and cannot inherit it from the
+# stopping rule — load-bearing under one-shot discovery.)
+268285

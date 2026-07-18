@@ -126,6 +126,16 @@ field ships once, in its final shape, rather than twice.
 
 ## Addendum (2026-07-18) — loop-level termination and finding classification
 
+> **Terminology & status note — this addendum supersedes the Decision section on
+> two points.** (a) Commitment 1's single classification list
+> `new-scope`/`refinement`/`fix-induced` is replaced by the final two-field model
+> below: `new-scope` becomes `type: coverage-gap`, and `fix-induced` becomes a
+> `provenance` value, not a peer type. The shipped enum is
+> `type ∈ {coverage-gap, real-defect, refinement}`, `provenance ∈ {original,
+> fix-induced}` — the term `new-scope` does not appear in code. (b) The "deferred
+> to the eval-anchored redesign" note in *Immediate mechanization* is reversed:
+> the classification ships now, as required challenge-result schema fields.
+
 The severity qualification above governs a single finding's grade. It does not,
 by itself, make a *multi-arm* review loop terminate. Practice (P2, round 6)
 showed why: dispatching N parallel lens-arms (boundary / cross-REQ consistency /

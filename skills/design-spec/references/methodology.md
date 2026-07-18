@@ -47,13 +47,15 @@ never blocks. This is what lets the loop terminate — see the stopping rule
 
 ## The lenses — the initial pass is one-shot discovery
 
-Discovery happens **once**, against the frozen artifact. Run these lenses as the
-initial challenge (dispatching one arm per lens is the evidenced shape — the arms
-find near-disjoint sets, and per-context attention, not instruction breadth, is
-the binding resource). Their union is the **frozen backlog**. Everything after is
-burn-down: fix the backlog, then a single re-verify checks resolution + any
-fix-introduced `real-defect` — it does **not** re-run discovery on the fixed
-text.
+Discovery happens **once**, against the frozen artifact — there is no second
+discovery pass, so this pass must be exhaustive. Apply each lens fully and
+**never self-declare saturation**: "no new cards emerged" after N techniques is a
+sampling artifact, not proof of coverage. Dispatching one arm per lens is the
+evidenced shape — the arms find near-disjoint sets, and per-context attention,
+not instruction breadth, is the binding resource. What happens to the findings
+after this pass (the frozen backlog, the burn-down, the single re-verify, the
+budget) is the orchestrator's, governed by the stopping rule
+(`skills/_shared/inject/severity-tiered-stopping-rule.md`) — do not restate it.
 
 - **boundary** — behaviour boundaries & input partitions (EP/BVA, decision
   tables, state transitions — see the catalogue).
