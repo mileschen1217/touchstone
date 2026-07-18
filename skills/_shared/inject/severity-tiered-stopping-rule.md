@@ -42,7 +42,17 @@ passes). A dispatch that errors before returning a verdict is a technical failur
 round — one technical retry, else the blocked path noted "re-verify incomplete"; never a
 silently skipped re-verify, never a fabricated verdict.
 
-**Challenge-pass loop** (findings are ungraded markers, not C/H): initial challenge + ONE
-re-challenge; every unresolved marker blocks. Route a marker by content — one that would
-change a user-story or a requirement's SHALL headline goes to the human, an AC-level one
-is resolved by the authoring AI and logged; the terminal human accept covers both.
+**Discovery once, then burn-down (both loops).** The initial round is the one discovery
+pass — its gating findings are the **frozen backlog**. The re-verify / re-challenge is
+**burn-down**: it confirms the backlog is resolved and catches any real defect a fix
+introduced; it does NOT re-run discovery on the fixed text. A `fix-induced` finding may
+not re-open a round unless it is a genuine real defect; a refinement of fix text rides to
+the human. This — a cleared frozen backlog, not a clean-text test — is why the loop
+terminates.
+
+**Challenge-pass loop** (findings are typed markers carrying `type` / `provenance`, not
+C/H severities): initial challenge + ONE re-challenge. A `refinement` marker rides to the
+human and never blocks; `coverage-gap` / `real-defect` markers are the backlog. Route a
+backlog marker by content — one that would change a user-story or a requirement's SHALL
+headline goes to the human, an AC-level one is resolved by the authoring AI and logged;
+the terminal human accept covers both.

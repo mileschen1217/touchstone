@@ -38,8 +38,8 @@ test (delete the finding's target — does any pass/fail behaviour change?):
   enters the backlog) · `refinement` (existing covered text made more precise, no
   behaviour-boundary change; **never gates** — rides to the human as a marker).
 - **provenance** — `original` (against the frozen artifact) · `fix-induced`
-  (against a prior round's fix text; may not re-open a round unless it is a
-  genuine `real-defect` the fix introduced).
+  (against a prior round's fix text — the stopping rule governs whether it may
+  re-open a round).
 
 Only `coverage-gap` and `real-defect` can be gating findings; a `refinement`
 never blocks. This is what lets the loop terminate — see the stopping rule
