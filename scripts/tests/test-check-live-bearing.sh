@@ -122,7 +122,7 @@ $extra
 SPEC
   # matching challenge.json (requirement-bearing → precheck requires it)
   local dig; dig="$(bash "$SX" digest "$s" 2>/dev/null)"
-  jq -nc --arg d "$dig" '{schema_version:2,normalizer_version:1,author_id:"t",challenger_id:"c",input_digest:$d,findings:[]}' > "${s%.md}.challenge.json"
+  jq -nc --arg d "$dig" '{schema_version:3,normalizer_version:1,author_id:"t",challenger_id:"c",input_digest:$d,findings:[]}' > "${s%.md}.challenge.json"
 }
 
 # AC-40: a REAL orphan VS entry (AC-9 not in spec) surfaces through design-review-precheck's output

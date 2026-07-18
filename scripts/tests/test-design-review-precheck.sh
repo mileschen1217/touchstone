@@ -10,7 +10,7 @@ fail=0
 cp "$src" "$tmp/spec.md"
 DG="$(bash "$here/../spec-extract.sh" digest "$tmp/spec.md")"
 NV="$(bash "$here/../spec-extract.sh" normalizer-version)"
-good='{"schema_version":2,"normalizer_version":'"$NV"',"author_id":"A","challenger_id":"B","input_digest":"'"$DG"'","findings":[{"id":"F-1","marker":"[NEEDS CLARIFICATION: q?]","req":"REQ-1"}]}'
+good='{"schema_version":3,"normalizer_version":'"$NV"',"author_id":"A","challenger_id":"B","input_digest":"'"$DG"'","findings":[{"id":"F-1","marker":"[NEEDS CLARIFICATION: q?]","req":"REQ-1","type":"coverage-gap","provenance":"original"}]}'
 
 run() { local out rc; out="$(bash "$pc" "$1" 2>&1)"; rc=$?
   [ "$rc" -eq "$2" ] || { echo "FAIL $4: rc want=$2 got=$rc ($out)"; fail=$((fail+1)); return; }
@@ -26,7 +26,7 @@ run "$tmp/spec.md" 1 "missing" block-missing
 printf '%s' '{bad' > "$tmp/spec.challenge.json"
 run "$tmp/spec.md" 1 "BLOCK" block-malformed
 # stale challenge-result → BLOCK
-printf '%s' '{"schema_version":2,"normalizer_version":'"$NV"',"author_id":"A","challenger_id":"B","input_digest":"old","findings":[]}' > "$tmp/spec.challenge.json"
+printf '%s' '{"schema_version":3,"normalizer_version":'"$NV"',"author_id":"A","challenger_id":"B","input_digest":"old","findings":[]}' > "$tmp/spec.challenge.json"
 run "$tmp/spec.md" 1 "BLOCK" block-stale
 # structural failure (zero-AC) → BLOCK regardless of challenge
 cp "$here/floor-fixtures/req-zero-ac.md" "$tmp/zero.md"

@@ -13,6 +13,14 @@ terminates. A consumer loads this file and carries only its own site delta.
 human ruling recorded in the epic's calibration ledger). "Zero new findings" is a
 stopping criterion nowhere in the suite.
 
+**Severity qualification (gate on coverage, not polish).** A finding earns Critical or
+High ONLY by exposing an uncovered behaviour (a requirement / party / path carrying no
+AC) or a real defect. A pure refinement — one whose fix changes no behaviour boundary,
+tested by removal (delete the finding's target: does any pass/fail behaviour change? no →
+refinement) — is Low by construction: its marker rides to the human, it never blocks, and
+it never enters the re-verify budget below. This is what stops a loop churning on
+plausible-but-unbounded polish; only coverage gaps and real defects drive another round.
+
 **Initial round:**
 - any Critical, or High ≥ T → fix all → ONE combined re-verify dispatch (boundary pin:
   H = T re-verifies, H = T−1 closes).
