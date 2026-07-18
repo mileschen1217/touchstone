@@ -32,8 +32,7 @@ Unconditional:
    the feedback duty.
 3. `skills/_shared/ground-and-sweep.md` — Read and inject verbatim into the
    reviewer envelope; the fragment carries the saturation definition and
-   scope-resolution rule. Unit = each *emitted finding* (file / line / field /
-   AC-id).
+   scope-resolution rule. Unit = each *emitted finding* (file / line / field / AC-id).
 
 Conditional (`source-as-truth` in `bundle.disciplines`): read
 `skills/_shared/inject/bridge-content-gate.md` +
@@ -79,9 +78,10 @@ per Phase 1, `role` = `design-reviewer`.
 > promise will be witnessed, hiding nothing: for EACH requirement,
 > enumerate the behaviours a user would recognize as "working" (happy, error,
 > boundary paths) and flag every requirement whose ACs witness only the happy
-> path — hunts ACs that do NOT exist; the doc has a non-empty
-> `## Verification Strategy` and every live-bearing AC id (per the injected
-> predicate + AC-coverage-honesty principle) appears in `Live-bearing AC IDs` —
+> path — hunts ACs that do NOT exist; the doc carries a `Live-bearing AC IDs`
+> declaration in EITHER accepted home — the AC-section intro (six-section form) or a
+> `## Verification Strategy` section (legacy pre-P2 specs) — and every live-bearing
+> AC id (per the injected predicate + AC-coverage-honesty principle) appears in it —
 > a declaration check (no test source yet); a standing-runtime feature
 > carries an activation AC on the user-observable, never only a fixture proxy;
 > Risks / Open Questions are surfaced, not hidden.
@@ -97,15 +97,16 @@ per Phase 1, `role` = `design-reviewer`.
 
 ## Phase 4 — Apply findings
 
-Sum Critical+High (C+H):
+Convergence rule: read
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
+and apply it as this gate's stopping rule (single home — do not restate it). This
+gate's C/H verdict feeds the initial round; the bounded single re-verify, blocked
+escalation, and the no-unauthorized-third-round rule all govern here (the boundary
+pin and tiers live in the fragment). Build waits until the rule
+closes the loop (a clean close, or a human ruling on a blocked line); no severity
+count leaves the next action undefined.
 
-| C+H | Action | Build |
-|---|---|---|
-| ≥ 5 | fix inline; re-invoke — 2nd pass mandatory | waits for a C+H = 0 run |
-| 1–4 | surface; 2nd pass optional | waits until C+H resolved |
-| 0 | surface Medium/Low | may proceed at user's discretion |
-
-A ⚠️ DEGRADED / ⚠️ PARTIAL banner (orthogonal to C+H) → present VERBATIM and
+A ⚠️ DEGRADED / ⚠️ PARTIAL banner (orthogonal to the severity tiers) → present VERBATIM and
 get explicit acknowledgement BEFORE Build, even at C+H = 0 (meaning:
 `cross-provider-reviewer/references/provenance.md`).
 

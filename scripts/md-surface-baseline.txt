@@ -93,4 +93,18 @@
 # 260552
 # 2026-07-16 (same PR): +61 — review-caught dropped rule restored (assay
 # "no contract-material packaging beyond the consensus section").
-260613
+# 260613
+# 2026-07-18: raised +7465 — coverage-axis termination machinery (ADR-0038):
+# finding-classification schema (challenge-result v3 type/provenance), the
+# loop-level termination structure in the stopping rule (frozen-backlog
+# burn-down), and the crucible PRD+seams coverage qualification. Genuinely-new
+# normative content that makes the review loop converge; the methodology
+# essence-rewrite (-492B) funds only a fraction — re-slim cannot delete
+# load-bearing gate mechanism. Human ruled baseline-raise over re-slim.
+# (+207 review-fix wave: cross-vendor review found the essence-rewrite dropped
+# the challenger's anti-saturation directive; restored to methodology.md, since
+# the cold challenger reads only that file and cannot inherit it from the
+# stopping rule — load-bearing under one-shot discovery.)
+# (+22 pre-push: template.md Index example row marked <!-- local-ref-ok --> so
+# the clone-completeness hook accepts the deliberate REQ-1/AC-1 illustration.)
+268307

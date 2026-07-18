@@ -15,3 +15,9 @@ __pycache__/
 CLAUDE.local.md
 ROADMAP.md
 .venv/
+
+# conductor orchestration run artifacts (local build-process audit; machine paths)
+.conductor/
+
+# Session-to-session handoff notes are transient/local (not a published surface)
+docs/handoffs/

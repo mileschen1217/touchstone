@@ -162,13 +162,11 @@ counts as a correction and folds back. Not ready → run the cheap probe(s), ret
 re-converge. The readiness ruling cites the explicit yes and the clean round's dated `R-n` id;
 the ask refers the human to the pre-yes consensus render as its object.
 
-**The human rules readiness once.** Guard with the non-yes taxonomy:
-
-- "whatever you think" = delegation → re-ask with two concrete options.
-- "sounds good" = ambiguous → ask what they would refine.
-- silence + "let's start" = abandonment → stop; ask what is missing.
-- an explicit correction → fold into the table, re-render the consensus, restate, loop.
-- Only an explicit yes advances.
+**The human rules readiness once.** Guard: anything short of an explicit yes is
+not-ready — name the specific gap the non-answer signals and return to it, never round a
+soft or delegated reply up to consent. E.g. a delegation ("whatever you think") → re-ask
+with two concrete options; an explicit correction → fold into the table, re-render the
+consensus, restate, loop. Only an explicit yes advances.
 
 ## Durable record — the terminal deliverable
 

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Validate a challenge-result/v2 record against its spec. Fail closed."""
+"""Validate a challenge-result/v3 record against its spec. Fail closed."""
 import json, subprocess, sys, os, re
 
 ALLOWED_TOP = {"schema_version", "normalizer_version", "author_id", "challenger_id", "input_digest", "findings"}
-ALLOWED_FINDING = {"id", "marker", "req"}
+ALLOWED_FINDING = {"id", "marker", "req", "type", "provenance"}
+FINDING_TYPES = {"coverage-gap", "real-defect", "refinement"}
+PROVENANCES = {"original", "fix-induced"}
 MARKER_RE = re.compile(r'\[NEEDS CLARIFICATION:[^\]]+\]')  # used with fullmatch
 
 def fail(msg):
@@ -31,8 +33,8 @@ def main():
     if not isinstance(data, dict): fail("record is not a JSON object")
     sv = data.get("schema_version")
     if type(sv) is not int: fail("schema_version must be an integer (type)")
-    if sv == 1: fail("schema_version 1 is legacy — re-challenge under v2")
-    if sv != 2: fail("schema_version must be 2")
+    if sv in (1, 2): fail(f"schema_version {sv} is legacy — re-challenge under v3")
+    if sv != 3: fail("schema_version must be 3")
     extra = set(data) - ALLOWED_TOP
     if extra: fail(f"extra top-level field(s): {sorted(extra)}")
     missing = ALLOWED_TOP - set(data)
@@ -62,12 +64,16 @@ def main():
         if f["id"] in seen: fail(f"duplicate finding id {f['id']}")
         seen.add(f["id"])
         if f["req"] not in rs: fail(f"finding references {f['req']} not in spec requirement set")
+        if f["type"] not in FINDING_TYPES:
+            fail(f"finding type must be one of {sorted(FINDING_TYPES)} (gate depends on it)")
+        if f["provenance"] not in PROVENANCES:
+            fail(f"finding provenance must be one of {sorted(PROVENANCES)}")
     if not skip_fresh:
         cur = run_extract("digest", spec).strip()
         if not cur: fail("could not compute spec digest (fail closed)")
         if data["input_digest"] != cur:
             fail("stale input_digest (spec changed after the challenge) — re-run the challenge-pass")
-    print("ok: challenge-result/v2 valid")
+    print("ok: challenge-result/v3 valid")
 
 if __name__ == "__main__":
     main()

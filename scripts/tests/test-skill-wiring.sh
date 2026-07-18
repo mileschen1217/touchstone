@@ -61,14 +61,15 @@ chk "draft-workflow-has-untrusted-data" \
 
 chk "template-has-us-entry"  "skills/design-spec/template.md" "^[[:space:]]*-[[:space:]]+US-[0-9]+ —"
 chk "template-has-traces-to" "skills/design-spec/template.md" "^traces-to: US-"
-# adjacency: ## User Stories is IMMEDIATELY between ## Scope and ## Acceptance Criteria
-# (no intervening top-level heading), fence-aware over the ordered ## heading list
+# adjacency (six-section form): ## User Stories is IMMEDIATELY between
+# ## Source-level Deposit and ## Acceptance Criteria (no intervening top-level
+# heading), fence-aware over the ordered ## heading list
 if awk '
   /^```/{f=!f;next} f{next}
   /^## /{ h[++n]=$0 }
   END{
     for(i=1;i<=n;i++) if(h[i] ~ /^## User Stories[[:space:]]*$/){
-      ok = (i>1 && h[i-1] ~ /^## Scope/) && (i<n && h[i+1] ~ /^## Acceptance Criteria[[:space:]]*$/)
+      ok = (i>1 && h[i-1] ~ /^## Source-level Deposit/) && (i<n && h[i+1] ~ /^## Acceptance Criteria[[:space:]]*$/)
       exit !ok
     }
     exit 1

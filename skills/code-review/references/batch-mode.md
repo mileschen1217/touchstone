@@ -58,20 +58,19 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    Also read and inject verbatim
    `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/design-soundness-honor-check.md`
    into the reviewer envelope (append to task prompt). Apply its **feedback duty**
-   (subject = the whole deliverable vs the governing spec's `## Architecture` section,
-   subsystem scope — not per-diff); the honor-judgment rule itself lives in the
-   injected fragment. Single home: load by path; never restate the body inline.
+   (subject = the whole deliverable vs the governing spec's depth-stakes REQ set /
+   legacy `## Architecture` section, subsystem scope — not per-diff); the
+   honor-judgment rule lives in the injected fragment. Single home: load by path;
+   never restate the body inline.
 
-   **(b) The `code-review batch` feedback delta** — prepend this, after the injected doctrine:
+   **(b) The `code-review batch` feedback delta.** Read and inject verbatim
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/ac-coverage-criteria.md` (the
+   coverage core — single home; ≤20L). Then prepend this site delta after it:
 
-   > Read the governing spec's ACs and the test source. For each AC, judge whether a
-   > test asserts that AC's Then-clause (AC coverage, semantic — not code-coverage %,
-   > not tool-measured). A test that mocks the very boundary a boundary-crossing AC
-   > claims does NOT discharge that claim (proxy, not coverage). A **silent false-green**
-   > (per the injected principle) blocks the done claim.
-   >
    > **Live-bearing ACs.** For each AC listed in the governing spec's
-   > `Live-bearing AC IDs`: apply the injected live-bearing predicate's
+   > `Live-bearing AC IDs` declaration (the AC-section intro for six-section specs,
+   > or a `## Verification Strategy` section for legacy pre-P2 specs): apply the
+   > injected live-bearing predicate's
    > live-artifact evidence rules (static-proxy disqualification, two-part
    > provenance, producer ≠ judge, fakeability-scaled authentication). A
    > static-proxy-only or artifact-less live-bearing claim is flagged with the
@@ -111,7 +110,12 @@ Provenance (schema, the 5 operations, both banner formats) is defined solely in
    - If degraded/partial, build and prepend the banner(s) to the verdict text and to
      `<task_dir>/review.md` (when `task_dir` given), per that reference.
    - Write `<task_dir>/review.result.json` (review-envelope/v1) per that reference.
-7. Surface findings; Critical / High block merge.
+7. Surface findings; Critical / High block merge. Convergence: read
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
+   and apply it as this batch's stopping rule (single home — same T, same bounded
+   re-verify, same blocked escalation; do not restate it). The batch's C/H verdict
+   feeds the initial round; a surviving Critical after the one re-verify is
+   blocked and surfaced at the batch report.
 8. **Informed-consent checkpoint (CONSENT-3):** if the verdict carries a ⚠️ DEGRADED or
    ⚠️ PARTIAL banner, present the banner to the user and obtain explicit acknowledgement
    (an `AskUserQuestion` choice or an explicit user "proceed") BEFORE reporting the batch

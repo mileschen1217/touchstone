@@ -100,6 +100,7 @@ there. It is not required to relocate to `skills/_shared/inject/`. `ground-and-s
 is the first instance of this carve-out; its dual `referenced-by: [design-spec]` +
 `injected-by: [design-review]` frontmatter makes both consumers visible.
 
+
 ## Related ADRs
 
 - ADR-0016 (skill-suite structure convention) — establishes `skills/_shared/` as the

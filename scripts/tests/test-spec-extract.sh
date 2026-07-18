@@ -37,7 +37,7 @@ rs="$(bash "$ex" raw-stories "$fix/story-dup.md")"
 rr="$(bash "$ex" raw-reqs "$fix/req-dup-id.md")"
 [ "$(printf '%s\n' "$rr" | sort | uniq -d | grep -c .)" -ge 1 ] && echo "ok raw-reqs-nondedup" || { echo "FAIL raw-reqs deduped"; fail=$((fail+1)); }
 tr="$(bash "$ex" traces "$fix/req-happy.md")"
-printf '%s\n' "$tr" | grep -qE '^REQ-[0-9]+ US-[0-9]+$' && echo "ok traces-pairs" || { echo "FAIL traces shape: [$tr]"; fail=$((fail+1)); }
+printf '%s\n' "$tr" | grep -qE '^REQ-[0-9]+ US US-[0-9]+$' && echo "ok traces-pairs" || { echo "FAIL traces shape: [$tr]"; fail=$((fail+1)); }
 # --- Task 2: attested-surface widening ---
 base="$(bash "$ex" digest "$fix/attested-base.md")"
 for variant in us-edit us-add us-remove foundation-intention foundation-aim foundation-oos ac-edit; do

@@ -91,11 +91,12 @@ else
   fail "AC-1 template missing SHALL instruction"
 fi
 
-# AC-2: permits explicit no-commitment sentinel; old silent skip removed
-if grep -qF "no structural commitment" "$TEMPLATE" 2>/dev/null; then
-  ok "AC-2 template permits no-commitment sentinel"
+# AC-2 (P2 six-section form): the additive convention is "omit the depth-stakes
+# marker" (the old `## Architecture` no-commitment sentinel moved to REQ markers).
+if grep -qF "additive component needs no marker" "$TEMPLATE" 2>/dev/null; then
+  ok "AC-2 template states the additive-omission convention"
 else
-  fail "AC-2 template missing no-commitment sentinel"
+  fail "AC-2 template missing additive-omission convention"
 fi
 
 # AC-3: references arch-rubric.md by path; does NOT restate the force text
@@ -261,6 +262,37 @@ else
     fail "AC-7 floor regression: exact sentinel + SHALL → exit 0 (fail-open)"
   fi
   rm -f "$FOPEN_CONSUMER" "$FOPEN1" "$FOPEN2"
+
+  # (c4) P2 AC-40: NEW-FORM activation predicate = the `depth-stakes:` REQ marker.
+  # A six-section spec (no ## Architecture) carrying a depth-stakes REQ is
+  # commitment-bearing → requires the fragment ref in each named consumer.
+  DS_SPEC="$(mktemp)"
+  # SC2016: literal markdown, no shell expansion intended.
+  # shellcheck disable=SC2016
+  printf '## Acceptance Criteria\n### Requirement: REQ-1 — Module M SHALL be deep\ntraces-to: US-1\ndepth-stakes: M hides its sequencing; callers cannot mis-order it\n#### AC-1 — x\n' > "$DS_SPEC"
+  # GREEN: wired consumers (they reference the fragment) → exit 0
+  if bash "$FLOOR" "$DS_SPEC" "$ANVIL" "$BATCH" "$DREV" >/dev/null 2>&1; then
+    ok "AC-40 new-form depth-stakes spec + wired consumers → exit 0"
+  else
+    fail "AC-40 new-form depth-stakes spec + wired consumers → nonzero (unexpected)"
+  fi
+  # RED (the AC-40 red fixture): depth-stakes REQ + an UNWIRED consumer → nonzero
+  # (proves no vacuous pass for a new-form commitment-bearing spec).
+  DS_CONSUMER="$(mktemp)"; echo "# consumer — no fragment ref" > "$DS_CONSUMER"
+  ds_rc=0; bash "$FLOOR" "$DS_SPEC" "$DS_CONSUMER" >/dev/null 2>&1 || ds_rc=$?
+  if [ "$ds_rc" -ne 0 ]; then
+    ok "AC-40 new-form depth-stakes + unwired consumer → nonzero (no vacuous pass)"
+  else
+    fail "AC-40 new-form depth-stakes + unwired consumer → exit 0 (FAIL-OPEN)"
+  fi
+  # SANITY: the same spec with the depth-stakes line REMOVED is additive → vacuous pass
+  DS_ADD="$(mktemp)"; grep -v '^depth-stakes:' "$DS_SPEC" > "$DS_ADD"
+  if bash "$FLOOR" "$DS_ADD" "$DS_CONSUMER" >/dev/null 2>&1; then
+    ok "AC-40 new-form additive (no marker) → vacuous exit 0"
+  else
+    fail "AC-40 new-form additive (no marker) → nonzero (should be vacuous)"
+  fi
+  rm -f "$DS_SPEC" "$DS_CONSUMER" "$DS_ADD"
 
   # (d) --dup-check: fails when fragment body is statically copied into another .md
   DUP_MD="$(mktemp).md"

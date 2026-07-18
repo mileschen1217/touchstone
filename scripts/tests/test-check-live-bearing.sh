@@ -24,11 +24,46 @@ bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-25 clean → 0" || fail "AC-25 nonzer
 s="$TMP/orphan.md"; vs "$s" "x" "AC-9"
 bash "$CHK" "$s" >/dev/null 2>&1 && fail "AC-23 orphan should be nonzero" || ok "AC-23 orphan flagged"
 
-# AC-26: no VS section → [unverified: no VS], nonzero
+# AC-26 / AC-21: neither form declares Live-bearing → [unverified: no declaration], nonzero
 s="$TMP/novs.md"; printf '## Acceptance Criteria\n#### AC-1 — x\n' > "$s"
 out="$(bash "$CHK" "$s" 2>&1)"; rc=$?
-{ [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "unverified: no Verification Strategy"; } \
-  && ok "AC-26 no-VS unverified" || fail "AC-26 out=$out rc=$rc"
+{ [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "no live-bearing declaration"; } \
+  && ok "AC-21 neither-form unverified" || fail "AC-21 out=$out rc=$rc"
+
+# --- P2 REQ-8/AC-21: new form (Live-bearing in the AC-section intro) + both-forms ---
+newform() { # <path> <ac-body-given> <ac-intro-live-bearing-value>
+  # shellcheck disable=SC2016
+  printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** %s\n\n#### AC-1 — x\n```\nGiven %s\n```\n' "$3" "$2" > "$1"
+}
+bothform() { # <path> <new-value> <legacy-value>
+  # shellcheck disable=SC2016
+  printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** %s\n\n#### AC-1 — x\n```\nGiven z\n```\n\n## Verification Strategy\n- **Live-bearing AC IDs:** %s\n' "$2" "$3" > "$1"
+}
+# new-form clean → 0
+s="$TMP/new-ok.md"; newform "$s" "a precondition" "AC-1"
+bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-21 new-form clean → 0" || fail "AC-21 new-form nonzero on clean"
+# new-form orphan → nonzero
+s="$TMP/new-orphan.md"; newform "$s" "x" "AC-9"
+bash "$CHK" "$s" >/dev/null 2>&1 && fail "AC-21 new-form orphan should be nonzero" || ok "AC-21 new-form orphan flagged"
+# both forms, same set → 0 (new authoritative, no disagreement)
+s="$TMP/both-agree.md"; bothform "$s" "AC-1" "AC-1"
+bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-21 both-forms agree → 0" || fail "AC-21 both-agree nonzero"
+# both forms, different sets → nonzero (disagreement)
+s="$TMP/both-disagree.md"; printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** AC-1\n\n#### AC-1 — x\n#### AC-2 — y\n\n## Verification Strategy\n- **Live-bearing AC IDs:** AC-2\n' > "$s"
+out="$(bash "$CHK" "$s" 2>&1)"; rc=$?
+{ [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "disagreement"; } && ok "AC-21 both-forms disagree flagged" || fail "AC-21 disagree rc=$rc out=$out"
+
+# --- P2 REQ-8/AC-20: the Index Live-bearing column is a second new-form source ---
+# intro line + Index column AGREE → pass
+s="$TMP/idx-agree.md"; printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** AC-1\n\n| Req | AC | Name | Live-bearing |\n|---|---|---|---|\n| REQ-1 | AC-1 | a | yes |\n| REQ-1 | AC-2 | b | |\n\n#### AC-1 — x\n#### AC-2 — y\n' > "$s"
+bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-20 intro + Index agree → 0" || fail "AC-20 idx-agree nonzero"
+# intro line + Index column DISAGREE → nonzero
+s="$TMP/idx-disagree.md"; printf '## Acceptance Criteria\n- **Live-bearing AC IDs:** AC-1\n\n| Req | AC | Name | Live-bearing |\n|---|---|---|---|\n| REQ-1 | AC-1 | a | |\n| REQ-1 | AC-2 | b | yes |\n\n#### AC-1 — x\n#### AC-2 — y\n' > "$s"
+out="$(bash "$CHK" "$s" 2>&1)"; rc=$?
+{ [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "different AC sets"; } && ok "AC-20 intro vs Index disagree flagged" || fail "AC-20 idx-disagree rc=$rc out=$out"
+# Index column ONLY (no intro line) → Index is the declaration; orphan still caught
+s="$TMP/idx-only.md"; printf '## Acceptance Criteria\n\n| Req | AC | Name | Live-bearing |\n|---|---|---|---|\n| REQ-1 | AC-1 | a | yes |\n\n#### AC-1 — x\n' > "$s"
+bash "$CHK" "$s" >/dev/null 2>&1 && ok "AC-20 Index-only declaration → 0" || fail "AC-20 idx-only nonzero"
 
 # AC-27: `none` is valid syntax → not reported missing/malformed; candidate sweep still runs
 s="$TMP/none.md"; vs "$s" "the deployed hook fires on a real session" "none"
@@ -87,7 +122,7 @@ $extra
 SPEC
   # matching challenge.json (requirement-bearing → precheck requires it)
   local dig; dig="$(bash "$SX" digest "$s" 2>/dev/null)"
-  jq -nc --arg d "$dig" '{schema_version:2,normalizer_version:1,author_id:"t",challenger_id:"c",input_digest:$d,findings:[]}' > "${s%.md}.challenge.json"
+  jq -nc --arg d "$dig" '{schema_version:3,normalizer_version:1,author_id:"t",challenger_id:"c",input_digest:$d,findings:[]}' > "${s%.md}.challenge.json"
 }
 
 # AC-40: a REAL orphan VS entry (AC-9 not in spec) surfaces through design-review-precheck's output

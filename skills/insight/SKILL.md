@@ -42,7 +42,7 @@ Every deterministic step of this loop is a script call under `scripts/proposal/`
    - **A2 Merge-or-replace.** Name the existing overlapping unit in the
      sidecar's `overlap:` frontmatter field; merge into it or replace it.
      Screening is judgment + the human's ruling — no script arbitrates overlap.
-   - **A3 Size.** No filler — size is what the procedure needs (guideline ≤200 lines / ≈2.5k tokens per skill body, hard cap 500, lazy-loaded `references/*.md` included); the review-prompt surface's total token count never grows net (an addition over the cap is paid by an equal deletion).
+   - **A3 Size.** No filler — size is what the procedure needs, within the per-skill size caps homed in `docs/skill-authoring-template.md` (single home — no figures restated here); the review-prompt surface's total token count never grows net (an addition over the cap is paid by an equal deletion).
    - **A4 Deterministic checks sink to checkers.** A fully deterministic check
      (grep-able, exit-code-able) ships as a checker script, never as an LLM
      lens sentence; carve deterministic sub-checks out of lenses.
