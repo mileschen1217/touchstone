@@ -63,7 +63,7 @@ Each `### Requirement: REQ-N — <EARS SHALL statement>` heading adds rule-altit
 
 | Req | AC | Name | Live-bearing |
 |---|---|---|---|
-| REQ-1 | AC-1 | <short-name> | |
+| REQ-1 | AC-1 | <short-name> | | <!-- local-ref-ok -->
 
 ---
 

@@ -105,4 +105,6 @@
 # the challenger's anti-saturation directive; restored to methodology.md, since
 # the cold challenger reads only that file and cannot inherit it from the
 # stopping rule — load-bearing under one-shot discovery.)
-268285
+# (+22 pre-push: template.md Index example row marked <!-- local-ref-ok --> so
+# the clone-completeness hook accepts the deliberate REQ-1/AC-1 illustration.)
+268307
