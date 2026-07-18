@@ -18,3 +18,6 @@ ROADMAP.md
 
 # conductor orchestration run artifacts (local build-process audit; machine paths)
 .conductor/
+
+# Session-to-session handoff notes are transient/local (not a published surface)
+docs/handoffs/
