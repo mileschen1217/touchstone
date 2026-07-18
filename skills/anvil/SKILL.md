@@ -71,6 +71,8 @@ Gate stamp — when the review resolves, record its yield per
 ## Terminal — reviewed deliverable on a branch
 
 Present the branch, the review verdict, and any surviving `[unverified]` list
-for the human's final-accept. **Anvil stops before ship** — never push, open a
+for the human's final-accept — an informed accept: the post-build pair
+(buy-in explainer + comprehension quiz, home: `epic-driven-roadmap`
+`references/phase-ship.md`) runs BEFORE the accept is acted on. **Anvil stops before ship** — never push, open a
 PR, merge, or release, on any path including halts. A stuck gate escalates to
 the human; it never retries forever or passes anyway.
