@@ -1,27 +1,25 @@
 # Dispatch provenance — canonical reference
 
-Sole canonical home of the `review-envelope/v1` contract (per
-CONTEXT.md § Dispatch provenance "canonical contract: provenance.md wins").
-The `cross-provider-reviewer`, `cross-provider-architect`, and `code-review`
-skill bodies, and the `codex-reviewer` / `codex-adversarial-reviewer` agents,
-POINT here and never restate any of the below.
+Sole canonical home of the `review-envelope/v1` contract (per CONTEXT.md
+§ Dispatch provenance "canonical contract: provenance.md wins"). The
+`cross-provider-reviewer` and `code-review` skill bodies and the
+`codex-reviewer` agent POINT here and never restate any of the below.
 
 ## review-envelope/v1 schema
 
 On-disk filename: `review.result.json` (never bare `result.json` — that is the
-separate task-result artifact). All fields top-level.
+separate task-result artifact). All six fields top-level and required. Liveness:
+a dispatch given a `task_dir` that returns with no `review.result.json` on disk
+is not accepted regardless of what was reported (reader: code-review Phase 3).
 
-| Field | Type | Required | Writer | Notes |
-|---|---|---|---|---|
-| `schema` | string | yes | both paths | Literal `"review-envelope/v1"` |
-| `status` | string | yes | both paths | One of `"ok"`, `"partial"`, `"failed"` |
-| `role` | string | yes | both paths | `"reviewer"` or `"adversarial-reviewer"` |
-| `providers_expected` | string[] | yes | both paths | Intended set. Pattern A default `["cc","codex"]`; Pattern B swap = single opposite-of-builder vendor; `with X` = `["X"]`. Never empty — populated even on total failure. |
-| `providers_used` | string[] | yes | both paths | Who produced content. `[]` on total failure. Values `"cc"`, `"codex"`. |
-| `builder_vendor` | string or null | conditional | Pattern B body | Pattern B only: vendor that built the code (`"cc"`/`"codex"`). Null/absent for Pattern A. |
-| `fallback_reason` | string or null | no | both paths | Why a provider was absent. Null when all expected ran. |
-| `risks` | object[] | no | both paths | `{ "provider": string, "error": string }` each. Present on partial/failed. |
-| `timestamp_utc` | string | yes | both paths | ISO 8601 UTC write time, e.g. `"2026-05-25T14:23:00Z"`. |
+| Field | Type | Notes |
+|---|---|---|
+| `schema` | string | Literal `"review-envelope/v1"` |
+| `status` | string | `"ok"` / `"partial"` / `"failed"` — was content produced. `partial` = a provider ran but its output is unreliable (Codex arm trigger: `-o` last-message file missing or empty with no terminal failure in the event stream). |
+| `fallback_reason` | string or null | Why a provider was absent. Null when all expected ran. |
+| `builder_vendor` | string or null | Pattern B only: vendor that built the code (`"cc"`/`"codex"`; builder detection = code-review Phase 1). Null for Pattern A. |
+| `providers_expected` | string[] | Intended set. Pattern A default `["cc","codex"]`; Pattern B swap = single opposite-of-builder vendor; `with X` = `["X"]`. Never empty — populated even on total failure. |
+| `providers_used` | string[] | Who produced content. `[]` on total failure. Values `"cc"`, `"codex"`. |
 
 ## No-derived-fields negative list
 
@@ -29,48 +27,9 @@ separate task-result artifact). All fields top-level.
 `vendor_ok`, `vendor_correct`, `degraded`. These are derived at read/banner time,
 never stored.
 
-## Operations (computed at read/banner time)
+## Banner operations (derived at read/banner time, never stored)
 
-`force_reviewer` is a runtime parameter, never a stored field: set true by the
-writer when a `with X` modifier governed the invocation (code-review batch, or a
-`with X` passed through a Pattern A envelope); default false.
-
-**Operation 1 — compute_quantity_correct(providers_expected, providers_used) → bool**
-- true iff `len(providers_used) == len(providers_expected)` AND `len(providers_used) > 0`.
-
-**Operation 2 — compute_vendor_correct(providers_expected, providers_used, builder_vendor, force_reviewer) → bool**
-- If `providers_used` empty → false.
-- Else if `force_reviewer` → true.
-- Else if `builder_vendor` non-null (Pattern B) → true iff `providers_used[0] != builder_vendor`.
-- Else (Pattern A) → true iff `providers_used` has ≥2 distinct vendors.
-- Pattern B precondition: exactly one reviewer, so `len(providers_used)` is 0 or 1; >1 is an implementation error.
-
-**Operation 3 — compute_degraded(quantity_correct, vendor_correct, providers_used) → bool**
-- true iff `(!quantity_correct || !vendor_correct)` AND `len(providers_used) > 0`.
-- Non-empty guard: total failure (`providers_used == []`) is `status: failed`, NOT degraded.
-
-**Operation 4 — format_banner(quantity_correct, vendor_correct, providers_expected, providers_used, builder_vendor) → string**
-- Called only when `compute_degraded == true`. Output: `⚠️ DEGRADED — <reason-clause>`.
-- `<reason-clause>`:
-  - if `!quantity_correct`: `"quantity: {len(providers_used)} of {len(providers_expected)} expected providers"`
-  - if both `!quantity_correct` and `!vendor_correct`: join with `"; "`
-  - if `!vendor_correct` and `builder_vendor` non-null (Pattern B): `"vendor: builder={builder_vendor} and reviewer={providers_used[0]}; cross-vendor swap failed"`
-  - if `!vendor_correct` and `builder_vendor` null (Pattern A): `"vendor: cross-vendor scrutiny incomplete: only {join(providers_used, ", ")} ran"`
-- Examples:
-  - `⚠️ DEGRADED — quantity: 1 of 2 expected providers; vendor: cross-vendor scrutiny incomplete: only cc ran`
-  - `⚠️ DEGRADED — vendor: builder=cc and reviewer=cc; cross-vendor swap failed`
-- Prepended (not appended) to synthesis text and review.md, then a blank line, then the body.
-
-**Operation 5 — format_partial_banner(status, providers_used, partial_reasons) → string or null**
-- If `status != "partial"` → null.
-- Else for each provider in `partial_reasons` that is also in `providers_used`, emit one line:
-  `⚠️ PARTIAL — <provider> contribution unreliable: <reason>`
-- Example: `⚠️ PARTIAL — codex contribution unreliable: >5 malformed JSONL lines`.
-- Ordering when both fire: DEGRADED first, PARTIAL second, blank line, body. PARTIAL is orthogonal to DEGRADED.
-
-## status vs the two banner axes
-
-- `status` (stored): was content produced — ok / partial / failed.
-- DEGRADED (derived): cross-vendor completeness (quantity + vendor).
-- PARTIAL (derived): content quality (a provider ran but output unreliable; `status==partial`).
-- A degraded review that still produced output is `status: ok`. Both banners can co-occur.
+- `quantity_correct` := `len(providers_used) == len(providers_expected) AND len(providers_used) > 0`. `vendor_correct` := false when `providers_used` empty; true under `force_reviewer` (runtime parameter, set when a `with X` modifier governed the invocation — never a stored field); Pattern B (`builder_vendor` non-null) → true iff `providers_used[0] != builder_vendor`; Pattern A → true iff `providers_used` has ≥2 distinct vendors.
+- DEGRADED iff `(!quantity_correct || !vendor_correct) AND len(providers_used) > 0` — total failure (`providers_used == []`) is `status: failed`, NOT degraded, no banner varnish. Banner: `⚠️ DEGRADED — <reason-clause>`; reason-clause — if `!quantity_correct`: `"quantity: {len(providers_used)} of {len(providers_expected)} expected providers"`; if `!vendor_correct` and `builder_vendor` non-null (Pattern B): `"vendor: builder={builder_vendor} and reviewer={providers_used[0]}; cross-vendor swap failed"`; if `!vendor_correct` and `builder_vendor` null (Pattern A): `"vendor: cross-vendor scrutiny incomplete: only {join(providers_used, ", ")} ran"`; both → join with `"; "`.
+- PARTIAL (orthogonal to DEGRADED; fires only when `status == "partial"`): one line per unreliable provider — `⚠️ PARTIAL — <provider> contribution unreliable: <reason>`, e.g. `⚠️ PARTIAL — codex contribution unreliable: last-message file empty with no terminal failure`. Ordering when both fire: DEGRADED first, PARTIAL second, blank line, body. Banners are PREPENDED to the synthesis text and `review.md`.
+- Ack duty: any banner present → the presenting gate shows it VERBATIM and gets explicit human acknowledgement before reporting ready — even at Critical+High = 0.

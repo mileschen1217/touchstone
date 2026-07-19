@@ -6,21 +6,11 @@
 # .touchstone/epics/quality-spine/calibration.md). Regenerate candidates with
 # DUP_BLOCK_FP=1 .touchstone/checker/pre-commit/check-dup-block.sh
 #
-# ── codex agent trio (agents/codex-*.md) — cold system prompts; self-containment
-#    is required by the template's incompressible-content rule; cluster co-rewrite
-#    discipline applies on future edits. Verdict: exempt (false positive as defect).
-model sonnet tools bash timeout seconds 600 you are a thin forwarding wrapper around the codex cli for
-to codex exec do not do anything else strict prohibitions do not read files you have no read tool do not use bash for cat sed n head tail less awk
-task to codex exec do not do anything else strict prohibitions do not read files you have no read tool do not use bash for cat sed n head tail less awk python heredocs that print file contents or any other read substitute do not grep find ls beyond
-do not retry or iterate one forward then return do not narrate return only the verbatim codex stdout if you are tempted to
-if task dir is set write task dir raw codex jsonl full event stream
-# ── cross-provider composite pair — the matched text IS the pointer sentence to
-#    the single home (skills/_shared/pattern-a-base.md) plus shared skeleton
-#    (frontmatter, description routing). Verdict: exempt (pointer, not restatement).
-common procedure dispatch discipline provenance banners artifacts failure semantics return read claude plugin root skills shared pattern a base md at start and follow it single home not restated here inputs json envelope as args procedure 1 probe codex 2 dispatch targets per the base procedure s parallel dispatch rule agent subagent type touchstone
-4 provenance banners artifacts return per skills shared pattern a base md
-allowed tools bash read write agent user invocable true kind workflow touchstone cross provider
-auto falls back to cc only when codex unavailable used by touchstone
+# ── (P3 Batch 2 cross-provider slim) codex agent trio + cross-provider composite
+#    pair clusters RECALIBRATED OUT: `codex-adversarial-reviewer` /
+#    `cross-provider-architect` / `architect` retired and merged into the single
+#    `cross-provider-reviewer` composite + 2 arms — the duplicated runs those
+#    fingerprints exempted no longer exist (single home each).
 # ── inject-instruction lines — "Read and inject verbatim …/_shared/inject/…" at
 #    each consumer is the pointer pattern itself. Verdict: exempt.
 read and inject verbatim claude plugin root skills shared inject design soundness honor check md into the reviewer

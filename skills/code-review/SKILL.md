@@ -92,7 +92,8 @@ home — use the full plugin-relative path, not a bare `references/`):
 `builder_vendor` = the Phase 1 detection (always set, including under `with`);
 `providers_used`/`providers_expected` for this invocation; degraded or partial
 → prepend the banner(s) to the verdict text and to `<task_dir>/review.md`;
-write `<task_dir>/review.result.json` (`review-envelope/v1`).
+write `<task_dir>/review.result.json` (`review-envelope/v1` — exactly the
+six-field set per provenance.md, nothing more).
 
 ## Phase 4 — Converge, consent, report
 

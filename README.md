@@ -53,15 +53,12 @@ The review/architecture agents (`architect`, `code-reviewer`) are vendored plugi
 - `touchstone:code-review` — Cross-vendor batch review of a logical commit group (single-commit ad-hoc review → Claude Code built-in `/code-review`).
 - `touchstone:epic-driven-roadmap` — Pure-tracker ROADMAP + per-epic index convention.
 - `touchstone:grounded-claims` — Narration mode: cite source, mark `[假設]`.
-- `touchstone:cross-provider-architect` — Parallel CC + Codex architecture review.
-- `touchstone:cross-provider-reviewer` — Parallel CC + Codex code review composite.
+- `touchstone:cross-provider-reviewer` — Parallel CC + Codex composite; internal roles `review` / `architecture-critique`.
 
 ## Agents
 
-- `touchstone:codex-reviewer` — Read-only Codex code review (Pattern B).
-- `touchstone:codex-adversarial-reviewer` — Codex adversarial design critique.
-- `touchstone:architect` — Read-only CC architecture validation (Pattern A arm).
-- `touchstone:code-reviewer` — Read-only CC reviewer (Pattern A arm / Pattern B).
+- `touchstone:codex-reviewer` — Codex arm, both internal roles (review / adversarial critique via envelope lens; Pattern B reviewer).
+- `touchstone:code-reviewer` — Read-only CC arm, both internal roles (Pattern A / Pattern B).
 
 ## 6-stage workflow
 

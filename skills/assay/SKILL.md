@@ -75,7 +75,7 @@ A known unknown enters from three sources — laydown residuals (rows neither co
 | yes | expensive | **flip-trigger bypass** or scope cut — never silent proceed |
 | no | — | deferred log |
 
-**Structural fork case** — a fork entry with ≥2 viable approaches and durability stakes: author an ADR per `adr-authoring.md` (same directory) with the flip-trigger, bet-owner, and assumptions fields, the human as bet-owner; grade it against `references/arch-rubric.md`. For a fork worth critique evidence, dispatch `touchstone:cross-provider-architect` — adaptable, omit only with the reason recorded in the ADR.
+**Structural fork case** — a fork entry with ≥2 viable approaches and durability stakes: author an ADR per `adr-authoring.md` (same directory) with the flip-trigger, bet-owner, and assumptions fields, the human as bet-owner; grade it against `references/arch-rubric.md`. For a fork worth critique evidence, dispatch `touchstone:cross-provider-reviewer` (internal role `architecture-critique`) — adaptable, omit only with the reason recorded in the ADR.
 
 ## Consensus render — the object of the yes
 
