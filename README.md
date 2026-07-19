@@ -40,7 +40,7 @@ Touchstone delegates work to agents and skills that live in other plugins. Insta
 claude plugin install codex@openai-codex --scope user
 ```
 
-The review/architecture agents (`architect`, `code-reviewer`) are vendored plugin-local since 0.18.0 — no external plugin is needed for any touchstone execution path. Without `codex`, only single-vendor (Claude-only) review paths work — touchstone degrades gracefully but loses the parallel CC+Codex composite. (The optional `everything-claude-code` plugin's language-testing skills remain a useful depth reference for the test-evidence lens, nothing more.)
+The CC review arm (`code-reviewer`) is vendored plugin-local since 0.18.0 — no external plugin is needed for any touchstone execution path. Without `codex`, only single-vendor (Claude-only) review paths work — touchstone degrades gracefully but loses the parallel CC+Codex composite. (The optional `everything-claude-code` plugin's language-testing skills remain a useful depth reference for the test-evidence lens, nothing more.)
 
 ## Skills
 
