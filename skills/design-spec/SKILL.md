@@ -111,7 +111,9 @@ audit: no demote-to-invariant candidates."
 
 ## Output
 
-- One file at `<specs_dir>/YYYY-MM-DD-<feature-name>-design.md`
+- One file at `YYYY-MM-DD-<feature-name>-design.md`, homed by the
+  config-resolver's epic-scoped placement rule: the caller-named epic's dir
+  when one is named, else `<specs_dir>`.
 - Terminal summary: spec path, `Status: Draft`
 - Next: crucible writes `accepted-candidate`, then `/touchstone:design-review`
   runs the consolidated gate before human accept

@@ -22,7 +22,7 @@ field at epic level — do not repeat it below.>
 
 | # | Title | Spec | Plan | Status | Landed |
 |---|---|---|---|---|---|
-| 1 | <phase title> | [spec](../../specs/YYYY-MM-DD-<slug>.md) | [plan](../../plans/YYYY-MM-DD-<slug>.md) | proposed | |
+| 1 | <phase title> | [spec](YYYY-MM-DD-<slug>.md) | [plan](YYYY-MM-DD-<slug>.md) | proposed | |
 
 ## Pivots
 

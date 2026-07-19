@@ -22,7 +22,7 @@ Unconditional:
 1. `skills/_shared/inject/live-bearing-predicate.md` + `skills/_shared/inject/ac-coverage-honesty-principle.md` — append to `system_prompt` AND carry as `evidence_honesty_vocab`.
 2. `skills/_shared/inject/design-soundness-honor-check.md` — prepend to `system_prompt`; apply its **feedforward duty** (subject = the document). Reading it in full also satisfies its own injector requirement (arch-rubric content loaded alongside it).
 3. `skills/_shared/ground-and-sweep.md` — inject verbatim. Unit = each *emitted finding* (file / line / field / AC-id); stop only at saturation on both axes (breadth of cases, reach of parties/sites) — never first-hit.
-4. `skills/_shared/inject/standing-vs-transient-bridge.md` + `skills/_shared/inject/bridge-content-gate.md` — set `discipline_mode: "source-as-truth"` + `source_as_truth_vocab: <verbatim text>`. The Bridge audit stays this skill's own action, not the dispatched reviewer's.
+4. `skills/design-review/references/standing-vs-transient-bridge.md` (this skill's own reference — sole injector) + `skills/_shared/inject/bridge-content-gate.md` — set `discipline_mode: "source-as-truth"` + `source_as_truth_vocab: <verbatim text>`. The Bridge audit stays this skill's own action, not the dispatched reviewer's.
 
 ## Phase 2 — Pre-check (specs only; plan/ADR skip)
 

@@ -64,7 +64,8 @@ unconditional, load-and-inject — never restate):
 - `design-soundness-honor-check.md` — apply its feedback duty (subject = the
   whole deliverable against the governing spec's depth-stakes REQ set,
   subsystem scope, not per-diff).
-- `ac-coverage-criteria.md`, then this delta: for each AC in the spec's
+- `${CLAUDE_PLUGIN_ROOT}/skills/code-review/references/ac-coverage-criteria.md`
+  (this skill's own reference — sole injector), then this delta: for each AC in the spec's
   `Live-bearing AC IDs` declaration, apply the live-bearing predicate's
   evidence rules (static-proxy disqualification, two-part provenance,
   producer ≠ judge) — a static-proxy-only or artifact-less claim blocks the

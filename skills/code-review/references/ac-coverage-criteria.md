@@ -1,5 +1,5 @@
 ---
-injected-by: [code-review, epic-driven-roadmap]
+injected-by: [code-review]
 kind: bridge
 ---
 

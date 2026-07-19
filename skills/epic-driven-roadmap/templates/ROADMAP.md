@@ -10,7 +10,7 @@
 
 | Slug | Aim | Status | Epic |
 |---|---|---|---|
-| <slug> | <one-sentence aim> | proposed | [index](.touchstone/epics/<slug>/index.md) |
+| <slug> | <one-sentence aim> | proposed | [index](.touchstone/epics/YYYY-MM-DD-<slug>/index.md) |
 
 ## Completed Epics
 

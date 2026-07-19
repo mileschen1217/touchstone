@@ -14,7 +14,7 @@ quiz has been taken and passed:
       phase (≲1 phase of work, no new contract) → a short text section in the
       PR conversation. Medium/heavy phase → a self-contained `.html` artifact
       (inline CSS/JS, no external requests) stored under
-      `.touchstone/epics/<slug>/`.
+      `.touchstone/epics/<epic-dir>/` (dir = `YYYY-MM-DD-<slug>`, or the undated grandfathered name).
 - [ ] **Comprehension quiz** — 5–8 questions the owner should be able to
       answer if they truly understand the change (what breaks if X, why was Y
       retired, where does Z live now), answers collapsed / after the

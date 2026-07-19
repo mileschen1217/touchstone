@@ -29,3 +29,10 @@ the key is absent). Derive:
 Always return all six fields. A legacy `adopted_disciplines` yaml key is
 ignored — `source-as-truth` is always on. Do NOT branch on which caller
 invoked the resolver — every caller gets the same bundle.
+
+**Epic-scoped placement rule.** When the caller names an epic, that work's
+artifacts (specs, research, plans) live in the epic's own dir
+`bundle.epics/<epic-dir>/` (dir = `YYYY-MM-DD-<slug>` for new epics;
+grandfathered dirs may be undated) — they travel with the epic through
+close's Disposition pass. `bundle.specs` / `bundle.research` / `bundle.plans` are
+the standalone fallback for work with no epic.
