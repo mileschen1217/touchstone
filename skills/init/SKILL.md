@@ -16,10 +16,9 @@ kind: workflow
 /touchstone:init                              # interactive (default)
 /touchstone:init --workspace-root <path>      # override workspace root (default .touchstone)
 /touchstone:init --reset                      # overwrite existing yaml (prior copied to .bak)
-/touchstone:init --migrate                    # migrate schema-1 yaml to schema-2
 ```
 
-Each flag's behaviour is detailed in the step that consumes it (`--reset` Step 1, `--migrate` Step 1, `--workspace-root` Step 2).
+Each flag's behaviour is detailed in the step that consumes it (`--reset` Step 1, `--workspace-root` Step 2).
 
 **Live-user note:** default interactive mode (Step 2) prompts for the workspace root; pass `--workspace-root` to run non-interactively without a live user. Disciplines are not elected: `source-as-truth` is always on.
 
@@ -35,8 +34,6 @@ Read `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml` and determine the action fr
 | Exists, parseable | no | Print current config. Print "Run /touchstone:init --reset to overwrite." Exit 0. |
 
 Note: a legacy `adopted_disciplines` key is ignored (disciplines are no longer elected) and dropped on the next rewrite.
-
-`--migrate` flag: read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md` with the Read tool and follow it exactly. The config resolver's §3 migration steps handle reading old schema-1 keys, deriving `workspace_root`, writing new schema-2 yaml, and printing a diff summary. Do not duplicate that logic here.
 
 ## Step 2 — Collect paths
 
@@ -76,7 +73,7 @@ Write `${CLAUDE_PROJECT_DIR}/.claude/touchstone.yaml`:
 
 ```yaml
 # written by /touchstone:init vX.Y.Z. Hand-editable.
-schema_version: 2  # current schema; legacy schema 1 is handled by --migrate
+schema_version: 2
 workspace_root: <answer or .touchstone>
 ```
 

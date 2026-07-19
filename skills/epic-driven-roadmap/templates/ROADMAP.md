@@ -10,7 +10,7 @@
 
 | Slug | Aim | Status | Epic |
 |---|---|---|---|
-| <slug> | <one-sentence aim> | proposed | [index](.m-workflow/epics/<slug>/index.md) |
+| <slug> | <one-sentence aim> | proposed | [index](.touchstone/epics/<slug>/index.md) |
 
 ## Completed Epics
 
@@ -30,5 +30,5 @@
 
 ## Meta
 
-- Convention: `.m-workflow/epics/README.md`
+- Convention: `.touchstone/epics/README.md`
 - Routing: `CLAUDE.md § Doc Routing`
