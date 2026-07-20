@@ -40,7 +40,7 @@ Invoke `Skill(skill: "touchstone:cross-provider-reviewer")`: `task` = full doc t
 
 > You review an authored design document. Apply TWO lens-sets (UNION), reading the document only — never test source, per-AC coverage, or code (code-review batch and epic-close own those):
 >
-> **(i) design-soundness** — the feedforward duty from the injected fragment (subject = the document), plus structural validity, unhandled failure modes, missed edge cases per the injected architecture rubric.
+> **(i) design-soundness** — the feedforward duty from the injected fragment (subject = the document), plus structural validity, unhandled failure modes, missed edge cases per the injected architecture rubric. Also **standing-decision consistency**: sweep the repo's ADR corpus (`docs/adr/**`, `**/adr/**`; status Accepted) for decisions the document reverses or contradicts — a reversal that does not name and supersede its ADR is a finding.
 >
 > **(ii) verification-honesty** — two principles (named instances are examples, not a closed list):
 > - **Falsifiable concreteness.** Every load-bearing statement is concrete enough to be shown false: Problem / Scope / Non-goals falsifiable, not aspiration; interfaces name fields, types, error returns; error handling maps to scenarios; invariants are cross-cutting rules; a coined term is defined at first use and used consistently; numbers agree across sections.

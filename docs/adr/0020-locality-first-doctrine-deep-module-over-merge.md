@@ -112,6 +112,14 @@ and should near-scaffold-duplicate skills merge?
 - Pruning still requires the human oracle (pt 3) — no "looks cleaner" cut without a reviewer
   confirming the skill still steers.
 
+## Amendment (2026-07-20)
+
+**Pt 2's composite-pair application superseded by ADR-0041** (P3 Batch 2 merge, miles-accepted
+spec 2026-07-19): the pair's measured shared substance later crossed 0016 pt 4's own
+flip-trigger, so the two Pattern-A composites ARE now merged (one composite, internal role
+二值). The **general deep-module-over-merge rule in pt 2 stands** — only the pair ruling
+flipped, by its own trigger.
+
 ## Amendment (2026-06-24)
 
 **Reframing pt 1 as the no-single-host principle.**
