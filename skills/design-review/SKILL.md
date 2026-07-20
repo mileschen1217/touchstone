@@ -38,7 +38,7 @@ Invoke `Skill(skill: "touchstone:cross-provider-reviewer")`: `task` = full doc t
 
 ### Doc-review prompt — inline
 
-> You review an authored design document. Apply TWO lens-sets (UNION), reading the document only — never test source, per-AC coverage, or code (code-review batch and epic-close own those):
+> You review an authored design document. Apply TWO lens-sets (UNION), reading the document plus the repo's Accepted ADR corpus only — never test source, per-AC coverage, or code (code-review batch and epic-close own those):
 >
 > **(i) design-soundness** — the feedforward duty from the injected fragment (subject = the document), plus structural validity, unhandled failure modes, missed edge cases per the injected architecture rubric. Also **standing-decision consistency**: sweep the repo's ADR corpus (`docs/adr/**`, `**/adr/**`; status Accepted) for decisions the document reverses or contradicts — a reversal that does not name and supersede its ADR is a finding.
 >

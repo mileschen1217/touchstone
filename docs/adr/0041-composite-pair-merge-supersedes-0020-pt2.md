@@ -13,7 +13,8 @@ supersedes: 0020 (pt 2's composite-pair application only)
 Accepted. The decision itself was made by the human at the P3 Batch 2 spec accept
 (`.touchstone/epics/v2-dilute/2026-07-19-cross-provider-slim-design.md`, confirmed-fact F2:
 architect/reviewer 兩腳色合一, miles 逐項裁定 2026-07-19); this ADR records it against the
-standing corpus after an AC-9(b) fresh-session review caught the un-superseded contradiction.
+standing corpus after the post-merge fresh-session live review (the spec's deferred
+live-witness half) caught the un-superseded contradiction.
 
 ## Context
 
