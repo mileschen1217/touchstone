@@ -24,7 +24,11 @@ spec revision goes straight to `/touchstone:design-spec` +
 
 1. **explore** — read the code paths, patterns, and constraints the contract
    must respect, scoped by the intent. Findings feed the interview and the
-   contract; they never author it.
+   contract; they never author it. When the intent changes a cross-boundary
+   artifact (>1 party must agree on it), apply
+   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md` as the method to
+   sweep the artifact's reach and produce a saturated seam-map here at explore,
+   for the interview to confirm into Consensus Scope.
 2. **`touchstone:assay`** — the unconditional interview (proportionality lives
    inside it, never as a chain skip-condition). **Progression gate: do not
    advance until the assay record's readiness ruling — the explicit human

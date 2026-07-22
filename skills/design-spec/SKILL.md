@@ -87,6 +87,29 @@ downstream never repeats in the headline.
 > subject set to saturation, not first-hit. Drafting conventions (index
 > table, `[unverified]` marker, live-bearing line): `references/authoring.md`.
 
+**Reach axis — baseline-conditional (three states).** (**seam-map** /
+**reach-under-determined** defined in
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md`.) A **valid baseline** = a
+confirmed Consensus Scope seam-map that exists for THIS exact artifact + current
+intent and is not marked reach-under-determined.
+
+- **Valid baseline present** → frame the reach axis as *verifying* the party set
+  against that baseline (confirm saturation), not re-discovering it.
+- **Baseline absent or stale** (incl. direct invocation with no assay/Consensus) →
+  RETAIN the sweep-to-saturation discovery role — the net fallback is preserved,
+  never subtracted.
+- **Baseline present but under-determined** (assay marked it reach-under-determined)
+  → the reach axis degrades explicitly: discover AND flag the under-determination,
+  never silently "verify" against a bad baseline.
+
+**Home-miss (valid-baseline path only).** If, while verifying against a valid
+baseline, you observe a party absent from the Consensus seam-map: the found party IS
+covered now (added to this spec's party set — a known-missing party is never shipped)
+AND the miss is logged as an **explore-stage deviation** (which-stage-could-have-caught
+= explore) in the assay record's `## Deviation log` when an assay record exists, else in
+the epic tracker's deviation log. A silent fix that leaves explore's miss unrecorded is
+forbidden — the disposition is fix + attribute, never fix-only nor defer-only.
+
 ### 4. Challenge pass (independent, fresh-context)
 
 Dispatch a fresh-context challenger agent (challenger ≠ this authoring

@@ -65,6 +65,27 @@ Named instrument — the **want-vs-should-want probe**: "if you didn't have to j
 
 **A published predict round closes questioning — every path.** When you can predict the user's answers to the next three questions (fewer left → all remaining), publish the round: each remaining question WITH your predicted answer; an empty queue is published as an explicit empty-queue statement. Questioning closes only after the user confirms; a missed prediction reopens that question (a user correction likewise reopens the queue), and a later published round must pass before questioning may close again. Each round — predict or probe — takes the next id in a SINGLE dated sequence of `R-n` ids (one shared counter).
 
+## Territory arm — seam-map on a cross-boundary artifact
+
+The territory arm looks up repo facts the human is never asked. One territory fact is
+**load-bearing for reach**: when the intent changes a **cross-boundary artifact** (the
+term is homed in `reach-discovery.md`) — one that crosses an actor/module boundary such
+that **>1 party** must agree on it, decided by party-count rather than by file type —
+the AI SHALL produce a **saturated seam-map** via
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md` and carry it into Consensus
+Scope. When the intent changes only single-party artifacts (an
+ordinary one-consumer file edit), no seam-map is required — the negative branch is
+reachable and stays cheap.
+
+- **Saturation** is the multi-channel plateau the method (`reach-discovery.md`) applies —
+  swept via ≥2 orthogonal channels; a single-search first-hit is not a seam-map.
+- **Sub-floor (a channel unavailable — shallow clone / no history).** Declare the
+  unavailable channel in the seam-map. With ≥2 channels still available, absence does
+  not block reaching the plateau over the available channels (declared, not silently
+  skipped). With **fewer than 2** channels available, the plateau is unobservable: mark
+  the seam-map **reach-under-determined** and carry it to the human with that limitation
+  stated — never render it as a confident plateau.
+
 ## Unknown disposition
 
 A known unknown enters from three sources — laydown residuals (rows neither confirmed nor flipped), future-observable items, unresolved bold-pass items. Route EVERY one through:
@@ -82,6 +103,8 @@ A known unknown enters from three sources — laydown residuals (rows neither co
 After the table converges (no open contradiction, every unknown dispositioned) and BEFORE the consequence probes, render the `## Consensus` section as a pre-yes end-turn message: four subsections — Scope / Invariants / Contract facts / Out-of-scope — every entry traced to its stable ids (`[trace: <ids>]`).
 
 - Reuse the Presentation rules above; the depth-tier axis here is the entry's load-bearing STATUS — Scope / Invariants / Contract-facts entries get full text, Out-of-scope entries get one line. The render covers exactly the four subsections, never the record's `## Deferred log`.
+- **Seam-map in Scope (triggered intent).** When the intent changed a cross-boundary artifact, the Scope carries its saturated seam-map as `artifact → {party: file:line}` entries, each ending with a `[trace:]` to its confirmed row. A **zero-party** result — the sweep found no other party — is NOT dropped: it lands as an explicit `no other parties (swept via <channels>)` Scope entry (a valid zero-party plateau), so a mis-fired trigger (an artifact that was not actually cross-boundary) stays visible for review.
+- **The seam-map baseline is human-confirmed.** The plateau-declared seam-map becomes a verify-against baseline for any downstream stage ONLY after the human confirms it at the readiness yes (the standard Consensus yes covers it). That human yes on the seam-map — not the sweep alone — is the ratchet (INV-5).
 - **Render before persist.** The record's `## Consensus` section is written only at or after the yes; while not yet persisted, keep the render's digest tier inline rather than collapsing to a record-file pointer.
 - **Re-render on a correction** (a falsified probe, or a correction at the readiness ask): re-converge and re-render on the corrected state — the eventual yes never lands on a stale render.
 
@@ -91,7 +114,7 @@ Immediately after the consensus render and BEFORE any readiness ask, publish con
 
 ## Readiness — explicit yes + a clean probe round
 
-Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all cells filled"; NOT "zero unknowns") AND the latest probe round had zero corrections — an ambiguous probe answer counts as a correction and folds back. Not ready → run the cheap probe(s), return to the table, re-converge. The readiness ruling cites the explicit yes and the clean round's dated `R-n` id; the ask refers the human to the pre-yes consensus render as its object.
+Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all cells filled"; NOT "zero unknowns") AND the latest probe round had zero corrections — an ambiguous probe answer counts as a correction and folds back. Not ready → run the cheap probe(s), return to the table, re-converge. The readiness ruling cites the explicit yes and the clean round's dated `R-n` id; the ask refers the human to the pre-yes consensus render as its object. For a triggered cross-boundary-artifact intent this same yes is the human confirmation of the seam-map baseline (the ratchet, INV-5) — no downstream stage consumes the seam-map as a verify-against baseline before it.
 
 **The human rules readiness once.** Anything short of an explicit yes is not-ready — name the specific gap the non-answer signals and return to it, never round a soft or delegated reply up to consent. A delegation ("whatever you think") gets re-asked with two concrete options; an explicit correction folds into the table, re-renders the consensus, restates, loops. Only an explicit yes advances.
 
@@ -102,7 +125,7 @@ Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.md` — frontmatter `subj
 - `## Term sheet` — rows `T-n`
 - `## Alignment table` — rows `A-n`: dual tags + leaning + planned handling; bold-pass rows marked
 - `## Extraction Q&A` — rulings `Q-n`; predict / probe rounds `R-n` (dated)
-- `## Consensus` — four subsections: Scope / Invariants / Contract facts / Out-of-scope; every entry ends with `[trace: <stable-ids>]` (comma-separated) — stable ids only
+- `## Consensus` — four subsections: Scope / Invariants / Contract facts / Out-of-scope; every entry ends with `[trace: <stable-ids>]` (comma-separated) — stable ids only. A triggered cross-boundary-artifact intent's Scope carries the seam-map as `artifact → {party: file:line}` entries (a zero-party plateau rendered explicitly)
 - `## Flip-trigger registry` — observable signal + revisit point per row
 - `## Deferred log` — the non-load-bearing unknown stubs
 - `## Readiness ruling` — explicit yes + date + the clean round's `R-n`
