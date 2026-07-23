@@ -31,6 +31,21 @@ Every turn — laying out the map or running extraction — follows four rules:
 3. **Waves.** The top stratum resolves → the next stratum gets full text. A resolved row collapses to a one-line digest. While grilling, re-present only what changed.
 4. **Status line.** Close every turn with `resolved n / open n / new n`.
 
+A compact form for the **Index + top stratum** rule — the per-arm axis labels factored into a header key so each row's tags read positionally instead of re-labeled per row. **Illustrative, not mandated**; a small table may inline the tags instead.
+
+```
+Map [load-bearing? | probe-cost] —
+- A-1 [yes|cheap]  auth tokens verified server-side, never trusted from client ★
+- A-2 [yes|med]    the new endpoint reuses the existing pagination contract
+- A-3 [no|cheap]   error-copy wording
+Bold [disposition | blast] —
+- B-1 [reject|high]  replace the ORM with raw SQL across the module
+- B-2 [open|low]     extract the shared validator into its own unit ★
+- B-3 no suppressed structural moves
+```
+
+`★` marks an AI-recommended discussion entry point (per the Index rule above). The `Bold` block carries its own header key — its axes are disposition + blast radius, not the map's.
+
 ## Vocabulary arm — term sheet
 
 Open the alignment table with a term sheet covering the session's key terms, pre-existing and session-coined alike. Each row MUST carry:
