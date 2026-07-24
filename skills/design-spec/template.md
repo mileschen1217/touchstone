@@ -49,6 +49,7 @@ kill-on: <epic-slug>
 Given/When/Then scenarios — the **outer ATDD loop's contract**. Cover happy path, error paths, boundary values; every error path and boundary named here maps to ≥1 acceptance scenario.
 
 - **Live-bearing AC IDs:** <AC-N, AC-M | none>   ← these may NOT be carried as `[unverified]`. This line (+ the Index Live-bearing column) is the normative home of the live-bearing declaration; classification predicate + live-artifact evidence rules: `skills/_shared/inject/live-bearing-predicate.md` (single home — do not restate here).
+  - **If `none`, also check the deliverable, not just each AC.** `none` is a per-AC claim; a spec can be offline-dischargeable AC-by-AC yet the deliverable's own runtime behaviour still depends on an un-owned / non-offline-dischargeable boundary (apply the predicate file's classification + ownership counter-example to the *deliverable's* runtime effect, not one AC). When it does, no offline AC covers that live boundary — so add a live-smoke AC, or record why it needs none. Surfaced judgment, not a gate: ask, don't block.
 - **Risk layers this feature needs:** <unit? integration? contract? e2e? live? perf?; power-on-able? live means required?> — one coarse, risk-scaled line, not per-AC.
 
 AC-N id + index rules, derived coverage, and the `[unverified]` marker: `references/authoring.md` § "When drafting ## Acceptance Criteria" (single home). The verification layer/mechanism never appears in an AC's Name or Given-When-Then.
