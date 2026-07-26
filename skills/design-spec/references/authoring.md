@@ -62,9 +62,9 @@ pass from test source. The only authored per-AC marker is an inline
 `[unverified: <reason>]` (reason mandatory; a live-bearing AC may not carry
 it — see `skills/_shared/inject/live-bearing-predicate.md`).
 
-**Line-width policy.** Prose soft-wraps (one logical paragraph = one line);
-code blocks / tables / diagrams keep ≤80 chars where they cannot reflow; one
-bullet per line.
+**Line width.** Match the wrap convention of the document you are writing
+into — soft-wrapped prose stays soft-wrapped; content that cannot reflow
+(code, tables, diagrams) stays inside the width its neighbours use.
 
 ## Challenge pass
 
@@ -80,10 +80,10 @@ the REQ add a boundary its story lacks), REQ→AC (does a scenario cover a
 boundary no AC covers), finding→class (does fixing this finding change a
 boundary).
 
-**Decider — the subtraction test:** delete the finding's target; if no
-pass/fail behaviour changes, it is a refinement, not a boundary. Two
-corollaries when it fails: is it testable (a pass/fail check can be written),
-is it quantified (a measurable threshold, not "fast" / "good").
+**Decider — the removal test** (defined in
+`skills/_shared/inject/severity-tiered-stopping-rule.md`). Two corollaries when
+a finding survives it: is it testable (a pass/fail check can be written), is it
+quantified (a measurable threshold, not "fast" / "good").
 
 **Classify every finding** — `type`: `coverage-gap` (uncovered
 behaviour/party/path — gates) · `real-defect` (contradiction, undefined term,

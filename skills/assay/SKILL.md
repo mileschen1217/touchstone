@@ -135,7 +135,7 @@ Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all
 
 ## Durable record — the terminal deliverable
 
-Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.md` — frontmatter `subject:` (one line; the contract author maps intention from it), `date:`, `epics:`. One record per subject; a re-run APPENDs a new dated section, never overwrites. Sections, order fixed — consumers key on these names:
+Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.md` — frontmatter `subject:` (one line; the contract author maps intention from it), `date:`, `epics:`. One record per subject; a re-run APPENDs a new dated section, never overwrites. Sections stay at digest density: one line per resolved row, full text only for rows still open and load-bearing — the record is a handoff surface, not a transcript. Sections, order fixed — consumers key on these names:
 
 - `## Term sheet` — rows `T-n`
 - `## Alignment table` — rows `A-n`: dual tags + leaning + planned handling; bold-pass rows marked

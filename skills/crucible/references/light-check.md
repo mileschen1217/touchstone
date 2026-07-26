@@ -20,7 +20,9 @@ content the agent receives.
 > an uncovered boundary or a real defect — apply the removal test: delete the
 > finding's target, and if no pass/fail behaviour changes it is a refinement
 > (Low), never High.
-> Reply with one verdict line, then findings sorted by severity, 15 lines max.
+> Reply with one verdict line, then every finding you have, sorted by
+> severity. Keep each finding to a line or two, but do not trim the list to
+> fit a length — the caller filters.
 
 Convergence: the stopping rule at
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
