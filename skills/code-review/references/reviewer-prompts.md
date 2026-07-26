@@ -51,5 +51,6 @@ recognize others. For depth, cross-reference the ECC `*-testing` skills
 `superpowers:test-driven-development`.
 
 Report findings as a numbered list, each tagged [Critical], [High], [Medium],
-or [Low]. If no issues found, report "No issues found." Keep it concise — this
-is a batch check, not an unbounded audit.
+or [Low]. If no issues found, report "No issues found." Report every finding
+you have — keep each one terse, but completeness of the list is not the place
+to economize; the caller filters.

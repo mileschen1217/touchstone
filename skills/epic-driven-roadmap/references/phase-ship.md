@@ -1,7 +1,6 @@
 # Phase-ship moment
 
-Two moments per phase PR: **pre-approve** (the Post-build pair) and
-**post-merge** (the two recording lines).
+One moment per phase PR: **pre-approve** — the Post-build pair.
 
 ## Pre-approve — Post-build pair (single home; close 5e cites this)
 
@@ -35,9 +34,4 @@ quiz has been taken and passed:
       approve** (informed accept, never a rubber-stamp).
 
 Epic close cites each phase's pair (close step 2); it never re-runs the quiz.
-
-## Post-merge — record
-
-At the moment the phase's deliverable ships (PR merged / release tagged),
-cwd = the target repo root, run:
 

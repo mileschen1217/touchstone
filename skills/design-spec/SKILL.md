@@ -137,6 +137,10 @@ audit: no demote-to-invariant candidates."
 - One file at `YYYY-MM-DD-<feature-name>-design.md`, homed by the
   config-resolver's epic-scoped placement rule: the caller-named epic's dir
   when one is named, else `<specs_dir>`.
+- **Length calibration.** The spec's weight is the REQ/AC layer. Keep the whole
+  document under ~250 lines; past that the excess is almost always restated
+  context or re-explained rationale — cut it rather than splitting the spec,
+  since every downstream stage reads the whole file.
 - Terminal summary: spec path, `Status: Draft`
 - Next: crucible writes `accepted-candidate`, then `/touchstone:design-review`
   runs the consolidated gate before human accept
