@@ -23,7 +23,7 @@ leaves a dual-home and is noted in the close report.
    `references/phase-ship.md`) in the close report; close never re-runs the
    quiz. A phase that shipped without its pair → produce it now, per
    phase-ship.md, before closing.
-3. Re-read the index to confirm steps 1–2 landed, then run:
+3. Run:
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/skills/epic-driven-roadmap/check-close-ready.sh" .touchstone/epics/<epic-dir>/index.md
    ```

@@ -52,19 +52,19 @@ Imperative steps.
   skill gets a human-readable one-liner instead. Never a document summary.
 - **First body sentence states the action of this invocation** — the reader already
   decided to run the skill; do not argue for its existence.
-- **Imperatives for instructions, declaratives for definitions; zero hedging**
-  ("typically", "consider", "may want to" are all banned — an instruction is
-  unconditional or it is steering, in which case name the trade-off explicitly).
+- **Imperatives for instructions, declaratives for definitions.** Every sentence
+  is either unconditional (deviation is a defect) or explicit steering (goal and
+  trade-off named). A hedge is the tell it is neither — decide which, write that.
 - **2–6 bold anchor terms**, each defined once at first use, referenced by name after.
 - **Per-phase completion checkboxes** the agent can self-verify.
 - **Secondary material goes to sibling files** (`references/*.md`, `README.md`), with
   one exception: content a cold-dispatched sub-agent must apply is injected inline
   in the dispatch prompt (the sub-agent cannot see siblings) — and every lens in a
   multi-lens dispatch is grounded to equal depth, never one inline + one by name.
-- **Anti-patterns are documented; correct-output examples are not** (trust the
-  executor to apply rules; name the smells and their fixes). Exception: an output
-  whose exact string a downstream consumer parses (sentinel line, report field
-  phrasing) is a contract — show it verbatim.
+- **Show an output only when its shape is load-bearing** — a string a downstream
+  consumer parses (sentinel line, report field), or a render whose layout is the
+  instruction; one example per site, labelled as an example. Otherwise document
+  anti-patterns and their fixes and trust the executor to produce the output.
 - **No history, no version narration, no ADR numbers in the body** — rationale lives
   in `README.md` / `CONTEXT.md`; cite the named concept, not the ledger entry.
 - **State the actor for every MUST** — a prose instruction directed at the
@@ -174,10 +174,6 @@ table.
   instruction → it is an in-chain composite → the field is forbidden.
   Dual-role skills (directly invocable AND chain-called) default conservative
   → forbidden.
-- **Bounded examples.** An example is allowed only where it specifies an
-  abstract rule or a render/output format; ≤1 example per site; label it as
-  an example, not a rule. Larger examples move to `references/` satellite
-  files. (The "Parsed contract strings" rule above stands unchanged.)
 - **Self-describing names.** Internal section/stage names MUST be functional
   self-descriptions; opaque codes (bare stage numbers, letter suffixes) are
   banned. Coin a term only when a cross-reference genuinely needs one, and
@@ -186,3 +182,7 @@ table.
   first cut of something that will grow is named for what it *is for*, not the
   thin thing it does today — so adding the later capability forces no rename
   and no reference-sweep.
+- **Finder prompts report everything.** A dispatched reviewer's prompt never
+  caps its output or filters its severities — that lives in the consuming orchestrator.
+- **Correct without narrating the correction.** State the corrected fact and
+  continue; re-explain only what changes the reader's next decision.
