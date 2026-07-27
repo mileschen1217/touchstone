@@ -13,3 +13,6 @@
 {"date": "2026-07-22T11:18:43Z", "gate": "anvil-final-review", "target": ".touchstone/epics/2026-07-21-seam-reach-lens/2026-07-21-seam-reach-lens-design.md", "findings": {"C": 0, "H": 0, "M": 2, "L": 1}, "fixed": 3, "rounds": 1}
 {"date":"2026-07-24T07:37:28Z","gate":"code-review-batch","target":"skills/design-spec/template.md (L1 lens)","findings":{"C":0,"H":0,"M":1,"L":0},"fixed":1,"rounds":1,"note":"cross-vendor codex reviewer; write-surface→predicate-shaped breadth fix"}
 {"date":"2026-07-26T14:02:31Z","gate":"code-review-batch","target":"main..HEAD f3feeb0+e6ad56f (fix/opus5-audit-remediation)","findings":{"C":0,"H":0,"M":2,"L":2},"fixed":4,"rounds":1}
+{"date":"2026-07-27T15:20:20Z","gate":"design-review","target":".touchstone/epics/2026-07-25-opus5-context-engineering-audit/2026-07-27-breadth-baseline-design.md","findings":{"C":2,"H":8,"M":4,"L":2},"fixed":15,"rounds":2}
+{"date":"2026-07-27T15:36:53Z","gate":"design-review","target":".touchstone/epics/2026-07-25-opus5-context-engineering-audit/2026-07-27-breadth-baseline-design.md","findings":{"C":0,"H":0,"M":0,"L":0},"fixed":0,"rounds":1}
+{"date":"2026-07-27T16:09:20Z","gate":"anvil-final-review","target":".touchstone/epics/2026-07-25-opus5-context-engineering-audit/2026-07-27-breadth-baseline-design.md","findings":{"C":0,"H":0,"M":1,"L":2},"fixed":1,"rounds":1}
