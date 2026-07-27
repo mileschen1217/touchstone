@@ -102,13 +102,32 @@ intent and is not marked reach-under-determined.
   → the reach axis degrades explicitly: discover AND flag the under-determination,
   never silently "verify" against a bad baseline.
 
+**Breadth axis — baseline-conditional (three states).** (**case-partition**,
+**partition-under-determined**, and the staleness test are defined in
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/breadth-discovery.md`.) Here a **valid baseline**
+is a Consensus case-partition confirmed for THIS rule under the intent now in force,
+carrying no under-determined mark.
+
+- **Valid baseline present** → treat the breadth axis as *checking* this requirement's
+  ACs against that entry's case list, rather than partitioning the domain again. The
+  claim binds: the REQ or one of its ACs cites the entry's `[trace: id]`, and you judge
+  the REQ's normative sentence to express the rule its confirmed content-phrase named.
+  Without that citation there is no baseline claim to make — you are partitioning.
+- **Baseline absent or stale** → keep partitioning the rule's case-domain at full width.
+  That fallback is never traded away for a baseline that does not apply.
+- **Baseline present but under-determined** → partition anyway, and say in the spec that
+  the carried entry was under-determined; a flagged entry substitutes for nothing.
+
 **Home-miss (valid-baseline path only).** If, while verifying against a valid
 baseline, you observe a party absent from the Consensus seam-map: the found party IS
 covered now (added to this spec's party set — a known-missing party is never shipped)
 AND the miss is logged as an **explore-stage deviation** (which-stage-could-have-caught
 = explore) in the assay record's `## Deviation log` when an assay record exists, else in
 the epic tracker's deviation log. A silent fix that leaves explore's miss unrecorded is
-forbidden — the disposition is fix + attribute, never fix-only nor defer-only.
+forbidden — the disposition is fix + attribute, never fix-only nor defer-only. A case
+the Consensus case-partition omitted routes the identical way under
+`which-stage-could-have-caught` = assay: cover the case here, and let the deviation name
+the missing case, the rule or REQ it belongs to, and the source entry's `[trace: id]`.
 
 ### 4. Challenge pass (independent, fresh-context)
 
