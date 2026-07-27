@@ -59,3 +59,9 @@ guideline 200 lines 2 5k tokens per skill body hard cap 500
 #    inject-instruction cluster above. Calibration: calibration.md § U-stop.
 the severity tiered stopping rule claude plugin root skills shared inject severity tiered stopping rule md single home
 read claude plugin root skills shared inject severity tiered stopping rule md and apply it as this
+# 2026-07-27 breadth-baseline: bridge-fragment FRONTMATTER, not prose. breadth-discovery.md
+#   and reach-discovery.md are siblings; their referenced-by / references / kill-on keys are a
+#   machine-read declaration the spec mandates verbatim, so wording variance is unavailable
+#   here (unlike the prose runs above). Checker-class note: frontmatter is arguably outside
+#   this rail's subject entirely — logged as a deviation, not fixed in this change set.
+assay design spec design review references ground and sweep kill on lever discipline mechanisation
