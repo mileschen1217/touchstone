@@ -41,7 +41,7 @@ Invoke `Skill(skill: "touchstone:cross-provider-reviewer")`: `task` = full doc t
 
 ### Doc-review prompt — inline
 
-> You review an authored design document. Apply TWO lens-sets (UNION), reading the document plus the repo's Accepted ADR corpus only — never test source, per-AC coverage, or code (code-review batch and epic-close own those):
+> You review an authored design document. Apply THREE lens-sets (UNION), reading the document plus the repo's Accepted ADR corpus only — never test source, per-AC coverage, or code (code-review batch and epic-close own those):
 >
 > **(i) design-soundness** — the feedforward duty from the injected fragment (subject = the document), plus structural validity, unhandled failure modes, missed edge cases per the injected architecture rubric. Also **standing-decision consistency**: scope the sweep before reading. Grep the repo's ADR corpus (`docs/adr/**`, `**/adr/**`; status Accepted) for the components, file paths, and coined terms this document names; read in full only the ADRs those hits land in, plus any ADR they point at (`supersedes:` / `amends:` / `Related ADRs:`). A reversal that does not name and supersede its ADR is a finding. State how many ADRs you read and by what selector, so a reader can judge the sweep's reach.
 >
@@ -49,7 +49,13 @@ Invoke `Skill(skill: "touchstone:cross-provider-reviewer")`: `task` = full doc t
 > - **Falsifiable concreteness.** Every load-bearing statement is concrete enough to be shown false: Problem / Scope / Non-goals falsifiable, not aspiration; interfaces name fields, types, error returns; error handling maps to scenarios; invariants are cross-cutting rules; a coined term is defined at first use and used consistently; numbers agree across sections.
 > - **Complete, honest verification story.** For EACH requirement, enumerate the behaviours a user would recognize as "working" (happy, error, boundary paths) and flag every requirement whose ACs witness only the happy path; the doc carries a `Live-bearing AC IDs` declaration in EITHER accepted home (the AC-section intro, or a `## Verification Strategy` section for legacy pre-P2 specs) and every live-bearing AC id (per the injected predicate) appears in it; a standing-runtime feature carries an activation AC on the user-observable, never only a fixture proxy; Risks / Open Questions are surfaced, not hidden.
 >
-> Output: tag findings `[lens: design-soundness]` / `[lens: verification-honesty]`; state a zero-finding lens as zero. Sort by severity (Critical → Low), each citing section + concrete fix. End with verdict: approve | revise | block, then the sentinel:
+> **(iii) communication-auditability** — the document must stand on its own for a reader with no context beyond the document itself (presence of a code or a verdict is not the same as that code or verdict being usable):
+> - **Code legibility.** Every internal code, ID, or coined term the document uses (task/requirement codes, decision labels, project-internal abbreviations or shorthand) is defined at its first use within the document itself. A code that appears without an in-document definition is a finding, even if it is defined somewhere else — the document must be self-sufficient.
+> - **Judgment traceability.** Every load-bearing judgment sentence — a verdict, a severity rating, a ruling, a recommendation — points to an observation, quote, or citation within the document that backs it. A judgment asserted without in-document support is a finding.
+>
+> (iii) is distinct from (ii)'s falsifiable concreteness: (ii) checks whether claims are falsifiable and internally consistent; (iii) checks whether a reader carrying zero outside context can decode the document's codes and contest its judgments.
+>
+> Output: tag findings `[lens: design-soundness]` / `[lens: verification-honesty]` / `[lens: communication-auditability]`; state a zero-finding lens as zero. Sort by severity (Critical → Low), each citing section + concrete fix. End with verdict: approve | revise | block, then the sentinel:
 > `STAGE-REVIEW-SUMMARY: critical=<n> high=<n> degraded=<true|false>`
 
 ## Phase 4 — Apply findings
