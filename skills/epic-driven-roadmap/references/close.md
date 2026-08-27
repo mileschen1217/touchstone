@@ -31,6 +31,12 @@ leaves a dual-home and is noted in the close report.
 4. Run Evidence Reckoning, the docs-current check, and eval reckon (§
    below); append their sections to the epic index.
 5. Run the Disposition pass (§ below).
+5a. Regenerate the dossier:
+   ```bash
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>
+   ```
+   `dossier.html` is a generated view of the epic dir — never hand-edit it; it
+   rides into the archive move below.
 6. Update `ROADMAP.md`: move the epic's row from § Active to § Completed
    with the landed date, pointing at the archived index path.
 7. Move the whole epic dir to `.touchstone/archive/epics/<epic-dir>/`

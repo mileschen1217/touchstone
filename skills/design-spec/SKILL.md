@@ -65,7 +65,9 @@ No multi-round mini-interview.
 not a spec"): STOP, write no file, report "Scope reframed to [X] — a design
 spec is not needed. Exiting Draft Mode."
 
-**Record** the confirmed foundation under `## Foundation` (all three fields).
+**Record** the confirmed foundation under `## Foundation` (all three fields),
+then fill `## Phase map` (template section; four panels) from the consensus's
+structure decisions.
 
 ### 2. Want-layer (always-on)
 

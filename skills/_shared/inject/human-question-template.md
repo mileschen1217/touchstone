@@ -12,6 +12,3 @@ conversation scrollback (phone-readable). Three parts, in this order:
 2. **Options** — each option with its consequence: what happens downstream if
    this one is picked (cost, what becomes impossible, what it unblocks).
 3. **Recommendation** — your leaning and a one-line reason.
-
-The failure this closes: the human reads the question and cannot tell what is
-being asked or what picking an option does, and rewrites the question themselves.

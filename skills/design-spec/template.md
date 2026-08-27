@@ -11,10 +11,11 @@ kill-on: <epic-slug>
 
 # {{feature-name}} — Design Spec
 
-> Six sections: Foundation / Source-level Deposit / User Stories /
+> Seven sections: Foundation / Phase map / Source-level Deposit / User Stories /
 > Acceptance Criteria / Risks-Open Questions / Related. All normative content is
 > homed in the REQ/AC layer — there is no Problem / Scope / Architecture /
-> Interfaces / Error Handling / Invariants / Verification Strategy section.
+> Interfaces / Error Handling / Invariants / Verification Strategy section; the
+> Phase map is descriptive orientation for the human reader, never a SHALL home.
 
 ## Foundation
 
@@ -26,6 +27,20 @@ kill-on: <epic-slug>
 - **Out of scope:**
   - <a route this spec will NOT take, even if related — a route, not a category>
   - <up to three sub-bullets total; flat list, never nested>
+
+## Phase map
+
+> Four labelled panels; the phase-ship explainer copies them and marks each planned-vs-built. Written at contract time, from the assay consensus.
+
+- **Position.** <epic slug; phase N of M; links to the contract docs (this spec, ADRs, the epic index); the previous phase's explainer path, or "none">
+- **Structure before → after.** <modules / packages / files as they are now → as they will be; dependency arrows (A → B = A depends on B)>
+- **Interface delta.**
+
+  | kind | surface | detail |
+  |---|---|---|
+  | <moved / shifted / new / removed> | <API, header, flag, file, CLI> | <one line> |
+
+- **Flow + scope.** <control / data flow through the touched parts; **touched:** repos / dirs / files; **explicitly untouched:** the neighbours a reader would assume move but do not>
 
 ## Source-level Deposit
 
