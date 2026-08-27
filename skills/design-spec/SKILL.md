@@ -66,8 +66,7 @@ not a spec"): STOP, write no file, report "Scope reframed to [X] — a design
 spec is not needed. Exiting Draft Mode."
 
 **Record** the confirmed foundation under `## Foundation` (all three fields),
-then fill `## Phase map` (template section; four panels) from the consensus's
-structure decisions.
+then fill `## Phase map` from the consensus's structure decisions.
 
 ### 2. Want-layer (always-on)
 

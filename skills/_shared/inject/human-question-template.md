@@ -1,9 +1,15 @@
-# Human-question template (inject fragment — single home)
+---
+injected-by: [assay, design-spec]
+referenced-by: [design-spec template § Risks / Open Questions]
+kind: bridge
+---
 
-Every open question put to the human — an `AskUserQuestion` call, a pointwise
-elicitation, a `## Open Questions` entry, a disposition ask — is written so the
-human can answer it from the question alone, with no repo access and no
-conversation scrollback (phone-readable). Three parts, in this order:
+# Human-question template
+
+Every question put to the human — an `AskUserQuestion` call, a pointwise
+elicitation, a `## Open Questions` entry — is answerable from the question
+alone, with no repo access and no conversation scrollback. Three parts, in
+this order:
 
 1. **Context** — one or two sentences: what you are doing and why this needs
    the human (the decision or tacit fact that is theirs, not yours to look up).

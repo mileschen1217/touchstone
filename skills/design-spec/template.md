@@ -30,7 +30,7 @@ kill-on: <epic-slug>
 
 ## Phase map
 
-> Four labelled panels; the phase-ship explainer copies them and marks each planned-vs-built. Written at contract time, from the assay consensus.
+> Four labelled panels. Written at contract time.
 
 - **Position.** <epic slug; phase N of M; links to the contract docs (this spec, ADRs, the epic index); the previous phase's explainer path, or "none">
 - **Structure before → after.** <modules / packages / files as they are now → as they will be; dependency arrows (A → B = A depends on B)>
@@ -99,7 +99,7 @@ Then <observable outcome>
 
 ## Risks / Open Questions
 
-Unknowns that need resolution before or during build — name them so the plan step can sequence around them.
+Unknowns that need resolution before or during build — name them so the plan step can sequence around them. An open question put to the human takes the form in `skills/_shared/inject/human-question-template.md`.
 
 ## Related
 
