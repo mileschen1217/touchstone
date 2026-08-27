@@ -32,6 +32,10 @@ quiz has been taken and passed:
       `gate-miss.md` line in the canonical six-field primitive (its header
       states the fields) per wrong answer. **Quiz not passed → do not
       approve** (informed accept, never a rubber-stamp).
+- [ ] **Closing message carries the deliverables** — the message that hands the
+      pair to the owner names the explainer's file path AND, when one was
+      published, the artifact link, in the message body itself (the owner
+      asking "html 在哪 / explainer 在哪裏?" is the failure this line closes).
 
 Epic close cites each phase's pair (close step 2); it never re-runs the quiz.
 

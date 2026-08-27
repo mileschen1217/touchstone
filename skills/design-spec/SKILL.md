@@ -57,7 +57,8 @@ facts, never pre-drafted seams.
 
 **Degenerate form** (no qualified source, facts unresolvable from context):
 emit "This subject has no qualified confirmed-facts source — continuing
-standalone, I will elicit each missing fact pointwise," then elicit pointwise.
+standalone, I will elicit each missing fact pointwise," then elicit pointwise
+(question form: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/human-question-template.md`).
 No multi-round mini-interview.
 
 **Reframe exit** (user reframes during intake, e.g. "this should be a fixture,
