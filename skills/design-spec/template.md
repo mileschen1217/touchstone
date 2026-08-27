@@ -15,7 +15,7 @@ kill-on: <epic-slug>
 > Acceptance Criteria / Risks-Open Questions / Related. All normative content is
 > homed in the REQ/AC layer — there is no Problem / Scope / Architecture /
 > Interfaces / Error Handling / Invariants / Verification Strategy section; the
-> Phase map is descriptive orientation for the human reader, never a SHALL home.
+> Phase map is descriptive orientation, never a SHALL home.
 
 ## Foundation
 

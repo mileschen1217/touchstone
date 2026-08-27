@@ -116,6 +116,83 @@ def spec_date(stem):
 def adr_key(code):
     return 'adr--' + str(int(code.split('-', 1)[1]))
 
+def attr(v):
+    """Escape a value for use inside a double-quoted HTML attribute."""
+    return html.escape(str(v), quote=True)
+
+def slug_id(s):
+    """Anchor-id-safe form of a file stem: [A-Za-z0-9._-] only."""
+    return re.sub(r'[^A-Za-z0-9._-]', '-', s)
+
+def stem_of(rel):
+    return slug_id(os.path.splitext(os.path.basename(rel))[0])
+
+def safe_url(u):
+    """Reject scheme-bearing URLs other than http(s)/mailto and fragments/relative paths."""
+    u = u.strip()
+    if re.match(r'^(https?:|mailto:|#|/|\.|[A-Za-z0-9_])', u) and not re.match(r'^\s*(javascript|data|vbscript):', u, re.I):
+        return u
+    return '#'
+
+# ---------- inlined-html sanitizer (allowlist) ----------
+from html.parser import HTMLParser
+
+ALLOWED_TAGS = {'h1','h2','h3','h4','h5','h6','p','div','span','ul','ol','li','table','thead','tbody','tr','th','td',
+                'pre','code','strong','em','b','i','a','br','hr','blockquote','section','article','header','footer',
+                'details','summary','dl','dt','dd','small','sup','sub','img'}
+VOID_TAGS = {'br', 'hr', 'img'}
+DROP_WITH_CONTENT = {'script', 'style', 'iframe', 'object', 'embed', 'noscript', 'template', 'svg', 'math'}
+ALLOWED_ATTRS = {'class', 'id', 'title', 'colspan', 'rowspan', 'alt', 'open', 'href', 'src'}
+
+class Sanitizer(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.out, self.drop_depth = [], 0
+    def handle_starttag(self, tag, attrs):
+        if self.drop_depth:
+            if tag in DROP_WITH_CONTENT: self.drop_depth += 1
+            return
+        if tag in DROP_WITH_CONTENT:
+            self.drop_depth = 1; return
+        if tag not in ALLOWED_TAGS:
+            return
+        kept = []
+        for k, v in attrs:
+            k = k.lower()
+            if k not in ALLOWED_ATTRS or k.startswith('on'):
+                continue
+            v = v or ''
+            if k == 'href':
+                v = safe_url(v)
+            elif k == 'src':
+                if tag != 'img' or not v.strip().lower().startswith('data:'):
+                    continue  # no request-bearing src survives
+            elif k == 'id':
+                v = slug_id(v)
+            kept.append(f' {k}="{attr(v)}"')
+        self.out.append(f'<{tag}{"".join(kept)}>')
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+    def handle_endtag(self, tag):
+        if self.drop_depth:
+            if tag in DROP_WITH_CONTENT: self.drop_depth -= 1
+            return
+        if tag in ALLOWED_TAGS and tag not in VOID_TAGS:
+            self.out.append(f'</{tag}>')
+    def handle_data(self, data):
+        if not self.drop_depth: self.out.append(html.escape(data, quote=False))
+    def handle_entityref(self, name):
+        if not self.drop_depth: self.out.append(f'&{name};')
+    def handle_charref(self, name):
+        if not self.drop_depth: self.out.append(f'&#{name};')
+    def handle_comment(self, data): pass
+    def handle_decl(self, decl): pass
+    def handle_pi(self, data): pass
+
+def sanitize_html(fragment):
+    s = Sanitizer(); s.feed(fragment); s.close()
+    return ''.join(s.out)
+
 # ---------- inventory ----------
 files = []
 for dp, dns, fns in os.walk(epic_dir):
@@ -162,7 +239,7 @@ seen = set()
 for row in phase_rows:
     sp = row['spec']
     if sp and sp in spec_files and sp not in seen:
-        stem = os.path.splitext(os.path.basename(sp))[0]
+        stem = stem_of(sp)
         phases.append({'key': stem, 'title': f"Phase {row['num']} — {row['title']}", 'spec': sp,
                        'slug': spec_slug(stem), 'date': spec_date(stem)})
         seen.add(sp)
@@ -212,7 +289,7 @@ def add_def(code, owner, anchor):
     defs.setdefault(code, []).append((owner, anchor))
 
 for sp in spec_files:
-    stem = os.path.splitext(os.path.basename(sp))[0]
+    stem = stem_of(sp)
     _, body = frontmatter(read(os.path.join(epic_dir, sp)))
     fence = False
     for line in body.splitlines():
@@ -290,7 +367,8 @@ def inline(text, owner, skip=None):
         return f'\x00{len(spans)-1}\x00'
     text = re.sub(r'`([^`]+)`', stash, text)
     text = html.escape(text, quote=False)
-    text = re.sub(r'\[([^\]]+)\]\(([^)\s]+)\)', r'<a href="\2">\1</a>', text)
+    text = re.sub(r'\[([^\]]+)\]\(([^)\s]+)\)',
+                  lambda m: f'<a href="{attr(safe_url(html.unescape(m.group(2))))}">{m.group(1)}</a>', text)
     text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
     text = re.sub(r'(?<![\w*])\*([^*\n]+?)\*(?![\w*])', r'<em>\1</em>', text)
     text = link_codes(text, owner, skip)
@@ -368,8 +446,7 @@ def md_to_html(body, owner, define=False):
 def html_body_inner(text):
     m = re.search(r'<body[^>]*>(.*?)</body>', text, re.DOTALL | re.IGNORECASE)
     inner = m.group(1) if m else text
-    inner = re.sub(r'<(script|style)[^>]*>.*?</\1>', '', inner, flags=re.DOTALL | re.IGNORECASE)
-    return inner
+    return sanitize_html(inner)
 
 def link_codes_in_html(fragment, owner):
     # link codes in text nodes only (not inside tags, not inside <code>/<pre>)
@@ -396,6 +473,7 @@ def fm_table(fm):
 def article(title, rel, inner, anchor=''):
     head = f'<header><span class="file">{html.escape(rel)}</span></header>' if rel else ''
     return f'<article{anchor}>{head}<h2>{html.escape(title)}</h2>{inner}</article>'
+# note: `anchor` is always built from slug_id()/adr_key() output — attribute-safe by construction.
 
 # ---------- assemble tabs ----------
 groups = [EPIC] + phases if phases else [EPIC]
@@ -445,7 +523,7 @@ for rel in files:
         continue
     fm, body = frontmatter(read(path))
     is_sp = rel in spec_files
-    owner = os.path.splitext(os.path.basename(rel))[0] if is_sp else p['key']
+    owner = stem_of(rel) if is_sp else p['key']
     rendered = fm_table(fm) + md_to_html(body, owner, define=is_sp)
     tab_content[stage][p['key']].append(article(first_h1(body) or rel, rel, rendered))
     if is_sp and p is not EPIC:

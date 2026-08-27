@@ -47,7 +47,7 @@ quiz has been taken and passed:
 - [ ] **Regenerate the dossier** — run
       `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>`
       after the explainer and quiz files exist and before the pair is handed
-      over; `dossier.html` is a generated view — never hand-edit it.
+      over (generated-view contract: the renderer's header).
 - [ ] **Closing message carries the deliverables** — the message that hands the
       pair to the owner names the explainer's file path, the dossier path, AND,
       when one was published, the artifact link, in the message body itself.
