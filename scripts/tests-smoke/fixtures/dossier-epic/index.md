@@ -32,7 +32,7 @@ landed:
 
 ## Deviation log
 
-- phase 2: AC-1 built with a flag instead of a header / which-stage-could-have-caught: assay
+- phase 2 · interface delta: AC-1 built with a flag instead of a header / which-stage-could-have-caught: assay
 
 ## Retrospective
 

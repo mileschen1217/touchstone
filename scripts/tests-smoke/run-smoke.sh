@@ -98,10 +98,14 @@ else
   echo "FAIL: dossier header not in first 5 lines"; fail=1
 fi
 expect_grep "six tabs in order" -eq 1 '>位置</button><button data-tab="1" aria-selected="false">契約</button><button data-tab="2" aria-selected="false">Map</button><button data-tab="3" aria-selected="false">Build</button><button data-tab="4" aria-selected="false">Ship</button><button data-tab="5" aria-selected="false">Close</button>'
-expect_grep "two phase groups" -ge 2 '<summary>Phase '
+expect_grep "two phase groups" -ge 2 '<h2>Phase '
+expect_grep "front page: waiting list" -ge 1 '<h3>Waiting on the human</h3>'
+expect_grep "front page: unshipped phase listed" -ge 1 'Ship phase 2'
 expect_grep "explainer inlined (h1 text)" -ge 1 'Alpha buy-in explainer'
 expect_grep "no iframe" -eq 0 '<iframe'
-expect_grep "phase map rendered" -ge 2 '<h2>Phase map</h2>'
+expect_grep "phase map rendered as panels" -ge 8 'class="panel"'
+expect_grep "panel delta marker from deviation log" -ge 1 'built ≠ planned'
+expect_grep "ADR one-liner links to file, not inlined" -ge 1 'href="../../../docs/adr/0038-fixture.md">ADR-0038</a>'
 expect_grep "close: retrospective" -ge 1 '<h3>Retrospective</h3>'
 expect_grep "close: evidence reckoning" -ge 1 '<h3>Evidence Reckoning</h3>'
 expect_grep "close: gate-miss line via ancestor root" -ge 1 'a miss'
@@ -152,17 +156,19 @@ chunks=re.split(r'<section class="tab" id="tab-(\d)">',h)[1:]
 t={chunks[i]:chunks[i+1] for i in range(0,len(chunks),2)}
 def files_in(i): return set(re.findall(r'<span class="file">([^<]+)</span>',t[i]))
 assert {'assay-notes.md','local-decision.md','stray.md','2026-01-02-alpha-design.md','2026-01-03-beta-design.md'} <= files_in('1'), files_in('1')
-assert {'evidence.md','deviation-log.md','task-01.md','build-plan.md','anvil-review-2026-01-02/review.md'} <= files_in('3'), files_in('3')
-epic_groups=re.findall(r'<summary>Epic-level</summary>(.*?)</details>',t['1'],re.S)
-assert any('stray.md' in g for g in epic_groups), 'stray.md not in 契約 epic group'
+assert {'evidence.md','task-01.md','build-plan.md','anvil-review-2026-01-02/review.md'} <= files_in('3'), files_in('3')
+assert 'flag instead of header' in t['3'], 'deviation-log.md bullet not merged into Build'
+epic_chunk=t['1'].split('data-phase="epic"')[1] if 'data-phase="epic"' in t['1'] else ''
+assert 'stray.md' in epic_chunk, 'stray.md not in 契約 epic group'
 allf=set().union(*[files_in(i) for i in t])
-for f in ['assay-notes.md','local-decision.md','evidence.md','deviation-log.md','task-01.md','build-plan.md','stray.md','2026-01-02-alpha-buyin.html']:
+for f in ['assay-notes.md','local-decision.md','evidence.md','task-01.md','build-plan.md','stray.md','2026-01-02-alpha-buyin.html']:
     assert f in allf, f+' absent from page'
+assert 'Body.' not in t['1'], 'ADR body inlined into 契約 (should be a one-liner)'
 for s in ['Retrospective','Evidence Reckoning','Disposition','Eval Reckon']:
     assert f'<h3>{s}</h3>' in t['5'], s+' missing from Close'
     assert f'<h3>{s}</h3>' not in t['0'], s+' leaked into 位置'
-emb=re.search(r'<div class="embedded">(.*?)</div>',t['4'],re.S)
-assert emb and 'href="#2026-01-02-alpha-design--AC-1">AC-1</a>' in emb.group(1), 'AC-1 not linked inside inlined explainer'
+embs=re.findall(r'<div class="embedded">(.*?)</div>',t['4'],re.S)
+assert any('href="#2026-01-02-alpha-design--AC-1">AC-1</a>' in e for e in embs), 'AC-1 not linked inside inlined explainer'
 print('PASS: dossier classification branches / close sections / inlined-html code links')
 PY
 
@@ -211,10 +217,11 @@ expect_grep "gamma review resolves gamma AC-1" -ge 1 'href="#2026-01-03-gamma-de
 python3 - "$dout" <<'PY' || { echo "FAIL: same-date grouping"; fail=1; }
 import re,sys
 h=open(sys.argv[1],encoding='utf-8').read()
-gs=re.findall(r'<summary>Phase 2 — Gamma</summary>(.*?)</details>',h,re.S)
-assert any('anvil-review-gamma/review.md' in g for g in gs), 'gamma review not in gamma group'
-es=re.findall(r'<summary>Epic-level</summary>(.*?)</details>',h,re.S)
-assert any('2026-01-03-notes.md' in e for e in es), 'date-only file not in epic group'
+parts=re.split(r'<section class="phase" data-phase="([^"]+)">',h)[1:]
+groups={}
+for i in range(0,len(parts),2): groups.setdefault(parts[i],'');groups[parts[i]]+=parts[i+1]
+assert 'anvil-review-gamma/review.md' in groups.get('2026-01-03-gamma-design',''), 'gamma review not in gamma group'
+assert '2026-01-03-notes.md' in groups.get('epic',''), 'date-only file not in epic group'
 print('PASS: dossier same-date grouping by slug; date-only file in epic group')
 PY
 

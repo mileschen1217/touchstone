@@ -209,8 +209,13 @@ slug = index_fm.get('slug') or os.path.basename(epic_dir)
 epic_title = first_h1(index_body) or slug
 root = root_override or find_root(epic_dir)
 
+def in_record_dir(rel):
+    """A file inside a review / reverify / batch directory is process record, not reader content."""
+    d = os.path.dirname(rel).replace(os.sep, '/').lower()
+    return bool(d) and any(w in d for w in ('review', 'reverify', 'batch'))
+
 def is_spec(rel):
-    if rel == 'index.md':
+    if rel == 'index.md' or in_record_dir(rel):
         return False
     base = os.path.basename(rel)
     if base.endswith('-design.md') or base.startswith('assay-'):
@@ -278,6 +283,8 @@ def stage_of(rel):
         return '契約'
     if 'explainer' in base or 'quiz' in base or 'buyin' in base:
         return 'Ship'
+    if in_record_dir(rel) and base != 'review.md':
+        return 'record'  # raw transcripts → Build tab, one collapsed "Review record" per dir
     if (base == 'review.md' and 'review' in rel.lower()) or base == 'evidence.md' \
        or base.startswith('deviation') or base.startswith('task-') or 'plan' in base:
         return 'Build'
@@ -475,98 +482,359 @@ def article(title, rel, inner, anchor=''):
     return f'<article{anchor}>{head}<h2>{html.escape(title)}</h2>{inner}</article>'
 # note: `anchor` is always built from slug_id()/adr_key() output — attribute-safe by construction.
 
-# ---------- assemble tabs ----------
-groups = [EPIC] + phases if phases else [EPIC]
-tab_content = {t: {g['key']: [] for g in groups} for t in TABS}
+# ---------- extraction (every visible sentence is taken from a source file) ----------
+LONG_FILE = 200  # lines; longer files collapse behind a summary line
+
+def first_para(body):
+    """First non-heading, non-list, non-fence paragraph (≤ 220 chars)."""
+    fence = False; buf = []
+    for line in body.splitlines():
+        if line.startswith('```'):
+            fence = not fence; continue
+        if fence: continue
+        s = line.strip()
+        if not s:
+            if buf: break
+            continue
+        if s.startswith(('#', '|', '- ', '* ', '>', '---')):
+            if buf: break
+            continue
+        buf.append(s)
+    t = ' '.join(buf)
+    return t if len(t) <= 220 else t[:217].rsplit(' ', 1)[0] + '…'
+
+def bullets(text):
+    """Top-level `- ` items of a markdown fragment (fence-aware), raw text."""
+    out, fence = [], False
+    for line in text.splitlines():
+        if line.startswith('```'):
+            fence = not fence; continue
+        if not fence and re.match(r'^- ', line):
+            out.append(line[2:].strip())
+    return out
+
+def field(items, label):
+    for it in items:
+        m = re.match(r'^\*\*' + re.escape(label) + r'[^*]*\*\*\s*(.*)$', it)
+        if m: return m.group(1).strip()
+    return ''
+
+def pill(status):
+    s = (status or '').lower()
+    cls = {'accepted': 'ok', 'done': 'ok', 'active': 'accent', 'accepted-candidate': 'warn', 'proposed': 'muted',
+           'draft': 'muted', 'paused': 'warn', 'cancelled': 'crit', 'blocked': 'crit'}.get(s, 'muted')
+    return f'<span class="pill {cls}">{html.escape(status or "—")}</span>'
+
+def meta_line(fm, extra=''):
+    parts = []
+    for k in ('status', 'date', 'kind', 'type', 'started', 'landed'):
+        if fm.get(k):
+            parts.append(pill(fm[k]) if k == 'status' else f'<span>{html.escape(k)} {html.escape(fm[k])}</span>')
+    if extra: parts.append(extra)
+    return f'<p class="meta">{" · ".join(parts)}</p>' if parts else ''
+
+def phase_map_panels(spec_body):
+    """The four panels of `## Phase map` as [(label, markdown)] — from the spec, never authored."""
+    sec = [t for h, t in sections(spec_body) if h == 'Phase map']
+    if not sec: return None
+    panels, cur, buf, fence = [], None, [], False
+    for line in sec[0].splitlines():
+        if line.startswith('```'): fence = not fence
+        m = None if fence else re.match(r'^- \*\*([^*]+?)\.?\*\*\s*(.*)$', line)
+        if m:
+            if cur: panels.append((cur, '\n'.join(buf)))
+            cur, buf = m.group(1).strip(), [m.group(2)]
+        elif cur is not None:
+            buf.append(re.sub(r'^  ', '', line))
+    if cur: panels.append((cur, '\n'.join(buf)))
+    return panels
+
+def sentence_citing(code, texts):
+    """First sentence in the given texts that mentions the code (spec first)."""
+    for t in texts:
+        for s in re.split(r'(?<=[.。])\s+|\n', t):
+            if re.search(r'(?<![\w-])' + re.escape(code) + r'(?![\w-])', s) and not s.lstrip().startswith(('#', '|')):
+                s = s.strip().lstrip('-* ').strip()
+                return s if len(s) <= 240 else s[:237].rsplit(' ', 1)[0] + '…'
+    return ''
+
+def verdict_lines(text):
+    out = []
+    for line in text.splitlines():
+        if re.search(r'\bverdict\b', line, re.I) and re.search(r'approve|revise|block', line, re.I) \
+           or line.startswith('STAGE-REVIEW-SUMMARY') or re.match(r'^\**Ready to merge', line) \
+           or re.match(r'^providers_(used|expected)', line):
+            out.append(line.strip().strip('*'))
+    return out
+
+def collapsed(summary_html, inner_html, open_=False):
+    return f'<details class="fold"{" open" if open_ else ""}><summary>{summary_html}</summary><div class="fold-body">{inner_html}</div></details>'
+
+def file_card(rel, title, fm, body, owner, define=False, force_open=False):
+    """A source file: h2 + meta line; body inline if short, else collapsed behind its first paragraph."""
+    n = body.count('\n') + 1
+    rendered = md_to_html(body, owner, define=define)
+    file_span = f'<span class="file">{html.escape(rel)}</span> · {n} lines'
+    head = f'<h3 class="file-title">{html.escape(title)}</h3>{meta_line(fm, file_span)}'
+    if n > LONG_FILE and not force_open:
+        summ = '<span class="lead">' + inline(first_para(body), owner) + '</span> <span class="muted">(full text)</span>'
+        return f'<article>{head}{collapsed(summ, rendered)}</article>'
+    return f'<article>{head}{rendered}</article>'
+
+# ---------- per-source parsing ----------
+index_sections = {h: t for h, t in sections(index_body)}
+aim_m = re.search(r'^\*\*Aim:\*\*\s*(.+)$', index_body, re.M)
+aim = aim_m.group(1).strip() if aim_m else ''
+phase_table_rows = []
+for line in index_sections.get('Phases', '').splitlines():
+    if line.startswith('|'):
+        cells = [c.strip() for c in line.strip().strip('|').split('|')]
+        if len(cells) >= 5 and cells[0].isdigit():
+            phase_table_rows.append(cells)
+
+specs = {}  # rel -> dict
+for sp in spec_files:
+    fm, body = frontmatter(read(os.path.join(epic_dir, sp)))
+    idx_rows = []
+    in_ac = False
+    for line in body.splitlines():
+        if line.startswith('## '): in_ac = line[3:].strip() == 'Acceptance Criteria'
+        if in_ac and line.startswith('|'):
+            c = [x.strip() for x in line.strip().strip('|').split('|')]
+            if len(c) >= 3 and re.match(r'^REQ-\d+', c[0]) and re.match(r'^AC-\d+', c[1]):
+                idx_rows.append(c)
+    reqs = re.findall(r'^### Requirement:\s+(REQ-\d+)\s*—\s*(.+)$', body, re.M)
+    specs[sp] = {'fm': fm, 'body': body, 'title': first_h1(body) or stem_of(sp),
+                 'foundation': bullets([t for h, t in sections(body) if h == 'Foundation'][0]) if any(h == 'Foundation' for h, _ in sections(body)) else [],
+                 'stories': [b for b in bullets('\n'.join(t for h, t in sections(body) if h == 'User Stories')) if b.startswith('US-')],
+                 'reqs': reqs, 'ac_rows': idx_rows, 'panels': phase_map_panels(body),
+                 'markers': len(re.findall(r'\[(NEEDS CLARIFICATION|unverified):', re.sub(r'`[^`]*`', '', body)))}
+
+texts_for_citation = [specs[s]['body'] for s in spec_files] + [index_body]
+
+deviation_lines = bullets(index_sections.get('Deviation log', ''))
+for rel in files:
+    if os.path.basename(rel).lower().startswith('deviation') and not in_record_dir(rel):
+        deviation_lines += bullets(frontmatter(read(os.path.join(epic_dir, rel)))[1])
+
+def dev_lines_for(p):
+    if p is EPIC:
+        return [d for d in deviation_lines if not any(q['slug'] and (q['slug'] in d or f"phase {q['num']}" in d.lower()) for q in phases)]
+    return [d for d in deviation_lines if (p['slug'] and p['slug'] in d) or f"phase {p['num']}" in d.lower()]
+for i, p in enumerate(phases):
+    p['num'] = next((r[0] for r in phase_table_rows if p['spec'] in r[2]), str(i + 1))
+
+# ---------- build the six tabs ----------
+groups = list(reversed(phases)) + [EPIC]   # newest phase first, epic-level last
+tab = {t: {g['key']: [] for g in groups} for t in TABS}
 notes = []
 if not root:
     notes.append('No project root (`.touchstone/` ancestor) found — gate-miss and ADR lookups skipped.')
 
-# 位置 + Close from index.md
-pos_parts, close_parts = [fm_table(index_fm)], []
-for title, text in sections(index_body):
-    rendered = md_to_html(text, 'epic')
-    if title == '':
-        pos_parts.append(rendered); continue
-    block = f'<section><h3>{html.escape(title)}</h3>{rendered}</section>'
-    if title in CLOSE_SECTIONS:
-        close_parts.append(block)
-    elif title == 'Deviation log':
-        tab_content['Map']['epic'].append(f'<section><h3>Deviation log</h3>{rendered}</section>')
-        pos_parts.append(block)
-    else:
-        pos_parts.append(block)
-tab_content['位置']['epic'].append(article(epic_title, 'index.md', ''.join(pos_parts)))
+# 位置 — front page (derived)
+waiting = []
+for sp in spec_files:
+    st = specs[sp]['fm'].get('status', '')
+    if st and st.lower() != 'accepted' and not os.path.basename(sp).startswith('assay-'):
+        waiting.append(f'Accept the spec <code>{html.escape(os.path.basename(sp))}</code> — status {pill(st)}')
+    if specs[sp]['markers']:
+        waiting.append(f'{specs[sp]["markers"]} unresolved <code>[NEEDS CLARIFICATION]</code> / <code>[unverified]</code> marker(s) in <code>{html.escape(os.path.basename(sp))}</code>')
+for q in bullets(index_sections.get('Open Questions', '')):
+    if not q.startswith('*('): waiting.append('Open question: ' + inline(q, 'epic'))
+for d in deviation_lines:
+    if re.search(r'human|rule on|ruling', d, re.I): waiting.append('Ruling needed: ' + inline(d, 'epic'))
+for r in phase_table_rows:
+    if r[4].lower() not in ('done', 'cancelled'):
+        waiting.append(f'Ship phase {html.escape(r[0])} ({html.escape(r[1])}) — {pill(r[4])}')
+dates = set(re.findall(r'\b(20\d\d-\d\d-\d\d)\b', ' '.join(files)))
+for v in list(index_fm.values()) + [specs[s]['fm'].get('date', '') for s in spec_files]:
+    dates |= set(re.findall(r'\b(20\d\d-\d\d-\d\d)\b', v or ''))
+latest = max(dates) if dates else '—'
+aim_html = inline(aim, 'epic') if aim else '<span class="muted">no **Aim:** line in index.md</span>'
+front = [f'<p class="aim">{aim_html}</p>',
+         meta_line(index_fm, f'latest source date {html.escape(latest)}')]
+if phase_table_rows:
+    rows = ''.join(f'<tr><td class="num">{html.escape(r[0])}</td><td>{inline(r[1], "epic")}</td><td>{inline(r[2], "epic")}</td><td>{pill(r[4])}</td><td class="num">{html.escape(r[5] if len(r) > 5 else "")}</td></tr>' for r in phase_table_rows)
+    front.append(f'<h3>Phases</h3><div class="tbl"><table><tr><th>#</th><th>Title</th><th>Spec</th><th>Status</th><th>Landed</th></tr>{rows}</table></div>')
+front.append('<h3>Waiting on the human</h3>' + (f'<ul class="todo">{"".join(f"<li>{w}</li>" for w in waiting)}</ul>' if waiting else '<p class="muted">nothing — every source reports done</p>'))
+fnd = bullets(index_sections.get('Foundation', ''))
+if fnd:
+    front.append('<h3>Foundation</h3>' + md_to_html(index_sections['Foundation'], 'epic'))
+for h in ('Pivots', 'Open Questions'):
+    if h in index_sections and index_sections[h].strip() and not index_sections[h].strip().startswith('*('):
+        front.append(f'<h3>{h}</h3>' + md_to_html(index_sections[h], 'epic'))
+tab['位置']['epic'].append(f'<article>{"".join(front)}</article>')
+
+# 契約 — spec digest per phase; assay + unmatched + ADR one-liners at epic level
+for p in phases:
+    s = specs[p['spec']]
+    parts = [f'<h3 class="file-title">{html.escape(s["title"])}</h3>', meta_line(s['fm'], f'<span class="file">{html.escape(p["spec"])}</span>')]
+    for lab in ('Intention', 'Aim', 'Out of scope'):
+        v = field(s['foundation'], lab)
+        if v: parts.append(f'<p><strong>{lab}.</strong> {inline(v, p["key"])}</p>')
+    if s['stories']:
+        parts.append('<h4>User stories</h4><ul>' + ''.join(f'<li>{inline(b, p["key"])}</li>' for b in s['stories']) + '</ul>')
+    if s['reqs']:
+        rows = ''
+        for rid, headline in s['reqs']:
+            acs = [c[1] for c in s['ac_rows'] if c[0] == rid]
+            rows += f'<tr><td class="num">{link_codes(rid, p["key"])}</td><td>{inline(headline, p["key"])}</td><td class="num">{" ".join(link_codes(a, p["key"]) for a in acs)}</td></tr>'
+        parts.append(f'<h4>Requirements</h4><div class="tbl"><table><tr><th>REQ</th><th>SHALL</th><th>ACs</th></tr>{rows}</table></div>')
+    full = md_to_html(s['body'], p['key'], define=True)
+    parts.append(collapsed('<span class="lead">Full spec text</span> <span class="muted">(' + str(s['body'].count(chr(10)) + 1) + ' lines; the AC and REQ anchors live here)</span>', full))
+    tab['契約'][p['key']].append(f'<article>{"".join(parts)}</article>')
+
+adr_lines = []
+for k in sorted(adr_files, key=lambda x: int(x.split('--')[1])):
+    fm, body = frontmatter(read(adr_files[k]))
+    n = k.split('--')[1]
+    forms = sorted(c for c in adr_cited if adr_key(c) == k)
+    code = f'ADR-{int(n):04d}'
+    cite = ''
+    for c in forms + [code]:
+        cite = sentence_citing(c, texts_for_citation)
+        if cite: break
+    relpath = os.path.relpath(adr_files[k], epic_dir)
+    adr_lines.append(f'<li id="{k}"><span class="num"><a class="code" href="{attr(relpath)}">{html.escape(code)}</a></span> <strong>{html.escape(first_h1(body) or os.path.basename(adr_files[k]))}</strong> {pill(fm.get("status", ""))}'
+                     + (f'<br><span class="cite">{inline(cite, "epic")}</span>' if cite else '<br><span class="muted cite">not cited in a spec sentence — reached through another ADR</span>') + '</li>')
+if adr_lines:
+    tab['契約']['epic'].append(f'<article><h3 class="file-title">Decisions this epic stands on</h3><p class="meta">{len(adr_lines)} ADR(s) resolved from the project root; each line links to the file</p><ul class="adr">{"".join(adr_lines)}</ul></article>')
+
+# Map — the four panels per phase, deviation lines overlaid
+for p in phases:
+    s = specs[p['spec']]
+    devs = dev_lines_for(p)
+    if s['panels'] is None:
+        tab['Map'][p['key']].append(f'<article><h3 class="file-title">{html.escape(s["title"])}</h3><p class="placeholder">no phase map in this spec</p></article>')
+        continue
+    cards = ''
+    for label, md in s['panels']:
+        key = label.split()[0].lower()
+        hits = [d for d in devs if key in d.lower()]
+        mark = f'<span class="pill warn">built ≠ planned</span>' if hits else '<span class="pill ok">as planned</span>'
+        body = md_to_html(md, p['key'])
+        if hits:
+            body += '<p class="delta"><strong>Delta (deviation log):</strong></p><ul>' + ''.join(f'<li>{inline(d, p["key"])}</li>' for d in hits) + '</ul>'
+        cards += f'<section class="panel"><h4>{html.escape(label)} {mark}</h4>{body}</section>'
+    other = [d for d in devs if not any(l.split()[0].lower() in d.lower() for l, _ in s['panels'])]
+    if other:
+        cards += '<section class="panel"><h4>Other deviations</h4><ul>' + ''.join(f'<li>{inline(d, p["key"])}</li>' for d in other) + '</ul></section>'
+    tab['Map'][p['key']].append(f'<article><h3 class="file-title">{html.escape(s["title"])}</h3><div class="panels">{cards}</div></article>')
+if not phases:
+    tab['Map']['epic'].append('<p class="placeholder">no phase map in this epic (no spec carries a <code>## Phase map</code> section)</p>')
+ed = dev_lines_for(EPIC)
+if ed:
+    tab['Map']['epic'].append('<article><h3 class="file-title">Deviation log (epic-level)</h3><ul>' + ''.join(f'<li>{inline(d, "epic")}</li>' for d in ed) + '</ul></article>')
+
+# Build — deviation log, evidence, review verdicts; raw records collapsed
+records = {}  # (phase key, dir) -> [rel]
+for rel in files:
+    if rel == 'index.md': continue
+    p = phase_of(rel); st = stage_of(rel); path = os.path.join(epic_dir, rel)
+    if st == 'record':
+        records.setdefault((p['key'], os.path.dirname(rel).split('/')[0]), []).append(rel); continue
+    if st == '契約' and rel not in spec_files:
+        fm, body = frontmatter(read(path))
+        tab['契約']['epic' if p is EPIC else p['key']].append(file_card(rel, first_h1(body) or rel, fm, body, p['key']))
+        continue
+    if rel in spec_files and os.path.basename(rel).startswith('assay-'):
+        fm, body = frontmatter(read(path))
+        tab['契約'][p['key'] if p is not EPIC else 'epic'].append(file_card(rel, first_h1(body) or rel, fm, body, p['key']))
+        continue
+    if rel in spec_files: continue
+    if st == 'Ship':
+        if rel.endswith('.html'):
+            raw = read(path); t = re.search(r'<title>(.*?)</title>', raw, re.DOTALL | re.IGNORECASE)
+            inner = link_codes_in_html(html_body_inner(raw), p['key'])
+            tab['Ship'][p['key']].append(f'<article><h3 class="file-title">{html.escape(html.unescape(t.group(1).strip()) if t else rel)}</h3><p class="meta"><span class="file">{html.escape(rel)}</span></p><div class="embedded">{inner}</div></article>')
+        else:
+            fm, body = frontmatter(read(path))
+            tab['Ship'][p['key']].append(file_card(rel, first_h1(body) or rel, fm, body, p['key'], force_open=True))
+        continue
+    if st == 'Build':
+        fm, body = frontmatter(read(path)); base = os.path.basename(rel).lower()
+        if base == 'review.md':
+            v = verdict_lines(body)
+            head = f'<h3 class="file-title">Review — {html.escape(os.path.dirname(rel))}</h3><p class="meta"><span class="file">{html.escape(rel)}</span></p>' + (f'<ul class="verdict">{"".join(f"<li>{inline(l, p[chr(107)+chr(101)+chr(121)])}</li>" for l in v)}</ul>' if v else '<p class="muted">no verdict line found in review.md</p>')
+            summ = '<span class="lead">Synthesis</span> <span class="muted">(review.md)</span>'
+            tab['Build'][p['key']].append(f'<article>{head}{collapsed(summ, md_to_html(body, p["key"]))}</article>')
+        elif base.startswith('deviation'):
+            continue  # already merged into deviation_lines (Map + front page)
+        else:
+            tab['Build'][p['key']].append(file_card(rel, first_h1(body) or rel, fm, body, p['key']))
+for p in phases:
+    d = dev_lines_for(p)
+    if d:
+        tab['Build'][p['key']].insert(0, '<article><h3 class="file-title">Deviation log</h3><ul>' + ''.join(f'<li>{inline(x, p["key"])}</li>' for x in d) + '</ul></article>')
+ev = index_sections.get('Evidence Reckoning', '').strip()
+if ev and not ev.startswith('*('):
+    tab['Build']['epic'].insert(0, f'<article><h3 class="file-title">Evidence reckoning</h3>{md_to_html(ev, "epic")}</article>')
+for (pk, d), rels in sorted(records.items()):
+    items = ''.join(f'<li><span class="file">{html.escape(r)}</span></li>' for r in rels)
+    inner = ''
+    for r in rels:
+        if r.endswith('.md'):
+            fm, body = frontmatter(read(os.path.join(epic_dir, r)))
+            inner += f'<h4><span class="file">{html.escape(r)}</span></h4>' + md_to_html(body, pk)
+    summ = f'<span class="lead">Review record</span> <span class="muted">{html.escape(d)} · {len(rels)} raw file(s)</span>'
+    body_html = f'<ul class="files">{items}</ul>{inner}'
+    tab['Build'][pk].append(f'<article>{collapsed(summ, body_html)}</article>')
+
+# Ship placeholder + Close
+for p in phases:
+    if not tab['Ship'][p['key']]:
+        tab['Ship'][p['key']].append(f'<article><h3 class="file-title">{html.escape(specs[p["spec"]]["title"])}</h3><p class="placeholder">Not shipped yet. This tab will carry the buy-in explainer (the phase map with planned-vs-built markers) and the comprehension quiz; gate: quiz passed → approve.</p></article>')
+close_parts = []
+for h in ('Retrospective', 'Evidence Reckoning', 'Disposition', 'Eval Reckon'):
+    if h in index_sections:
+        close_parts.append(f'<section><h3>{h}</h3>{md_to_html(index_sections[h], "epic")}</section>')
 if root:
     gm = os.path.join(root, '.touchstone', 'gate-miss.md')
     if os.path.isfile(gm):
         hits = [l for l in read(gm).splitlines() if slug in l]
         items = ''.join(f'<li>{inline(l.lstrip("- ").strip(), "epic")}</li>' for l in hits)
-        close_parts.append(f'<section><h3>gate-miss.md lines for <code>{html.escape(slug)}</code></h3>'
-                           + (f'<ul>{items}</ul>' if hits else '<p class="muted">none</p>') + '</section>')
-if not close_parts:
-    close_parts.append('<p class="muted">no close sections yet</p>')
-tab_content['Close']['epic'].append(article('Close', 'index.md', ''.join(close_parts)))
-
-# per-file placement
-for rel in files:
-    if rel == 'index.md':
-        continue
-    p = phase_of(rel)
-    stage = stage_of(rel)
-    path = os.path.join(epic_dir, rel)
-    if rel.endswith('.html'):
-        inner = link_codes_in_html(html_body_inner(read(path)), p['key'])
-        title = re.search(r'<title>(.*?)</title>', read(path), re.DOTALL | re.IGNORECASE)
-        title = html.unescape(title.group(1).strip()) if title else rel
-        tab_content[stage][p['key']].append(article(title, rel, f'<div class="embedded">{inner}</div>'))
-        continue
-    fm, body = frontmatter(read(path))
-    is_sp = rel in spec_files
-    owner = stem_of(rel) if is_sp else p['key']
-    rendered = fm_table(fm) + md_to_html(body, owner, define=is_sp)
-    tab_content[stage][p['key']].append(article(first_h1(body) or rel, rel, rendered))
-    if is_sp and p is not EPIC:
-        pm = [t for h, t in sections(body) if h == 'Phase map']
-        if pm:
-            tab_content['Map'][p['key']].append(article('Phase map', rel, md_to_html(pm[0], owner)))
-        else:
-            tab_content['Map'][p['key']].append(article('Phase map', rel, '<p class="placeholder">no phase map in this spec</p>'))
-
-# cited ADRs → 契約 epic group
-for k in sorted(adr_files):
-    fm, body = frontmatter(read(adr_files[k]))
-    title = first_h1(body) or os.path.basename(adr_files[k])
-    rel = os.path.relpath(adr_files[k], root)
-    tab_content['契約']['epic'].append(article(title, rel, fm_table(fm) + md_to_html(body, 'epic'), anchor=f' id="{k}"'))
-
-if not any(tab_content['Map'][g['key']] for g in groups):
-    tab_content['Map']['epic'].append('<p class="placeholder">no phase map in this epic (no spec carries a <code>## Phase map</code> section)</p>')
+        close_parts.append(f'<section><h3>gate-miss.md lines for <code>{html.escape(slug)}</code></h3>' + (f'<ul>{items}</ul>' if hits else '<p class="muted">none</p>') + '</section>')
+tab['Close']['epic'].append('<article>' + (''.join(close_parts) or '<p class="muted">no close sections yet</p>') + '</article>')
 
 # ---------- render page ----------
 CSS = """
-:root{--bg:#ffffff;--fg:#1f2328;--muted:#6b7280;--line:#d0d7de;--panel:#f6f8fa;--accent:#0969da;--undef:#b91c1c;--undef-bg:#fee2e2;--code:#f0f2f5}
-:root[data-theme="dark"]{--bg:#0d1117;--fg:#e6edf3;--muted:#9aa4b2;--line:#30363d;--panel:#161b22;--accent:#58a6ff;--undef:#ff7b72;--undef-bg:#3b1d1d;--code:#1f242c}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d1117;--fg:#e6edf3;--muted:#9aa4b2;--line:#30363d;--panel:#161b22;--accent:#58a6ff;--undef:#ff7b72;--undef-bg:#3b1d1d;--code:#1f242c}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
-.top{display:flex;align-items:center;gap:1rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2;flex-wrap:wrap}
-.top h1{font-size:1.1rem;margin:0}.top .slug{color:var(--muted);font-family:ui-monospace,Menlo,monospace}
-.tabs{display:flex;gap:.25rem;flex-wrap:wrap}.tabs button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:.35rem .8rem;cursor:pointer}
-.tabs button[aria-selected="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
-.theme{margin-left:auto;background:none;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:.3rem .6rem;cursor:pointer}
-main{max-width:1100px;margin:0 auto;padding:1rem 1.25rem}.tab{display:none}.tab.active{display:block}
-.group{border:1px solid var(--line);border-radius:8px;margin:1rem 0;background:var(--panel)}
-.group>summary{padding:.6rem 1rem;font-weight:600;cursor:pointer;list-style:none}.group>summary::before{content:"▸ ";color:var(--muted)}.group[open]>summary::before{content:"▾ "}
-article{background:var(--bg);border-top:1px solid var(--line);padding:1rem 1.25rem}article header .file{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;color:var(--muted)}
-article h2{font-size:1.15rem;margin:.25rem 0 .75rem}h3{font-size:1.05rem;margin:1.2rem 0 .4rem}h4,h5,h6{font-size:1rem;margin:1rem 0 .3rem}
-pre{background:var(--code);padding:.75rem;border-radius:6px;overflow-x:auto;font-size:.85rem}code{background:var(--code);padding:.1rem .3rem;border-radius:4px;font-size:.88em}pre code{background:none}
-.tbl{overflow-x:auto}table{border-collapse:collapse;min-width:40%}th,td{border:1px solid var(--line);padding:.3rem .6rem;text-align:left;vertical-align:top}th{background:var(--panel)}
-a{color:var(--accent)}a.code{font-family:ui-monospace,Menlo,monospace;text-decoration:none;border-bottom:1px dotted var(--accent)}
-.undef{font-family:ui-monospace,Menlo,monospace;color:var(--undef);background:var(--undef-bg);border-radius:4px;padding:0 .25rem;cursor:help}
-.undef::after{content:" (undefined)";font-size:.75em}.placeholder,.muted{color:var(--muted);font-style:italic}
-.notes{color:var(--muted);font-size:.85rem;border:1px dashed var(--line);padding:.5rem .75rem;border-radius:6px}
-:target{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
-.embedded{border-left:3px solid var(--line);padding-left:1rem}
+:root{--bg:#f6f8f6;--panel:#ffffff;--ink:#1b2422;--muted:#5e6b67;--line:#d6ddd9;--accent:#1e6f6a;--accent-ink:#ffffff;--ok:#2f7d4f;--ok-bg:#e3f1e8;--warn:#9a6a12;--warn-bg:#f6ecd4;--crit:#a63a3a;--crit-bg:#f5dede;--code:#eef2ef;--fold:#f0f3f1}
+:root[data-theme="dark"]{--bg:#131817;--panel:#1b2220;--ink:#e6ece9;--muted:#93a09c;--line:#2b3532;--accent:#63c4b9;--accent-ink:#0f1a18;--ok:#7fd39f;--ok-bg:#1d3327;--warn:#e2b45b;--warn-bg:#3a2f16;--crit:#f08a8a;--crit-bg:#3b1f1f;--code:#222b28;--fold:#1f2725}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#131817;--panel:#1b2220;--ink:#e6ece9;--muted:#93a09c;--line:#2b3532;--accent:#63c4b9;--accent-ink:#0f1a18;--ok:#7fd39f;--ok-bg:#1d3327;--warn:#e2b45b;--warn-bg:#3a2f16;--crit:#f08a8a;--crit-bg:#3b1f1f;--code:#222b28;--fold:#1f2725}}
+*{box-sizing:border-box}html{font-size:16px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;line-height:1.55}
+.top{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);padding:.6rem 1.25rem;display:flex;align-items:baseline;gap:1.25rem;flex-wrap:wrap}
+.top h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;font-size:1.25rem;margin:0;text-wrap:balance}
+.top .slug{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.8rem;color:var(--muted)}
+.tabs{display:flex;gap:.25rem;flex-wrap:wrap}.tabs button{font:inherit;font-size:.85rem;letter-spacing:.02em;background:transparent;color:var(--muted);border:0;border-bottom:2px solid transparent;padding:.35rem .6rem;cursor:pointer}
+.tabs button:hover{color:var(--ink)}.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tabs button:focus-visible,.theme:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.theme{margin-left:auto;font:inherit;font-size:.8rem;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:.2rem .7rem;cursor:pointer}
+main{max-width:76ch;margin:0 auto;padding:1.25rem 1.25rem 4rem}.tab{display:none}.tab.active{display:block}
+.phase{margin:1.5rem 0 2.5rem}.phase>h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;font-size:1.35rem;margin:0 0 .25rem;display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;text-wrap:balance}
+.phase>.meta{margin:0 0 1rem}
+article{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1rem 1.25rem;margin:0 0 1rem}
+article>h3.file-title{font-size:1.05rem;margin:0 0 .15rem;font-weight:600}h3{font-size:1rem;margin:1.25rem 0 .4rem}h4{font-size:.9rem;margin:1rem 0 .3rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+h5,h6{font-size:.95rem;margin:.9rem 0 .3rem}
+p{margin:.45rem 0}.aim{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.25rem;line-height:1.4;margin:.25rem 0 .5rem;text-wrap:balance}
+.meta{font-size:.8rem;color:var(--muted);margin:.1rem 0 .75rem}.meta .file,.file{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.78rem}
+.muted{color:var(--muted)}.lead{font-weight:500}.placeholder{color:var(--muted);font-style:italic}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.03em;padding:.05rem .5rem;border-radius:999px;vertical-align:middle;border:1px solid transparent}
+.pill.ok{color:var(--ok);background:var(--ok-bg)}.pill.warn{color:var(--warn);background:var(--warn-bg)}.pill.crit{color:var(--crit);background:var(--crit-bg)}.pill.accent{color:var(--accent);border-color:var(--accent)}.pill.muted{color:var(--muted);border-color:var(--line)}
+ul,ol{padding-left:1.3rem;margin:.35rem 0}li{margin:.2rem 0}ul.todo li{margin:.4rem 0}ul.adr{list-style:none;padding:0}ul.adr li{padding:.5rem 0;border-top:1px solid var(--line)}ul.adr li:first-child{border-top:0}
+.cite{font-size:.9rem;color:var(--muted)}ul.verdict{list-style:none;padding:0}ul.verdict li{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.82rem;padding:.15rem 0}
+ul.files{list-style:none;padding:0;font-size:.82rem}
+pre{background:var(--code);padding:.75rem .9rem;border-radius:4px;overflow-x:auto;font-size:.82rem;line-height:1.45}code{font-family:ui-monospace,"SF Mono",Menlo,monospace;background:var(--code);padding:.05rem .3rem;border-radius:3px;font-size:.86em}pre code{background:none;padding:0}
+.tbl{overflow-x:auto;margin:.5rem 0}table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border-bottom:1px solid var(--line);padding:.35rem .6rem;text-align:left;vertical-align:top}th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td.num,.num,a.code,.undef{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;font-size:.85rem}
+a{color:var(--accent)}a.code{text-decoration:none;border-bottom:1px dotted var(--accent)}
+.undef{color:var(--crit);background:var(--crit-bg);border-radius:3px;padding:0 .25rem;cursor:help}.undef::after{content:" (undefined)";font-size:.75em}
+details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5rem}details.fold>summary{cursor:pointer;color:var(--muted);list-style:none}details.fold>summary::before{content:"▸ ";color:var(--accent)}details.fold[open]>summary::before{content:"▾ "}.fold-body{margin-top:.75rem}
+.panels{display:grid;gap:.75rem}.panel{background:var(--fold);border-radius:4px;padding:.75rem 1rem}.panel h4{margin:0 0 .4rem;display:flex;gap:.5rem;align-items:baseline}.delta{margin-top:.6rem}
+.notes{color:var(--muted);font-size:.85rem;border:1px dashed var(--line);padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem}
+.embedded{border-left:3px solid var(--line);padding-left:1rem}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
+:target{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
+@media (prefers-reduced-motion: no-preference){details.fold>summary{transition:color .15s}}
 """
 JS = """
 (function(){var root=document.documentElement;var key='dossier-theme';
@@ -575,21 +843,27 @@ function show(id){document.querySelectorAll('.tab').forEach(function(s){s.classL
 document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false')});}
 document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){show(b.dataset.tab);try{localStorage.setItem('dossier-tab',b.dataset.tab)}catch(e){}})});
 var initial='0';try{initial=localStorage.getItem('dossier-tab')||'0'}catch(e){}
-if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){var tab=el.closest('.tab');if(tab)initial=tab.id.replace('tab-','')}}
+function reveal(el){var tab=el.closest('.tab');if(tab)show(tab.id.replace('tab-',''));var d=el.closest('details');while(d){d.open=true;d=d.parentElement&&d.parentElement.closest('details');}}
+if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){reveal(el);var tab=el.closest('.tab');if(tab)initial=tab.id.replace('tab-','')}}
 show(initial);
-document.querySelectorAll('a.code').forEach(function(a){a.addEventListener('click',function(){var el=document.getElementById(a.getAttribute('href').slice(1));if(el){var tab=el.closest('.tab');if(tab){show(tab.id.replace('tab-',''));var d=el.closest('details');if(d)d.open=true;}}})});
-window.addEventListener('hashchange',function(){var el=document.getElementById(location.hash.slice(1));if(el){var tab=el.closest('.tab');if(tab)show(tab.id.replace('tab-',''));var d=el.closest('details');if(d)d.open=true;el.scrollIntoView();}});
+document.querySelectorAll('a.code[href^="#"]').forEach(function(a){a.addEventListener('click',function(){var el=document.getElementById(a.getAttribute('href').slice(1));if(el)reveal(el)})});
+window.addEventListener('hashchange',function(){var el=document.getElementById(location.hash.slice(1));if(el){reveal(el);el.scrollIntoView();}});
 document.querySelector('.theme').addEventListener('click',function(){var cur=root.getAttribute('data-theme');var dark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;var next=dark?'light':'dark';root.setAttribute('data-theme',next);try{localStorage.setItem(key,next)}catch(e){}});
 })();
 """
 
+def phase_header(g):
+    if g is EPIC:
+        return '<h2>Epic-level</h2>'
+    s = specs[g['spec']]
+    return f'<h2>{html.escape(g["title"])} {pill(s["fm"].get("status", ""))}</h2><p class="meta"><span class="file">{html.escape(g["spec"])}</span></p>'
+
 def render_tab(i, t):
     parts = []
     for g in groups:
-        items = tab_content[t][g['key']]
-        if not items:
-            continue
-        parts.append(f'<details class="group" open><summary>{html.escape(g["title"])}</summary>{"".join(items)}</details>')
+        items = tab[t][g['key']]
+        if not items: continue
+        parts.append(f'<section class="phase" data-phase="{attr(g["key"])}">{phase_header(g)}{"".join(items)}</section>')
     if not parts:
         parts.append('<p class="muted">nothing in this stage yet</p>')
     return f'<section class="tab" id="tab-{i}">{"".join(parts)}</section>'
@@ -600,7 +874,7 @@ notes_html = f'<div class="notes">{" ".join(html.escape(n) for n in notes)}</div
 page = f"""<!doctype html>
 <!-- GENERATED by scripts/dossier-render.sh — do not hand-edit; edit the markdown sources and regenerate -->
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(epic_title)} — dossier</title><style>{CSS}</style></head>
+<title>{html.escape(epic_title)}</title><style>{CSS}</style></head>
 <body><div class="top"><h1>{html.escape(epic_title)}</h1><span class="slug">{html.escape(slug)}</span><nav class="tabs">{buttons}</nav><button class="theme" type="button">theme</button></div>
 <main>{notes_html}{tabs_html}</main><script>{JS}</script></body></html>
 """
