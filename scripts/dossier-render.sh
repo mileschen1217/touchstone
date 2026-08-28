@@ -762,7 +762,8 @@ def yaml_contract_card(p, s):
     agent = []   # reader: agent fields — folded
     if yd.get('facts_source'):
         fs = yd['facts_source']
-        parts.append(f'<p class="meta">{lab("ledger")} <span class="file">{html.escape(sval(fs.get("record")))}</span> · {" ".join(link_codes(sval(c), k) for c in fs.get("consensus") or [])}</p>')
+        parts.append(f'<p class="meta">{lab("ledger")} <span class="file">{html.escape(sval(fs.get("record")))}</span> · {lab("rulings drawn on")} {len(fs.get("consensus") or [])}</p>')
+        agent.append(f'<h4>{lab("Consensus ids")}</h4><p>{" ".join(link_codes(sval(c), k) for c in fs.get("consensus") or [])}</p>')
     if yd.get('user_stories'):
         parts.append(f'<h4>{lab("User stories")}</h4><ul>' + ''.join(
             f'<li id="{attr(k + "--" + sval(u.get("id")))}">{inline(sval(u.get("id")), k, sval(u.get("id")))} · {yv(u.get("as"), k)} · {yv(u.get("want"), k)} · {yv(u.get("so_that"), k)}</li>'
@@ -1270,7 +1271,8 @@ def phase_header(g):
     if g is EPIC:
         return '<h2>Epic-level</h2>'
     s = specs[g['spec']]
-    return f'<h2>{html.escape(g["title"])} {pill(s["fm"].get("status", ""))}</h2><p class="meta"><span class="file">{html.escape(g["spec"])}</span></p>'
+    title = f'Phase {g.get("num", "")} · {sval(s["yaml"].get("title"))}' if 'yaml' in s else g['title']
+    return f'<h2>{html.escape(title)} {pill(s["fm"].get("status", ""))}</h2><p class="meta"><span class="file">{html.escape(g["spec"])}</span></p>'
 
 def render_tab(i, t):
     parts = []
