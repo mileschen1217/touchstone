@@ -13,7 +13,12 @@ here="$(cd "$(dirname "$0")" && pwd)"
 case "$spec" in
   *.md) echo "BLOCK: legacy markdown spec — the heading-parsing floor is retired; author spec.yaml (design-spec) and re-run"; exit 1 ;;
 esac
-status="$(grep -E '^status:' "$spec" | head -1 | sed -E 's/^status:[[:space:]]*([^[:space:]#]+).*/\1/')"
+status="$(python3 -c 'import sys,yaml
+try:
+    d = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+    print(str(d.get("status", "")).strip() if isinstance(d, dict) else "")
+except Exception:
+    print("")' "$spec")"
 [ "$status" = "draft" ] && { echo "PRE-CHECK skipped: draft"; exit 0; }
 dir="$(cd "$(dirname "$spec")" && pwd)"
 if ! out="$(bash "$here/check-artifact.sh" spec "$spec" --root "$dir" 2>&1)"; then

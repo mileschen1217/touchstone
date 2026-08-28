@@ -46,7 +46,7 @@ ledger_refs = []  # (path, value)
 field_paths = []  # (path, value)
 
 def type_ok(v, t):
-    return {'string': lambda: isinstance(v, (str, datetime.date)), 'integer': lambda: isinstance(v, int) and not isinstance(v, bool),
+    return {'string': lambda: isinstance(v, str), 'date': lambda: isinstance(v, (str, datetime.date)), 'integer': lambda: isinstance(v, int) and not isinstance(v, bool),
             'boolean': lambda: isinstance(v, bool), 'array': lambda: isinstance(v, list),
             'object': lambda: isinstance(v, dict)}.get(t, lambda: True)()
 
@@ -99,28 +99,34 @@ for p, fam, x in refs:
 # ---- field-path grammar + resolution
 PATH_RE = re.compile(r'^[A-Za-z_]\w*(\[[^\]]+\])?(\.[A-Za-z_]\w*(\[[^\]]+\])?)*$')
 def resolve(node, fp):
-    """Return True iff fp addresses something in node."""
-    for seg in re.findall(r'([A-Za-z_]\w*)(?:\[([^\]]+)\])?', fp):
-        key, sel = seg
+    """Return True iff fp addresses something in node ([*] = any element for the rest of the path)."""
+    segs = re.findall(r'([A-Za-z_]\w*)(?:\[([^\]]+)\])?', fp)
+    def walk(node, i):
+        if i == len(segs): return True
+        key, sel = segs[i]
         if not isinstance(node, dict) or key not in node: return False
         node = node[key]
-        if sel:
-            if not isinstance(node, list): return False
-            if sel == '*':
-                if not node: return False
-                node = node[0]; continue
-            if sel.isdigit():
-                if int(sel) >= len(node): return False
-                node = node[int(sel)]; continue
-            hit = [e for e in node if isinstance(e, dict) and e.get('id') == sel]
-            if not hit: return False
-            node = hit[0]
-    return True
+        if not sel: return walk(node, i + 1)
+        if not isinstance(node, list): return False
+        if sel == '*':
+            return any(walk(e, i + 1) for e in node)
+        if sel.isdigit():
+            return int(sel) < len(node) and walk(node[int(sel)], i + 1)
+        hit = [e for e in node if isinstance(e, dict) and e.get('id') == sel]
+        return bool(hit) and walk(hit[0], i + 1)
+    return walk(node, 0)
 
+def under_root(rel, label):
+    """A --root-relative artifact path must stay inside root (no absolute path, no `..`)."""
+    if not isinstance(rel, str) or not rel: return None
+    full = os.path.abspath(os.path.join(root, rel))
+    if os.path.isabs(rel) or os.path.commonpath([root, full]) != root:
+        errors.append(f"{label}: '{rel}' escapes the --root directory"); return None
+    return full
 target_doc = None
 if kind == 'review':
-    tp = os.path.join(root, doc.get('target', '') or '')
-    if os.path.isfile(tp):
+    tp = under_root(doc.get('target'), 'target') or ''
+    if tp and os.path.isfile(tp):
         try: target_doc = yaml.safe_load(open(tp, encoding='utf-8'))
         except yaml.YAMLError: target_doc = None
 for p, fp in field_paths:
@@ -134,15 +140,16 @@ for p, fp in field_paths:
 ledger = None
 if kind == 'spec':
     rec = (doc.get('facts_source') or {}).get('record') if isinstance(doc.get('facts_source'), dict) else None
-    if rec: ledger = os.path.join(root, rec)
+    if rec: ledger = under_root(rec, 'facts_source.record')
 elif kind == 'review' and isinstance(target_doc, dict):
     rec = (target_doc.get('facts_source') or {}).get('record')
-    if rec: ledger = os.path.join(root, rec)
+    if rec: ledger = under_root(rec, 'target facts_source.record')
 if ledger_refs:
     if ledger and os.path.isfile(ledger):
         lines = open(ledger, encoding='utf-8').read().splitlines()
-        def resolves(i): return any(l.startswith(f"- {i}") and not l[len(i)+2:len(i)+3].isdigit()
-                                    or l.startswith(f"| {i}") and not l[len(i)+2:len(i)+3].isdigit() for l in lines)
+        def resolves(i):
+            pat = re.compile(r'^(?:- |\| )' + re.escape(str(i)) + r'(?=[\s|]|$)')
+            return any(pat.match(l) for l in lines)
         for p, x in ledger_refs:
             if not resolves(str(x)): errors.append(f"{p}: '{x}' resolves to no ledger line ('- {x}' / '| {x}') in {os.path.basename(ledger)}")
     else:

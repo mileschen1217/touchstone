@@ -58,6 +58,31 @@ expect_exit "check-artifact deviation red" nonzero bash "$ca" deviation "$ax/dev
 expect_out "check-artifact deviation: missing which_stage_could_have_caught" "entries[D-1].which_stage_could_have_caught: required" bash "$ca" deviation "$ax/deviation-red.yaml"
 expect_out "check-artifact deviation: invalid panel" "entries[D-1].panel: 'flow' not in" bash "$ca" deviation "$ax/deviation-red.yaml"
 expect_out "check-artifact deviation: quiz answer names no field id" "quiz.items[QZ-1].answer: names no field id" bash "$ca" deviation "$ax/deviation-red.yaml"
+python3 - "$ca" "$ax" <<'PY3' || { echo "FAIL: check-artifact edge cases"; fail=1; }
+import subprocess, sys, os, tempfile, shutil
+ca, ax = sys.argv[1], sys.argv[2]
+t = tempfile.mkdtemp()
+shutil.copy(os.path.join(ax, 'spec-green.yaml'), t); shutil.copy(os.path.join(ax, 'ledger.md'), t)
+def run(kind, text, name):
+    p = os.path.join(t, name); open(p, 'w').write(text)
+    r = subprocess.run(['bash', ca, kind, p, '--root', t], capture_output=True, text=True)
+    return r.returncode, r.stdout + r.stderr
+base = open(os.path.join(ax, 'review-green.yaml')).read()
+rc, out = run('review', base.replace('field: requirements[REQ-1].acs[AC-2].then', 'field: requirements[*].acs[AC-3].then'), 'r1.yaml')
+assert rc == 0, out   # AC-3 sits under REQ-1; [*] must search every requirement
+rc, out = run('review', base.replace('target: spec-green.yaml', 'target: ../spec-green.yaml'), 'r2.yaml')
+assert rc == 1 and "escapes the --root" in out, out
+open(os.path.join(t, 'ledger.md'), 'a').write('\n- Q-7a · suffixed id.\n')
+spec = open(os.path.join(ax, 'spec-green.yaml')).read()
+rc, out = run('spec', spec.replace('basis: [Q-1]', 'basis: [Q-7]'), 's1.yaml')
+assert rc == 1 and "'Q-7' resolves to no ledger line" in out, out   # Q-7a must not resolve Q-7
+rc, out = run('spec', spec.replace('date: 2026-01-01', 'date: "2026-01-01"'), 's2.yaml')
+assert rc == 0, out   # quoted date string accepted
+rc, out = run('spec', spec.replace('date: 2026-01-01', 'date: 20260101'), 's3.yaml')
+assert rc == 1 and 'date: expected date' in out, out
+shutil.rmtree(t)
+print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type')
+PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
 # the three schema files exist and every top-level field carries a reader tag
 python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
@@ -82,6 +107,9 @@ expect_exit "design-review-precheck.sh green" zero bash "$pc" "$ax/spec-green.ya
 expect_exit "design-review-precheck.sh red" nonzero bash "$pc" "$ax/spec-red.yaml"
 expect_out "design-review-precheck.sh draft skipped" "PRE-CHECK skipped: draft" bash "$pc" "$ax/spec-red-nomap.yaml"
 expect_exit "design-review-precheck.sh legacy md blocked" nonzero bash "$pc" "$fx/reckoning-spec.md"
+qd="$(mktemp -d)"; sed 's/^status: draft/status: "draft"/' "$ax/spec-red-nomap.yaml" > "$qd/q.yaml"
+expect_out "design-review-precheck.sh quoted draft skipped" "PRE-CHECK skipped: draft" bash "$pc" "$qd/q.yaml"
+rm -rf "$qd"
 expect_exit "design-review-precheck.sh --attest green (round-1 review.yaml with challenger)" zero bash "$pc" "$ax/spec-green.yaml" --attest
 at="$(mktemp -d)"; cp "$ax/spec-green.yaml" "$ax/ledger.md" "$at/"
 expect_exit "design-review-precheck.sh --attest red (no attestation)" nonzero bash "$pc" "$at/spec-green.yaml" --attest
@@ -124,6 +152,9 @@ expect_exit "dossier-render.sh red (missing path)" nonzero bash "$scripts_dir/do
 expect_exit "dossier-render.sh red (path is a file)" nonzero bash "$scripts_dir/dossier-render.sh" "$dout"
 mkdir -p "$tmp_root/noindex"
 expect_exit "dossier-render.sh red (no index.md)" nonzero bash "$scripts_dir/dossier-render.sh" "$tmp_root/noindex"
+bad="$tmp_root/.touchstone/epics/2026-01-09-badyaml"; mkdir -p "$bad"; cp "$fx/dossier-epic/index.md" "$bad/"; printf 'id: [unclosed\n' > "$bad/2026-01-09-bad.spec.yaml"
+expect_out "dossier-render.sh red (malformed spec.yaml is fatal)" "not parseable YAML" bash "$scripts_dir/dossier-render.sh" "$bad"
+[ -f "$bad/dossier.html" ] && { echo "FAIL: dossier written for malformed YAML"; fail=1; }
 [ -f "$tmp_root/noindex/dossier.html" ] && { echo "FAIL: dossier written on red path"; fail=1; }
 
 # expect_grep <label> <count-op> <n> <pattern>  — fixed-string count over the dossier

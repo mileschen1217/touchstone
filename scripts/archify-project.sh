@@ -26,8 +26,13 @@ mkdir -p "$out" || exit 1
 python3 - "$spec" "$out" "$asis" <<'PY' || exit 1
 import sys, os, json, yaml
 spec, out, asis = sys.argv[1], sys.argv[2], sys.argv[3]
-d = yaml.safe_load(open(spec, encoding='utf-8'))
-delta = d.get('delta') or {}
+try:
+    d = yaml.safe_load(open(spec, encoding='utf-8'))
+except Exception as e:
+    print(f'archify-project.sh: spec not parseable: {e}', file=sys.stderr); sys.exit(1)
+if not isinstance(d, dict) or not isinstance(d.get('delta'), dict) or not isinstance(d['delta'].get('blocks'), list):
+    print('archify-project.sh: spec has no delta.blocks list — run check-artifact.sh spec first', file=sys.stderr); sys.exit(1)
+delta = d['delta']
 blocks = [b for b in delta.get('blocks') or [] if isinstance(b, dict)]
 edges = [e for e in delta.get('edges') or [] if isinstance(e, dict)]
 KIND = {'component': 'backend', 'skill': 'frontend', 'fragment': 'messagebus', 'agent': 'external', 'command': 'frontend', 'schema': 'security', 'doc': 'cloud'}

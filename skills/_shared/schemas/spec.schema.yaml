@@ -1,6 +1,7 @@
 # spec.schema.yaml — the field set of a design spec (spec.yaml). Single home of the shape;
 # scripts/check-artifact.sh validates an instance against it. Keywords: JSON-Schema subset
-# (type / required / properties / items / enum / oneOf / additionalProperties) plus
+# (type / required / properties / items / enum / oneOf / additionalProperties; type `date` =
+# a YAML date or a string) plus
 #   reader: human|agent   — on every top-level field; the dossier projects human fields
 #   id: <family>          — a stable id `<family>-<n>` (or a slug for block/contract/flow), unique within the file
 #   ref: <family>         — value(s) must name an id of that family defined in this file
@@ -16,7 +17,7 @@ properties:
   epic: {type: string, reader: agent}
   phase: {type: integer, reader: human}
   status: {type: string, reader: human, enum: [draft, accepted-candidate, accepted, superseded]}
-  date: {type: string, reader: agent}
+  date: {type: date, reader: agent}          # date = YAML date or string
   facts_source:
     type: object
     reader: agent

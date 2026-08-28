@@ -11,8 +11,8 @@
 #   exit 0 → <epic-dir>/dossier.html written (+ <epic-dir>/pr-body.md with --pr-body:
 #            the newest YAML phase's Ship tab as text, sections in the tab's order)
 #   exit 1 → path missing / not a dir / no index.md / dir not writable / PyYAML absent
-#            while a .yaml artifact is present / --pr-body with no YAML phase (nothing
-#            written) — cause on stderr
+#            while a .yaml artifact is present / a .yaml artifact that does not parse to a
+#            mapping / --pr-body with no YAML phase (nothing written) — cause on stderr
 #
 # YAML path (a phase whose spec is *.spec.yaml; schemas: skills/_shared/schemas/):
 #   契約  = title / stories / requirements+ACs / invariants / delta blocks / contracts /
@@ -141,11 +141,14 @@ def spec_slug(stem):
     return re.sub(r'(-design|\.spec)$', '', s)
 
 def load_yaml(p):
+    """A YAML artifact that does not parse to a mapping is fatal — never rendered as an empty phase."""
     try:
         d = yaml.safe_load(read(p))
-        return d if isinstance(d, dict) else None
-    except Exception:
-        return None
+    except Exception as e:
+        print(f'dossier-render.sh: not parseable YAML: {os.path.relpath(p, epic_dir)} — {e}', file=sys.stderr); sys.exit(1)
+    if not isinstance(d, dict):
+        print(f'dossier-render.sh: YAML artifact is not a mapping: {os.path.relpath(p, epic_dir)}', file=sys.stderr); sys.exit(1)
+    return d
 
 def sval(v):
     """A YAML scalar as display text."""

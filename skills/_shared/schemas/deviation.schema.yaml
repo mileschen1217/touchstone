@@ -15,7 +15,7 @@ properties:
       additionalProperties: false
       properties:
         id: {type: string, id: D}
-        date: {type: string}
+        date: {type: date}
         stage: {type: string}
         panel: {type: string, enum: [position, structure, interface, scope, none]}
         gap: {type: string}
