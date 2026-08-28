@@ -968,55 +968,6 @@ def waiting_union(p, s):
         out += [('deviation.yaml', w) for w in yaml_dev.get('waiting_on_human') or []]
     return out
 
-def ship_sections(p, s):
-    """[(label, html, text)] in the consensus order; text = the PR-body projection of the same fields."""
-    k, yd = p['key'], s['yaml']
-    secs = []
-    hdr_html = f'<p class="aim">{yv(yd.get("title"), k)}</p><p class="meta">{lab("epic")} {yv(yd.get("epic"), k)} · {lab("phase")} {yv(yd.get("phase"), k)} · {pill(sval(yd.get("status")))} · {lab("date")} {yv(yd.get("date"), k)}</p>'
-    hdr_txt = f"{sval(yd.get('title'))}\n\nepic: {sval(yd.get('epic'))} · phase: {sval(yd.get('phase'))} · status: {sval(yd.get('status'))} · date: {sval(yd.get('date'))}"
-    secs.append(('Header', hdr_html, hdr_txt))
-    legacy = dev_lines_for(p)
-    pan_txt = []
-    for (label, key), (_, text) in zip(YAML_PANELS, s['panels'] or []):
-        hits = dev_entries_for_panel(key)
-        pan_txt.append(f"### {label} — {'built ≠ planned' if hits else 'as planned'}\n\n{sval(text)}" + ''.join(
-            f"\n- {sval(e.get('id'))} · {sval(e.get('date'))} · gap: {sval(e.get('gap'))} · disposition: {sval(e.get('disposition'))} · could have caught: {sval(e.get('which_stage_could_have_caught'))}" for e in hits))
-    for e in dev_entries_for_panel('none'):
-        pan_txt.append(f"- {sval(e.get('id'))} (no panel) · gap: {sval(e.get('gap'))} · disposition: {sval(e.get('disposition'))}")
-    if legacy:
-        pan_txt.append('### Legacy deviation lines\n\n' + '\n'.join(f'- {d}' for d in legacy))
-    secs.append(('Phase map', yaml_panels_html(p, s, legacy, anchor=False) if s['panels'] else '<p class="placeholder">no phase map in this spec</p>', '\n\n'.join(pan_txt)))
-    d = yd.get('delta') if isinstance(yd.get('delta'), dict) else {}
-    so_txt = '\n'.join(f"- {sval(b.get('op'))} {sval(b.get('id'))} ({sval(b.get('kind'))}): {sval(b.get('purpose'))}" for b in d.get('blocks') or [] if isinstance(b, dict))
-    so_txt += ''.join(f"\n- {sval(e.get('op'))} {sval(e.get('from'))} → {sval(e.get('to'))}: {sval(e.get('label'))}" for e in d.get('edges') or [] if isinstance(e, dict))
-    secs.append(('Structure overlay', structure_overlay(p, s), so_txt))
-    ev_txt = []
-    for r in yd.get('requirements') or []:
-        for a in (r.get('acs') or []) if isinstance(r, dict) else []:
-            if isinstance(a, dict): ev_txt.append(f"- {sval(a.get('id'))}{' (live-bearing)' if a.get('live_bearing') is True else ''}: {sval(a.get('then'))}")
-    for i in yd.get('invariants') or []:
-        if isinstance(i, dict): ev_txt.append(f"- {sval(i.get('id'))} (check: {sval(i.get('check'))}): {sval(i.get('rule'))}")
-    secs.append(('Evidence and invariants', evidence_table(p, s), '\n'.join(ev_txt)))
-    rv = reviews_for(p)
-    rv_html = f'<ul class="verdict">{"".join(review_verdict_line(rel, dd, k) for rel, dd in rv)}</ul>' if rv else '<p class="placeholder">no review.yaml for this phase yet</p>'
-    rv_txt = '\n'.join(f"- {rel}: {sval(dd.get('gate'))} round {sval(dd.get('round'))} · verdict {sval(dd.get('verdict'))} · C={sval((dd.get('counts') or {}).get('C'))} H={sval((dd.get('counts') or {}).get('H'))} M={sval((dd.get('counts') or {}).get('M'))} L={sval((dd.get('counts') or {}).get('L'))} · providers {', '.join(sval(x) for x in dd.get('providers') or [])}{' · degraded: ' + sval(dd.get('degraded_reason')) if dd.get('degraded') is True else ''}" for rel, dd in rv)
-    secs.append(('Review verdicts', rv_html, rv_txt))
-    q = (yaml_dev or {}).get('quiz') if yaml_dev else None
-    entries = (yaml_dev or {}).get('entries') or []
-    if yaml_dev is None: q_txt = '(no deviation.yaml — quiz not authored yet)'
-    elif not entries or (isinstance(q, dict) and q.get('waived') is True): q_txt = 'Quiz waived · zero delta: no D-n entry in this phase'
-    else: q_txt = '\n'.join(f"- {sval(it.get('id'))} · {sval(it.get('question'))}\n  answer: {sval(it.get('answer'))} · anchor: {sval(it.get('anchor'))}" for it in (q.get('items') or []) if isinstance(it, dict)) or '(quiz not authored yet)'
-    secs.append(('Quiz', quiz_html(p), q_txt))
-    wu = waiting_union(p, s)
-    wu_html = f'<ul class="todo">{"".join(f"<li>{yv(w, k)} <span class=\"file\">{html.escape(src)}</span></li>" for src, w in wu)}</ul>' if wu else '<p class="placeholder">nothing — every artifact reports done</p>'
-    wu_txt = '\n'.join(f'- {sval(w)} ({src})' for src, w in wu) or '(nothing)'
-    secs.append(('Waiting on human', wu_html, wu_txt))
-    last = rv[-1][1] if rv else None
-    cm_html = f'<p>{lab("title")} {yv(yd.get("title"), k)}</p><p>{lab("verdict")} {yv(last.get("verdict"), k) if last else "<span class=\"placeholder\">no review yet</span>"}</p><p>{lab("waiting on human")} {yv(len(wu), k)}</p><p>{lab("dossier")} <span class="file">dossier.html</span> · {lab("PR body")} <span class="file">pr-body.md</span></p>'
-    cm_txt = f"title: {sval(yd.get('title'))}\nverdict: {sval(last.get('verdict')) if last else '(no review yet)'}\nwaiting on human: {len(wu)}\ndossier: dossier.html · PR body: pr-body.md"
-    secs.append(('Closing message', cm_html, cm_txt))
-    return secs
-
 # ---------- zh-TW label table (enum → label; identifiers never translated) ----------
 ZH = {
     'C': '嚴重', 'H': '高', 'M': '中', 'L': '低',
@@ -1103,11 +1054,12 @@ def next_action(d):
 def counts_html(d, owner):
     c = d.get('counts') if isinstance(d.get('counts'), dict) else {}
     return ' '.join(f'{lab(ZH[k])} {yv(c.get(k), owner)}' for k in ('C', 'H', 'M', 'L'))
+GATE_OWNER = {'design-review': '作者 session', 'deliverable-review': 'builder', 'tests': 'builder', 'quiz': 'owner', 'ship-gate': 'owner'}
 def gate_strip_html(p, s):
     k = p['key']
     rows = ''
     for gate, st, d, rel, _ in gate_rows(p):
-        extra = ''
+        extra = f'{lab("負責")} {lab(GATE_OWNER.get(gate, ""))} · ' if st in ('fail', 'pending') else ''
         if d is not None:
             extra = f'{lab("第")} {yv(d.get("round"), k)} {lab("輪")} · {counts_html(d, k)} · {zh(d.get("verdict"))}'
             if d.get('degraded') is True: extra += f' · {zpill("degraded", "crit")} {yv(d.get("degraded_reason"), k)}'
@@ -1154,6 +1106,9 @@ def front_sections(p, s):
               + f'</p><p>{lab("理解測驗")} {zpill(qs)}' + (f' <span class="num">{qpass}/{len(qitems)}</span>' if qitems else '') + '</p>')
     if unv:
         v_html += '<ul>' + capped([f'<li>{link_codes(sval(f.get("field")), k)} · {yv(f.get("summary"), k)}</li>' for f in unv]) + '</ul>'
+    nb = sum(1 for i, st, l in ledger_stage_lines if st.startswith(('build', 'deliverable-review', 'phase-ship')))
+    if nb:
+        v_html += f'<p class="meta">{lab("build 帳")} <a class="code" data-jump="{attr(k + "--ledger")}" tabindex="0">{nb}</a> {lab("則（含每個 prose commit 的 m-skill-review verdict）")}</p>'
     v_html += quiz_html(p)
     v_txt = f"ACs {len(acs)} · unverified {len(unv)}" + (f" · deliverable-review {sval(d.get('verdict'))}" if d else ' · deliverable-review pending') + f"\nquiz: {ZH[qs]}" + (f" {qpass}/{len(qitems)}" if qitems else '') + ''.join(f"\n- {sval(f.get('field'))} · {sval(f.get('summary'))}" for f in unv)
     if qs == 'n/a': v_txt += '\nquiz waived: zero delta'
@@ -1172,6 +1127,14 @@ def front_sections(p, s):
     ck_txt = '\n'.join(f"- [{'x' if st == 'pass' else ' '}] {ZH[g]}: {ZH[st]}" for g, st, *_ in gate_rows(p)) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
     secs.append(('檢查表', ck_html, ck_txt))
     return secs
+
+LEDGER_STAGE_RE = re.compile(r'^- ((?:Q|A|C|R|B)-\d+) \(([^)]*stage: ([^),]+)[^)]*)\)')
+ledger_stage_lines = []   # (id, stage, line) — ledger rows tagged with a stage, in file order
+for rel in files:
+    if os.path.basename(rel).startswith('assay-') and rel.endswith('.md'):
+        for line in read(os.path.join(epic_dir, rel)).splitlines():
+            m = LEDGER_STAGE_RE.match(line)
+            if m: ledger_stage_lines.append((m.group(1), m.group(3).strip(), line[2:].strip()))
 
 # 首頁
 front = []
@@ -1192,9 +1155,6 @@ else:
     for q in bullets(index_sections.get('Open Questions', '')):
         if not q.startswith('*('): waiting.append(inline(q, 'epic'))
     front.append('<article class="front"><section class="fs"><h3>阻擋清單</h3>' + (f'<ul class="todo">{capped([f"<li>{w}</li>" for w in waiting])}</ul>' if waiting else '<p class="placeholder">沒有阻擋項</p>') + '</section></article>')
-if phase_table_rows:
-    rows = [f'<tr><td class="num">{html.escape(r[0])}</td><td>{inline(r[1], "epic")}</td><td>{zpill(r[4].lower())}</td></tr>' for r in phase_table_rows]
-    front.append(f'<article><h3 class="file-title">Phases</h3><div class="tbl"><table><tr><th>#</th><th>title</th><th>狀態</th></tr>{capped(rows)}</table></div></article>')
 tab['首頁']['epic'] = front
 
 # 契約 — the newest YAML phase open, older phases and legacy md folded; epic-level: aim, foundation, ledger, ADRs (folded)
@@ -1219,9 +1179,8 @@ for p in phases:
         parts.append(f'<h4>Requirements</h4><div class="tbl"><table><tr><th>REQ</th><th>SHALL</th><th>ACs</th></tr>{rows}</table></div>')
     full = md_to_html(s['body'], p['key'], define=True)
     parts.append(collapsed('<span class="lead">Full spec text</span> <span class="muted">(' + str(s['body'].count(chr(10)) + 1) + ' lines; the AC and REQ anchors live here)</span>', full))
-    head, rest = parts[0], ''.join(parts[1:])
-    legacy_summ = '<span class="lead">' + lab('legacy markdown spec') + '</span>'
-    tab['契約'][p['key']].append(f'<article>{head}{collapsed(legacy_summ, rest)}</article>')
+    legacy_summ = '<span class="lead">' + lab('legacy markdown spec') + '</span> ' + html.escape(s['title'])
+    tab['契約'][p['key']].append(f'<article>{collapsed(legacy_summ, "".join(parts))}</article>')
 epic_parts = []
 if aim: epic_parts.append(f'<p class="aim">{inline(aim, "epic")}</p>' + meta_line(index_fm))
 if bullets(index_sections.get('Foundation', '')):
@@ -1229,6 +1188,9 @@ if bullets(index_sections.get('Foundation', '')):
 for h in ('Pivots', 'Open Questions'):
     if h in index_sections and index_sections[h].strip() and not index_sections[h].strip().startswith('*('):
         epic_parts.append(f'<h4>{lab(h)}</h4>' + md_to_html(index_sections[h], 'epic'))
+if phase_table_rows:
+    rows = [f'<tr><td class="num">{html.escape(r[0])}</td><td>{inline(r[1], "epic")}</td><td>{zpill(r[4].lower())}</td></tr>' for r in phase_table_rows]
+    epic_parts.append(collapsed(f'<span class="lead">{lab("epic 歷史")}</span> <span class="num">{len(rows)}</span>', f'<div class="tbl"><table><tr><th>#</th><th>title</th><th>狀態</th></tr>{"".join(rows)}</table></div>'))
 if epic_parts: tab['契約']['epic'].append('<article>' + ''.join(epic_parts) + '</article>')
 adr_lines = []
 for kk in sorted(adr_files, key=lambda x: int(x.split('--')[1])):
@@ -1289,7 +1251,9 @@ for p in phases:
     other = [d for d in devs if not any(l.split()[0].lower() in d.lower() for l, _ in s['panels'])]
     if other:
         cards += '<section class="panel"><h4>Other deviations</h4><ul>' + ''.join(f'<li>{inline(d, p["key"])}</li>' for d in other) + '</ul></section>'
-    tab['結構變化'][p['key']].append(f'<article><h3 class="file-title">{html.escape(s["title"])}</h3><div class="panels">{cards}</div></article>')
+    lp_summ = '<span class="lead">' + lab('legacy phase map') + '</span> ' + html.escape(s['title'])
+    lp_body = '<div class="panels">' + cards + '</div>'
+    tab['結構變化'][p['key']].append(f'<article>{collapsed(lp_summ, lp_body)}</article>')
 if not phases:
     tab['結構變化']['epic'].append('<p class="placeholder">no phase map in this epic (no spec carries a <code>## Phase map</code> section)</p>')
 ed = dev_lines_for(EPIC)
@@ -1322,6 +1286,9 @@ for p in phases:
     if yaml_dev:
         dn = [e for e in (yaml_dev.get('entries') or []) if isinstance(e, dict)]
         folds += collapsed(f'<span class="lead">{lab("偏離紀錄")}</span> <span class="num">{len(dn)}</span>', '<ul>' + ''.join(dev_entry_html(e, k, anchor=False) for e in dn) + '</ul>')
+    if ledger_stage_lines:
+        items = ''.join(f'<li>{inline(l, k)}</li>' for i, st, l in ledger_stage_lines if st.startswith(('build', 'deliverable-review', 'phase-ship')))
+        folds += collapsed(f'<span class="lead">{lab("build 帳")}</span> <span class="num">{sum(1 for i, st, l in ledger_stage_lines if st.startswith(("build", "deliverable-review", "phase-ship")))}</span>', f'<ul id="{attr(k + "--ledger")}">{items}</ul>')
     tab['紀錄'][k].append(f'<article><h3 class="file-title">{yv(s["yaml"].get("title"), k)}</h3>{summary}{folds}</article>')
 for rel in files:
     if rel == 'index.md': continue
@@ -1352,9 +1319,9 @@ for rel in files:
         fm, body = frontmatter(read(path))
         if base == 'review.md':
             v = verdict_lines(body)
-            head = f'<h3 class="file-title">Review — {html.escape(os.path.dirname(rel))}</h3><p class="meta"><span class="file">{html.escape(rel)}</span></p>' + (f'<ul class="verdict">{"".join(f"<li>{inline(l, p[chr(107)+chr(101)+chr(121)])}</li>" for l in v)}</ul>' if v else '<p class="muted">no verdict line found in review.md</p>')
-            summ = '<span class="lead">Synthesis</span> <span class="muted">(review.md)</span>'
-            tab['紀錄'][p['key']].append(f'<article>{head}{collapsed(summ, md_to_html(body, p["key"]))}</article>')
+            inner = (f'<ul class="verdict">{"".join(f"<li>{inline(l, p[chr(107)+chr(101)+chr(121)])}</li>" for l in v)}</ul>' if v else '<p class="muted">no verdict line found in review.md</p>') + collapsed('<span class="lead">Synthesis</span> <span class="muted">(review.md)</span>', md_to_html(body, p["key"]))
+            lr_summ = '<span class="lead">' + lab('legacy review') + '</span> <span class="file">' + html.escape(rel) + '</span>'
+            tab['紀錄'][p['key']].append(f'<article>{collapsed(lr_summ, inner)}</article>')
         elif base.startswith('deviation'):
             continue
         else:
@@ -1447,8 +1414,8 @@ def phase_header(g):
     if g is EPIC:
         return '<h2>Epic</h2>'
     s = specs[g['spec']]
-    title = f'Phase {g.get("num", "")} · {sval(s["yaml"].get("title"))}' if 'yaml' in s else g['title']
-    return f'<h2>{html.escape(title)} {zpill(s["fm"].get("status", "").lower())}</h2><p class="meta"><span class="file">{html.escape(g["spec"])}</span></p>'
+    title = f'Phase {sval(s["yaml"].get("phase"))} · {sval(s["yaml"].get("title"))}' if 'yaml' in s else g['title']
+    return f'<h2>{html.escape(title)}</h2><p class="meta"><span class="file">{html.escape(g["spec"])}</span></p>'
 
 def render_tab(i, t):
     parts = []
