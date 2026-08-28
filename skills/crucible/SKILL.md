@@ -32,8 +32,8 @@ spec revision goes straight to `/touchstone:design-spec` +
 2. **`touchstone:assay`** — the unconditional interview (proportionality lives
    inside it, never as a chain skip-condition). **Progression gate: do not
    advance until the assay record's readiness ruling — the explicit human
-   yes — exists.** A structural fork it surfaces produces an ADR that
-   design-spec inherits via its Related field.
+   yes — exists.** A structural fork it surfaces produces an ADR; the
+   ledger row that produced it is what design-spec cites.
 3. **Contract form — an explicit two-way choice** (name it to the human;
    default = full spec):
    - **Full `/touchstone:design-spec`** — a new contract (API / CLI / IPC /

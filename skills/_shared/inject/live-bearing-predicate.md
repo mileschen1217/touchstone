@@ -1,10 +1,10 @@
 ---
-injected-by: [design-review, code-review]
+injected-by: [design-review, deliverable-review]
 referenced-by: [design-spec]
 kind: bridge
 ---
 
-**live-bearing predicate** — operational classification; the shared text both `design-review` and `code-review batch` **load-and-inject** into their cold dispatched reviewer (the per-stage application is each skill's own delta).
+**live-bearing predicate** — operational classification; the shared text both `design-review` and `deliverable-review` **load-and-inject** into their cold dispatched reviewer (the per-stage application is each skill's own delta).
 
 - **Predicate:** An AC is **live-bearing** ⟺ its Given/When/Then asserts a behaviour that **cannot be discharged offline** — it depends on an un-owned, wired, deployed, real-scale, or otherwise non-offline-dischargeable boundary. Classify by behaviour, not wording (not a closed keyword list).
 - **Signals:** a network/API call, a DB/filesystem write, device I/O, a real `Agent()`/sub-process dispatch, or a deployed/wired target are common signals, but each counts ONLY when the predicate holds.

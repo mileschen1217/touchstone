@@ -1,6 +1,6 @@
 # Reviewer Prompts — Batch Additions
 
-Injected into the batch reviewer's `system_prompt` per SKILL.md Phase 3, when
+Injected into the conformance context per SKILL.md Phase 2, when
 the diff touches test files. Single canonical home — do not duplicate this
 text elsewhere.
 
