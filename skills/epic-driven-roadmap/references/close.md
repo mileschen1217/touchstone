@@ -17,7 +17,7 @@ leaves a dual-home and is noted in the close report.
    (bullets only — What worked / What pivoted / What to do differently, ≤5
    lines total).
 2. **Comprehension cite.** Reference each phase's Post-build pair (the dossier's
-   Ship tab + the quiz block of its `deviation.yaml`, produced at phase ship —
+   首頁 + the quiz block of its `deviation.yaml`, produced at phase ship —
    single home: `references/phase-ship.md`) in the close report; close never
    re-runs the quiz. A phase that shipped without its pair → produce it now,
    per phase-ship.md, before closing.

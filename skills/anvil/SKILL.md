@@ -56,7 +56,7 @@ Critical/High block.
 
 Present the branch, the review.yaml verdict, and any surviving `unverified` list
 for the human's final-accept — an informed accept: the post-build pair (the
-dossier's Ship tab + comprehension quiz, home: `epic-driven-roadmap`
+dossier's 首頁 + comprehension quiz, home: `epic-driven-roadmap`
 `references/phase-ship.md`) runs BEFORE the accept is acted on. **Anvil stops
 before ship** — never push, open a PR, merge, or release, on any path including
 halts.

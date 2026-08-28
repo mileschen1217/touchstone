@@ -67,10 +67,12 @@ observation or ruling that arises while drafting is APPENDED to the ledger with
 
 ### 2. Human-facing fields
 
-`phase_map` — four panels in the reader's problem vocabulary, ≤3 sentences each, no
-paths (checker-enforced). `touch_set` — the agent-facing path lists.
-`user_stories[]` — one actor-facing want each; authoring rules:
-`references/authoring.md § Want-layer authoring`.
+`reader: human` fields (`title`, `phase_map`, `user_stories`, `non_goals`, `risks`,
+`waiting_on_human`) are written in the owner's language; `reader: agent` fields in
+English; identifiers are never translated. `phase_map` — four panels in the reader's
+problem vocabulary, ≤3 sentences each, no paths (checker-enforced). `touch_set` — the
+agent-facing path lists. `user_stories[]` — one actor-facing want each; authoring
+rules: `references/authoring.md § Want-layer authoring`.
 
 ### 3. Delta — the structural commitments
 

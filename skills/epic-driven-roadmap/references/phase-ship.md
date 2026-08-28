@@ -1,8 +1,9 @@
 # Phase-ship moment
 
 One moment per phase PR: **pre-approve** — the Post-build pair. There is no
-explainer file: the dossier's Ship tab is the explainer, and the PR body is its
-text projection.
+explainer file: the dossier's 首頁 (decision line → gate strip → blocker checklist →
+how-verified → structure → do-confirm checklist) is the explainer, and the PR body
+is its text projection.
 
 ## Pre-approve — Post-build pair (single home; close step 2 cites this)
 
@@ -17,17 +18,17 @@ shipping session) do the following in order:
       (exit 3 = archify absent; the tab keeps its delta tables). Then
       `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" <epic-dir>`
       then `… --pr-body <epic-dir>` (writes `<epic-dir>/pr-body.md`, the Ship tab
-      in text; `gh pr create --body-file` it). A sentence you want to add to the Ship
-      tab is a missing field — add it upstream and re-project.
+      in text; `gh pr create --body-file` it). A sentence you want to add to the page
+      is a missing field — add it upstream and re-project.
 - [ ] **Comprehension quiz** — authored AFTER the projection exists, as
       `quiz.items[]` in `deviation.yaml`: questions the owner should be able to
-      answer from the Ship tab alone (what breaks if X, why was Y retired, where does
-      Z live now). Every `answer` names the field id it resolves to and `anchor`
+      answer from the dossier's 首頁 and 結構變化 alone (what breaks if X, why was Y
+      retired, where does Z live now). Every `answer` names the field id it resolves to and `anchor`
       carries that field path — an answer with no resolvable field is a missing
       source field: fix upstream, re-project, re-author. Each question anchors to a
       D-n entry or one panel; drop test — if the owner's answer could not change
       whether they approve, the question is out; at most 8, no minimum. Zero D-n
-      entries → `quiz.waived: true` (the Ship tab states the waiver visibly).
+      entries → `quiz.waived: true` (the page states the waiver visibly).
       Re-validate `deviation.yaml`, re-project, hand the pair to the owner and ask
       them to try it. A wrong answer → `result: miss` on that item, one
       `gate-miss.md` line in the canonical six-field primitive (its header states the
