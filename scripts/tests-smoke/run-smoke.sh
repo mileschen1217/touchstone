@@ -118,7 +118,7 @@ printf -- '---\nstatus: Accepted\n---\n\n# ADR-0038 fixture decision\n\nBody.\n'
 ed="$tmp_root/.touchstone/epics/2026-01-01-fixture"
 dout="$ed/dossier.html"
 
-expect_exit "dossier-render.sh green" zero bash "$scripts_dir/dossier-render.sh" "$ed"
+expect_exit "dossier-render.sh green" zero bash "$scripts_dir/dossier-render.sh" --pr-body "$ed"
 expect_exit "dossier-render.sh red (missing path)" nonzero bash "$scripts_dir/dossier-render.sh" "$tmp_root/nope"
 expect_exit "dossier-render.sh red (path is a file)" nonzero bash "$scripts_dir/dossier-render.sh" "$dout"
 mkdir -p "$tmp_root/noindex"
@@ -142,7 +142,7 @@ else
   echo "FAIL: dossier header not in first 5 lines"; fail=1
 fi
 expect_grep "six tabs in order" -eq 1 '>位置</button><button data-tab="1" aria-selected="false">契約</button><button data-tab="2" aria-selected="false">Map</button><button data-tab="3" aria-selected="false">Build</button><button data-tab="4" aria-selected="false">Ship</button><button data-tab="5" aria-selected="false">Close</button>'
-expect_grep "two phase groups" -ge 2 '<h2>Phase '
+expect_grep "three phase groups" -ge 3 '<h2>Phase '
 expect_grep "front page: waiting list" -ge 1 '<h3>Waiting on the human</h3>'
 expect_grep "front page: unshipped phase listed" -ge 1 'Ship phase 2'
 expect_grep "explainer inlined (h1 text)" -ge 1 'Alpha buy-in explainer'
@@ -182,6 +182,85 @@ expect_grep "hostile: nav link kept" -ge 1 'href="https://example.com/doc"'
 expect_grep "hostile: markdown link attr-escaped" -eq 0 'href=""onmouseover'
 expect_grep "hostile: AC-1 linked inside sanitized html" -ge 1 'href="#2026-01-03-beta-design--AC-1">AC-1</a>'
 
+# ---- YAML phase (gamma): projection, overlays, ledger anchors, Ship order, pr-body, INV-1
+expect_grep "yaml: gamma phase group" -ge 1 'data-phase="2026-01-04-gamma.spec"'
+expect_grep "yaml: four panels + D-1 overlay on the interface panel" -ge 1 'Interface delta</span> <span class="pill warn">built ≠ planned</span>'
+expect_grep "yaml: D-1 entry anchored" -eq 1 'id="deviation--D-1"'
+expect_grep "yaml: legacy deviation line under its own heading" -ge 1 '>Legacy deviation lines</span>'
+expect_grep "yaml: review.yaml verdict line" -ge 1 'design-review-gamma/review.yaml</span> · design-review'
+expect_grep "yaml: review finding F-1 in findings table" -ge 1 '<td>F-1</td>'
+expect_grep "yaml: basis Q-1 links to the ledger line" -ge 1 'href="#ledger--Q-1">Q-1</a>'
+expect_grep "yaml: ledger line anchored" -eq 1 'id="ledger--Q-1"'
+expect_grep "yaml: ledger table row anchored" -eq 1 'id="ledger--A-1"'
+expect_grep "yaml: AC-2 anchored in the requirements table" -eq 1 'id="2026-01-04-gamma.spec--AC-2"'
+expect_grep "yaml: INV-1 anchored" -eq 1 'id="2026-01-04-gamma.spec--INV-1"'
+expect_grep "yaml: front page lists waiting_on_human from the spec" -ge 1 'rule on the collision rename'
+expect_grep "yaml: front page lists waiting_on_human from review.yaml" -ge 1 'accept F-1 as is'
+expect_grep "yaml: front page lists waiting_on_human from deviation.yaml" -ge 1 'confirm the equals form stays'
+expect_grep "yaml: quiz item rendered" -ge 1 'which panel changed during the build?'
+expect_grep "yaml: quiz anchor rendered" -ge 1 '<code>phase_map.interface_delta</code>'
+expect_grep "ship order: eight sections" -eq 1 '<h3>Header</h3>'
+python3 - "$dout" "$ed/pr-body.md" "$ed" <<'PY' || { echo "FAIL: yaml projection checks"; fail=1; }
+import re, sys, html as H, yaml, os
+h = open(sys.argv[1], encoding='utf-8').read()
+ship = re.search(r'<section class="tab" id="tab-4">(.*?)<section class="tab" id="tab-5">', h, re.S).group(1)
+gamma = re.search(r'<section class="phase" data-phase="2026-01-04-gamma.spec">(.*?)</section>\s*(?:<section class="phase"|$)', ship, re.S).group(1)
+heads = re.findall(r'<section class="ship"><h3>([^<]*)</h3>', gamma)
+want = ['Header', 'Phase map', 'Structure overlay', 'Evidence and invariants', 'Review verdicts', 'Quiz', 'Waiting on human', 'Closing message']
+assert heads == want, heads
+pr = open(sys.argv[2], encoding='utf-8').read()
+assert re.findall(r'^## (.+)$', pr, re.M) == want, 'pr-body sections differ from the tab order'
+assert 'built ≠ planned' in pr and 'D-1' in pr, 'pr-body lacks the D-1 overlay'
+# no whole-file pre block in the YAML phase's sections (Map + Ship + 契約)
+for tab_id in ('1', '2', '4'):
+    t = re.search(r'<section class="tab" id="tab-%s">(.*?)(?=<section class="tab" id="tab-|</main>)' % tab_id, h, re.S).group(1)
+    g = re.search(r'<section class="phase" data-phase="2026-01-04-gamma.spec">(.*?)(?=<section class="phase"|$)', t, re.S)
+    assert g and '<pre>' not in g.group(1), 'pre block in gamma tab ' + tab_id
+# INV-1: every text node in the gamma Map + Ship sections is a YAML field value, an id, a number, or a label
+vals = set()
+def walk(v):
+    if isinstance(v, dict):
+        for x in v.values(): walk(x)
+    elif isinstance(v, list):
+        for x in v: walk(x)
+    elif v is not None:
+        vals.add(str(v).strip())
+ed = sys.argv[3]
+for f in ('2026-01-04-gamma.spec.yaml', 'design-review-gamma/review.yaml', 'deviation.yaml'):
+    walk(yaml.safe_load(open(os.path.join(ed, f), encoding='utf-8')))
+legacy = [l[2:].strip() for l in open(os.path.join(ed, 'index.md'), encoding='utf-8').read().splitlines() if l.startswith('- phase ')]
+checked = 0
+for tab_id in ('2', '4'):
+    t = re.search(r'<section class="tab" id="tab-%s">(.*?)(?=<section class="tab" id="tab-|</main>)' % tab_id, h, re.S).group(1)
+    g = re.search(r'<section class="phase" data-phase="2026-01-04-gamma.spec">(.*?)(?=<section class="phase"|$)', t, re.S).group(1)
+    g = re.sub(r'<(span|p|h\d|th)[^>]*class="(label|placeholder|pill [a-z]+|file|muted)"[^>]*>.*?</\1>', '', g, flags=re.S)
+    g = re.sub(r'<h2>.*?</h2>|<th>.*?</th>|<h3>[^<]*</h3>|<summary>.*?</summary>', '', g, flags=re.S)
+    for node in re.findall(r'>([^<>]+)<', g):
+      for n in re.split(r'\s·\s', H.unescape(node)):
+        n = n.strip(' ·:—').strip()
+        if not n or n in ('·', '—', '(', ')', ',', '·'): continue
+        ok = n in vals or re.fullmatch(r'[A-Z]+-\d+|[\d.\s]+', n) or all(t in vals for t in n.split()) or any(n in v for v in vals) or any(n in l for l in legacy) \
+             or n in ('dossier.html', 'pr-body.md', 'Waiting on human', 'Quiz', 'Phase map', 'Legacy deviation lines')
+        assert ok, 'renderer-authored text node: %r' % n
+        checked += 1
+assert checked >= 10, checked
+print('PASS: yaml Ship order == pr-body order; no whole-file pre; %d text nodes trace to YAML fields (INV-1)' % checked)
+PY
+
+# zero-delta phase → visible quiz waiver
+zd="$tmp_root/.touchstone/epics/2026-01-07-zerodelta"; mkdir -p "$zd"
+printf -- '---\nslug: zerodelta\nstatus: active\n---\n\n# Zero delta\n\n**Aim:** x.\n\n## Phases\n\n| # | Title | Spec | Plan | Status | Landed |\n|---|---|---|---|---|---|\n| 1 | Delta | [spec](2026-01-07-delta.spec.yaml) | — | active | |\n' > "$zd/index.md"
+sed -e 's/^title: .*/title: Delta — zero deviation/' -e 's/^  record: .*/  record: ledger.md/' "$fx/dossier-epic/2026-01-04-gamma.spec.yaml" > "$zd/2026-01-07-delta.spec.yaml"
+cp "$fx/artifacts/ledger.md" "$zd/ledger.md"
+printf 'entries: []\nquiz: {waived: true, items: []}\nwaiting_on_human: []\n' > "$zd/deviation.yaml"
+dout="$zd/dossier.html"
+expect_exit "dossier-render.sh zero-delta green" zero bash "$scripts_dir/dossier-render.sh" "$zd"
+expect_grep "zero-delta: quiz waiver visible" -ge 1 '>Quiz waived</span>'
+expect_grep "zero-delta: every panel as planned (Map + Ship)" -eq 8 'as planned</span>'
+md="$tmp_root/.touchstone/epics/2026-01-08-mdonly"; mkdir -p "$md"; printf -- '---\nslug: mdonly\nstatus: active\n---\n\n# Md only\n\n**Aim:** x.\n' > "$md/index.md"
+expect_out "dossier-render.sh --pr-body red (no YAML phase)" "needs a YAML phase" bash "$scripts_dir/dossier-render.sh" --pr-body "$md"
+dout="$ed/dossier.html"
+
 # not-writable epic dir → exit 1 naming the cause
 ro="$tmp_root/.touchstone/epics/2026-01-04-readonly"; mkdir -p "$ro"; cp "$fx/dossier-epic/index.md" "$ro/"; chmod 500 "$ro"
 ro_out="$(bash "$scripts_dir/dossier-render.sh" "$ro" 2>&1)"; ro_rc=$?
@@ -208,7 +287,7 @@ allf=set().union(*[files_in(i) for i in t])
 for f in ['assay-notes.md','local-decision.md','evidence.md','task-01.md','build-plan.md','stray.md','2026-01-02-alpha-buyin.html']:
     assert f in allf, f+' absent from page'
 assert 'Body.' not in t['1'], 'ADR body inlined into 契約 (should be a one-liner)'
-for s in ['Retrospective','Evidence Reckoning','Disposition','Eval Reckon']:
+for s in ['Retrospective','Evidence Reckoning','Disposition']:
     assert f'<h3>{s}</h3>' in t['5'], s+' missing from Close'
     assert f'<h3>{s}</h3>' not in t['0'], s+' leaked into 位置'
 embs=re.findall(r'<div class="embedded">(.*?)</div>',t['4'],re.S)

@@ -21,6 +21,7 @@ landed:
 |---|---|---|---|---|---|
 | 1 | Alpha | [spec](2026-01-02-alpha-design.md) | — | done | 2026-01-02 |
 | 2 | Beta | [spec](2026-01-03-beta-design.md) | — | active | |
+| 3 | Gamma | [spec](2026-01-04-gamma.spec.yaml) | — | active | |
 
 ## Pivots
 
@@ -33,6 +34,7 @@ landed:
 ## Deviation log
 
 - phase 2 · interface delta: AC-1 built with a flag instead of a header / which-stage-could-have-caught: assay
+- phase 3 · scope: the writer was touched after all / which-stage-could-have-caught: explore
 
 ## Retrospective
 
@@ -49,6 +51,3 @@ landed:
 
 all none
 
-## Eval Reckon
-
-- design-review: keep — no data
