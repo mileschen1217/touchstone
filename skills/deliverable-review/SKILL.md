@@ -55,7 +55,7 @@ Quality context:
 - **Conformance** — `Agent(subagent_type: "touchstone:code-reviewer", description: "conformance", prompt: <conformance injections> + the spec text + the diff)`. Output, one line per AC and per invariant: `<AC-n|INV-n> | covered <test/artifact ref> | unverified <reason or proxy> | violated <finding>`.
 - **Quality** — the Phase-1 reviewer, `description: "quality"`, envelope `{task: <full diff>, task_dir: <round dir>, role: "batch-reviewer"}`.
 
-Quality arm fails (`status: failed` / a `fallback_reason`) → fall back to the builder's own vendor with `degraded: true`, `degraded_reason: "vendor: builder=<v> reviewer=<v>"`; that also fails → no review.yaml, surface the failure, stop.
+Quality arm returns without `raw_codex.jsonl` + `last-message.txt` in the round dir → it was not Codex: record it as a `cc` arm under the liveness rule in `provenance.md` (path below), or re-dispatch once. Quality arm fails (`status: failed` / a `fallback_reason`) → fall back to the builder's own vendor with `degraded: true`, `degraded_reason: "vendor: builder=<v> reviewer=<v>"`; that also fails → no review.yaml, surface the failure, stop.
 
 ## Phase 4 — Merge into review.yaml, converge, report
 
