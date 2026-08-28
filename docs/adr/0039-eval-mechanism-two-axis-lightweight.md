@@ -37,3 +37,23 @@ eval 機制自身受 R2:先以 prose 程序 + 手寫記錄跑滿 ≥1 個 epic,�
 - 變容易:刪除 ~2.1k 行 insight 管線與其併發防護;eval 資料可直接引用 conductor journal/precedent;review 節奏(per-commit 移除)成為第一個受測旋鈕,由資料而非教條決定復職。
 - 變困難:capture 依賴 gate 程序自律與人的當下配合;資料在首個 epic 前是空的,早期裁決仍靠判斷。
 - 新義務:每個 v2 gate skill 程序尾必含 stamp 步;epic close 程序含固定補漏問句與一頁 reckon;flip-trigger 由裁決臂執行者盯。
+
+## Amendment 2026-08-28 — stamps and Eval Reckon leave the shipped skills
+
+Kill-on `eval-reckon-kills-stamps-or-mechanises` fired (ruling Q-13 of the
+`human-facing-comm` assay record, 2026-08-28): after one epic of use the stamp data fed no
+ruling a consumer project could act on, while every gate skill carried a stamp step and every
+consumer project accumulated a `stamps.jsonl` it never read.
+
+- **Mechanism axis (stamps) and the epic-close Eval Reckon page move to touchstone's own
+  repo-local tooling** (`.touchstone/checker/standalone/`). Shipped skills carry no stamp
+  step and no conditional branch for it; consumer projects write no `stamps.jsonl`.
+- **Product axis stays shipped:** `gate-miss.md` and the six-field use-point primitive
+  (`date | artifact | 事件 | 應然 locus | 實然 locus | severity`) remain in the skill — their
+  reader is the consumer project's human, and the attention-allocation measure (A-11)
+  depends on them. The build-time deviation log becomes `deviation.yaml` (D-n entries with
+  `which_stage_could_have_caught`), the same primitive in field form.
+- Decision items 1 (stamp step in every gate) and 3 (epic-close reckon over both axes) are
+  superseded for consumers; touchstone's own epics keep running them locally.
+- Flip-trigger unchanged in spirit: a gate-calibration question that needs consumer data
+  re-enables the stamp write only — never Eval Reckon in consumers.

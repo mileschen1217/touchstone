@@ -74,3 +74,27 @@ Build the deferred standalone subsystem-scan when a **second** commitment-less a
 - ADR-0019 (keystone substrate-neutral arch-rubric) — the L1/L2/L3 rubric the structural commitments are graded against; deep-module is L3 of the interface-economy L2 force.
 - ADR-0009 / ADR-0010 (evidence-honesty gate / live-bearing AC) — the two-arm (declare/verify) structure this mirrors for design quality.
 - ADR-0018 (honesty-spine two-pillar) — design quality as the second pillar's feedback expression (constrain-before + measure-after).
+
+## Amendment 2026-08-28 — form change: `depth-stakes:` marker → AC or checked invariant
+
+Principle and lens kept; the **form** of a structural commitment changes. Triggered by the
+`human-facing-comm` epic's per-stage artifact contract (the spec is now `spec.yaml`, fields
+not prose).
+
+- A structural commitment is expressed as an **AC** when it is test-dischargeable, otherwise
+  as an entry in `invariants[]` carrying a mandatory `check: test | grep | review`; every
+  `delta.blocks[]` entry carries `purpose`. The schema checker (`scripts/check-artifact.sh`)
+  blocks a check-less invariant and a purpose-less block — the deterministic floor now lives
+  in data, not in a reviewer's marker hunt.
+- **Removed:** the `depth-stakes:` REQ marker, the "missing marker" design-review finding,
+  and the honor-check fragment's two procedural arms (marker detection, per-commitment
+  honor procedure).
+- **Kept** in the slimmed `design-soundness-honor-check.md`: the three-criterion decision
+  rule (hides a decision / owns state / sequences calls) and the one review-lens question —
+  "does a block that hides a decision, owns state, or sequences calls have an AC or a checked
+  invariant?" The deliverable review executes each invariant's `check` and records
+  `[unverified]` when it cannot decide — never a silent pass.
+- Order of landing: this amendment → checker blocks check-less invariants → marker path
+  removed from the template and fragment.
+- § Consequences bullets naming `## Architecture` / the marker describe the pre-amendment
+  form; the feedforward arm's subject is now the spec's `delta.blocks[]` + `invariants[]`.
