@@ -11,7 +11,8 @@
 #   exit 0 → <epic-dir>/dossier.html written (+ <epic-dir>/pr-body.md with --pr-body:
 #            the newest YAML phase's Ship tab as text, sections in the tab's order)
 #   exit 1 → path missing / not a dir / no index.md / dir not writable / PyYAML absent
-#            while a .yaml artifact is present (cause on stderr)
+#            while a .yaml artifact is present / --pr-body with no YAML phase (nothing
+#            written) — cause on stderr
 #
 # YAML path (a phase whose spec is *.spec.yaml; schemas: skills/_shared/schemas/):
 #   契約  = title / stories / requirements+ACs / invariants / delta blocks / contracts /
@@ -170,7 +171,7 @@ def stem_of(rel):
 
 def safe_url(u):
     """Reject scheme-bearing URLs other than http(s)/mailto and fragments/relative paths."""
-    u = u.strip()
+    u = re.sub(r'[\t\r\n]', '', u).strip()
     if re.match(r'^(https?:|mailto:|#|/|\.|[A-Za-z0-9_])', u) and not re.match(r'^\s*(javascript|data|vbscript):', u, re.I):
         return u
     return '#'
@@ -744,7 +745,7 @@ def yaml_table(rows, header, owner, anchor_col=None, stem=''):
     h = ''.join(f'<th>{html.escape(x)}</th>' for x in header)
     body = ''
     for r in rows:
-        rid = f' id="{stem}--{sval(r[anchor_col])}"' if anchor_col is not None and sval(r[anchor_col]) else ''
+        rid = f' id="{attr(stem + "--" + sval(r[anchor_col]))}"' if anchor_col is not None and sval(r[anchor_col]) else ''
         skip = sval(r[anchor_col]) if anchor_col is not None else None
         body += f'<tr{rid}>' + ''.join(f'<td>{inline(sval(c), owner, skip if j == anchor_col else None)}</td>' for j, c in enumerate(r)) + '</tr>'
     return f'<div class="tbl"><table><tr>{h}</tr>{body}</table></div>'
@@ -758,22 +759,22 @@ def yaml_contract_card(p, s):
         parts.append(f'<p class="meta">{lab("ledger")} <span class="file">{html.escape(sval(fs.get("record")))}</span> · {" ".join(link_codes(sval(c), k) for c in fs.get("consensus") or [])}</p>')
     if yd.get('user_stories'):
         parts.append(f'<h4>{lab("User stories")}</h4><ul>' + ''.join(
-            f'<li id="{k}--{sval(u.get("id"))}">{inline(sval(u.get("id")), k, sval(u.get("id")))} · {yv(u.get("as"), k)} · {yv(u.get("want"), k)} · {yv(u.get("so_that"), k)}</li>'
+            f'<li id="{attr(k + "--" + sval(u.get("id")))}">{inline(sval(u.get("id")), k, sval(u.get("id")))} · {yv(u.get("as"), k)} · {yv(u.get("want"), k)} · {yv(u.get("so_that"), k)}</li>'
             for u in yd['user_stories'] if isinstance(u, dict)) + '</ul>')
     if yd.get('requirements'):
         rows = ''
         for r in yd['requirements']:
             if not isinstance(r, dict): continue
             rid = sval(r.get('id'))
-            acs = ' '.join(f'<a class="code" href="#{k}--{sval(a.get("id"))}">{html.escape(sval(a.get("id")))}</a>' for a in r.get('acs') or [] if isinstance(a, dict))
+            acs = ' '.join(f'<a class="code" href="#{attr(k + "--" + sval(a.get("id")))}">{html.escape(sval(a.get("id")))}</a>' for a in r.get('acs') or [] if isinstance(a, dict))
             basis = ' '.join(link_codes(sval(b), k) for b in r.get('basis') or [])
-            rows += f'<tr id="{k}--{rid}"><td class="num">{html.escape(rid)}</td><td>{yv(r.get("shall"), k)}</td><td class="num">{acs}</td><td class="num">{basis}</td></tr>'
+            rows += f'<tr id="{attr(k + "--" + rid)}"><td class="num">{html.escape(rid)}</td><td>{yv(r.get("shall"), k)}</td><td class="num">{acs}</td><td class="num">{basis}</td></tr>'
             for a in r.get('acs') or []:
                 if not isinstance(a, dict): continue
                 aid = sval(a.get('id'))
                 ab = ' '.join(link_codes(sval(b), k) for b in a.get('basis') or [])
                 lb = '<span class="pill warn">live-bearing</span>' if a.get('live_bearing') is True else ''
-                rows += f'<tr id="{k}--{aid}" class="ac"><td class="num">{html.escape(aid)} {lb}</td><td>{lab("given")} {yv(a.get("given"), k)} · {lab("when")} {yv(a.get("when"), k)} · {lab("then")} {yv(a.get("then"), k)}</td><td></td><td class="num">{ab}</td></tr>'
+                rows += f'<tr id="{attr(k + "--" + aid)}" class="ac"><td class="num">{html.escape(aid)} {lb}</td><td>{lab("given")} {yv(a.get("given"), k)} · {lab("when")} {yv(a.get("when"), k)} · {lab("then")} {yv(a.get("then"), k)}</td><td></td><td class="num">{ab}</td></tr>'
         parts.append(f'<h4>{lab("Requirements")}</h4><div class="tbl"><table><tr><th>id</th><th>shall / given · when · then</th><th>ACs</th><th>basis</th></tr>{rows}</table></div>')
     if yd.get('invariants'):
         parts.append(f'<h4>{lab("Invariants")}</h4>' + yaml_table([[i.get('id'), i.get('rule'), i.get('check'), i.get('why_ref')] for i in yd['invariants'] if isinstance(i, dict)], ['id', 'rule', 'check', 'why'], k, 0, k))
@@ -797,7 +798,7 @@ def dev_entries_for_panel(key):
 
 def dev_entry_html(e, owner, anchor=True):
     did = sval(e.get('id'))
-    aid = f' id="deviation--{did}"' if anchor else ''
+    aid = f' id="{attr("deviation--" + did)}"' if anchor else ''
     return (f'<li{aid}>{inline(did, owner, did)} · {yv(e.get("date"), owner)} · {lab("gap")} {yv(e.get("gap"), owner)} · '
             f'{lab("disposition")} {yv(e.get("disposition"), owner)} · {lab("could have caught")} {yv(e.get("which_stage_could_have_caught"), owner)}</li>')
 
@@ -1229,12 +1230,12 @@ page = f"""<!doctype html>
 <body><div class="top"><h1>{html.escape(epic_title)}</h1><span class="slug">{html.escape(slug)}</span><nav class="tabs">{buttons}</nav><button class="theme" type="button">theme</button></div>
 <main>{notes_html}{tabs_html}</main><script>{JS}</script></body></html>
 """
+if want_pr_body and pr_body_text is None:
+    print('dossier-render.sh: --pr-body needs a YAML phase (*.spec.yaml) — none found; nothing written', file=sys.stderr); sys.exit(1)
 with open(os.path.join(epic_dir, 'dossier.html'), 'w', encoding='utf-8') as fh:
     fh.write(page)
 print(os.path.join(epic_dir, 'dossier.html'))
 if want_pr_body:
-    if pr_body_text is None:
-        print('dossier-render.sh: --pr-body needs a YAML phase (*.spec.yaml) — none found', file=sys.stderr); sys.exit(1)
     with open(os.path.join(epic_dir, 'pr-body.md'), 'w', encoding='utf-8') as fh:
         fh.write(pr_body_text)
     print(os.path.join(epic_dir, 'pr-body.md'))

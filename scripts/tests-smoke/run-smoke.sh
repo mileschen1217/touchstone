@@ -51,6 +51,7 @@ expect_exit "check-artifact review red" nonzero bash "$ca" review "$ax/review-re
 expect_out "check-artifact review: duplicate F id" "duplicate id F-3" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
 expect_out "check-artifact review: missing waiting_on_human" "waiting_on_human: required" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
 expect_out "check-artifact review: field path unresolvable in target" "'requirements[REQ-99].acs[AC-1]' resolves to nothing in the target spec" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
+expect_out "check-artifact review: [*] on an empty list resolves to nothing" "'waiting_on_human[*]' resolves to nothing" bash "$ca" review "$ax/review-red-star.yaml" --root "$ax"
 expect_out "check-artifact review: degraded without reason" "degraded_reason: required when degraded is true" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
 expect_exit "check-artifact deviation green" zero bash "$ca" deviation "$ax/deviation-green.yaml"
 expect_exit "check-artifact deviation red" nonzero bash "$ca" deviation "$ax/deviation-red.yaml"
@@ -178,6 +179,7 @@ expect_grep "hostile: no on* handlers" -eq 0 'onerror='
 expect_grep "hostile: no onmouseover" -eq 0 'onmouseover='
 expect_grep "hostile: no onclick" -eq 0 'onclick='
 expect_grep "hostile: no javascript: href" -eq 0 'javascript:'
+expect_grep "hostile: tab-split scheme neutralised" -eq 0 'java	script:'
 expect_grep "hostile: nav link kept" -ge 1 'href="https://example.com/doc"'
 expect_grep "hostile: markdown link attr-escaped" -eq 0 'href=""onmouseover'
 expect_grep "hostile: AC-1 linked inside sanitized html" -ge 1 'href="#2026-01-03-beta-design--AC-1">AC-1</a>'

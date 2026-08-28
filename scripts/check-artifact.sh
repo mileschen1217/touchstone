@@ -106,7 +106,9 @@ def resolve(node, fp):
         node = node[key]
         if sel:
             if not isinstance(node, list): return False
-            if sel == '*': node = node[0] if node else None; continue
+            if sel == '*':
+                if not node: return False
+                node = node[0]; continue
             if sel.isdigit():
                 if int(sel) >= len(node): return False
                 node = node[int(sel)]; continue

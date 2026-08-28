@@ -5,7 +5,7 @@
 #   fails there). --attest (anvil entry): additionally require a design-review
 #   round's review.yaml in the spec's directory tree whose `target` is this spec and
 #   whose `challenger` names a provider — the round-1 challenge attestation.
-#   BLOCK (exit 1) with the cause; PROCEED (exit 0) clean.
+#   BLOCK (exit 1) with the cause; PROCEED (exit 0) clean; usage error (exit 2).
 set -uo pipefail
 spec="${1:-}"; [ -f "$spec" ] || { echo "usage: design-review-precheck.sh <spec.yaml> [--attest]" >&2; exit 2; }
 attest=0; [ "${2:-}" = "--attest" ] && attest=1

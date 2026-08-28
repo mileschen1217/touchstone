@@ -12,7 +12,10 @@ shipping session) do the following in order:
 - [ ] **Validate the phase's artifacts** — `check-artifact.sh spec` on the spec,
       `review` on every review.yaml, `deviation` on `deviation.yaml` (all exit 0):
       `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" <kind> <file> --root <epic-dir>`.
-- [ ] **Project** — `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" <epic-dir>`
+- [ ] **Project** — optional structure overlay first:
+      `bash "${CLAUDE_PLUGIN_ROOT}/scripts/archify-project.sh" <spec.yaml> <epic-dir>/archify`
+      (exit 3 = archify absent; the tab keeps its delta tables). Then
+      `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" <epic-dir>`
       then `… --pr-body <epic-dir>` (writes `<epic-dir>/pr-body.md`, the Ship tab
       in text; `gh pr create --body-file` it). A sentence you want to add to the Ship
       tab is a missing field — add it upstream and re-project.
