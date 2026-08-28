@@ -569,7 +569,7 @@ def article(title, rel, inner, anchor=''):
 # note: `anchor` is always built from slug_id()/adr_key() output — attribute-safe by construction.
 
 # ---------- extraction (every visible sentence is taken from a source file) ----------
-LONG_FILE = 200  # lines; longer files collapse behind a summary line
+LONG_FILE = 60  # lines; longer files collapse behind a summary line
 
 def first_para(body):
     """First non-heading, non-list, non-fence paragraph (≤ 220 chars)."""
@@ -861,11 +861,15 @@ def evidence_table(p, s):
             rows.append([sval(i.get('id')), sval(i.get('check')), i.get('rule'), status.get(sval(i.get('id')), '') if dr else None])
     if not rows:
         return f'<p class="placeholder">no acceptance criteria or invariants in this spec</p>'
-    out = ''
-    for r in rows:
+    def row(r):
         st = '<span class="placeholder">not yet reviewed</span>' if r[3] is None else inline(r[3], k)
-        out += f'<tr><td class="num">{link_codes(r[0], k)}</td><td>{lab(sval(r[1])) if sval(r[1]) else ""}</td><td>{yv(r[2], k)}</td><td>{st}</td></tr>'
-    return f'<div class="tbl"><table><tr><th>id</th><th>kind</th><th>then / rule</th><th>evidence</th></tr>{out}</table></div>'
+        return f'<tr><td class="num">{link_codes(r[0], k)}</td><td>{lab(sval(r[1])) if sval(r[1]) else ""}</td><td>{yv(r[2], k)}</td><td>{st}</td></tr>'
+    hdr = '<tr><th>id</th><th>kind</th><th>then / rule</th><th>evidence</th></tr>'
+    flagged = [r for r in rows if r[3]]
+    n_flag = len(flagged)
+    head = f'<p class="meta">{lab("items")} {len(rows)} · {lab("flagged by review")} {n_flag}</p>'
+    top = f'<div class="tbl"><table>{hdr}{"".join(row(r) for r in flagged)}</table></div>' if flagged else ''
+    return head + top + collapsed(f'<span class="lead">{lab("all items")}</span>', f'<div class="tbl"><table>{hdr}{"".join(row(r) for r in rows)}</table></div>')
 
 def structure_overlay(p, s):
     k = p['key']
@@ -1118,14 +1122,9 @@ ev = index_sections.get('Evidence Reckoning', '').strip()
 if ev and not ev.startswith('*('):
     tab['Build']['epic'].insert(0, f'<article><h3 class="file-title">Evidence reckoning</h3>{md_to_html(ev, "epic")}</article>')
 for (pk, d), rels in sorted(records.items()):
-    items = ''.join(f'<li><span class="file">{html.escape(r)}</span></li>' for r in rels)
-    inner = ''
-    for r in rels:
-        if r.endswith('.md'):
-            fm, body = frontmatter(read(os.path.join(epic_dir, r)))
-            inner += f'<h4><span class="file">{html.escape(r)}</span></h4>' + md_to_html(body, pk)
+    items = ''.join(f'<li><a href="{attr(r)}"><span class="file">{html.escape(r)}</span></a></li>' for r in rels)
     summ = f'<span class="lead">Review record</span> <span class="muted">{html.escape(d)} · {len(rels)} raw file(s)</span>'
-    body_html = f'<ul class="files">{items}</ul>{inner}'
+    body_html = f'<ul class="files">{items}</ul>'
     tab['Build'][pk].append(f'<article>{collapsed(summ, body_html)}</article>')
 
 # Ship — YAML phases: the projection in the consensus order; md phases: placeholder
@@ -1188,7 +1187,7 @@ details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5re
 .panels{display:grid;gap:.75rem}.panel{background:var(--fold);border-radius:4px;padding:.75rem 1rem}.panel h4{margin:0 0 .4rem;display:flex;gap:.5rem;align-items:baseline}.delta{margin-top:.6rem}
 .notes{color:var(--muted);font-size:.85rem;border:1px dashed var(--line);padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem}
 .embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:.85rem;color:var(--muted)}ol.quiz li{margin:.5rem 0}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
-:target{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
+[id]{scroll-margin-top:4.5rem}:target,.flash{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
 @media (prefers-reduced-motion: no-preference){details.fold>summary{transition:color .15s}}
 """
 JS = """
@@ -1199,10 +1198,11 @@ document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('ar
 document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){show(b.dataset.tab);try{localStorage.setItem('dossier-tab',b.dataset.tab)}catch(e){}})});
 var initial='0';try{initial=localStorage.getItem('dossier-tab')||'0'}catch(e){}
 function reveal(el){var tab=el.closest('.tab');if(tab)show(tab.id.replace('tab-',''));var d=el.closest('details');while(d){d.open=true;d=d.parentElement&&d.parentElement.closest('details');}}
-if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){reveal(el);var tab=el.closest('.tab');if(tab)initial=tab.id.replace('tab-','')}}
+function jump(id){var el=document.getElementById(id);if(!el)return false;reveal(el);el.scrollIntoView({block:'start'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');return true;}
 show(initial);
-document.querySelectorAll('a.code[href^="#"]').forEach(function(a){a.addEventListener('click',function(){var el=document.getElementById(a.getAttribute('href').slice(1));if(el)reveal(el)})});
-window.addEventListener('hashchange',function(){var el=document.getElementById(location.hash.slice(1));if(el){reveal(el);el.scrollIntoView();}});
+if(location.hash){jump(decodeURIComponent(location.hash.slice(1)));}
+document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){var id=decodeURIComponent(a.getAttribute('href').slice(1));if(jump(id)){e.preventDefault();history.replaceState(null,'','#'+id);}})});
+window.addEventListener('hashchange',function(){jump(decodeURIComponent(location.hash.slice(1)));});
 document.querySelector('.theme').addEventListener('click',function(){var cur=root.getAttribute('data-theme');var dark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;var next=dark?'light':'dark';root.setAttribute('data-theme',next);try{localStorage.setItem(key,next)}catch(e){}});
 })();
 """
