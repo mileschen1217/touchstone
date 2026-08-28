@@ -446,7 +446,7 @@ def link_codes(escaped, owner, skip=None):
                 return code
             return f'<span class="undef" title="no definition for {code} in this epic">{code}</span>'
         t = f' title="also defined at: {", ".join(alts)}"' if alts else ''
-        return f'<a class="code" href="#{anchor}"{t}>{code}</a>'
+        return f'<a class="code" data-jump="{attr(anchor)}" tabindex="0"{t}>{code}</a>'
     return CODE_RE.sub(sub, escaped)
 
 def inline(text, owner, skip=None):
@@ -759,6 +759,7 @@ def yaml_contract_card(p, s):
     yd, k = s['yaml'], p['key']
     parts = [f'<h3 class="file-title">{yv(yd.get("title"), k)}</h3>',
              meta_line(s['fm'], f'<span class="file">{html.escape(p["spec"])}</span>')]
+    agent = []   # reader: agent fields — folded
     if yd.get('facts_source'):
         fs = yd['facts_source']
         parts.append(f'<p class="meta">{lab("ledger")} <span class="file">{html.escape(sval(fs.get("record")))}</span> · {" ".join(link_codes(sval(c), k) for c in fs.get("consensus") or [])}</p>')
@@ -767,11 +768,14 @@ def yaml_contract_card(p, s):
             f'<li id="{attr(k + "--" + sval(u.get("id")))}">{inline(sval(u.get("id")), k, sval(u.get("id")))} · {yv(u.get("as"), k)} · {yv(u.get("want"), k)} · {yv(u.get("so_that"), k)}</li>'
             for u in yd['user_stories'] if isinstance(u, dict)) + '</ul>')
     if yd.get('requirements'):
+        reqs = [r for r in yd['requirements'] if isinstance(r, dict)]
+        n_ac = sum(len(r.get('acs') or []) for r in reqs)
+        parts.append(f'<p class="meta">{lab("requirements")} {len(reqs)} · {lab("acceptance criteria")} {n_ac} · {lab("invariants")} {len(yd.get("invariants") or [])}</p>')
         rows = ''
         for r in yd['requirements']:
             if not isinstance(r, dict): continue
             rid = sval(r.get('id'))
-            acs = ' '.join(f'<a class="code" href="#{attr(k + "--" + sval(a.get("id")))}">{html.escape(sval(a.get("id")))}</a>' for a in r.get('acs') or [] if isinstance(a, dict))
+            acs = ' '.join(f'<a class="code" data-jump="{attr(k + "--" + sval(a.get("id")))}" tabindex="0">{html.escape(sval(a.get("id")))}</a>' for a in r.get('acs') or [] if isinstance(a, dict))
             basis = ' '.join(link_codes(sval(b), k) for b in r.get('basis') or [])
             rows += f'<tr id="{attr(k + "--" + rid)}"><td class="num">{html.escape(rid)}</td><td>{yv(r.get("shall"), k)}</td><td class="num">{acs}</td><td class="num">{basis}</td></tr>'
             for a in r.get('acs') or []:
@@ -780,20 +784,23 @@ def yaml_contract_card(p, s):
                 ab = ' '.join(link_codes(sval(b), k) for b in a.get('basis') or [])
                 lb = '<span class="pill warn">live-bearing</span>' if a.get('live_bearing') is True else ''
                 rows += f'<tr id="{attr(k + "--" + aid)}" class="ac"><td class="num">{html.escape(aid)} {lb}</td><td>{lab("given")} {yv(a.get("given"), k)} · {lab("when")} {yv(a.get("when"), k)} · {lab("then")} {yv(a.get("then"), k)}</td><td></td><td class="num">{ab}</td></tr>'
-        parts.append(f'<h4>{lab("Requirements")}</h4><div class="tbl"><table><tr><th>id</th><th>shall / given · when · then</th><th>ACs</th><th>basis</th></tr>{rows}</table></div>')
+        agent.append(f'<h4>{lab("Requirements")}</h4><div class="tbl"><table><tr><th>id</th><th>shall / given · when · then</th><th>ACs</th><th>basis</th></tr>{rows}</table></div>')
     if yd.get('invariants'):
-        parts.append(f'<h4>{lab("Invariants")}</h4>' + yaml_table([[i.get('id'), i.get('rule'), i.get('check'), i.get('why_ref')] for i in yd['invariants'] if isinstance(i, dict)], ['id', 'rule', 'check', 'why'], k, 0, k))
+        agent.append(f'<h4>{lab("Invariants")}</h4>' + yaml_table([[i.get('id'), i.get('rule'), i.get('check'), i.get('why_ref')] for i in yd['invariants'] if isinstance(i, dict)], ['id', 'rule', 'check', 'why'], k, 0, k))
     d = yd.get('delta') if isinstance(yd.get('delta'), dict) else {}
     if d.get('blocks'):
-        parts.append(f'<h4>{lab("Delta blocks")}</h4>' + yaml_table([[b.get('id'), b.get('op'), b.get('kind'), b.get('purpose')] for b in d['blocks'] if isinstance(b, dict)], ['id', 'op', 'kind', 'purpose'], k))
+        parts.append(f'<h4>{lab("Structure")}</h4>' + structure_svg([b for b in d['blocks'] if isinstance(b, dict)], [e for e in d.get('edges') or [] if isinstance(e, dict)]))
+        agent.append(f'<h4>{lab("Delta blocks")}</h4>' + yaml_table([[b.get('id'), b.get('op'), b.get('kind'), b.get('purpose')] for b in d['blocks'] if isinstance(b, dict)], ['id', 'op', 'kind', 'purpose'], k))
     if d.get('contracts'):
-        parts.append(f'<h4>{lab("Contracts")}</h4>' + yaml_table([[c.get('id'), c.get('schema')] for c in d['contracts'] if isinstance(c, dict)], ['id', 'schema'], k))
+        agent.append(f'<h4>{lab("Contracts")}</h4>' + yaml_table([[c.get('id'), c.get('schema')] for c in d['contracts'] if isinstance(c, dict)], ['id', 'schema'], k))
     if yd.get('non_goals'):
         parts.append(f'<h4>{lab("Non-goals")}</h4><ul>' + ''.join(f'<li>{yv(n, k)}</li>' for n in yd['non_goals']) + '</ul>')
     if yd.get('risks'):
         parts.append(f'<h4>{lab("Risks")}</h4>' + yaml_table([[r.get('priority'), r.get('problem'), r.get('measure'), r.get('why_ref')] for r in yd['risks'] if isinstance(r, dict)], ['priority', 'problem', 'measure', 'why'], k))
     if yd.get('waiting_on_human'):
         parts.append(f'<h4>{lab("Waiting on human")}</h4><ul class="todo">' + ''.join(f'<li>{yv(w, k)}</li>' for w in yd['waiting_on_human']) + '</ul>')
+    if agent:
+        parts.append(collapsed(f'<span class="lead">{lab("agent-facing fields")}</span> <span class="muted">{lab("requirements · acceptance criteria · invariants · delta · contracts")}</span>', ''.join(agent)))
     return f'<article>{"".join(parts)}</article>'
 
 def dev_entries_for_panel(key):
@@ -873,16 +880,66 @@ def evidence_table(p, s):
     top = f'<div class="tbl"><table>{hdr}{"".join(row(r) for r in flagged)}</table></div>' if flagged else ''
     return head + top + collapsed(f'<span class="lead">{lab("all items")}</span>', f'<div class="tbl"><table>{hdr}{"".join(row(r) for r in rows)}</table></div>')
 
+OP_FILL = {'add': ('var(--ok-bg)', 'var(--ok)'), 'change': ('var(--warn-bg)', 'var(--warn)'), 'remove': ('var(--crit-bg)', 'var(--crit)')}
+def structure_svg(blocks, edges):
+    """Deterministic before→after picture: one box per delta block (colour = op), one arrow per edge."""
+    ids = [sval(b.get('id')) for b in blocks if isinstance(b, dict)]
+    if not ids: return ''
+    outs = {i: [sval(e.get('to')) for e in edges if isinstance(e, dict) and sval(e.get('from')) == i] for i in ids}
+    depth = {}
+    def dep(i, seen=()):
+        if i in depth: return depth[i]
+        if i in seen: return 0
+        depth[i] = 1 + max([dep(t, seen + (i,)) for t in outs.get(i, []) if t in ids] or [-1])
+        return depth[i]
+    for i in ids: dep(i)
+    rows = {}
+    for i in ids: rows.setdefault(depth[i], []).append(i)
+    W, H, GX, GY, PAD = 150, 44, 22, 40, 14
+    cols = max(len(m) for m in rows.values())
+    width = PAD * 2 + cols * W + (cols - 1) * GX
+    pos = {}
+    for r, (dv, members) in enumerate(sorted(rows.items(), key=lambda kv: -kv[0])):
+        off = (width - (len(members) * W + (len(members) - 1) * GX)) / 2
+        for c, i in enumerate(members): pos[i] = (off + c * (W + GX), PAD + r * (H + GY))
+    height = PAD * 2 + len(rows) * H + (len(rows) - 1) * GY
+    out = [f'<svg class="structure" viewBox="0 0 {width} {height}" role="img" aria-label="structure delta">',
+           '<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>']
+    for e in edges:
+        if not isinstance(e, dict): continue
+        a, b = sval(e.get('from')), sval(e.get('to'))
+        if a not in pos or b not in pos: continue
+        x1, y1 = pos[a][0] + W / 2, pos[a][1] + H
+        x2, y2 = pos[b][0] + W / 2, pos[b][1]
+        dash = ' stroke-dasharray="5 4"' if sval(e.get('op')) == 'remove' else ''
+        out.append(f'<line x1="{x1:.0f}" y1="{y1:.0f}" x2="{x2:.0f}" y2="{y2:.0f}" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arr)"{dash}/>')
+    for b in blocks:
+        if not isinstance(b, dict): continue
+        i = sval(b.get('id')); x, y = pos[i]
+        fill, stroke = OP_FILL.get(sval(b.get('op')), ('var(--code)', 'var(--line)'))
+        deco = ' text-decoration="line-through"' if sval(b.get('op')) == 'remove' else ''
+        out.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{W}" height="{H}" rx="6" fill="{fill}" stroke="{stroke}" stroke-width="1.5"/>')
+        out.append(f'<text x="{x + W/2:.0f}" y="{y + 19:.0f}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)"{deco}>{html.escape(i)}</text>')
+        out.append(f'<text x="{x + W/2:.0f}" y="{y + 34:.0f}" text-anchor="middle" font-size="10" fill="var(--muted)">{html.escape(sval(b.get("op")))} · {html.escape(sval(b.get("kind")))}</text>')
+    out.append('</svg>')
+    legend = ''.join(f'<span class="pill {c}">{lab(op)}</span> ' for op, c in (('add', 'ok'), ('change', 'warn'), ('remove', 'crit')))
+    return f'<div class="figure">{"".join(out)}<p class="meta">{legend}</p></div>'
+
 def structure_overlay(p, s):
     k = p['key']
     ov = [f for f in files if os.path.basename(f) == 'structure-overlay.html' and phase_of(f) in (p, EPIC)]
     d = s['yaml'].get('delta') if isinstance(s['yaml'].get('delta'), dict) else {}
-    out = f'<p>{lab("overlay")} <a href="{attr(ov[0])}"><span class="file">{html.escape(ov[0])}</span></a></p>' if ov else ''
-    if d.get('blocks'):
-        out += yaml_table([[b.get('op'), b.get('id'), b.get('kind'), b.get('purpose')] for b in d['blocks'] if isinstance(b, dict)], ['op', 'block', 'kind', 'purpose'], k)
-    if d.get('edges'):
-        out += yaml_table([[e.get('op'), e.get('from'), e.get('to'), e.get('label')] for e in d['edges'] if isinstance(e, dict)], ['op', 'from', 'to', 'label'], k)
-    return out or '<p class="placeholder">no structural delta declared</p>'
+    blocks = [b for b in d.get('blocks') or [] if isinstance(b, dict)]
+    edges = [e for e in d.get('edges') or [] if isinstance(e, dict)]
+    if not blocks:
+        return '<p class="placeholder">no structural delta declared</p>'
+    out = structure_svg(blocks, edges)
+    if ov:
+        out += f'<p class="meta">{lab("interactive overlay")} <a href="{attr(ov[0])}"><span class="file">{html.escape(ov[0])}</span></a></p>'
+    tables = yaml_table([[b.get('op'), b.get('id'), b.get('kind'), b.get('purpose')] for b in blocks], ['op', 'block', 'kind', 'purpose'], k)
+    if edges:
+        tables += yaml_table([[e.get('op'), e.get('from'), e.get('to'), e.get('label')] for e in edges], ['op', 'from', 'to', 'label'], k)
+    return out + collapsed(f'<span class="lead">{lab("blocks and edges")}</span>', tables)
 
 def quiz_html(p):
     k = p['key']
@@ -1021,7 +1078,9 @@ for p in phases:
         parts.append(f'<h4>Requirements</h4><div class="tbl"><table><tr><th>REQ</th><th>SHALL</th><th>ACs</th></tr>{rows}</table></div>')
     full = md_to_html(s['body'], p['key'], define=True)
     parts.append(collapsed('<span class="lead">Full spec text</span> <span class="muted">(' + str(s['body'].count(chr(10)) + 1) + ' lines; the AC and REQ anchors live here)</span>', full))
-    tab['契約'][p['key']].append(f'<article>{"".join(parts)}</article>')
+    head, rest = parts[0], ''.join(parts[1:])
+    legacy_summ = '<span class="lead">' + lab('legacy markdown spec') + '</span>'
+    tab['契約'][p['key']].append(f'<article>{head}{collapsed(legacy_summ, rest)}</article>')
 
 adr_lines = []
 for k in sorted(adr_files, key=lambda x: int(x.split('--')[1])):
@@ -1181,12 +1240,12 @@ ul.files{list-style:none;padding:0;font-size:.82rem}
 pre{background:var(--code);padding:.75rem .9rem;border-radius:4px;overflow-x:auto;font-size:.82rem;line-height:1.45}code{font-family:ui-monospace,"SF Mono",Menlo,monospace;background:var(--code);padding:.05rem .3rem;border-radius:3px;font-size:.86em}pre code{background:none;padding:0}
 .tbl{overflow-x:auto;margin:.5rem 0}table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border-bottom:1px solid var(--line);padding:.35rem .6rem;text-align:left;vertical-align:top}th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
 td.num,.num,a.code,.undef{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;font-size:.85rem}
-a{color:var(--accent)}a.code{text-decoration:none;border-bottom:1px dotted var(--accent)}
+a{color:var(--accent)}a.code,[data-jump]{color:var(--accent);cursor:pointer;text-decoration:none;border-bottom:1px dotted var(--accent)}
 .undef{color:var(--crit);background:var(--crit-bg);border-radius:3px;padding:0 .25rem;cursor:help}.undef::after{content:" (undefined)";font-size:.75em}
 details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5rem}details.fold>summary{cursor:pointer;color:var(--muted);list-style:none}details.fold>summary::before{content:"▸ ";color:var(--accent)}details.fold[open]>summary::before{content:"▾ "}.fold-body{margin-top:.75rem}
 .panels{display:grid;gap:.75rem}.panel{background:var(--fold);border-radius:4px;padding:.75rem 1rem}.panel h4{margin:0 0 .4rem;display:flex;gap:.5rem;align-items:baseline}.delta{margin-top:.6rem}
 .notes{color:var(--muted);font-size:.85rem;border:1px dashed var(--line);padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem}
-.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:.85rem;color:var(--muted)}ol.quiz li{margin:.5rem 0}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
+.figure{margin:.5rem 0}.figure svg{width:100%;height:auto;max-width:720px;display:block;margin:0 auto}.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:.85rem;color:var(--muted)}ol.quiz li{margin:.5rem 0}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
 [id]{scroll-margin-top:4.5rem}:target,.flash{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
 @media (prefers-reduced-motion: no-preference){details.fold>summary{transition:color .15s}}
 """
@@ -1201,7 +1260,7 @@ function reveal(el){var tab=el.closest('.tab');if(tab)show(tab.id.replace('tab-'
 function jump(id){var el=document.getElementById(id);if(!el)return false;reveal(el);el.scrollIntoView({block:'start'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');return true;}
 show(initial);
 if(location.hash){jump(decodeURIComponent(location.hash.slice(1)));}
-document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){var id=decodeURIComponent(a.getAttribute('href').slice(1));if(jump(id)){e.preventDefault();history.replaceState(null,'','#'+id);}})});
+document.querySelectorAll('[data-jump]').forEach(function(a){function go(e){e.preventDefault();jump(a.getAttribute('data-jump'));}a.addEventListener('click',go);a.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')go(e);});});
 window.addEventListener('hashchange',function(){jump(decodeURIComponent(location.hash.slice(1)));});
 document.querySelector('.theme').addEventListener('click',function(){var cur=root.getAttribute('data-theme');var dark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;var next=dark?'light':'dark';root.setAttribute('data-theme',next);try{localStorage.setItem(key,next)}catch(e){}});
 })();

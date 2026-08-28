@@ -185,19 +185,19 @@ expect_grep "ADR one-liner links to file, not inlined" -ge 1 'href="../../../doc
 expect_grep "close: retrospective" -ge 1 '<h3>Retrospective</h3>'
 expect_grep "close: evidence reckoning" -ge 1 '<h3>Evidence Reckoning</h3>'
 expect_grep "close: gate-miss line via ancestor root" -ge 1 'a miss'
-expect_grep "AC-2 links to alpha anchor" -ge 1 'href="#2026-01-02-alpha-design--AC-2">AC-2</a>'
-expect_grep "REQ-1 links to alpha anchor" -ge 1 'href="#2026-01-02-alpha-design--REQ-1">REQ-1</a>'
+expect_grep "AC-2 links to alpha anchor" -ge 1 'data-jump="2026-01-02-alpha-design--AC-2" tabindex="0">AC-2</a>'
+expect_grep "REQ-1 links to alpha anchor" -ge 1 'data-jump="2026-01-02-alpha-design--REQ-1" tabindex="0">REQ-1</a>'
 expect_grep "AC-2 anchor id exists" -eq 1 'id="2026-01-02-alpha-design--AC-2"'
 expect_grep "REQ-1 anchor id exists" -eq 1 'id="2026-01-02-alpha-design--REQ-1"'
 expect_grep "AC-99 undefined marker" -ge 1 'class="undef" title="no definition for AC-99'
 expect_grep "AC-99 never linked" -eq 0 '>AC-99</a>'
 expect_grep "AC-2a undefined (suffixed form)" -ge 1 'class="undef" title="no definition for AC-2a'
-expect_grep "beta review resolves AC-1 in-phase" -ge 1 'href="#2026-01-03-beta-design--AC-1">AC-1</a>'
+expect_grep "beta review resolves AC-1 in-phase" -ge 1 'data-jump="2026-01-03-beta-design--AC-1" tabindex="0">AC-1</a>'
 expect_grep "inline code AC-2 untouched" -ge 1 '<code>AC-2</code>'
 expect_grep "fenced AC-2 untouched" -ge 1 'fenced AC-2 must stay untouched'
 expect_grep "defining heading not self-linked" -eq 0 'id="2026-01-02-alpha-design--AC-2"><a'
-expect_grep "ADR-38 links" -ge 1 'href="#adr--38">ADR-38</a>'
-expect_grep "ADR-0038 links to same anchor" -ge 1 'href="#adr--38">ADR-0038</a>'
+expect_grep "ADR-38 links" -ge 1 'data-jump="adr--38" tabindex="0">ADR-38</a>'
+expect_grep "ADR-0038 links to same anchor" -ge 1 'data-jump="adr--38" tabindex="0">ADR-0038</a>'
 expect_grep "ADR body rendered with anchor" -eq 1 'id="adr--38"'
 expect_grep "dark palette present" -ge 1 'prefers-color-scheme: dark'
 ext="$(grep -oiE "<(link|script|img|iframe|object|embed)[^>]*(src|href)[[:space:]]*=[[:space:]]*['\"]?https?://|@import[^;]*https?://|url\([^)]*https?://" "$dout" | wc -l | tr -d ' ')"
@@ -213,7 +213,7 @@ expect_grep "hostile: no javascript: href" -eq 0 'javascript:'
 expect_grep "hostile: tab-split scheme neutralised" -eq 0 'java	script:'
 expect_grep "hostile: nav link kept" -ge 1 'href="https://example.com/doc"'
 expect_grep "hostile: markdown link attr-escaped" -eq 0 'href=""onmouseover'
-expect_grep "hostile: AC-1 linked inside sanitized html" -ge 1 'href="#2026-01-03-beta-design--AC-1">AC-1</a>'
+expect_grep "hostile: AC-1 linked inside sanitized html" -ge 1 'data-jump="2026-01-03-beta-design--AC-1" tabindex="0">AC-1</a>'
 
 # ---- YAML phase (gamma): projection, overlays, ledger anchors, Ship order, pr-body, INV-1
 expect_grep "yaml: gamma phase group" -ge 1 'data-phase="2026-01-04-gamma.spec"'
@@ -222,7 +222,7 @@ expect_grep "yaml: D-1 entry anchored" -eq 1 'id="deviation--D-1"'
 expect_grep "yaml: legacy deviation line under its own heading" -ge 1 '>Legacy deviation lines</span>'
 expect_grep "yaml: review.yaml verdict line" -ge 1 'design-review-gamma/review.yaml</span> · design-review'
 expect_grep "yaml: review finding F-1 in findings table" -ge 1 '<td>F-1</td>'
-expect_grep "yaml: basis Q-1 links to the ledger line" -ge 1 'href="#ledger--Q-1">Q-1</a>'
+expect_grep "yaml: basis Q-1 links to the ledger line" -ge 1 'data-jump="ledger--Q-1" tabindex="0">Q-1</a>'
 expect_grep "yaml: ledger line anchored" -eq 1 'id="ledger--Q-1"'
 expect_grep "yaml: ledger table row anchored" -eq 1 'id="ledger--A-1"'
 expect_grep "yaml: AC-2 anchored in the requirements table" -eq 1 'id="2026-01-04-gamma.spec--AC-2"'
@@ -324,7 +324,7 @@ for s in ['Retrospective','Evidence Reckoning','Disposition']:
     assert f'<h3>{s}</h3>' in t['5'], s+' missing from Close'
     assert f'<h3>{s}</h3>' not in t['0'], s+' leaked into 位置'
 embs=re.findall(r'<div class="embedded">(.*?)</div>',t['4'],re.S)
-assert any('href="#2026-01-02-alpha-design--AC-1">AC-1</a>' in e for e in embs), 'AC-1 not linked inside inlined explainer'
+assert any('data-jump="2026-01-02-alpha-design--AC-1" tabindex="0">AC-1</a>' in e for e in embs), 'AC-1 not linked inside inlined explainer'
 print('PASS: dossier classification branches / close sections / inlined-html code links')
 PY
 
@@ -369,7 +369,7 @@ printf '# Notes\n\nundated-by-slug, dated only.\n' > "$sd/2026-01-03-notes.md"
 dout="$sd/dossier.html"
 expect_exit "dossier-render.sh same-date green" zero bash "$scripts_dir/dossier-render.sh" "$sd"
 expect_grep "no-phase-map placeholder per spec" -ge 2 'no phase map in this spec'
-expect_grep "gamma review resolves gamma AC-1" -ge 1 'href="#2026-01-03-gamma-design--AC-1">AC-1</a>'
+expect_grep "gamma review resolves gamma AC-1" -ge 1 'data-jump="2026-01-03-gamma-design--AC-1" tabindex="0">AC-1</a>'
 python3 - "$dout" <<'PY' || { echo "FAIL: same-date grouping"; fail=1; }
 import re,sys
 h=open(sys.argv[1],encoding='utf-8').read()
