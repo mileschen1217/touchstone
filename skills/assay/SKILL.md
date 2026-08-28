@@ -147,7 +147,7 @@ Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.md` — frontmatter `subj
 - `## Flip-trigger registry` — observable signal + revisit point per row
 - `## Deferred log` — the non-load-bearing unknown stubs
 - `## Readiness ruling` — explicit yes + date + the clean round's `R-n`
-- `## Deviation log` — appended during downstream execution: gap / quadrant / which-stage-could-have-caught / catcher
+- (deviations found downstream are `D-n` entries in the epic's `deviation.yaml`, never a section here)
 
 **The consensus section IS the handoff** — an implementation of the confirmed-facts source contract (`skills/_shared/inject/confirmed-facts-source.md`). The contract author derives Scope and Invariants facts from Consensus rows and itself authors the seam / AC layer — assay emits no contract-material packaging beyond the consensus section. Every disposition names its file (and line or anchor where applicable) so a later session executes it without re-derivation.
 
