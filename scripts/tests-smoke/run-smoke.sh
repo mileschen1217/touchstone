@@ -23,16 +23,6 @@ expect_exit() {
   fi
 }
 
-expect_exit "check-spec-floor.sh green" zero \
-  bash "$scripts_dir/check-spec-floor.sh" "$fx/floor-green.md"
-expect_exit "check-spec-floor.sh red" nonzero \
-  bash "$scripts_dir/check-spec-floor.sh" "$fx/floor-red.md"
-
-expect_exit "check-live-bearing.sh green" zero \
-  bash "$scripts_dir/check-live-bearing.sh" "$fx/live-green.md"
-expect_exit "check-live-bearing.sh red" nonzero \
-  bash "$scripts_dir/check-live-bearing.sh" "$fx/live-red.md"
-
 # expect_out <label> <fixed-string> -- <cmd...>  — output must contain the string
 expect_out() {
   label="$1"; pat="$2"; shift 2
@@ -85,10 +75,17 @@ expect_exit "check-evidence-reckoning.sh green" zero \
 expect_exit "check-evidence-reckoning.sh red" nonzero \
   bash "$scripts_dir/check-evidence-reckoning.sh" "$fx/reckoning-index-red.md" "$fx/reckoning-spec.md"
 
-expect_exit "design-review-precheck.sh green" zero \
-  bash "$scripts_dir/design-review-precheck.sh" "$fx/floor-green.md"
-expect_exit "design-review-precheck.sh red" nonzero \
-  bash "$scripts_dir/design-review-precheck.sh" "$fx/floor-red.md"
+# ---- design-review-precheck.sh: schema floor, draft skip, legacy md block, --attest
+pc="$scripts_dir/design-review-precheck.sh"
+expect_exit "design-review-precheck.sh green" zero bash "$pc" "$ax/spec-green.yaml"
+expect_exit "design-review-precheck.sh red" nonzero bash "$pc" "$ax/spec-red.yaml"
+expect_out "design-review-precheck.sh draft skipped" "PRE-CHECK skipped: draft" bash "$pc" "$ax/spec-red-nomap.yaml"
+expect_exit "design-review-precheck.sh legacy md blocked" nonzero bash "$pc" "$fx/reckoning-spec.md"
+expect_exit "design-review-precheck.sh --attest green (round-1 review.yaml with challenger)" zero bash "$pc" "$ax/spec-green.yaml" --attest
+at="$(mktemp -d)"; cp "$ax/spec-green.yaml" "$ax/ledger.md" "$at/"
+expect_exit "design-review-precheck.sh --attest red (no attestation)" nonzero bash "$pc" "$at/spec-green.yaml" --attest
+expect_out "design-review-precheck.sh --attest names the missing attestation" "challenge attestation is missing" bash "$pc" "$at/spec-green.yaml" --attest
+rm -rf "$at"
 
 # classify_command: source the hook (its source-guard skips main when sourced)
 # and probe the function directly on a real commit vs a non-git command.
