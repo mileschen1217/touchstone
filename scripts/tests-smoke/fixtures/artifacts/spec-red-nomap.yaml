@@ -1,0 +1,16 @@
+id: SPEC-fixture-nomap
+title: Fixture spec (no phase map)
+epic: fixture
+phase: 1
+status: draft
+date: 2026-01-01
+facts_source: {record: ledger.md, consensus: [Q-1]}
+foundation: inherit
+touch_set: {touched: [], untouched: []}
+delta: {blocks: []}
+user_stories: []
+requirements: []
+invariants: []
+non_goals: []
+risks: []
+waiting_on_human: []

@@ -1,0 +1,44 @@
+# deviation.schema.yaml — build-time deviations (D-n) and, in phase 1, the phase quiz block.
+# Keywords as in spec.schema.yaml. A quiz answer must name the field id it resolves to
+# (checked by check-artifact); `anchor` is the field path per the field-path grammar.
+kind: deviation
+type: object
+additionalProperties: false
+required: [entries, quiz, waiting_on_human]
+properties:
+  entries:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [id, date, stage, panel, gap, which_stage_could_have_caught, catcher, disposition]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: D}
+        date: {type: string}
+        stage: {type: string}
+        panel: {type: string, enum: [position, structure, interface, scope, none]}
+        gap: {type: string}
+        which_stage_could_have_caught: {type: string}
+        catcher: {type: string}
+        disposition: {type: string}
+  quiz:
+    type: object
+    reader: human
+    required: [waived, items]
+    additionalProperties: false
+    properties:
+      waived: {type: boolean}
+      items:
+        type: array
+        items:
+          type: object
+          required: [id, question, answer, anchor]
+          additionalProperties: false
+          properties:
+            id: {type: string, id: QZ}
+            question: {type: string}
+            answer: {type: string}
+            anchor: {type: string, field_path: true}
+            result: {type: string, enum: [pass, miss]}
+  waiting_on_human: {type: array, reader: human, items: {type: string}}

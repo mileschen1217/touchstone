@@ -1,0 +1,180 @@
+# spec.schema.yaml — the field set of a design spec (spec.yaml). Single home of the shape;
+# scripts/check-artifact.sh validates an instance against it. Keywords: JSON-Schema subset
+# (type / required / properties / items / enum / oneOf / additionalProperties) plus
+#   reader: human|agent   — on every top-level field; the dossier projects human fields
+#   id: <family>          — a stable id `<family>-<n>` (or a slug for block/contract/flow), unique within the file
+#   ref: <family>         — value(s) must name an id of that family defined in this file
+#   ledger_ref: true      — value(s) must resolve in the ledger (a line starting `- <id>` or `| <id>`)
+#   path_free: true       — human panel text: no slash-separated names or file extensions
+kind: spec
+type: object
+additionalProperties: false
+required: [id, title, epic, phase, status, date, facts_source, foundation, phase_map, touch_set, delta, user_stories, requirements, invariants, non_goals, risks, waiting_on_human]
+properties:
+  id: {type: string, reader: agent}
+  title: {type: string, reader: human}
+  epic: {type: string, reader: agent}
+  phase: {type: integer, reader: human}
+  status: {type: string, reader: human, enum: [draft, accepted-candidate, accepted, superseded]}
+  date: {type: string, reader: agent}
+  facts_source:
+    type: object
+    reader: agent
+    required: [record, consensus]
+    additionalProperties: false
+    properties:
+      record: {type: string}
+      consensus: {type: array, items: {type: string}, ledger_ref: true}
+  foundation:
+    reader: human
+    oneOf:
+      - {type: string, enum: [inherit]}
+      - type: object
+        required: [intention, aim, out_of_scope]
+        additionalProperties: false
+        properties:
+          intention: {type: string}
+          aim: {type: string}
+          out_of_scope: {type: array, items: {type: string}}
+  phase_map:
+    type: object
+    reader: human
+    required: [position, structure_before_after, interface_delta, scope]
+    additionalProperties: false
+    properties:
+      reader: {type: string, enum: [human]}
+      position: {type: string, path_free: true}
+      structure_before_after: {type: string, path_free: true}
+      interface_delta: {type: string, path_free: true}
+      scope: {type: string, path_free: true}
+  touch_set:
+    type: object
+    reader: agent
+    required: [touched, untouched]
+    additionalProperties: false
+    properties:
+      reader: {type: string, enum: [agent]}
+      touched: {type: array, items: {type: string}}
+      untouched: {type: array, items: {type: string}}
+  delta:
+    type: object
+    reader: agent
+    required: [blocks]
+    additionalProperties: false
+    properties:
+      blocks:
+        type: array
+        items:
+          type: object
+          required: [id, op, kind, purpose]
+          additionalProperties: false
+          properties:
+            id: {type: string, id: block}
+            op: {type: string, enum: [add, change, remove]}
+            kind: {type: string, enum: [component, skill, fragment, agent, command, schema, doc]}
+            purpose: {type: string}
+            technology: {type: string}
+      edges:
+        type: array
+        items:
+          type: object
+          required: [from, to, op, label]
+          additionalProperties: false
+          properties:
+            from: {type: string, ref: block}
+            to: {type: string, ref: block}
+            op: {type: string, enum: [add, change, remove]}
+            label: {type: string}
+      interfaces:
+        type: array
+        items:
+          type: object
+          required: [party, name, op, before, after]
+          additionalProperties: false
+          properties:
+            party: {type: string}
+            name: {type: string}
+            op: {type: string, enum: [add, change, remove]}
+            before: {type: string}
+            after: {type: string}
+      contracts:
+        type: array
+        items:
+          type: object
+          required: [id, schema]
+          additionalProperties: false
+          properties:
+            id: {type: string, id: contract}
+            schema: {type: string}
+      flows:
+        type: array
+        items:
+          type: object
+          required: [id, mermaid]
+          additionalProperties: false
+          properties:
+            id: {type: string, id: flow}
+            mermaid: {type: string}
+  user_stories:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [id, as, want, so_that]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: US}
+        as: {type: string}
+        want: {type: string}
+        so_that: {type: string}
+  requirements:
+    type: array
+    reader: agent
+    items:
+      type: object
+      required: [id, shall, traces_to, basis, acs]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: REQ}
+        shall: {type: string}
+        traces_to: {type: array, items: {type: string}, ref: US}
+        basis: {type: array, items: {type: string}, ledger_ref: true}
+        acs:
+          type: array
+          items:
+            type: object
+            required: [id, given, when, then, live_bearing]
+            additionalProperties: false
+            properties:
+              id: {type: string, id: AC}
+              given: {type: string}
+              when: {type: string}
+              then: {type: string}
+              live_bearing: {type: boolean}
+              basis: {type: array, items: {type: string}, ledger_ref: true}
+  invariants:
+    type: array
+    reader: agent
+    items:
+      type: object
+      required: [id, rule, why_ref, check]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: INV}
+        rule: {type: string}
+        why_ref: {type: string, ledger_ref: true}
+        check: {type: string, enum: [test, grep, review]}
+  non_goals: {type: array, reader: human, items: {type: string}}
+  risks:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [problem, measure, priority]
+      additionalProperties: false
+      properties:
+        problem: {type: string}
+        measure: {type: string}
+        priority: {type: string, enum: [high, medium, low]}
+        why_ref: {type: string, ledger_ref: true}
+  waiting_on_human: {type: array, reader: human, items: {type: string}}

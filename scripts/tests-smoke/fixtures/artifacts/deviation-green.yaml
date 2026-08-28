@@ -1,0 +1,17 @@
+entries:
+  - id: D-1
+    date: 2026-01-02
+    stage: build
+    panel: interface
+    gap: the flag also needs a short form
+    which_stage_could_have_caught: assay
+    catcher: builder
+    disposition: added -f; AC-1 unchanged
+quiz:
+  waived: false
+  items:
+    - id: QZ-1
+      question: what changed at the interface?
+      answer: a short form -f was added next to --flag (D-1, requirements[REQ-1].acs[AC-1])
+      anchor: requirements[REQ-1].acs[AC-1]
+waiting_on_human: []

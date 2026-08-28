@@ -33,6 +33,53 @@ expect_exit "check-live-bearing.sh green" zero \
 expect_exit "check-live-bearing.sh red" nonzero \
   bash "$scripts_dir/check-live-bearing.sh" "$fx/live-red.md"
 
+# expect_out <label> <fixed-string> -- <cmd...>  — output must contain the string
+expect_out() {
+  label="$1"; pat="$2"; shift 2
+  out="$("$@" 2>&1)"
+  if printf '%s' "$out" | grep -qF -- "$pat"; then echo "PASS: $label"; else echo "FAIL: $label (missing: $pat)"; echo "$out"; fail=1; fi
+}
+
+# ---- check-artifact.sh: one green + one red per kind; each violation class asserted by line
+ax="$fx/artifacts"; ca="$scripts_dir/check-artifact.sh"
+expect_exit "check-artifact spec green (bootstrap-shaped)" zero bash "$ca" spec "$ax/spec-green.yaml" --root "$ax"
+expect_out "check-artifact spec: numeric literal without basis is a warning" "warn: requirements[REQ-1].acs[AC-3].then: numeric literal" bash "$ca" spec "$ax/spec-green.yaml" --root "$ax"
+expect_exit "check-artifact spec red" nonzero bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: block without purpose" "delta.blocks[parser].purpose: required" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: invariant without check" "invariants[INV-1].check: required" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: dangling ledger id" "requirements[REQ-1].basis: 'Q-99' resolves to no ledger line" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: path token in phase_map" "phase_map.position: human-facing panel carries a path-like token" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: unknown key under REQ" "requirements[REQ-1].notes: unknown key" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: invalid status enum" "status: 'done' not in" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: invalid check enum" "invariants[INV-2].check: 'manual' not in" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: dangling traces_to" "requirements[REQ-1].traces_to: 'US-9' names no US id" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: duplicate AC id" "duplicate id AC-1" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: dangling edge endpoint" "delta.edges[0].to: 'nowhere' names no block id" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
+expect_out "check-artifact spec: missing phase_map" "phase_map: required" bash "$ca" spec "$ax/spec-red-nomap.yaml" --root "$ax"
+expect_exit "check-artifact review green" zero bash "$ca" review "$ax/review-green.yaml" --root "$ax"
+expect_exit "check-artifact review red" nonzero bash "$ca" review "$ax/review-red.yaml" --root "$ax"
+expect_out "check-artifact review: duplicate F id" "duplicate id F-3" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
+expect_out "check-artifact review: missing waiting_on_human" "waiting_on_human: required" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
+expect_out "check-artifact review: field path unresolvable in target" "'requirements[REQ-99].acs[AC-1]' resolves to nothing in the target spec" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
+expect_out "check-artifact review: degraded without reason" "degraded_reason: required when degraded is true" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
+expect_exit "check-artifact deviation green" zero bash "$ca" deviation "$ax/deviation-green.yaml"
+expect_exit "check-artifact deviation red" nonzero bash "$ca" deviation "$ax/deviation-red.yaml"
+expect_out "check-artifact deviation: missing which_stage_could_have_caught" "entries[D-1].which_stage_could_have_caught: required" bash "$ca" deviation "$ax/deviation-red.yaml"
+expect_out "check-artifact deviation: invalid panel" "entries[D-1].panel: 'flow' not in" bash "$ca" deviation "$ax/deviation-red.yaml"
+expect_out "check-artifact deviation: quiz answer names no field id" "quiz.items[QZ-1].answer: names no field id" bash "$ca" deviation "$ax/deviation-red.yaml"
+expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
+# the three schema files exist and every top-level field carries a reader tag
+python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
+import sys, os, yaml
+d = sys.argv[1]
+assert sorted(os.listdir(d)) == ['deviation.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
+for f in os.listdir(d):
+    s = yaml.safe_load(open(os.path.join(d, f)))
+    for k, v in s['properties'].items():
+        assert v.get('reader') in ('human', 'agent'), f'{f}: {k} has no reader tag'
+print('PASS: three schemas, every top-level field reader-tagged')
+PY2
+
 expect_exit "check-evidence-reckoning.sh green" zero \
   bash "$scripts_dir/check-evidence-reckoning.sh" "$fx/reckoning-index-green.md" "$fx/reckoning-spec.md"
 expect_exit "check-evidence-reckoning.sh red" nonzero \
