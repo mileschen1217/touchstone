@@ -327,6 +327,8 @@ def stage_of(rel):
         return '位置'
     if rel in spec_files:
         return '契約'
+    if base == 'structure-overlay.html':
+        return 'overlay'  # linked from the Ship tab's structure overlay section
     if 'explainer' in base or 'quiz' in base or 'buyin' in base:
         return 'Ship'
     if base == 'review.yaml' and in_record_dir(rel):
@@ -863,11 +865,9 @@ def evidence_table(p, s):
 
 def structure_overlay(p, s):
     k = p['key']
-    ov = [f for f in files if os.path.basename(f) == 'structure-overlay.html' and phase_of(f) is p]
-    if ov:
-        return f'<div class="embedded">{link_codes_in_html(html_body_inner(read(os.path.join(epic_dir, ov[0]))), k)}</div>'
+    ov = [f for f in files if os.path.basename(f) == 'structure-overlay.html' and phase_of(f) in (p, EPIC)]
     d = s['yaml'].get('delta') if isinstance(s['yaml'].get('delta'), dict) else {}
-    out = ''
+    out = f'<p>{lab("overlay")} <a href="{attr(ov[0])}"><span class="file">{html.escape(ov[0])}</span></a></p>' if ov else ''
     if d.get('blocks'):
         out += yaml_table([[b.get('op'), b.get('id'), b.get('kind'), b.get('purpose')] for b in d['blocks'] if isinstance(b, dict)], ['op', 'block', 'kind', 'purpose'], k)
     if d.get('edges'):
@@ -1067,6 +1067,7 @@ for rel in files:
     p = phase_of(rel); st = stage_of(rel); path = os.path.join(epic_dir, rel)
     if st == 'record':
         records.setdefault((p['key'], os.path.dirname(rel).split('/')[0]), []).append(rel); continue
+    if st == 'overlay': continue
     if st == '契約' and rel not in spec_files:
         fm, body = frontmatter(read(path))
         tab['契約']['epic' if p is EPIC else p['key']].append(file_card(rel, first_h1(body) or rel, fm, body, p['key']))
