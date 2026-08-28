@@ -32,7 +32,9 @@
 #                    lookups skipped, noted in the page. Input set = epic dir +
 #                    <root>/.touchstone/gate-miss.md + cited ADR files under
 #                    <root>/docs/adr and <root>/.touchstone/docs/adr.
-#   stage tabs     = 位置 (index.md minus close sections) · 契約 (assay-*.md,
+#   stage tabs     = 位置 (index.md minus close sections; waiting list = spec status, open
+#                    questions, unshipped phases, YAML waiting_on_human — legacy deviation
+#                    lines stay on the Map tab) · 契約 (assay-*.md,
 #                    *-design.md, frontmatter type: spec|adr, cited project-root
 #                    ADRs, and any file matching no pattern) · Map (each spec's
 #                    `## Phase map` or a visible placeholder, + index `## Deviation
@@ -978,8 +980,6 @@ for sp in spec_files:
             waiting.append(f'{inline(sval(w), "epic")} <span class="file">{html.escape(src)}</span>')
 for q in bullets(index_sections.get('Open Questions', '')):
     if not q.startswith('*('): waiting.append('Open question: ' + inline(q, 'epic'))
-for d in deviation_lines:
-    if re.search(r'human|rule on|ruling', d, re.I): waiting.append('Ruling needed: ' + inline(d, 'epic'))
 for r in phase_table_rows:
     if r[4].lower() not in ('done', 'cancelled'):
         waiting.append(f'Ship phase {html.escape(r[0])} ({html.escape(r[1])}) — {pill(r[4])}')
