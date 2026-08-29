@@ -183,8 +183,8 @@ expect_grep "no iframe" -eq 0 '<iframe'
 expect_grep "phase map rendered as panels" -ge 8 'class="panel"'
 expect_grep "panel delta marker from deviation log" -ge 1 'built ≠ planned'
 expect_grep "ADR one-liner links to file, not inlined" -ge 1 'href="../../../docs/adr/0038-fixture.md">ADR-0038</a>'
-expect_grep "close: retrospective" -ge 1 '>Retrospective</span>'
-expect_grep "close: evidence reckoning" -ge 1 '>Evidence Reckoning</span>'
+expect_grep "close: retrospective" -ge 1 '>回顧</span>'
+expect_grep "close: evidence reckoning" -ge 1 '>證據清算</span>'
 expect_grep "close: gate-miss line via ancestor root" -ge 1 'a miss'
 expect_grep "AC-2 links to alpha anchor" -ge 1 'data-jump="2026-01-02-alpha-design--AC-2" tabindex="0">AC-2</a>'
 expect_grep "REQ-1 links to alpha anchor" -ge 1 'data-jump="2026-01-02-alpha-design--REQ-1" tabindex="0">REQ-1</a>'
@@ -220,8 +220,8 @@ expect_grep "hostile: AC-1 linked inside sanitized html" -ge 1 'data-jump="2026-
 expect_grep "yaml: gamma phase group" -ge 1 'data-phase="2026-01-04-gamma.spec"'
 expect_grep "yaml: four panels + D-1 overlay on the interface panel" -ge 1 '介面差異</abbr> <span class="pill warn">built ≠ planned · 1</span>'
 expect_grep "yaml: D-1 entry anchored" -eq 1 'id="deviation--D-1"'
-expect_grep "yaml: legacy deviation line under its own heading" -ge 1 '>legacy deviation lines</span>'
-expect_grep "yaml: review round summary row" -ge 1 '<th>gate</th><th>輪</th><th>verdict</th>'
+expect_grep "yaml: legacy deviation line under its own heading" -ge 1 '>舊版偏離行</span>'
+expect_grep "yaml: review round summary row" -ge 1 '<th>門</th><th>輪</th><th>裁決</th>'
 expect_grep "yaml: review finding F-1 anchored" -ge 1 'id="finding--F-1"'
 expect_grep "yaml: basis Q-1 links to the ledger line" -ge 1 'data-jump="ledger--Q-1" tabindex="0">Q-1</a>'
 expect_grep "yaml: ledger line anchored" -eq 1 'id="ledger--Q-1"'
@@ -274,7 +274,7 @@ for tab_id in ('0', '2'):
       for n in re.split(r'\s·\s', H.unescape(node)):
         n = n.strip(' ·:—').strip()
         if not n or n in ('·', '—', '(', ')', ',', '·'): continue
-        ok = n in vals or re.fullmatch(r'[A-Z]+-\d+|[\d.\s/]+', n) or all(t in vals for t in n.split()) or n in ('Phases', 'title', '#', '結構變化') or any(n in v for v in vals) or any(n in l for l in legacy) \
+        ok = n in vals or re.fullmatch(r'[A-Z]+-\d+|[\d.\s/]+', n) or all(t in vals for t in n.split()) or n in ('Phases', 'title', '#', '結構變化', '階段') or any(n in v for v in vals) or any(n in l for l in legacy) \
              or n in ('dossier.html', 'pr-body.md', 'Waiting on human', 'Quiz', 'Phase map', 'Legacy deviation lines')
         assert ok, 'renderer-authored text node: %r' % n
         checked += 1
@@ -322,7 +322,7 @@ allf=set().union(*[files_in(i) for i in t])
 for f in ['assay-notes.md','local-decision.md','evidence.md','task-01.md','build-plan.md','stray.md','2026-01-02-alpha-buyin.html']:
     assert f in allf, f+' absent from page'
 assert 'Body.' not in t['1'], 'ADR body inlined into 契約 (should be a one-liner)'
-for s in ['Retrospective','Evidence Reckoning','Disposition']:
+for s in ['回顧','證據清算','處置']:
     assert f'>{s}</span>' in t['3'], s+' missing from 紀錄'
     assert f'>{s}</span>' not in t['0'], s+' leaked into 首頁'
 embs=re.findall(r'<div class="embedded">(.*?)</div>',t['3'],re.S)
