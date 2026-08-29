@@ -1093,7 +1093,10 @@ def front_sections(p, s):
     state, n = decision(p, s)
     secs = []
     n_ph = len(phase_table_rows) or len(phases)
-    head = f'<p class="decision">{yv(yd.get("epic"), k)} · {lab("第")} {yv(yd.get("phase"), k)}/{n_ph} {lab("階段")} · {zpill(state)}{f" <span class=\"num\">{n}</span>" if n else ""}</p><p class="aim">{yv(yd.get("title"), k)}</p>'
+    head = (f'<dl class="dec"><div><dt>{lab("epic")}</dt><dd>{yv(yd.get("epic"), k)}</dd></div>'
+            f'<div><dt>{lab("階段")}</dt><dd>{yv(yd.get("phase"), k)} / {n_ph}</dd></div>'
+            f'<div><dt>{lab("狀態")}</dt><dd>{zpill(state)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</dd></div></dl>'
+            f'<p class="aim">{yv(yd.get("title"), k)}</p>')
     secs.append(('決策', head, f"{sval(yd.get('epic'))} · 第 {sval(yd.get('phase'))}/{n_ph} 階段 · {ZH[state]}{f' ({n})' if n else ''}\n\n{sval(yd.get('title'))}"))
     g_txt = '\n'.join(f"- {ZH[g]}: {ZH[st]}" + (f" — round {sval(d.get('round'))} {sval(d.get('verdict'))} C={sval((d.get('counts') or {}).get('C'))} H={sval((d.get('counts') or {}).get('H'))} M={sval((d.get('counts') or {}).get('M'))} L={sval((d.get('counts') or {}).get('L'))}" if d else '') for g, st, d, rel, _ in gate_rows(p))
     secs.append(('gate 條', None, g_txt))   # html None → not rendered on the page; the strip carries the gates
@@ -1120,7 +1123,11 @@ def front_sections(p, s):
         def last_id(fp):
             ids = re.findall(r'\b((?:AC|REQ|INV|US)-\d+)\b', sval(fp)); return ids[-1] if ids else sval(fp)
         unv_sorted = sorted(unv, key=lambda f: (re.sub(r'\d+', lambda m: m.group(0).zfill(4), last_id(f.get('field')))))
-        v_html += '<ul>' + capped([f'<li>{link_codes(last_id(f.get("field")), k)} {zpill("unverified")}</li>' for f in unv_sorted]) + '</ul>'
+        acs_u = [f for f in unv_sorted if last_id(f.get('field')).startswith('AC-')]
+        inv_u = [f for f in unv_sorted if not last_id(f.get('field')).startswith('AC-')]
+        v_html += f'<p class="meta">{lab("未驗證的驗收條件")} <span class="num">{len(acs_u)}</span></p><ul>' + capped([f'<li>{link_codes(last_id(f.get("field")), k)} {zpill("unverified")}</li>' for f in acs_u]) + '</ul>'
+        if inv_u:
+            v_html += f'<p class="meta">{lab("未驗證的不變式")} <span class="num">{len(inv_u)}</span></p><ul>' + capped([f'<li>{link_codes(last_id(f.get("field")), k)} {zpill("unverified")}</li>' for f in inv_u]) + '</ul>'
         v_html += collapsed(f'<span class="lead">{lab("未驗證詳情")}</span> <span class="num">{len(unv)}</span>', '<ul>' + ''.join(f'<li>{link_codes(last_id(f.get("field")), k)} · {yv(f.get("summary"), k)}</li>' for f in unv_sorted) + '</ul>')
     nb = sum(1 for i, st, l in ledger_stage_lines if st.startswith(('build', 'deliverable-review', 'phase-ship')))
     if nb:
@@ -1407,14 +1414,14 @@ pre{background:var(--code);padding:.75rem .9rem;border-radius:4px;overflow-x:aut
 td.num,.num,a.code,.undef{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;font-size:.85rem}
 a{color:var(--accent)}a.code,[data-jump]{color:var(--accent);cursor:pointer;text-decoration:none;border-bottom:1px dotted var(--accent)}
 .undef{color:var(--crit);background:var(--crit-bg);border-radius:3px;padding:0 .25rem;cursor:help}.undef::after{content:" (undefined)";font-size:.75em}
-details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5rem}details.fold>summary{cursor:pointer;color:var(--muted);list-style:none}details.fold>summary::before{content:"▸ ";color:var(--accent)}details.fold[open]>summary::before{content:"▾ "}.fold-body{margin-top:.75rem}
+details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5rem}details.fold>summary{cursor:pointer;color:var(--muted);list-style:none}details.fold>summary::before{content:"▸ ";color:var(--accent)}details.fold[open]>summary::before{content:"▾ "}.fold-body{margin-top:.75rem;font-size:.95rem;line-height:1.5}.fold-body p,.fold-body li{font-size:inherit}
 .panels{display:grid;gap:.75rem}.panel{background:var(--fold);border-radius:4px;padding:.75rem 1rem}.panel h4{margin:0 0 .4rem;display:flex;gap:.5rem;align-items:baseline}.delta{margin-top:.6rem}
 .notes{color:var(--muted);font-size:.85rem;border:1px dashed var(--line);padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem}
-.strip{position:sticky;top:3.1rem;z-index:1;background:var(--panel);border-bottom:1px solid var(--line);padding:.4rem 1.25rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;font-size:.85rem}.strip .decision{font-weight:600}.strip .g{white-space:nowrap}.decision{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.3rem;margin:.2rem 0}section.fs{margin:0 0 1.25rem}section.fs>h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 .4rem}ul.check{list-style:none;padding:0}ul.check li{margin:.4rem 0}ul.check input{margin-right:.4rem}ol.checklist{padding-left:1.3rem}.footer{font-size:1.05rem;margin-top:.6rem}abbr.enum{text-decoration:none;border-bottom:1px dotted var(--muted)}table.gates td{vertical-align:middle}ul.findings li{margin:.5rem 0}details.inl{display:inline}details.inl>summary{display:inline;cursor:pointer;color:var(--muted);font-size:.8rem}.figure{margin:.5rem 0}.figure svg{width:100%;height:auto;max-width:720px;display:block;margin:0 auto}.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:.85rem;color:var(--muted)}ol.quiz li{margin:.5rem 0}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
+.strip{position:sticky;top:3.1rem;z-index:1;background:var(--panel);border-bottom:1px solid var(--line);padding:.4rem 1.25rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;font-size:.85rem}.strip .decision{font-weight:600}.strip .g{white-space:nowrap}.decision{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.3rem;margin:.2rem 0}section.fs{margin:0 0 1.25rem}dl.dec{display:flex;gap:1.25rem;flex-wrap:wrap;margin:.2rem 0 .4rem}dl.dec div{display:flex;flex-direction:column}dl.dec dt{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}dl.dec dd{margin:0;font-size:1.15rem;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}section.fs>h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 .4rem}ul.check{list-style:none;padding:0}ul.check li{margin:.4rem 0}ul.check input{margin-right:.4rem}ol.checklist{padding-left:1.3rem}.footer{font-size:1.05rem;margin-top:.6rem}abbr.enum{text-decoration:none;border-bottom:1px dotted var(--muted)}table.gates td{vertical-align:middle}ul.findings li{margin:.5rem 0}details.inl{display:inline}details.inl>summary{display:inline;cursor:pointer;color:var(--muted);font-size:.8rem}.figure{margin:.5rem 0}.figure svg{width:100%;height:auto;max-width:720px;display:block;margin:0 auto}.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:.85rem;color:var(--muted)}ol.quiz li{margin:.5rem 0}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
 [id]{scroll-margin-top:4.5rem}:target,.flash{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
 @media (prefers-reduced-motion: no-preference){details.fold>summary{transition:color .15s}}
 body{overflow-wrap:anywhere}.top>*,.strip>*,.tabs{min-width:0}.tabs{flex:1 1 auto}.top h1{flex:1 1 100%}.file,code,a.code,[data-jump]{overflow-wrap:anywhere;word-break:break-word}
-.strip .g{white-space:normal}.panels{grid-template-columns:1fr}svg.structure{max-width:100%}
+.strip .g{white-space:nowrap;display:inline-flex;align-items:center;gap:.3rem;border:1px solid var(--line);border-radius:999px;padding:.1rem .55rem .1rem .6rem;background:var(--bg)}.strip .g .gl{font-weight:600}.strip .g a{margin-left:.15rem}.panels{grid-template-columns:1fr}svg.structure{max-width:100%}
 @media (max-width:640px){html{font-size:15px}.top{padding:.5rem .75rem;gap:.5rem}.strip{top:auto;position:static;padding:.4rem .75rem;font-size:.8rem}main{padding:.75rem .6rem 3rem}article{padding:.75rem .8rem}.decision{font-size:1.1rem}.aim{font-size:1.05rem}.tbl table{font-size:.82rem}th,td{padding:.3rem .4rem}}
 """
 JS = """
@@ -1462,10 +1469,10 @@ def strip_gate(g, st, rel):
         tail = ' · ' + zh(GATE_OWNER.get(g, ''))
         if rel:
             tail += ' · <a href="' + attr(rel) + '" title="' + attr(rel) + '">' + lab('紀錄') + '</a>'
-    return '<span class="g">' + zh(g) + ' ' + zpill(st) + tail + '</span>'
+    return '<span class="g"><span class="gl">' + zh(g) + '</span>' + zpill(st) + tail + '</span>'
 if current:
     st, n = decision(current, specs[current['spec']])
-    strip_html = f'<div class="strip"><span class="decision">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))} · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段 · {zpill(st)}{f" <span class=\"num\">{n}</span>" if n else ""}</span>' + ''.join(strip_gate(g, s_, rel_) for g, s_, d_, rel_, _ in gate_rows(current)) + '</div>'
+    strip_html = f'<div class="strip"><span class="decision"><span class="gl">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))}</span> · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段</span><span class="g"><span class="gl">狀態</span>{zpill(st)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</span>' + ''.join(strip_gate(g, s_, rel_) for g, s_, d_, rel_, _ in gate_rows(current)) + '</div>'
 else:
     strip_html = '<div class="strip"><span class="placeholder">尚無 YAML phase</span></div>'
 page = f"""<!doctype html>

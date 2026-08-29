@@ -233,7 +233,7 @@ expect_grep "yaml: front page lists waiting_on_human from review.yaml" -ge 1 'ac
 expect_grep "yaml: front page lists waiting_on_human from deviation.yaml" -ge 1 'confirm the equals form stays'
 expect_grep "yaml: quiz item rendered" -ge 1 'which panel changed during the build?'
 expect_grep "yaml: quiz anchor rendered" -ge 1 '<code>phase_map.interface_delta</code>'
-expect_grep "front page: decision line" -ge 1 'class="decision"'
+expect_grep "front page: decision line" -ge 1 '<dl class="dec">'
 python3 - "$dout" "$ed/pr-body.md" "$ed" <<'PY' || { echo "FAIL: yaml projection checks"; fail=1; }
 import re, sys, html as H, yaml, os
 h = open(sys.argv[1], encoding='utf-8').read()
@@ -275,7 +275,7 @@ for tab_id in ('0', '2'):
       for n in re.split(r'\s·\s', H.unescape(node)):
         n = n.strip(' ·:—').strip()
         if not n or n in ('·', '—', '(', ')', ',', '·'): continue
-        ok = n in vals or re.fullmatch(r'[A-Z]+-\d+|[\d.\s/]+', n) or all(t in vals for t in n.split()) or n in ('Phases', 'title', '#', '結構變化', '階段') or any(n in v for v in vals) or any(n in l for l in legacy) \
+        ok = n in vals or re.fullmatch(r'[A-Z]+-\d+|[\d.\s/項]+', n) or all(t in vals for t in n.split()) or n in ('Phases', 'title', '#', '結構變化', '階段') or any(n in v for v in vals) or any(n in l for l in legacy) \
              or n in ('dossier.html', 'pr-body.md', 'Waiting on human', 'Quiz', 'Phase map', 'Legacy deviation lines')
         assert ok, 'renderer-authored text node: %r' % n
         checked += 1
