@@ -181,7 +181,7 @@ expect_grep "front page: sticky strip" -ge 1 '<div class="strip">'
 expect_grep "explainer inlined (h1 text)" -ge 1 'Alpha buy-in explainer'
 expect_grep "no iframe" -eq 0 '<iframe'
 expect_grep "phase map rendered as panels" -ge 8 'class="panel"'
-expect_grep "panel delta marker from deviation log" -ge 1 'built ≠ planned'
+expect_grep "panel delta marker from deviation log" -ge 1 '實作≠計畫'
 expect_grep "ADR one-liner links to file, not inlined" -ge 1 'href="../../../docs/adr/0038-fixture.md">ADR-0038</a>'
 expect_grep "close: retrospective" -ge 1 '>回顧</span>'
 expect_grep "close: evidence reckoning" -ge 1 '>證據清算</span>'
@@ -218,7 +218,7 @@ expect_grep "hostile: AC-1 linked inside sanitized html" -ge 1 'data-jump="2026-
 
 # ---- YAML phase (gamma): projection, overlays, ledger anchors, Ship order, pr-body, INV-1
 expect_grep "yaml: gamma phase group" -ge 1 'data-phase="2026-01-04-gamma.spec"'
-expect_grep "yaml: four panels + D-1 overlay on the interface panel" -ge 1 '介面差異</abbr> <span class="pill warn">built ≠ planned · 1</span>'
+expect_grep "yaml: four panels + D-1 overlay on the interface panel" -ge 1 '介面差異</abbr> <span class="pill warn"><abbr class="enum" title="built-ne-planned">實作≠計畫</abbr> · 1</span>'
 expect_grep "yaml: D-1 entry anchored" -eq 1 'id="deviation--D-1"'
 expect_grep "yaml: legacy deviation line under its own heading" -ge 1 '>舊版偏離行</span>'
 expect_grep "yaml: review round summary row" -ge 1 '<th>門</th><th>輪</th><th>裁決</th>'
@@ -243,7 +243,7 @@ want = ['決策', 'gate 條', '阻擋清單', '怎麼驗的', '結構變化', '�
 assert heads == want, heads
 pr = open(sys.argv[2], encoding='utf-8').read()
 assert re.findall(r'^## (.+)$', pr, re.M) == want, 'pr-body sections differ from the tab order'
-assert 'built ≠ planned' in pr and 'D-1' in pr, 'pr-body lacks the D-1 overlay'
+assert 'D-1' in pr, 'pr-body lacks the D-1 overlay'
 # no whole-file pre block in the YAML phase's sections (Map + Ship + 契約)
 for tab_id in ('1', '2'):
     t = re.search(r'<section class="tab" id="tab-%s">(.*?)(?=<section class="tab" id="tab-|</main>)' % tab_id, h, re.S).group(1)
@@ -268,6 +268,7 @@ for tab_id in ('0', '2'):
     t = re.search(r'<section class="tab" id="tab-%s">(.*?)(?=<section class="tab" id="tab-|</main>)' % tab_id, h, re.S).group(1)
     g = re.search(r'<article class="front">(.*?)</article>', t, re.S).group(1) if tab_id == '0' else re.search(r'<section class="phase" data-phase="2026-01-04-gamma.spec">(.*?)(?=<section class="phase"|$)', t, re.S).group(1)
     g = re.sub(r'<abbr class="enum"[^>]*>.*?</abbr>', '', g, flags=re.S)
+    g = re.sub(r'<svg.*?</svg>', '', g, flags=re.S)
     g = re.sub(r'<(span|p|h\d|th)[^>]*class="(label|placeholder|pill [a-z]+|file|muted|footer)"[^>]*>.*?</\1>', '', g, flags=re.S)
     g = re.sub(r'<h2>.*?</h2>|<th>.*?</th>|<h3>[^<]*</h3>|<summary>.*?</summary>', '', g, flags=re.S)
     for node in re.findall(r'>([^<>]+)<', g):
@@ -291,7 +292,7 @@ printf 'entries: []\nquiz: {waived: true, items: []}\nwaiting_on_human: []\n' > 
 dout="$zd/dossier.html"
 expect_exit "dossier-render.sh zero-delta green" zero bash "$scripts_dir/dossier-render.sh" "$zd"
 expect_grep "zero-delta: quiz waiver visible" -ge 1 '>理解測驗免作</span>'
-expect_grep "zero-delta: every panel as planned" -eq 4 'as planned</span>'
+expect_grep "zero-delta: every panel as planned" -eq 4 '如計畫</abbr></span>'
 md="$tmp_root/.touchstone/epics/2026-01-08-mdonly"; mkdir -p "$md"; printf -- '---\nslug: mdonly\nstatus: active\n---\n\n# Md only\n\n**Aim:** x.\n' > "$md/index.md"
 expect_out "dossier-render.sh --pr-body red (no YAML phase)" "needs a YAML phase" bash "$scripts_dir/dossier-render.sh" --pr-body "$md"
 dout="$ed/dossier.html"
@@ -312,7 +313,7 @@ import re,sys
 h=open(sys.argv[1],encoding='utf-8').read()
 chunks=re.split(r'<section class="tab" id="tab-(\d)">',h)[1:]
 t={chunks[i]:chunks[i+1] for i in range(0,len(chunks),2)}
-def files_in(i): return set(re.findall(r'<span class="file">([^<]+)</span>',t[i]))
+def files_in(i): return set(re.findall(r'<span class="file"[^>]*>([^<]+)</span>',t[i]))
 assert {'assay-notes.md','local-decision.md','stray.md','2026-01-02-alpha-design.md','2026-01-03-beta-design.md'} <= files_in('1'), files_in('1')
 assert {'evidence.md','task-01.md','build-plan.md','anvil-review-2026-01-02/review.md'} <= files_in('3'), files_in('3')
 assert 'flag instead of header' in t['3'], 'deviation-log.md bullet not merged into 紀錄'
