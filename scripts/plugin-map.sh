@@ -425,9 +425,13 @@ test_only = sorted(p for p in nodes
                    if p in reach_all and p not in reach_nontest
                    and p != SMOKE and p not in waivers)
 
+# A waiver is stale when a real in-edge comes from a node reachable WITHOUT the
+# waived node itself as a root — a node reachable only through the waived node
+# (its own dependent naming it back) cannot make the waiver stale.
 stale_waivers = sorted({w for w in waivers
                         for e in REAL
-                        if e['to'] == w and e['from'] != SMOKE and e['from'] in reach_nontest})
+                        if e['to'] == w and e['from'] != SMOKE
+                        and e['from'] in reach(roots_all - {SMOKE, w})})
 false_targets = {e['target'] for e in false_edges}
 invalid_waivers = sorted(w for w in waivers if w in false_targets)
 
