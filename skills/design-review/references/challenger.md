@@ -41,6 +41,7 @@ party sweep; Nagy's 5 (challenge data, challenge context, positive↔negative,
 additional outcomes, different-context-same-outcome).
 
 **Output format** — one marker per line, the locator a field path
+<!-- local-ref-ok -->
 (`requirements[REQ-2].acs[AC-4].then`, `delta.blocks[parser]`, `touch_set.touched`):
 
 ```

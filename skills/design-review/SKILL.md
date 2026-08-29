@@ -51,7 +51,7 @@ Probe first: `codex --version >/dev/null 2>&1 && echo codex_healthy=1 || echo co
 
 ### Lens prompt — inline
 
-> You review a design spec given as YAML fields. Apply THREE lens-sets (UNION), reading the spec plus the repo's Accepted ADR corpus only — never test source or code (deliverable-review and epic-close own those). Cite every finding by field path (`requirements[REQ-2].acs[AC-4].then`, `delta.blocks[<id>]`, `touch_set.touched`).
+> You review a design spec given as YAML fields. Apply THREE lens-sets (UNION), reading the spec plus the repo's Accepted ADR corpus only — never test source or code (deliverable-review and epic-close own those). Cite every finding by field path (`requirements[REQ-2].acs[AC-4].then`, `delta.blocks[<id>]`, `touch_set.touched`). <!-- local-ref-ok -->
 >
 > **(i) design-soundness** — the feedforward arm from the injected fragment (subject = `delta.blocks[]` + `invariants[]`), plus structural validity, unhandled failure modes, missed edge cases per the injected architecture rubric. Also **standing-decision consistency**: grep the repo's ADR corpus (`docs/adr/**`, `**/adr/**`; status Accepted) for the blocks, paths, and coined terms the spec names; read in full only the ADRs those hits land in, plus any ADR they point at. A reversal that does not name and supersede its ADR is a finding. State how many ADRs you read and by what selector.
 >

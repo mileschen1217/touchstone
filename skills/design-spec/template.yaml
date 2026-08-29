@@ -51,6 +51,7 @@ requirements:
     traces_to: [US-1]
     basis: [<ledger ids>]     # any value not derivable from the consensus cites its id
     acs:
+      # <!-- local-ref-ok -->
       - id: AC-1
         given: <context>
         when: <action>
