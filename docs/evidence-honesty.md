@@ -31,12 +31,13 @@ restate the glossary.
 
 Coverage is **derived** by the fresh-context reviewer reading test source each
 pass — there is no stored AC→test mapping to rot. The reviewer applies the coverage
-criteria at `code-review batch` and at epic-close (where test source exists), and
+criteria at `deliverable-review` and at epic-close (where test source exists), and
 the lighter *declaration* check at design-review (Stage 0, before any test exists).
 Each of those behaviours is falsifiable by grep against the shipped SKILL.md prompts
 (see the keystone decision in `docs/adr/0009-evidence-honesty-gate.md`). A
-deterministic structural-floor checker (`scripts/check-spec-floor.sh`) guards the
-standing spec state — every AC enumerable, every `[unverified]` justified.
+deterministic schema checker (`scripts/check-artifact.sh`) guards the standing spec
+state — every AC enumerable with a `live_bearing` flag, every invariant with a check;
+per-AC evidence status lives in the review round's `review.yaml`.
 
 ## Live-bearing claims (the live boundary)
 

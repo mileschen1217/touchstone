@@ -1,0 +1,68 @@
+# spec.yaml skeleton — fill every field; the rule for each lives in
+# skills/_shared/schemas/spec.schema.yaml (check-artifact.sh validates). Keep the comments
+# out of the written spec. `reader: human` blocks are projected to the dossier for the owner.
+id: SPEC-<epic-slug>-p<N>
+title: <one line>
+epic: <epic-slug>
+phase: <N>
+status: draft                # draft | accepted-candidate | accepted | superseded
+date: YYYY-MM-DD
+facts_source:
+  record: <assay record file name, relative to the epic dir>
+  consensus: [<every ledger id this spec draws on>]
+foundation: inherit          # the three fields live in the epic index
+
+phase_map:                   # human: problem vocabulary, ≤3 sentences per panel, no paths
+  reader: human
+  position: >
+    <phase N of M; what is true before and after this phase>
+  structure_before_after: >
+    <modules as they are → as they will be>
+  interface_delta: >
+    <what each party does differently>
+  scope: >
+    <touched … ; left untouched …>
+
+touch_set:                   # agent: paths
+  reader: agent
+  touched: []
+  untouched: []
+
+delta:
+  blocks:                    # every component added / changed / removed; purpose is mandatory
+    - {id: <slug>, op: add, kind: component, purpose: <why it exists>, technology: <optional>}
+  edges:                     # dependency deltas between blocks
+    - {from: <block>, to: <block>, op: add, label: <one line>}
+  interfaces:                # party-facing deltas
+    - {party: <who>, name: <surface>, op: change, before: <…>, after: <…>}
+  contracts:                 # schemas / signatures, cited from the REQ that owns them
+    - {id: <slug>, schema: "<…>"}
+  flows:                     # optional; non-normative
+    - id: <slug>
+      mermaid: |
+        sequenceDiagram
+
+user_stories:
+  - {id: US-1, as: <actor>, want: <capability>, so_that: <outcome>}
+
+requirements:
+  - id: REQ-1
+    shall: <one normative SHALL sentence>
+    traces_to: [US-1]
+    basis: [<ledger ids>]     # any value not derivable from the consensus cites its id
+    acs:
+      # <!-- local-ref-ok -->
+      - id: AC-1
+        given: <context>
+        when: <action>
+        then: <observable outcome>
+        live_bearing: false  # predicate: skills/_shared/inject/live-bearing-predicate.md
+        # basis: [<ledger id>] when the Then carries a value the consensus does not give
+
+invariants:                  # cross-cutting rules and structural commitments no test discharges
+  - {id: INV-1, rule: <…>, why_ref: <ledger id>, check: test}   # check: test | grep | review
+
+non_goals: []
+risks:
+  - {problem: <…>, measure: <…>, priority: medium, why_ref: <ledger id>}
+waiting_on_human: []         # written as [] when empty

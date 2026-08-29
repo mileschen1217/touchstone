@@ -1,0 +1,44 @@
+# every violation class in one file; smoke asserts each line
+id: SPEC-fixture-red
+title: Fixture spec (red)
+epic: fixture
+phase: 1
+status: done
+date: 2026-01-01
+facts_source:
+  record: ledger.md
+  consensus: [Q-1]
+foundation: inherit
+phase_map:
+  reader: human
+  position: First of one phase, see scripts/parse.sh for detail.
+  structure_before_after: Before one module; after two.
+  interface_delta: One flag is added.
+  scope: Touched is the parser.
+touch_set:
+  reader: agent
+  touched: [scripts/parse.sh]
+  untouched: []
+delta:
+  blocks:
+    - {id: parser, op: change, kind: component}
+    - {id: writer, op: add, kind: component, purpose: emit}
+  edges:
+    - {from: parser, to: nowhere, op: add, label: dangling}
+user_stories:
+  - {id: US-1, as: a user, want: a flag, so_that: I can choose}
+requirements:
+  - id: REQ-1
+    shall: the parser SHALL accept --flag.
+    traces_to: [US-9]
+    basis: [Q-99]
+    notes: free prose that does not belong here
+    acs:
+      - {id: AC-1, given: a call, when: parsed, then: 42 values are kept, live_bearing: false}
+      - {id: AC-1, given: dup, when: parsed, then: dup, live_bearing: false}
+invariants:
+  - {id: INV-1, rule: the writer never reads stdin, why_ref: Q-1}
+  - {id: INV-2, rule: the writer is deep, why_ref: Q-1, check: manual}
+non_goals: []
+risks: []
+waiting_on_human: []

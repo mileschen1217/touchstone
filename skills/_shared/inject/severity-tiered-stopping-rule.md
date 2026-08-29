@@ -1,13 +1,10 @@
 ---
-injected-by: [design-review, anvil]
-referenced-by: [design-spec, code-review, crucible]
+injected-by: [design-review, deliverable-review]
+referenced-by: [design-spec, anvil, crucible]
 kind: bridge
 ---
 
 # Severity-tiered stopping rule (single home)
-
-The one normative definition of how a bounded AI review loop in this suite
-terminates. A consumer loads this file and carries only its own site delta.
 
 **Budget = initial review + at most ONE re-verify dispatch.** T = 3 (adjustable by a
 human ruling recorded in the epic's calibration ledger). "Zero new findings" is a
@@ -18,12 +15,10 @@ High ONLY by exposing an uncovered behaviour (a requirement / party / path carry
 AC) or a real defect. A pure refinement — one whose fix changes no behaviour boundary,
 tested by removal (delete the finding's target: does any pass/fail behaviour change? no →
 refinement) — is Low by construction: its marker rides to the human, it never blocks, and
-it never enters the re-verify budget below. This is what stops a loop churning on
-plausible-but-unbounded polish; only coverage gaps and real defects drive another round.
+it never enters the re-verify budget below.
 
 **Initial round:**
-- any Critical, or High ≥ T → fix all → ONE combined re-verify dispatch (boundary pin:
-  H = T re-verifies, H = T−1 closes).
+- any Critical, or High ≥ T → fix all → ONE combined re-verify dispatch.
 - 0 Critical and High < T → fix all → close; the fix diff rides the verdict to the next
   human checkpoint (a clean round attaches no diff).
 
@@ -47,11 +42,10 @@ pass — its gating findings are the **frozen backlog**. The re-verify / re-chal
 **burn-down**: it confirms the backlog is resolved and catches any real defect a fix
 introduced; it does NOT re-run discovery on the fixed text. A `fix-induced` finding may
 not re-open a round unless it is a genuine real defect; a refinement of fix text rides to
-the human. This — a cleared frozen backlog, not a clean-text test — is why the loop
-terminates.
+the human.
 
-**Challenge-pass loop** (findings are typed markers carrying `type` / `provenance`, not
-C/H severities): initial challenge + ONE re-challenge. A `refinement` marker rides to the
+**Challenger context** (design-review round 1; markers carry `type` / `provenance`, severity
+derived from type at merge): initial challenge + ONE re-challenge inside the same round budget. A `refinement` marker rides to the
 human and never blocks; `coverage-gap` / `real-defect` markers are the backlog. Route a
 backlog marker by content — one that would change a user-story or a requirement's SHALL
 headline goes to the human, an AC-level one is resolved by the authoring AI and logged;

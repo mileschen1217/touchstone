@@ -1,0 +1,52 @@
+# review.schema.yaml — the single output of a review gate (review.yaml), one file per round.
+# Keywords as in spec.schema.yaml; `field_path: true` = a locator per the field-path grammar
+# (`<top>[<sel>].<key>…`, sel = stable id | 0-based index | `*`), resolved in the target
+# spec when --root is given. `challenger` names the provider that ran the challenger context
+# (design-review rounds); its presence in the round-1 file is the challenge attestation.
+kind: review
+type: object
+additionalProperties: false
+required: [gate, target, sha, round, providers, degraded, verdict, counts, findings, rulings, waiting_on_human]
+properties:
+  gate: {type: string, reader: agent, enum: [design-review, deliverable-review]}
+  target: {type: string, reader: agent}      # the governing spec file (relative to --root); field paths and rulings resolve through it
+  range: {type: string, reader: agent}       # deliverable-review: the reviewed commit range
+  sha: {type: string, reader: agent}
+  round: {type: integer, reader: agent}
+  providers: {type: array, reader: agent, items: {type: string, enum: [cc, codex]}}
+  challenger: {type: string, reader: agent, enum: [cc, codex]}
+  degraded: {type: boolean, reader: human}
+  degraded_reason: {type: string, reader: human}
+  verdict: {type: string, reader: human, enum: [approve, revise, block]}
+  counts:
+    type: object
+    reader: human
+    required: [C, H, M, L]
+    additionalProperties: false
+    properties:
+      C: {type: integer}
+      H: {type: integer}
+      M: {type: integer}
+      L: {type: integer}
+  rulings: {type: array, reader: agent, items: {type: string}, ledger_ref: true}
+  findings:
+    type: array
+    reader: agent
+    items:
+      type: object
+      required: [id, agent, lens, type, provenance, severity, summary, fix, status]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: F}
+        agent: {type: string}
+        lens: {type: string}
+        type: {type: string, enum: [coverage-gap, real-defect, refinement, soundness]}
+        provenance: {type: string, enum: [original, fix-induced]}
+        severity: {type: string, enum: [C, H, M, L]}
+        field: {type: string, field_path: true}
+        file: {type: string}
+        line: {type: integer}
+        summary: {type: string}
+        fix: {type: string}
+        status: {type: string, enum: [open, fixed, waived, unverified]}
+  waiting_on_human: {type: array, reader: human, items: {type: string}}

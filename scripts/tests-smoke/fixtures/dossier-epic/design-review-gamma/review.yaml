@@ -1,0 +1,22 @@
+gate: design-review
+target: 2026-01-04-gamma.spec.yaml
+sha: fixture
+round: 1
+providers: [cc, codex]
+challenger: cc
+degraded: false
+verdict: approve
+counts: {C: 0, H: 0, M: 0, L: 1}
+rulings: [Q-1]
+findings:
+  - id: F-1
+    agent: challenger
+    lens: coverage
+    type: refinement
+    provenance: original
+    severity: L
+    field: requirements[REQ-1].acs[AC-1].then
+    summary: the then-clause could name the exit code
+    fix: rides to the human
+    status: open
+waiting_on_human: [accept F-1 as is]

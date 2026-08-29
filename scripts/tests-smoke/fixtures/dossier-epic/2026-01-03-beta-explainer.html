@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Beta explainer (hostile)</title>
+<script>alert('head script')</script></head>
+<body>
+<h1>Beta explainer</h1>
+<p>Panel: interface delta. AC-1 shifted.</p>
+<img src="https://example.com/pixel.png" onerror="alert(1)">
+<img src='https://example.com/single.png'>
+<img src=https://example.com/unquoted.png>
+<iframe src="https://example.com/x"></iframe>
+<a href="javascript:alert(2)" onmouseover="alert(3)">bad link</a>
+<a href="https://example.com/doc">good link</a>
+<p onclick="alert(4)">clickable</p>
+<script>alert('body script')</script>
+<p><a href="java	script:alert(2)">tab-split</a></p></body></html>

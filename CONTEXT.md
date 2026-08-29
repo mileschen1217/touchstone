@@ -29,12 +29,13 @@ pointer names the single home of any longer rule.
 
 ## Review vocabulary
 
-- **batch review** — cross-vendor review of a logical commit group; the mandatory
-  deliverable review layer, backed by the pre-push C/H blocker.
-- **final review** — anvil's closing cross-provider review of the whole deliverable
-  against the accepted spec, including per-AC honesty (`[unverified]` forcing).
-- **review envelope** — dispatch-provenance record of who actually reviewed;
-  single home: `skills/cross-provider-reviewer/references/provenance.md`.
+- **deliverable review** — the one gate after a build: a spec-conformance agent
+  (per-AC evidence, invariant checks) and a cross-vendor code-quality agent, one
+  `review.yaml`, one human accept; backed by the pre-push C/H blocker. `/touchstone:code-review batch` is its alias.
+- **review.yaml** — the single output of a review round (gate, providers, degraded,
+  verdict, counts, findings F-n by field path, rulings); schema home
+  `skills/_shared/schemas/review.schema.yaml`; provenance fields
+  `skills/cross-provider-reviewer/references/provenance.md`.
 - **live-bearing AC / live artifact** — an AC undischargeable offline, and the
   captured real-boundary output (with producer + freshness provenance) that
   discharges it; single home: `skills/_shared/inject/live-bearing-predicate.md`.
@@ -43,17 +44,17 @@ pointer names the single home of any longer rule.
 
 ## Eval vocabulary
 
-- **gate stamp** — one line a gate skill appends after each run (findings ×
-  severity, fixes, rough cost) to `.touchstone/eval/stamps.jsonl`; the
-  which-gate-pays-rent axis.
+- **gate stamp** — one line appended after each gate run in touchstone's own
+  epics (`.touchstone/checker/standalone/eval-reckon.md`, repo-local — not shipped);
+  the which-gate-pays-rent axis.
 - **use-point failure event** — one line recorded when an artifact fails in use
   (`date | artifact | event | expected locus | actual locus | severity`); instances:
   `gate-miss.md` (human catches what a gate missed), build deviation logs,
   post-build quiz misses. The did-the-chain-produce-quality axis.
-- **reckon** — the epic-close page where a human reads both axes and rules
-  keep / adjust / kill per gate; includes the recall question "what did you catch
-  that the gates missed?". Capture is soft (~80% + recall backstop), consumers are
-  threshold/trend-based.
+- **reckon** — touchstone-local epic-close page ruling keep / adjust / kill per
+  gate from both axes (same repo-local home). The recall question "what did you
+  catch that the gates missed?" stays in the shipped close procedure; capture is
+  soft (~80% + recall backstop), consumers are threshold/trend-based.
 
 ## Build vocabulary
 

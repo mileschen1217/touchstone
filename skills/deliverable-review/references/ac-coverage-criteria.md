@@ -1,12 +1,12 @@
 ---
-injected-by: [code-review]
+injected-by: [deliverable-review]
 kind: bridge
 ---
 
 # AC-coverage criteria (single home — gates that read test source)
 
 The evidence-honesty coverage core, injected at the gates where test source exists
-(`code-review batch`, epic-close). A sibling of `ac-coverage-honesty-principle.md` —
+(`deliverable-review`, epic-close). A sibling of `ac-coverage-honesty-principle.md` —
 NOT that fragment — because this core names an act (reading test source) that the
 design-review gate must not perform. A consumer loads this and carries only its own
 site delta.

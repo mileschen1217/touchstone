@@ -1,0 +1,30 @@
+gate: design-review
+target: spec-green.yaml
+sha: abc123
+round: 1
+providers: [cc]
+degraded: true
+verdict: revise
+counts: {C: 0, H: 2, M: 0, L: 0}
+rulings: []
+findings:
+  - id: F-3
+    agent: challenger
+    lens: coverage
+    type: coverage-gap
+    provenance: original
+    severity: H
+    field: requirements[REQ-99].acs[AC-1]
+    summary: dangling
+    fix: none
+    status: open
+  - id: F-3
+    agent: challenger
+    lens: coverage
+    type: coverage-gap
+    provenance: original
+    severity: H
+    field: requirements[REQ-1]
+    summary: duplicate id
+    fix: none
+    status: open

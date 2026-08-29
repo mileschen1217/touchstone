@@ -1,0 +1,32 @@
+gate: design-review
+target: spec-green.yaml
+sha: abc123
+round: 1
+providers: [cc, codex]
+challenger: cc
+degraded: false
+verdict: approve
+counts: {C: 0, H: 1, M: 0, L: 0}
+rulings: [Q-20]
+findings:
+  - id: F-1
+    agent: challenger
+    lens: coverage
+    type: coverage-gap
+    provenance: original
+    severity: H
+    field: requirements[REQ-1].acs[AC-2].then
+    summary: error path names no exit code
+    fix: name it
+    status: fixed
+  - id: F-2
+    agent: codex
+    lens: design-soundness
+    type: refinement
+    provenance: original
+    severity: L
+    field: risks[*].priority
+    summary: priority unobserved
+    fix: cite
+    status: open
+waiting_on_human: []

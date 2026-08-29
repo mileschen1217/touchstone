@@ -69,7 +69,7 @@ anything is written.
 
 ## Close an epic
 
-Procedure plus Evidence Reckoning, docs-current, and eval-reckon detail →
+Procedure plus Evidence Reckoning and the Disposition pass →
 [`references/close.md`](references/close.md).
 
 ## Audit

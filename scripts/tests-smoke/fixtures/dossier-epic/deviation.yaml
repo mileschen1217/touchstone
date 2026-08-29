@@ -1,0 +1,17 @@
+entries:
+  - id: D-1
+    date: 2026-01-05
+    stage: build
+    panel: interface
+    gap: the short form also needed an equals form
+    which_stage_could_have_caught: assay
+    catcher: builder
+    disposition: added -f=x; AC-1 unchanged
+quiz:
+  waived: false
+  items:
+    - id: QZ-1
+      question: which panel changed during the build?
+      answer: the interface panel, through D-1
+      anchor: phase_map.interface_delta
+waiting_on_human: [confirm the equals form stays]

@@ -1,0 +1,22 @@
+gate: design-review
+target: spec-green.yaml
+sha: abc123
+round: 1
+providers: [cc]
+challenger: cc
+degraded: false
+verdict: revise
+counts: {C: 0, H: 0, M: 1, L: 0}
+rulings: []
+findings:
+  - id: F-1
+    agent: challenger
+    lens: coverage
+    type: refinement
+    provenance: original
+    severity: M
+    field: waiting_on_human[*]
+    summary: star on a list this spec leaves empty
+    fix: none
+    status: open
+waiting_on_human: []

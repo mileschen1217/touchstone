@@ -70,7 +70,7 @@ Lay out every assumption you would otherwise silently adopt. Each entry MUST:
 
 Ask questions in the laydown's architectural-impact order, targeting tacit knowledge ONLY: intent, priority, unstated constraints, what done looks like. Do NOT ask architecture or API design questions — that design work is yours. A fact the repo or its docs can answer (the **territory arm**) is yours to look up, never the human's to be asked — a repo claim you make follows the grounded-claims citation discipline; bring the human only decisions and tacit knowledge.
 
-- Ask exactly ONE question per message; every question carries your own leaning and a one-line reason.
+- Ask exactly ONE question per message, shaped by `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/human-question-template.md` — read it once at start.
 - Enumerable answers go through AskUserQuestion with your leaning marked "(Recommended)" — one call, one question.
 - Speak plainly: no skill-internal section names, no self-coined code labels. Refer to a table entry by a content phrase — a stable-id handle beside the phrase is fine — never by row number alone.
 
@@ -147,7 +147,7 @@ Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.md` — frontmatter `subj
 - `## Flip-trigger registry` — observable signal + revisit point per row
 - `## Deferred log` — the non-load-bearing unknown stubs
 - `## Readiness ruling` — explicit yes + date + the clean round's `R-n`
-- `## Deviation log` — appended during downstream execution: gap / quadrant / which-stage-could-have-caught / catcher
+- (deviations found downstream are `D-n` entries in the epic's `deviation.yaml`, never a section here)
 
 **The consensus section IS the handoff** — an implementation of the confirmed-facts source contract (`skills/_shared/inject/confirmed-facts-source.md`). The contract author derives Scope and Invariants facts from Consensus rows and itself authors the seam / AC layer — assay emits no contract-material packaging beyond the consensus section. Every disposition names its file (and line or anchor where applicable) so a later session executes it without re-derivation.
 

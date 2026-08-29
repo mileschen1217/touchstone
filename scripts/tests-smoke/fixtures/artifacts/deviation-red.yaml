@@ -1,0 +1,16 @@
+entries:
+  - id: D-1
+    date: 2026-01-02
+    stage: build
+    panel: flow
+    gap: the flag also needs a short form
+    catcher: builder
+    disposition: added -f
+quiz:
+  waived: false
+  items:
+    - id: QZ-1
+      question: what changed?
+      answer: a short form was added
+      anchor: requirements[REQ-1].acs[AC-1]
+waiting_on_human: []
