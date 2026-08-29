@@ -1,2 +1,2 @@
 max_stage_load_lines 2330
-untested_reachable_shell_lines 2287
+untested_reachable_shell_lines 1778

@@ -87,9 +87,10 @@ for w in data.get('invalid_waivers', []):
             "is the target of a false edge claimed by %s at %s -- a false edge is "
             "never waived (INV-4)" % (w, fe['claimed_by'], fe['claim_at']))
     else:
+        # not a false-edge target: plugin-map's note says why (a waiver missing reason/reviewed)
+        why = next((n for n in data.get('notes', []) if w in n), 'see plugin-map notes')
         lines.append(
-            "[check-plugin-graph] invalid waiver: %s in .touchstone/checker/waivers.yaml "
-            "is the target of a false edge -- a false edge is never waived (INV-4)" % w)
+            "[check-plugin-graph] invalid waiver: %s in .touchstone/checker/waivers.yaml -- %s" % (w, why))
 
 if lines:
     print("\n".join(lines))

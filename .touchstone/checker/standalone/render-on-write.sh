@@ -41,12 +41,19 @@ if [ -z "$root" ]; then
   root="$(git -C "$pcwd" rev-parse --show-toplevel 2>/dev/null || true)"
 fi
 [ -n "$root" ] && [ -d "$root" ] || exit 0
-root="${root%/}"
+# Canonicalize both sides before the prefix match — `epics/../../x.yaml` and a
+# symlinked root would otherwise compare as if they were under an epic dir.
+# After the extension gate, so the common non-yaml write still pays nothing.
+root="$(cd "$root" 2>/dev/null && pwd -P)" || exit 0
+[ -n "$root" ] || exit 0
 
 case "$file_path" in
   /*) abs="$file_path" ;;
   *)  abs="$pcwd/$file_path" ;;
 esac
+abs_dir="$(cd "$(dirname "$abs")" 2>/dev/null && pwd -P)" || exit 0
+[ -n "$abs_dir" ] || exit 0
+abs="$abs_dir/$(basename "$abs")"
 
 # Must land under <root>/.touchstone/epics/<epic>/... or the archive mirror;
 # the epic dir is the first path component below "epics/".
@@ -59,6 +66,7 @@ esac
 
 epic="${rel%%/*}"
 [ -n "$epic" ] && [ "$epic" != "$rel" ] || exit 0   # no subpath below the epic name → not "under" an epic dir
+case "$epic" in .|..) exit 0 ;; esac                # a relative component is never an epic name
 epic_dir="$base/$epic"
 [ -d "$epic_dir" ] || exit 0
 

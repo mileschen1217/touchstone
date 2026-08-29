@@ -11,13 +11,23 @@ root="${TOUCHSTONE_CHECK_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}" ||
 
 bad=""
 
+# Tracked file -> the git index mode (what ships). Untracked file -> the
+# filesystem mode: skipping it would read green on a file that is 100644 on
+# disk until someone stages it, and would let a plain `chmod -x` slip pass.
 check_tracked() {  # <repo-relative-path>
-  local mode
+  local mode fsmode
   mode="$(cd "$root" && git ls-files -s "$1" 2>/dev/null | awk '{print $1}')"
-  [ -z "$mode" ] && return  # untracked — skip
+  if [ -z "$mode" ]; then
+    [ -e "$root/$1" ] || return
+    [ -x "$root/$1" ] && return
+    fsmode="$(stat -f %Lp "$root/$1" 2>/dev/null || stat -c %a "$root/$1" 2>/dev/null || true)"
+    bad="${bad:+${bad}
+}  $1 (filesystem mode ${fsmode:-unknown}, untracked)"
+    return
+  fi
   [ "$mode" = "100755" ] && return
   bad="${bad:+${bad}
-}  $1 (mode ${mode})"
+}  $1 (index mode ${mode})"
 }
 
 # Surface 1: hooks/*.sh
@@ -60,7 +70,7 @@ for _sdir in "$root/skills" "$root/commands"; do
 done
 
 if [ -n "$bad" ]; then
-  echo "[check-exec-bits-all] the following files are 100644 in the git index (must be 100755):"
+  echo "[check-exec-bits-all] the following files are not executable (index mode when tracked, filesystem mode when not; must be 100755):"
   echo "$bad"
   echo "Fix: git update-index --chmod=+x <path>"
   exit 1

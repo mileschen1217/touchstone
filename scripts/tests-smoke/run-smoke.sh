@@ -31,7 +31,7 @@ expect_out() {
 }
 
 # ---- check-artifact.sh: one green + one red per kind; each violation class asserted by line
-ax="$fx/artifacts"; ca="$scripts_dir/check-artifact.sh"
+ax="$here/fixtures/artifacts"; ca="$scripts_dir/check-artifact.sh"
 expect_exit "check-artifact spec green (bootstrap-shaped)" zero bash "$ca" spec "$ax/spec-green.yaml" --root "$ax"
 expect_out "check-artifact spec: numeric literal without basis is a warning" "warn: requirements[REQ-1].acs[AC-3].then: numeric literal" bash "$ca" spec "$ax/spec-green.yaml" --root "$ax"
 expect_exit "check-artifact spec red" nonzero bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
@@ -135,7 +135,7 @@ fi
 # placement, ADR resolution, and determinism are all exercised offline.
 tmp_root="$(mktemp -d)"
 mkdir -p "$tmp_root/.touchstone/epics" "$tmp_root/.touchstone/archive/epics" "$tmp_root/docs/adr"
-cp -R "$fx/dossier-epic" "$tmp_root/.touchstone/epics/2026-01-01-fixture"
+cp -R "$here/fixtures/dossier-epic" "$tmp_root/.touchstone/epics/2026-01-01-fixture"
 rm -f "$tmp_root/.touchstone/epics/2026-01-01-fixture/dossier.html"
 printf '# gate-miss\n\n- 2026-01-02 | fixture | a miss | assay | human | L\n' > "$tmp_root/.touchstone/gate-miss.md"
 printf -- '---\nstatus: Accepted\n---\n\n# ADR-0038 fixture decision\n\nBody.\n' > "$tmp_root/docs/adr/0038-fixture.md"
@@ -381,6 +381,50 @@ PY
 
 rm -rf "$tmp_root"
 
+# ---- render-on-write.sh: the PostToolUse re-render hook, against a scratch
+# project root holding two epics. It must render exactly the epic that was
+# written, never a sibling, and never follow a path out of the epics/ tree.
+if command -v jq >/dev/null 2>&1; then
+  ro_hook="$(cd "$scripts_dir/.." && pwd)/.touchstone/checker/standalone/render-on-write.sh"
+  ro_root="$(mktemp -d)"
+  mkdir -p "$ro_root/.touchstone/epics" "$ro_root/scripts"
+  cp -R "$here/fixtures/dossier-epic" "$ro_root/.touchstone/epics/2026-02-01-alpha"
+  cp -R "$here/fixtures/dossier-epic" "$ro_root/.touchstone/epics/2026-02-02-beta"
+  rm -f "$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html" \
+        "$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
+  cp "$scripts_dir/dossier-render.sh" "$ro_root/scripts/dossier-render.sh"
+  ro_a="$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html"
+  ro_b="$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
+
+  ro_fire() {  # <label> <written-file-path>
+    local label="$1" fp="$2" out rc
+    out="$(jq -nc --arg fp "$fp" --arg cwd "$ro_root" \
+      '{tool_input:{file_path:$fp}, cwd:$cwd}' \
+      | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_hook" 2>&1)"; rc=$?
+    if [ "$rc" -eq 0 ]; then echo "PASS: render-on-write $label (exit 0)"
+    else echo "FAIL: render-on-write $label (rc=$rc): $out"; fail=1; fi
+  }
+
+  ro_fire "non-yaml write" "$ro_root/.touchstone/epics/2026-02-01-alpha/index.md"
+  if [ ! -f "$ro_a" ] && [ ! -f "$ro_b" ]; then
+    echo "PASS: render-on-write non-yaml renders nothing"
+  else echo "FAIL: render-on-write non-yaml rendered a dossier"; fail=1; fi
+
+  ro_fire "yaml under epic A" "$ro_root/.touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml"
+  if [ -f "$ro_a" ] && [ ! -f "$ro_b" ]; then
+    echo "PASS: render-on-write renders A's dossier and leaves B untouched"
+  else echo "FAIL: render-on-write A=$([ -f "$ro_a" ] && echo yes || echo no) B=$([ -f "$ro_b" ] && echo yes || echo no)"; fail=1; fi
+
+  ro_fire "traversal out of the epics tree" "$ro_root/.touchstone/epics/../../x.yaml"
+  if [ ! -f "$ro_b" ] && [ ! -f "$ro_root/dossier.html" ]; then
+    echo "PASS: render-on-write traversal payload renders nothing"
+  else echo "FAIL: render-on-write traversal payload rendered something"; fail=1; fi
+
+  rm -rf "$ro_root"
+else
+  echo "FAIL: render-on-write block skipped — jq not found"; fail=1
+fi
+
 # ---- generic checker rail loop (REQ-6/AC-26/AC-27): every
 # .touchstone/checker/fixtures/<name>/ tree gets a green PASS (must not trip)
 # and a red PASS (must trip); a single-file fixture (close-ready) runs the
@@ -390,6 +434,10 @@ rm -rf "$tmp_root"
 # layout the loop can't map, is a FAIL line, never a silent skip.
 repo_root="$(cd "$scripts_dir/.." && pwd)"
 fixtures_root="$repo_root/.touchstone/checker/fixtures"
+
+# ---- plugin-map.sh's own self-test: it runs the map over the same fixture
+# trees the rail owns and asserts the graph / entries / metrics contract.
+expect_exit "plugin-map.sh --self-test" zero bash "$scripts_dir/plugin-map.sh" --self-test
 
 find_checker() {  # <name> -> absolute path on stdout, or nothing
   local name="$1" d p
@@ -465,17 +513,19 @@ for fxd in "$fixtures_root"/*/; do
 done
 shopt -u nullglob
 
-# ---- AC-28: invoke --self-test on every checker that defines one
+# ---- invoke --self-test on every script that defines one. The glob is `*.sh`,
+# not `check-*.sh`: a standalone tool under the same stage dirs carries a
+# self-test too, and a check-only glob left it uninvoked.
 for d in "$repo_root/.touchstone/checker/pre-commit" "$repo_root/.touchstone/checker/pre-push" "$repo_root/.touchstone/checker/standalone"; do
   [ -d "$d" ] || continue
   while IFS= read -r f; do
     grep -q -- '--self-test' "$f" || continue
     expect_exit "self-test $(basename "$f" .sh)" zero bash "$f" --self-test
-  done < <(find "$d" -maxdepth 1 -name 'check-*.sh' | sort)
+  done < <(find "$d" -maxdepth 1 -name '*.sh' | sort)
 done
 while IFS= read -r f; do
   grep -q -- '--self-test' "$f" || continue
   expect_exit "self-test $(basename "$f" .sh)" zero bash "$f" --self-test
-done < <(find "$repo_root/skills" -name 'check-*.sh' | sort)
+done < <(find "$repo_root/skills" -name '*.sh' | sort)
 
 exit "$fail"

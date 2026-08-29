@@ -12,6 +12,10 @@
 #   --mermaid  `flowchart LR` over the six stage entries and the invokes edges
 #              between them
 #   --root     tree to measure (default: the enclosing git worktree's toplevel)
+#   --self-test  run the committed fixture trees under
+#              .touchstone/checker/fixtures/ through this script and assert the
+#              graph, entries-file and metrics contract; one PASS/FAIL line per
+#              case, non-zero exit on any FAIL
 #   exit 0 → map printed · 1 → bad root / entries-file contract violated (the
 #   offending paths are listed on stderr) · 2 → usage error
 #
@@ -35,6 +39,128 @@
 # reached) but are not counted in `lines` — a script is run, not loaded into a
 # context, and an agent runs in a context of its own.
 set -uo pipefail
+
+# --------------------------------------------------------------- self-test
+# Runs this script over the committed fixture trees the checker rail already
+# owns (no fixture of its own), so the map has an automated consumer instead of
+# only the two checkers that read its JSON.
+if [ "${1:-}" = "--self-test" ]; then
+  command -v python3 >/dev/null 2>&1 || { printf 'plugin-map.sh: python3 not found\n' >&2; exit 1; }
+  _self="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+  _repo="$(cd "$(dirname "$_self")/.." && pwd)"
+  python3 - "$_self" "$_repo" <<'SELFTEST_EOF'
+import json, os, shutil, subprocess, sys, tempfile
+
+self_path, repo = sys.argv[1], sys.argv[2]
+FX = os.path.join(repo, '.touchstone/checker/fixtures')
+GRAPH = os.path.join(FX, 'plugin-graph')
+fails = 0
+
+def report(ok, label, detail=''):
+    global fails
+    print('%s %s%s' % ('PASS' if ok else 'FAIL', label, '' if ok else ' — ' + detail))
+    if not ok:
+        fails += 1
+
+def run(root):
+    return subprocess.run(['bash', self_path, '--root', root],
+                          capture_output=True, text=True)
+
+def mapped(root, label):
+    r = run(root)
+    if r.returncode != 0:
+        report(False, label, 'rc=%d stderr=%s' % (r.returncode, r.stderr.strip()[:300]))
+        return None
+    try:
+        return json.loads(r.stdout)
+    except ValueError as exc:
+        report(False, label, 'output is not JSON: %s' % exc)
+        return None
+
+# ---- graph fixtures
+lbl = 'plugin-graph green: false_edges/orphans/test_only/stale/invalid all empty'
+d = mapped(os.path.join(GRAPH, 'green'), lbl)
+if d is not None:
+    nonempty = [k for k in ('false_edges', 'orphans', 'test_only',
+                            'stale_waivers', 'invalid_waivers') if d.get(k)]
+    report(not nonempty, lbl, 'non-empty: %s' % nonempty)
+
+lbl = 'plugin-graph red-false-edge: one false edge on skills/_shared/inject/frag.md claimed by skills/other/SKILL.md'
+d = mapped(os.path.join(GRAPH, 'red-false-edge'), lbl)
+if d is not None:
+    fe = d.get('false_edges') or []
+    ok = (len(fe) == 1 and fe[0].get('target') == 'skills/_shared/inject/frag.md'
+          and fe[0].get('claimed_by') == 'skills/other/SKILL.md')
+    report(ok, lbl, repr(fe))
+
+for sub, key, want in (('red-orphan', 'orphans', ['scripts/lonely.sh']),
+                       ('red-stale-waiver', 'stale_waivers', ['scripts/lonely.sh'])):
+    lbl = 'plugin-graph %s: %s == %s' % (sub, key, want)
+    d = mapped(os.path.join(GRAPH, sub), lbl)
+    if d is not None:
+        report(d.get(key) == want, lbl, repr(d.get(key)))
+
+lbl = 'plugin-graph red-invalid-waiver: invalid_waivers non-empty'
+d = mapped(os.path.join(GRAPH, 'red-invalid-waiver'), lbl)
+if d is not None:
+    report(bool(d.get('invalid_waivers')), lbl, repr(d.get('invalid_waivers')))
+
+lbl = 'plugin-graph red-bare-waiver: a waiver without reason/reviewed is invalid, the note names both fields'
+d = mapped(os.path.join(GRAPH, 'red-bare-waiver'), lbl)
+if d is not None:
+    note = ' '.join(d.get('notes') or [])
+    ok = (d.get('invalid_waivers') == ['scripts/lonely.sh']
+          and 'reason' in note and 'reviewed' in note)
+    report(ok, lbl, '%r / %r' % (d.get('invalid_waivers'), d.get('notes')))
+
+# ---- ratchet fixture: the numbers the pre-push ratchet reads
+lbl = 'plugin-ratchets green: stage 1 lines == 10 and both metrics keys present'
+d = mapped(os.path.join(FX, 'plugin-ratchets/green'), lbl)
+if d is not None:
+    st = {s['stage']: s for s in (d.get('stages') or [])}
+    m = d.get('metrics') or {}
+    ok = (st.get(1, {}).get('lines') == 10
+          and 'max_stage_load_lines' in m
+          and 'untested_reachable_shell_lines' in m
+          and 'untested_reachable_shell_files' in m)
+    report(ok, lbl, 'stages=%r metrics=%r' % (
+        [(s['stage'], s['lines']) for s in (d.get('stages') or [])], sorted(m)))
+
+# ---- entries-file contract: violations exit 1 and name the offending path
+scratch = tempfile.mkdtemp(prefix='plugin-map-selftest.')
+try:
+    ent = '.touchstone/checker/plugin-map.entries'
+
+    def scratch_copy(name):
+        dst = os.path.join(scratch, name)
+        shutil.copytree(os.path.join(GRAPH, 'green'), dst)
+        return dst
+
+    tree = scratch_copy('missing-entry')
+    p = os.path.join(tree, ent)
+    kept = [l for l in open(p, encoding='utf-8').read().splitlines()
+            if l.strip() != 'skills/demo/SKILL.md']
+    open(p, 'w', encoding='utf-8').write('\n'.join(kept) + '\n')
+    r = run(tree)
+    lbl = 'entries contract: a required SKILL.md missing from the entries file exits 1 naming it'
+    report(r.returncode == 1 and 'skills/demo/SKILL.md' in r.stderr, lbl,
+           'rc=%d stderr=%s' % (r.returncode, r.stderr.strip()[:300]))
+
+    tree = scratch_copy('absolute-entry')
+    p = os.path.join(tree, ent)
+    with open(p, 'a', encoding='utf-8') as fh:
+        fh.write('/etc/hosts\n')
+    r = run(tree)
+    lbl = 'entries contract: an absolute path in the entries file exits 1 naming it'
+    report(r.returncode == 1 and '/etc/hosts' in r.stderr, lbl,
+           'rc=%d stderr=%s' % (r.returncode, r.stderr.strip()[:300]))
+finally:
+    shutil.rmtree(scratch, ignore_errors=True)
+
+sys.exit(1 if fails else 0)
+SELFTEST_EOF
+  exit $?
+fi
 
 root=""; mode="json"; skill_arg=""
 while [ $# -gt 0 ]; do
@@ -383,7 +509,10 @@ else:
 entries = sorted(set(entries))
 
 # ---------------------------------------------------------------- waivers
-waivers = []
+# A waiver states WHY the node has no in-edge and WHEN that was last reviewed;
+# an entry missing either field is an unreviewable licence and counts invalid.
+WAIVER_FIELDS = ('reason', 'reviewed')
+waivers, bad_field_waivers = [], []
 wtext = read(WAIVERS_FILE)
 if wtext is not None:
     try:
@@ -392,15 +521,27 @@ if wtext is not None:
         if isinstance(loaded, list):
             for item in loaded:
                 if isinstance(item, dict) and item.get('node'):
-                    waivers.append(str(item['node']))
+                    node = str(item['node'])
+                    waivers.append(node)
+                    missing = [f for f in WAIVER_FIELDS if not item.get(f)]
+                    if missing:
+                        bad_field_waivers.append((node, missing))
         else:
             notes.append('%s does not parse to a list — ignored' % WAIVERS_FILE)
     except ImportError:
         for line in wtext.splitlines():
             m = re.search(r'node\s*:\s*([^,}\s]+)', line)
             if m:
-                waivers.append(m.group(1).strip().strip('"\''))
+                node = m.group(1).strip().strip('"\'')
+                waivers.append(node)
+                missing = [f for f in WAIVER_FIELDS
+                           if not re.search(r'\b%s\s*:\s*\S' % f, line)]
+                if missing:
+                    bad_field_waivers.append((node, missing))
         notes.append('PyYAML absent — waivers read with a line matcher')
+for node, missing in bad_field_waivers:
+    notes.append('waiver for %s in %s is missing required field(s): %s'
+                 % (node, WAIVERS_FILE, ', '.join(missing)))
 waivers = sorted(set(waivers))
 
 # ------------------------------------------------------------ reachability
@@ -437,7 +578,8 @@ stale_waivers = sorted({w for w in waivers
                         if e['to'] == w and e['from'] != SMOKE
                         and e['from'] in reach(roots_all - {SMOKE, w})})
 false_targets = {e['target'] for e in false_edges}
-invalid_waivers = sorted(w for w in waivers if w in false_targets)
+invalid_waivers = sorted({w for w in waivers if w in false_targets}
+                         | {n for n, _ in bad_field_waivers})
 
 # ------------------------------------------------------------ load closure
 CLOSURE_KINDS = {'invokes', 'loads', 'reads', 'runs', 'dispatches'}

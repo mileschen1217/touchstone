@@ -401,12 +401,160 @@ print('TOTAL=%d MAX=%d PCT=%.1f C=%d H=%d NEWCH=%d PREV=%s COLLAPSED=%d FINDINGS
 PY
 )
 
+# ------------------------------------------------------------- parser assertions
+# Reads the artifacts PARSE_PY just wrote and checks the one thing per case that
+# a silent parse failure would hide. One home for all parser cases.
+PARSE_ASSERT_PY=$(cat <<'PY'
+import sys, yaml
+
+review, score, want_n, mode, machine = sys.argv[1:6]
+doc = yaml.safe_load(open(review, encoding='utf-8')) or {}
+findings = doc.get('findings') or []
+errs = []
+if len(findings) != int(want_n):
+    errs.append('findings=%d want %s' % (len(findings), want_n))
+if mode == 'clean':
+    if doc.get('degraded'):
+        errs.append('degraded=%r reason=%r' % (doc.get('degraded'), doc.get('degraded_reason')))
+    need = ('id', 'agent', 'lens', 'type', 'provenance', 'severity', 'file',
+            'line', 'summary', 'fix', 'status')
+    for f in findings:
+        miss = [k for k in need if k not in f]
+        if miss:
+            errs.append('%s missing %s' % (f.get('id'), miss))
+elif mode == 'partial':
+    if doc.get('degraded_reason') != 'partial':
+        errs.append('degraded_reason=%r want partial' % doc.get('degraded_reason'))
+elif mode == 'noscore':
+    if doc.get('degraded_reason') != 'partial':
+        errs.append('degraded_reason=%r want partial' % doc.get('degraded_reason'))
+    if 'No criterion scores were parsed' not in open(score, encoding='utf-8').read():
+        errs.append('score.md does not report the scores as absent')
+    if 'TOTAL=0 ' not in machine:
+        errs.append('machine line %r' % machine)
+if errs:
+    print('  ' + '; '.join(errs))
+    sys.exit(1)
+PY
+)
+
 # --------------------------------------------------------------------- arguments
 if [ "${1:-}" = "--self-test" ]; then
   command -v python3 >/dev/null 2>&1 || { echo "plugin-review.sh: python3 not found" >&2; exit 2; }
   python3 -c 'import yaml' 2>/dev/null || { echo "plugin-review.sh: PyYAML not installed — run: python3 -m pip install pyyaml" >&2; exit 2; }
-  python3 -c "$LOOP_PY" selftest "$rubric" || exit 1
-  exit 0
+  st_fail=0
+  python3 -c "$LOOP_PY" selftest "$rubric" || st_fail=1
+
+  # Parser regression cases run through PARSE_PY itself — the same
+  # from_blocks / from_records / from_lines path the live round uses. The first
+  # case is the shipped defect: an unquoted `: ` inside a summary makes
+  # yaml.safe_load raise, and losing the block to it is a silent false-clean.
+  st_dir="$(mktemp -d)"
+  st_root="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$here")"
+  : > "$st_dir/cc-empty.txt"
+
+  parser_case() {  # <label> <msg-file> <want-findings> <clean|partial|noscore>
+    local label="$1" msg="$2" want="$3" mode="$4" line rc
+    line="$(python3 -c "$PARSE_PY" "$msg" "$rubric" "$st_dir/review.yaml" \
+      "$st_dir/score.md" 1 selftest selftest.spec.yaml "" "$st_dir/cc-empty.txt" \
+      "" "$st_root" 1 2>&1)"; rc=$?
+    if [ "$rc" -ne 0 ]; then
+      echo "FAIL parser $label — PARSE_PY rc=$rc: $line"; st_fail=1; return
+    fi
+    if python3 -c "$PARSE_ASSERT_PY" "$st_dir/review.yaml" "$st_dir/score.md" \
+        "$want" "$mode" "$line"; then
+      echo "PASS parser $label"
+    else
+      echo "FAIL parser $label"; st_fail=1
+    fi
+  }
+
+  cat > "$st_dir/m-colon.txt" <<'MSG'
+```yaml
+findings:
+  - file: skills/a/SKILL.md
+    line: 12
+    lens: 2
+    type: real-defect
+    severity: H
+    summary: single home: skills/_shared/inject/frag.md, restated here
+    fix: cite the home, drop the copy
+  - file: skills/b/SKILL.md
+    line: 3
+    lens: 1
+    type: refinement
+    severity: M
+    summary: duplicate paragraph
+    fix: delete one
+  - file: agents/c.md
+    line: 7
+    lens: 4
+    type: coverage-gap
+    severity: L
+    summary: no downstream consumer
+    fix: name the consumer
+```
+
+C1.1: 2
+C1.2: 2
+VERDICT: revise
+MSG
+  parser_case "unquoted ': ' in a summary — all 3 findings recovered, none dropped" \
+    "$st_dir/m-colon.txt" 3 clean
+
+  cat > "$st_dir/m-empty.txt" <<'MSG'
+Nothing structured this round.
+
+```yaml
+```
+
+C1.1: 1
+VERDICT: revise
+MSG
+  parser_case "empty fenced block — zero findings, degraded_reason partial" \
+    "$st_dir/m-empty.txt" 0 partial
+
+  cat > "$st_dir/m-nokey.txt" <<'MSG'
+```yaml
+notes: nothing structured this round
+```
+
+C1.1: 1
+VERDICT: revise
+MSG
+  parser_case "fenced block with no findings key — zero findings, degraded_reason partial" \
+    "$st_dir/m-nokey.txt" 0 partial
+
+  cat > "$st_dir/m-lines.txt" <<'MSG'
+- `skills/a/SKILL.md:12` lens=2 type=real-defect severity=H the rule has no consumer
+- `skills/b/SKILL.md:3` lens=1 type=refinement severity=M duplicate paragraph
+- `agents/c.md:7` lens=4 type=coverage-gap severity=L no downstream handler
+
+C1.1: 2
+VERDICT: revise
+MSG
+  parser_case "plain-list message — 3 findings parsed with every required key" \
+    "$st_dir/m-lines.txt" 3 clean
+
+  cat > "$st_dir/m-noscore.txt" <<'MSG'
+```yaml
+findings:
+  - file: skills/a/SKILL.md
+    line: 12
+    lens: 2
+    type: real-defect
+    severity: H
+    summary: one line
+    fix: one line
+```
+
+VERDICT: revise
+MSG
+  parser_case "message with no score lines — score reported absent, never a silent 0" \
+    "$st_dir/m-noscore.txt" 1 noscore
+
+  rm -rf "$st_dir"
+  exit "$st_fail"
 fi
 
 epic=""; rounds=3; cc_findings=""; root=""
