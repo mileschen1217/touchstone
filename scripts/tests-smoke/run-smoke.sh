@@ -239,7 +239,7 @@ import re, sys, html as H, yaml, os
 h = open(sys.argv[1], encoding='utf-8').read()
 front = re.search(r'<section class="tab" id="tab-0">(.*?)<section class="tab" id="tab-1">', h, re.S).group(1)
 heads = re.findall(r'<section class="fs"><h3>([^<]*)</h3>', front)
-want = ['決策', 'gate 條', '阻擋清單', '怎麼驗的', '結構變化', '檢查表']
+want = ['決策', 'gate 條', '阻擋清單', '怎麼驗的', '檢查表']
 assert heads == want, heads
 pr = open(sys.argv[2], encoding='utf-8').read()
 assert re.findall(r'^## (.+)$', pr, re.M) == want, 'pr-body sections differ from the tab order'

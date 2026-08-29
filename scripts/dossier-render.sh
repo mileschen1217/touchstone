@@ -566,7 +566,7 @@ def fm_table(fm):
     return f'<div class="tbl"><table>{rows}</table></div>'
 
 def article(title, rel, inner, anchor=''):
-    head = f'<header><span class="file">{html.escape(rel)}</span></header>' if rel else ''
+    head = f'<header>{fspan(rel)}</header>' if rel else ''
     return f'<article{anchor}>{head}<h2>{html.escape(title)}</h2>{inner}</article>'
 # note: `anchor` is always built from slug_id()/adr_key() output — attribute-safe by construction.
 
@@ -613,11 +613,12 @@ def pill(status):
            'draft': 'muted', 'paused': 'warn', 'cancelled': 'crit', 'blocked': 'crit'}.get(s, 'muted')
     return f'<span class="pill {cls}">{html.escape(status or "—")}</span>'
 
+META_ZH = {'date': '日期', 'kind': '種類', 'type': '類型', 'started': '開始', 'landed': '落地'}
 def meta_line(fm, extra=''):
     parts = []
     for k in ('status', 'date', 'kind', 'type', 'started', 'landed'):
         if fm.get(k):
-            parts.append(zpill(sval(fm[k]).lower()) if k == 'status' else f'<span>{html.escape(k)} {html.escape(fm[k])}</span>')
+            parts.append(zpill(sval(fm[k]).lower()) if k == 'status' else f'<span>{lab(META_ZH.get(k, k))} {zh(sval(fm[k]).lower()) if k in ("kind", "type") else html.escape(sval(fm[k]))}</span>')
     if extra: parts.append(extra)
     return f'<p class="meta">{" · ".join(parts)}</p>' if parts else ''
 
@@ -754,13 +755,13 @@ def yaml_table(rows, header, owner, anchor_col=None, stem=''):
     for r in rows:
         rid = f' id="{attr(stem + "--" + sval(r[anchor_col]))}"' if anchor_col is not None and sval(r[anchor_col]) else ''
         skip = sval(r[anchor_col]) if anchor_col is not None else None
-        body += f'<tr{rid}>' + ''.join(f'<td>{inline(sval(c), owner, skip if j == anchor_col else None)}</td>' for j, c in enumerate(r)) + '</tr>'
+        body += f'<tr{rid}>' + ''.join(f'<td>{c if (isinstance(c, str) and c.startswith("<abbr")) else inline(sval(c), owner, skip if j == anchor_col else None)}</td>' for j, c in enumerate(r)) + '</tr>'
     return f'<div class="tbl"><table><tr>{h}</tr>{body}</table></div>'
 
 def yaml_contract_card(p, s):
     yd, k = s['yaml'], p['key']
     parts = [f'<h3 class="file-title">{yv(yd.get("title"), k)}</h3>',
-             meta_line(s['fm'], f'<span class="file">{html.escape(p["spec"])}</span>')]
+             meta_line({kk: v for kk, v in s['fm'].items() if kk != 'status'}, fspan(p['spec']))]
     agent = []   # reader: agent fields — folded
     if yd.get('facts_source'):
         fs = yd['facts_source']
@@ -797,9 +798,9 @@ def yaml_contract_card(p, s):
     if d.get('contracts'):
         agent.append(f'<h4>{lab("契約介面")}</h4>' + yaml_table([[c.get('id'), c.get('schema')] for c in d['contracts'] if isinstance(c, dict)], ['id', 'schema'], k))
     if yd.get('non_goals'):
-        parts.append(f'<h4>{lab("不做")}</h4><ul>' + ''.join(f'<li>{yv(n, k)}</li>' for n in yd['non_goals']) + '</ul>')
+        parts.append(collapsed(f'<span class="lead">{lab("不做")}</span> <span class="num">{len(yd["non_goals"])}</span>', '<ul>' + ''.join(f'<li>{yv(n, k)}</li>' for n in yd['non_goals']) + '</ul>'))
     if yd.get('risks'):
-        parts.append(f'<h4>{lab("風險")}</h4>' + yaml_table([[r.get('priority'), r.get('problem'), r.get('measure'), r.get('why_ref')] for r in yd['risks'] if isinstance(r, dict)], ['優先', '問題', '對策', '依據'], k))
+        parts.append(collapsed(f'<span class="lead">{lab("風險")}</span> <span class="num">{len(yd["risks"])}</span>', yaml_table([[zh(r.get('priority')), r.get('problem'), r.get('measure'), r.get('why_ref')] for r in yd['risks'] if isinstance(r, dict)], ['優先', '問題', '對策', '依據'], k)))
     if yd.get('waiting_on_human'):
         parts.append(f'<h4>{lab("等你裁")}</h4><ul class="todo">' + ''.join(f'<li>{yv(w, k)}</li>' for w in yd['waiting_on_human']) + '</ul>')
     if agent:
@@ -840,7 +841,7 @@ def review_verdict_line(rel, d, owner):
              f'{lab("審查方")} {" ".join(yv(x, owner) for x in d.get("providers") or [])}']
     if d.get('degraded') is True:
         parts.append(f'<span class="pill crit">degraded</span> {yv(d.get("degraded_reason"), owner)}')
-    return f'<li><span class="file">{html.escape(rel)}</span> · ' + ' · '.join(parts) + '</li>'
+    return f'<li>{fspan(rel)} · ' + ' · '.join(parts) + '</li>'
 
 def review_findings_table(d, owner):
     rows = []
@@ -938,7 +939,7 @@ def structure_overlay(p, s):
         return '<p class="placeholder">no structural delta declared</p>'
     out = structure_svg(blocks, edges)
     if ov:
-        out += f'<p class="meta">{lab("互動疊圖")} <a href="{attr(ov[0])}"><span class="file">{html.escape(ov[0])}</span></a></p>'
+        out += f'<p class="meta">{lab("互動疊圖")} <a href="{attr(ov[0])}">{fspan(ov[0])}</a></p>'
     tables = yaml_table([[b.get('op'), b.get('id'), b.get('kind'), b.get('purpose')] for b in blocks], ['動作', '區塊', '種類', '目的'], k)
     if edges:
         tables += yaml_table([[e.get('op'), e.get('from'), e.get('to'), e.get('label')] for e in edges], ['動作', '從', '到', '說明'], k)
@@ -989,6 +990,7 @@ ZH = {
     'true': '是', 'false': '否',
     'degraded': '降級', 'as-planned': '如計畫', 'built-ne-planned': '實作≠計畫', 'live-bearing': '需實跑',
     'component': '元件', 'skill': '技能', 'fragment': '片段', 'agent': 'agent', 'command': '指令', 'schema': 'schema', 'doc': '文件',
+    'high': '高', 'medium': '中', 'low': '低', 'spec': 'spec', 'adr': 'ADR',
     'owner': '擁有者', 'builder': '建置者', 'author': '作者 session', 'complete': '完成', 'partial': '部分',
 }
 def zh(v):
@@ -1069,7 +1071,7 @@ def gate_strip_html(p, s):
         extra = f'{lab("負責")} {zh(GATE_OWNER.get(gate, ""))} · ' if st in ('fail', 'pending') else ''
         if d is not None:
             extra = f'{lab("第")} {yv(d.get("round"), k)} {lab("輪")} · {counts_html(d, k)} · {zh(d.get("verdict"))}'
-            if d.get('degraded') is True: extra += f' · {zpill("degraded", "crit")} <span class="muted">{yv(d.get("degraded_reason"), k)}</span>'
+            if d.get('degraded') is True: extra += f' · {zpill("degraded", "crit")}<details class="inl"><summary>{lab("原因")}</summary>{yv(d.get("degraded_reason"), k)}</details>'
         link = f' <a href="{attr(rel)}" title="{attr(rel)}">{lab("紀錄")}</a>' if rel else ''
         rows += f'<tr><td>{zh(gate)}</td><td>{zpill(st)}</td><td>{extra}{link}</td></tr>'
     return f'<div class="tbl"><table class="gates"><tr><th>門</th><th>狀態</th><th>觀測 · 紀錄</th></tr>{rows}</table></div>'
@@ -1119,7 +1121,7 @@ def front_sections(p, s):
         v_html += collapsed(f'<span class="lead">{lab("未驗證詳情")}</span> <span class="num">{len(unv)}</span>', '<ul>' + ''.join(f'<li>{link_codes(last_id(f.get("field")), k)} · {yv(f.get("summary"), k)}</li>' for f in unv_sorted) + '</ul>')
     nb = sum(1 for i, st, l in ledger_stage_lines if st.startswith(('build', 'deliverable-review', 'phase-ship')))
     if nb:
-        v_html += f'<p class="meta">{lab("build 帳")} <a class="code" data-jump="{attr(k + "--ledger")}" tabindex="0">{nb}</a> {lab("則（含每個 prose commit 的 m-skill-review verdict）")}</p>'
+        v_html += f'<p class="meta">{lab("建置帳")} <a class="code" data-jump="{attr(k + "--ledger")}" tabindex="0">{nb}</a> {lab("則（含每個 prose commit 的 m-skill-review 裁決）")}</p>'
     v_html += quiz_html(p)
     v_txt = f"ACs {len(acs)} · unverified {len(unv)}" + (f" · deliverable-review {sval(d.get('verdict'))}" if d else ' · deliverable-review pending') + f"\nquiz: {ZH[qs]}" + (f" {qpass}/{len(qitems)}" if qitems else '') + ''.join(f"\n- {sval(f.get('field'))} · {sval(f.get('summary'))}" for f in unv)
     if qs == 'n/a': v_txt += '\nquiz waived: zero delta'
@@ -1130,12 +1132,14 @@ def front_sections(p, s):
     for e in dn: by_panel.setdefault(sval(e.get('panel')), []).append(sval(e.get('id')))
     sc_html = f'<p>{lab("偏離契約")} <span class="num">{len(dn)}</span> · ' + ' · '.join(f'{zh(pn)} {" ".join(link_codes(i, k) for i in ids)}' for pn, ids in by_panel.items()) + f' · <a data-jump="{attr(k + "--structure")}" tabindex="0" class="code">結構變化</a></p>' if dn else f'<p>{lab("偏離契約")} <span class="num">0</span> · <a data-jump="{attr(k + "--structure")}" tabindex="0" class="code">結構變化</a></p>'
     sc_txt = '\n\n'.join(f"### {ZH.get(PANEL_OF[key], label)} — {'built ≠ planned' if dev_entries_for_panel(key) else 'as planned'}\n\n{sval(text)}" + ''.join(f"\n- {sval(e.get('id'))} · {sval(e.get('gap'))} · 處置: {sval(e.get('disposition'))}" for e in dev_entries_for_panel(key)) for (label, key), (_, text) in zip(YAML_PANELS, s['panels'] or []))
-    secs.append(('結構變化', sc_html, sc_txt))
+    secs[0] = ('決策', secs[0][1] + sc_html, secs[0][2] + '\n\n' + sc_txt)
     check = [(zh(g), zpill(st), '') for g, st, d, rel, _ in gate_rows(p)]
-    ck_items = [f'<li>{zpill(st)} {zh(g)}</li>' for g, st, d, rel, _ in gate_rows(p)]
+    ck_items = [f'<li>{zpill(st)} {zh(g)}</li>' for g, st, d, rel, _ in gate_rows(p) if st in ('fail', 'pending')]
+    ck_items += [f'<li>{zpill(f.get("severity"))} {html.escape(sval(f.get("id")))}</li>' for rel, f in bl]
+    ck_items += [f'<li>{zpill("pending")} {yv(w, k)}</li>' for src, w in wu]
     footer = zpill('approvable') if state == 'approvable' else f'{zpill("blocked")} <span class="num">{n}</span>' if state == 'blocked' else zpill('not-reviewed')
     ck_html = f'<ol class="checklist">{capped(ck_items)}</ol><p class="footer">{lab("結論")} {footer}</p>'
-    ck_txt = '\n'.join(f"- [{'x' if st == 'pass' else ' '}] {ZH[g]}: {ZH[st]}" for g, st, *_ in gate_rows(p)) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
+    ck_txt = '\n'.join(f"- [ ] {ZH[g]}: {ZH[st]}" for g, st, *_ in gate_rows(p) if st in ('fail', 'pending')) + ''.join(f"\n- [ ] {sval(f.get('severity'))} {sval(f.get('id'))}" for rel, f in bl) + ''.join(f"\n- [ ] {sval(w)}" for src, w in wu) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
     secs.append(('檢查表', ck_html, ck_txt))
     return secs
 
@@ -1176,7 +1180,7 @@ for p in phases:
         if p is not current:
             card = f'<article><h3 class="file-title">{yv(s["yaml"].get("title"), p["key"])}</h3>{collapsed("<span class=\"lead\">" + lab("契約全文") + "</span>", card)}</article>'
         tab['契約'][p['key']].append(card); continue
-    parts = [f'<h3 class="file-title">{html.escape(s["title"])}</h3>', meta_line(s['fm'], f'<span class="file">{html.escape(p["spec"])}</span>')]
+    parts = [f'<h3 class="file-title">{html.escape(s["title"])}</h3>', meta_line(s['fm'], f'{fspan(p["spec"])}')]
     for flab in ('Intention', 'Aim', 'Out of scope'):
         v = field(s['foundation'], flab)
         if v: parts.append(f'<p><strong>{flab}.</strong> {inline(v, p["key"])}</p>')
@@ -1231,7 +1235,7 @@ for p in phases:
         blocks = [b for b in d.get('blocks') or [] if isinstance(b, dict)]; edges = [e for e in d.get('edges') or [] if isinstance(e, dict)]
         pic = structure_svg(blocks, edges) if blocks else '<p class="placeholder">no structural delta declared</p>'
         ov = [f for f in files if os.path.basename(f) == 'structure-overlay.html']
-        if ov: pic += f'<p class="meta">{lab("互動疊圖")} <a href="{attr(ov[0])}"><span class="file">{html.escape(ov[0])}</span></a></p>'
+        if ov: pic += f'<p class="meta">{lab("互動疊圖")} <a href="{attr(ov[0])}">{fspan(ov[0])}</a></p>'
         cards = ''
         if s['panels']:
             for (label, key), (_, text) in zip(YAML_PANELS, s['panels']):
@@ -1303,7 +1307,7 @@ for p in phases:
         folds += collapsed(f'<span class="lead">{lab("偏離紀錄")}</span> <span class="num">{len(dn)}</span>', '<ul>' + ''.join(dev_entry_html(e, k, anchor=False) for e in dn) + '</ul>')
     if ledger_stage_lines:
         items = ''.join(f'<li>{inline(l, k)}</li>' for i, st, l in ledger_stage_lines if st.startswith(('build', 'deliverable-review', 'phase-ship')))
-        folds += collapsed(f'<span class="lead">{lab("build 帳")}</span> <span class="num">{sum(1 for i, st, l in ledger_stage_lines if st.startswith(("build", "deliverable-review", "phase-ship")))}</span>', f'<ul id="{attr(k + "--ledger")}">{items}</ul>')
+        folds += collapsed(f'<span class="lead">{lab("建置帳")}</span> <span class="num">{sum(1 for i, st, l in ledger_stage_lines if st.startswith(("build", "deliverable-review", "phase-ship")))}</span>', f'<ul id="{attr(k + "--ledger")}">{items}</ul>')
     tab['紀錄'][k].append(f'<article><h3 class="file-title">{yv(s["yaml"].get("title"), k)}</h3>{summary}{folds}</article>')
 for rel in files:
     if rel == 'index.md': continue
@@ -1324,7 +1328,7 @@ for rel in files:
         if rel.endswith('.html'):
             raw = read(path); t = re.search(r'<title>(.*?)</title>', raw, re.DOTALL | re.IGNORECASE)
             inner = link_codes_in_html(html_body_inner(raw), p['key'])
-            tab['紀錄'][p['key']].append(f'<article><h3 class="file-title">{html.escape(html.unescape(t.group(1).strip()) if t else rel)}</h3><p class="meta"><span class="file">{html.escape(rel)}</span></p>{collapsed("<span class=\"lead\">" + lab("舊版 explainer") + "</span>", "<div class=\"embedded\">" + inner + "</div>")}</article>')
+            tab['紀錄'][p['key']].append(f'<article><h3 class="file-title">{html.escape(html.unescape(t.group(1).strip()) if t else rel)}</h3><p class="meta">{fspan(rel)}</p>{collapsed("<span class=\"lead\">" + lab("舊版 explainer") + "</span>", "<div class=\"embedded\">" + inner + "</div>")}</article>')
         else:
             fm, body = frontmatter(read(path))
             tab['紀錄'][p['key']].append(file_card(rel, first_h1(body) or rel, fm, body, p['key']))
@@ -1348,7 +1352,7 @@ for p in phases:
         tab['紀錄'][p['key']].insert(0, '<article><h3 class="file-title">Deviation log</h3><ul>' + ''.join(f'<li>{inline(x, p["key"])}</li>' for x in d) + '</ul></article>')
 ev = index_sections.get('Evidence Reckoning', '').strip()
 for (pk, d), rels in sorted(records.items()):
-    items = ''.join(f'<li><a href="{attr(r)}"><span class="file">{html.escape(r)}</span></a></li>' for r in rels)
+    items = ''.join(f'<li><a href="{attr(r)}">{fspan(r)}</a></li>' for r in rels)
     summ = f'<span class="lead">{lab("審查原始檔")}</span> <span class="muted">{html.escape(d)} · <span class="num">{len(rels)}</span></span>'
     tab['紀錄'][pk].append(f'<article>{collapsed(summ, f"<ul class=\"files\">{items}</ul>")}</article>')
 close_parts = []
@@ -1358,13 +1362,13 @@ if root:
     gm = os.path.join(root, '.touchstone', 'gate-miss.md')
     if os.path.isfile(gm):
         gm_hits = [l for l in read(gm).splitlines() if slug in l]
-close_parts.append(f'<p class="meta">{lab("結案帳")} · ' + ' · '.join(f'{lab(LAB_ZH.get(h, h))} {zpill("pass" if h in present else "pending")}' for h in ('Retrospective', 'Evidence Reckoning', 'Disposition')) + f' · {lab("gate-miss")} <span class="num">{len(gm_hits)}</span></p>')
+close_parts.append(f'<p class="meta">{lab("結案帳")} · ' + ' · '.join(f'{lab(LAB_ZH.get(h, h))} {zpill("pass" if h in present else "pending")}' for h in ('Retrospective', 'Evidence Reckoning', 'Disposition')) + f' · {lab("漏抓帳")} <span class="num">{len(gm_hits)}</span></p>')
 for h in ('Retrospective', 'Evidence Reckoning', 'Disposition'):
     if h in index_sections:
         close_parts.append(collapsed(f'<span class="lead">{lab(LAB_ZH.get(h, h))}</span>', md_to_html(index_sections[h], 'epic')))
 if root and os.path.isfile(os.path.join(root, '.touchstone', 'gate-miss.md')):
     items = ''.join(f'<li>{inline(l.lstrip("- ").strip(), "epic")}</li>' for l in gm_hits)
-    close_parts.append(collapsed(f'<span class="lead">{lab("gate-miss.md")}</span> <code>{html.escape(slug)}</code> <span class="num">{len(gm_hits)}</span>', f'<ul>{items}</ul>' if gm_hits else '<p class="muted">none</p>'))
+    close_parts.append(collapsed(f'<span class="lead">{lab("漏抓帳 gate-miss.md")}</span> <code>{html.escape(slug)}</code> <span class="num">{len(gm_hits)}</span>', f'<ul>{items}</ul>' if gm_hits else '<p class="muted">none</p>'))
 tab['紀錄']['epic'].append('<article>' + ''.join(close_parts) + '</article>')
 
 # ---------- render page ----------
@@ -1403,7 +1407,7 @@ a{color:var(--accent)}a.code,[data-jump]{color:var(--accent);cursor:pointer;text
 details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5rem}details.fold>summary{cursor:pointer;color:var(--muted);list-style:none}details.fold>summary::before{content:"▸ ";color:var(--accent)}details.fold[open]>summary::before{content:"▾ "}.fold-body{margin-top:.75rem}
 .panels{display:grid;gap:.75rem}.panel{background:var(--fold);border-radius:4px;padding:.75rem 1rem}.panel h4{margin:0 0 .4rem;display:flex;gap:.5rem;align-items:baseline}.delta{margin-top:.6rem}
 .notes{color:var(--muted);font-size:.85rem;border:1px dashed var(--line);padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem}
-.strip{position:sticky;top:3.1rem;z-index:1;background:var(--panel);border-bottom:1px solid var(--line);padding:.4rem 1.25rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;font-size:.85rem}.strip .decision{font-weight:600}.strip .g{white-space:nowrap}.decision{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.3rem;margin:.2rem 0}section.fs{margin:0 0 1.25rem}section.fs>h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 .4rem}ul.check{list-style:none;padding:0}ul.check li{margin:.4rem 0}ul.check input{margin-right:.4rem}ol.checklist{padding-left:1.3rem}.footer{font-size:1.05rem;margin-top:.6rem}abbr.enum{text-decoration:none;border-bottom:1px dotted var(--muted)}table.gates td{vertical-align:middle}ul.findings li{margin:.5rem 0}.figure{margin:.5rem 0}.figure svg{width:100%;height:auto;max-width:720px;display:block;margin:0 auto}.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:.85rem;color:var(--muted)}ol.quiz li{margin:.5rem 0}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
+.strip{position:sticky;top:3.1rem;z-index:1;background:var(--panel);border-bottom:1px solid var(--line);padding:.4rem 1.25rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;font-size:.85rem}.strip .decision{font-weight:600}.strip .g{white-space:nowrap}.decision{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.3rem;margin:.2rem 0}section.fs{margin:0 0 1.25rem}section.fs>h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 .4rem}ul.check{list-style:none;padding:0}ul.check li{margin:.4rem 0}ul.check input{margin-right:.4rem}ol.checklist{padding-left:1.3rem}.footer{font-size:1.05rem;margin-top:.6rem}abbr.enum{text-decoration:none;border-bottom:1px dotted var(--muted)}table.gates td{vertical-align:middle}ul.findings li{margin:.5rem 0}details.inl{display:inline}details.inl>summary{display:inline;cursor:pointer;color:var(--muted);font-size:.8rem}.figure{margin:.5rem 0}.figure svg{width:100%;height:auto;max-width:720px;display:block;margin:0 auto}.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:.85rem;color:var(--muted)}ol.quiz li{margin:.5rem 0}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
 [id]{scroll-margin-top:4.5rem}:target,.flash{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
 @media (prefers-reduced-motion: no-preference){details.fold>summary{transition:color .15s}}
 """
@@ -1429,8 +1433,8 @@ def phase_header(g):
     if g is EPIC:
         return '<h2>Epic</h2>'
     s = specs[g['spec']]
-    title = f'Phase {sval(s["yaml"].get("phase"))} · {sval(s["yaml"].get("title"))}' if 'yaml' in s else g['title']
-    return f'<h2>{html.escape(title)}</h2><p class="meta"><span class="file">{html.escape(g["spec"])}</span></p>'
+    title = f'第 {sval(s["yaml"].get("phase"))} 階段 · {sval(s["yaml"].get("title"))}' if 'yaml' in s else g['title']
+    return f'<h2>{html.escape(title)}</h2><p class="meta">{fspan(g["spec"])}</p>'
 
 def render_tab(i, t):
     parts = []
@@ -1446,9 +1450,16 @@ def render_tab(i, t):
 buttons = ''.join(f'<button data-tab="{i}" aria-selected="false">{html.escape(t)}</button>' for i, t in enumerate(TABS))
 tabs_html = ''.join(render_tab(i, t) for i, t in enumerate(TABS))
 notes_html = f'<div class="notes">{" ".join(html.escape(n) for n in notes)}</div>' if notes else ''
+def strip_gate(g, st, rel):
+    tail = ''
+    if st in ('fail', 'pending'):
+        tail = ' · ' + zh(GATE_OWNER.get(g, ''))
+        if rel:
+            tail += ' · <a href="' + attr(rel) + '" title="' + attr(rel) + '">' + lab('紀錄') + '</a>'
+    return '<span class="g">' + zh(g) + ' ' + zpill(st) + tail + '</span>'
 if current:
     st, n = decision(current, specs[current['spec']])
-    strip_html = f'<div class="strip"><span class="decision">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))} · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段 · {zpill(st)}{f" <span class=\"num\">{n}</span>" if n else ""}</span>' + ''.join(f'<span class="g">{zh(g)} {zpill(s_)}{(" · " + zh(GATE_OWNER.get(g, ""))) if s_ in ("fail", "pending") else ""}</span>' for g, s_, *_ in gate_rows(current)) + '</div>'
+    strip_html = f'<div class="strip"><span class="decision">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))} · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段 · {zpill(st)}{f" <span class=\"num\">{n}</span>" if n else ""}</span>' + ''.join(strip_gate(g, s_, rel_) for g, s_, d_, rel_, _ in gate_rows(current)) + '</div>'
 else:
     strip_html = '<div class="strip"><span class="placeholder">尚無 YAML phase</span></div>'
 page = f"""<!doctype html>
