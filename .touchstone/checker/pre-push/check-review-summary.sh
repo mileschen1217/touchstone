@@ -16,6 +16,25 @@ if [ "${1:-}" = "--self-test" ]; then
   TOUCHSTONE_CHECK_ROOT="$t" "$0" && { echo "self-test FAIL: C+H>0 passed"; exit 1; }
   printf 'gate: deliverable-review\ncounts: {C: 0, H: 0, M: 2, L: 0}\n' > "$t/.touchstone/epics/e/review-1/review.yaml"
   TOUCHSTONE_CHECK_ROOT="$t" "$0" || { echo "self-test FAIL: C+H=0 blocked"; exit 1; }
+  # newest-per-gate: an older gate with an open H is not hidden by a newer clean gate
+  mkdir -p "$t/.touchstone/epics/e/pr" "$t/.touchstone/epics/e/dr"
+  printf 'gate: plugin-review\ncounts: {C: 0, H: 1, M: 0, L: 0}\nfindings:\n  - {id: F-1, severity: H, status: open}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  sleep 1
+  printf 'gate: deliverable-review\ncounts: {C: 0, H: 0, M: 0, L: 0}\nfindings: []\n' > "$t/.touchstone/epics/e/dr/review.yaml"
+  rm -f "$t/.touchstone/epics/e/review-1/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" >/dev/null && { echo "self-test FAIL: newer clean gate hid an older open H"; exit 1; }
+  # statuses: fixed discharges; unverified blocks; waived blocks without a ruling, passes with one
+  printf 'gate: plugin-review\ncounts: {C: 0, H: 1, M: 0, L: 0}\nfindings:\n  - {id: F-1, severity: H, status: fixed}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" || { echo "self-test FAIL: all-fixed blocked"; exit 1; }
+  printf 'gate: plugin-review\ncounts: {C: 1, H: 1, M: 0, L: 0}\nfindings:\n  - {id: F-1, severity: C, status: unverified}\n  - {id: F-2, severity: H, status: unverified}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" >/dev/null && { echo "self-test FAIL: unverified C/H passed"; exit 1; }
+  printf 'gate: plugin-review\ncounts: {C: 0, H: 1, M: 0, L: 0}\nrulings: []\nfindings:\n  - {id: F-1, severity: H, status: waived}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" >/dev/null && { echo "self-test FAIL: waived H without a ruling passed"; exit 1; }
+  printf 'gate: plugin-review\ncounts: {C: 0, H: 1, M: 0, L: 0}\nrulings: [Q-1]\nfindings:\n  - {id: F-1, severity: H, status: waived}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" || { echo "self-test FAIL: waived H with a ruling blocked"; exit 1; }
+  # empty findings list with non-zero counts falls back to counts
+  printf 'gate: plugin-review\ncounts: {C: 1, H: 2, M: 0, L: 0}\nfindings: []\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" >/dev/null && { echo "self-test FAIL: empty findings + counts C+H=3 passed"; exit 1; }
   rm -rf "$t"; echo "self-test OK"; exit 0
 fi
 root="${TOUCHSTONE_CHECK_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}" || exit 0
@@ -46,11 +65,20 @@ for gate, (ts, f, r) in sorted(newest.items()):
     # `counts` is the round's total; a finding's live state is its `status` (fixed / waived
     # findings stay counted). Block on OPEN Critical/High findings; fall back to counts only
     # when the file carries no findings list.
+    # Blocking statuses: `open`, and `unverified` (a fix with no evidence is not a fix).
+    # `waived` discharges only when the file records a ruling (rulings non-empty);
+    # `fixed` discharges. An absent OR empty findings list falls back to counts.
     fs = r.get('findings')
     try:
-        if isinstance(fs, list):
-            ch = sum(1 for x in fs if isinstance(x, dict) and x.get('severity') in ('C', 'H')
-                     and x.get('status', 'open') == 'open')
+        if isinstance(fs, list) and fs:
+            waive_ok = bool(r.get('rulings'))
+            ch = 0
+            for x in fs:
+                if not isinstance(x, dict) or x.get('severity') not in ('C', 'H'):
+                    continue
+                st = x.get('status', 'open')
+                if st in ('open', 'unverified') or (st == 'waived' and not waive_ok):
+                    ch += 1
         else:
             c = r.get('counts') or {}
             ch = int(c.get('C', 0)) + int(c.get('H', 0))

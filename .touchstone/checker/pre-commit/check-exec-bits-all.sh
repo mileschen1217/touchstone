@@ -11,9 +11,10 @@ root="${TOUCHSTONE_CHECK_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}" ||
 
 bad=""
 
-# Tracked file -> the git index mode (what ships). Untracked file -> the
-# filesystem mode: skipping it would read green on a file that is 100644 on
-# disk until someone stages it, and would let a plain `chmod -x` slip pass.
+# Tracked file -> the git index mode (what ships; the disk bit is not consulted,
+# so a `chmod -x` on a tracked 100755 file is NOT caught here — the index is
+# what the plugin cache receives). Untracked file -> the filesystem mode:
+# skipping it would read green on a new 644 script until someone stages it.
 check_tracked() {  # <repo-relative-path>
   local mode fsmode
   mode="$(cd "$root" && git ls-files -s "$1" 2>/dev/null | awk '{print $1}')"

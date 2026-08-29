@@ -415,10 +415,21 @@ if command -v jq >/dev/null 2>&1; then
     echo "PASS: render-on-write renders A's dossier and leaves B untouched"
   else echo "FAIL: render-on-write A=$([ -f "$ro_a" ] && echo yes || echo no) B=$([ -f "$ro_b" ] && echo yes || echo no)"; fail=1; fi
 
-  ro_fire "traversal out of the epics tree" "$ro_root/.touchstone/epics/../../x.yaml"
-  if [ ! -f "$ro_b" ] && [ ! -f "$ro_root/dossier.html" ]; then
-    echo "PASS: render-on-write traversal payload renders nothing"
-  else echo "FAIL: render-on-write traversal payload rendered something"; fail=1; fi
+  # Traversal: swap in a stub renderer that leaves a marker when invoked — the
+  # real renderer also fails on `epics/..` (no index.md), so "no dossier appeared"
+  # would pass with or without the path guard. The guard is proven only by the
+  # renderer never being called, and by the hook printing nothing.
+  printf '#!/usr/bin/env bash\ntouch "%s/RENDERER-INVOKED"\nexit 0\n' "$ro_root" > "$ro_root/scripts/dossier-render.sh"
+  ro_out="$(jq -nc --arg fp "$ro_root/.touchstone/epics/../../x.yaml" --arg cwd "$ro_root" \
+    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_hook" 2>&1)"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ -z "$ro_out" ] && [ ! -e "$ro_root/RENDERER-INVOKED" ]; then
+    echo "PASS: render-on-write traversal payload never invokes the renderer (exit 0, silent)"
+  else echo "FAIL: render-on-write traversal payload rc=$ro_rc invoked=$([ -e "$ro_root/RENDERER-INVOKED" ] && echo yes || echo no) out=$ro_out"; fail=1; fi
+  # control: the stub IS invoked for a legitimate yaml write (so the marker test can fail)
+  jq -nc --arg fp "$ro_root/.touchstone/epics/2026-02-02-beta/deviation.yaml" --arg cwd "$ro_root" \
+    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_hook" >/dev/null 2>&1
+  if [ -e "$ro_root/RENDERER-INVOKED" ]; then echo "PASS: render-on-write control: stub renderer invoked for a real epic yaml"
+  else echo "FAIL: render-on-write control: stub renderer never invoked"; fail=1; fi
 
   rm -rf "$ro_root"
 else
@@ -527,5 +538,16 @@ while IFS= read -r f; do
   grep -q -- '--self-test' "$f" || continue
   expect_exit "self-test $(basename "$f" .sh)" zero bash "$f" --self-test
 done < <(find "$repo_root/skills" -name '*.sh' | sort)
+
+# ---- check-exec-bits-all.sh: the untracked-file branch (filesystem mode) — the
+# committed red fixture is tracked, so it trips on the index rule; this scratch
+# tree has no git index and a 644 script.
+eb_root="$(mktemp -d)"; mkdir -p "$eb_root/hooks"; printf '#!/bin/sh\n' > "$eb_root/hooks/x.sh"; chmod 644 "$eb_root/hooks/x.sh"
+expect_out "check-exec-bits-all untracked 644 script trips on filesystem mode" "filesystem mode 644, untracked" \
+  env TOUCHSTONE_CHECK_ROOT="$eb_root" bash "$repo_root/.touchstone/checker/pre-commit/check-exec-bits-all.sh"
+chmod 755 "$eb_root/hooks/x.sh"
+expect_exit "check-exec-bits-all untracked 755 script passes" zero \
+  env TOUCHSTONE_CHECK_ROOT="$eb_root" bash "$repo_root/.touchstone/checker/pre-commit/check-exec-bits-all.sh"
+rm -rf "$eb_root"
 
 exit "$fail"

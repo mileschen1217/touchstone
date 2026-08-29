@@ -125,6 +125,15 @@ if d is not None:
           and 'untested_reachable_shell_files' in m)
     report(ok, lbl, 'stages=%r metrics=%r' % (
         [(s['stage'], s['lines']) for s in (d.get('stages') or [])], sorted(m)))
+    # the identity clause `unique_lines == sum of the load set's line counts once per file`
+    # (deviation D-12 rests on this field carrying it)
+    lines_of = {n['id']: n['lines'] for n in (d.get('nodes') or [])}
+    lbl = 'plugin-ratchets green: every stage unique_lines == sum of unique load-set file lines'
+    bad = [(s['stage'], s.get('unique_lines'), sum(lines_of.get(p, 0) for p in set(s.get('load_set') or [])
+                                                    if p in lines_of and not p.endswith(('.sh', '.json'))
+                                                    and not p.startswith(('agents/', 'hooks/'))))
+           for s in (d.get('stages') or [])]
+    report(all(u == t for _, u, t in bad), lbl, repr(bad))
 
 # ---- entries-file contract: violations exit 1 and name the offending path
 scratch = tempfile.mkdtemp(prefix='plugin-map-selftest.')
@@ -667,11 +676,22 @@ if os.path.isdir(fx):
     fixture_dirs = {d for d in os.listdir(fx) if os.path.isdir(os.path.join(fx, d))}
 
 def is_tested(p):
+    """Named by the smoke runner, run by its fixture rail loop (a check-<name>.sh with a
+    fixtures/<name>/ tree), or run by its --self-test loop (a script declaring --self-test
+    while the runner carries that loop) — the same three consumers check-fixture-consumers
+    enforces."""
     b = os.path.basename(p)
     if p in smoke_text or b in smoke_text:
         return True
     m = re.match(r'^check-(.*)\.sh$', b)
-    return bool(m and m.group(1) in fixture_dirs)
+    if m and m.group(1) in fixture_dirs:
+        return True
+    if '--self-test' in smoke_text:
+        try:
+            return '--self-test' in open(os.path.join(root, p), encoding='utf-8', errors='replace').read()
+        except OSError:
+            return False
+    return False
 
 reachable_live = [p for p in nodes
                   if p in reach_all and p not in orphans and p not in test_only]

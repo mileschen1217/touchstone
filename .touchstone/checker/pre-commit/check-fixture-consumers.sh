@@ -66,6 +66,8 @@ literal_hit() {
   local pat="$1" f body
   while IFS= read -r f; do
     body="$(grep -v '^[[:space:]]*#' "$f" 2>/dev/null)"
+    # literal (fixed-string) containment: a quoted "$pat" inside a case pattern
+    # matches the characters literally, glob metacharacters included
     case "$body" in *"$pat"*) return 0 ;; esac
   done < <(sh_corpus)
   return 1
