@@ -8,7 +8,7 @@ type: object
 additionalProperties: false
 required: [gate, target, sha, round, providers, degraded, verdict, counts, findings, rulings, waiting_on_human]
 properties:
-  gate: {type: string, reader: agent, enum: [design-review, deliverable-review]}
+  gate: {type: string, reader: agent, enum: [design-review, deliverable-review, plugin-review]}
   target: {type: string, reader: agent}      # the governing spec file (relative to --root); field paths and rulings resolve through it
   range: {type: string, reader: agent}       # deliverable-review: the reviewed commit range
   sha: {type: string, reader: agent}
