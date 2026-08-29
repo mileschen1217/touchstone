@@ -550,7 +550,10 @@ EOF
 
   # ---- Codex arm (never -s read-only; </dev/null mandatory)
   echo "plugin-review: round $n — codex exec over $(wc -c < "$rd/prompt.txt" | tr -d ' ') bytes of prompt" >&2
-  timeout 900 codex exec --json --skip-git-repo-check \
+  # `timeout` is GNU coreutils; stock macOS has none (Homebrew ships `gtimeout`). Absent
+  # both → run unbounded rather than false-block with rc 127.
+  tmo="$(command -v timeout || command -v gtimeout || true)"
+  ${tmo:+"$tmo" 900} codex exec --json --skip-git-repo-check \
     -o "$rd/last-message.txt" "$(cat "$rd/prompt.txt")" </dev/null \
     > "$rd/raw_codex.jsonl" 2> "$rd/codex_stderr.log"
   crc=$?

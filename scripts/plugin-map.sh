@@ -367,7 +367,11 @@ else:
         if not p:
             continue
         entries.append(p)
-        if not os.path.exists(os.path.join(root, p)):
+        # repo-relative only: an absolute path or one that escapes root is a contract violation
+        # even when it exists on disk
+        if os.path.isabs(p) or os.path.normpath(p).startswith('..') or os.path.normpath(p) != p.rstrip('/'):
+            problems.append('entries file path is not a normalized repo-relative path: %s' % p)
+        elif not os.path.exists(os.path.join(root, p)):
             problems.append('entries file lists a path that does not exist: %s' % p)
     required = sorted(skill_of.values())
     for extra in ('hooks/hooks.json', 'scripts/tests-smoke/run-smoke.sh'):
