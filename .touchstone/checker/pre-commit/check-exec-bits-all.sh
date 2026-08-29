@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # check-exec-bits-all.sh — four-surface exec-bit guard.
 # Every script across hooks/*.sh, .touchstone/checker/**/check-*.sh,
-# scripts/tests/*.sh, and skill/command-referenced scripts/*.sh paths
+# scripts/tests-smoke/*.sh, skills/**/check-*.sh, and skill/command-referenced
+# scripts/*.sh paths
 # must be 100755 in the git index.  A 100644 mode ships "Permission denied"
 # when CC executes the file directly (the invocation-mode defect class, recurred ×3).
 set -uo pipefail
@@ -33,11 +34,16 @@ if [ -d "$root/.touchstone/checker" ]; then
   done < <(find "$root/.touchstone/checker" -mindepth 2 -name 'check-*.sh' | sort)
 fi
 
-# Surface 3: scripts/tests/*.sh
-if [ -d "$root/scripts/tests" ]; then
+# Surface 3: scripts/tests-smoke/*.sh, skill/checker scripts under skills/**/check-*.sh
+if [ -d "$root/scripts/tests-smoke" ]; then
   while IFS= read -r f; do
     check_tracked "${f#"$root"/}"
-  done < <(find "$root/scripts/tests" -maxdepth 1 -name '*.sh' | sort)
+  done < <(find "$root/scripts/tests-smoke" -maxdepth 1 -name '*.sh' | sort)
+fi
+if [ -d "$root/skills" ]; then
+  while IFS= read -r f; do
+    check_tracked "${f#"$root"/}"
+  done < <(find "$root/skills" -name 'check-*.sh' | sort)
 fi
 
 # Surface 4: skill/command-referenced scripts/*.sh (enumerated from source grep)

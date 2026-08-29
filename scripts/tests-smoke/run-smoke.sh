@@ -96,17 +96,12 @@ for f in os.listdir(d):
 print('PASS: three schemas, every top-level field reader-tagged')
 PY2
 
-expect_exit "check-evidence-reckoning.sh green" zero \
-  bash "$scripts_dir/check-evidence-reckoning.sh" "$fx/reckoning-index-green.md" "$fx/reckoning-spec.md"
-expect_exit "check-evidence-reckoning.sh red" nonzero \
-  bash "$scripts_dir/check-evidence-reckoning.sh" "$fx/reckoning-index-red.md" "$fx/reckoning-spec.md"
-
 # ---- design-review-precheck.sh: schema floor, draft skip, legacy md block, --attest
 pc="$scripts_dir/design-review-precheck.sh"
 expect_exit "design-review-precheck.sh green" zero bash "$pc" "$ax/spec-green.yaml"
 expect_exit "design-review-precheck.sh red" nonzero bash "$pc" "$ax/spec-red.yaml"
 expect_out "design-review-precheck.sh draft skipped" "PRE-CHECK skipped: draft" bash "$pc" "$ax/spec-red-nomap.yaml"
-expect_exit "design-review-precheck.sh legacy md blocked" nonzero bash "$pc" "$fx/reckoning-spec.md"
+expect_exit "design-review-precheck.sh legacy md blocked" nonzero bash "$pc" "$ax/legacy-spec.md"
 qd="$(mktemp -d)"; sed 's/^status: draft/status: "draft"/' "$ax/spec-red-nomap.yaml" > "$qd/q.yaml"
 expect_out "design-review-precheck.sh quoted draft skipped" "PRE-CHECK skipped: draft" bash "$pc" "$qd/q.yaml"
 rm -rf "$qd"
@@ -385,5 +380,102 @@ print('PASS: dossier same-date grouping by slug; date-only file in epic group')
 PY
 
 rm -rf "$tmp_root"
+
+# ---- generic checker rail loop (REQ-6/AC-26/AC-27): every
+# .touchstone/checker/fixtures/<name>/ tree gets a green PASS (must not trip)
+# and a red PASS (must trip); a single-file fixture (close-ready) runs the
+# checker's own --self-test instead. "Trip" = nonzero exit, or — for a
+# WARN-ONLY checker (header carries the literal WARN-ONLY, always exit 0) —
+# stdout/stderr contains WARN. A fixture with no matching checker, or a
+# layout the loop can't map, is a FAIL line, never a silent skip.
+repo_root="$(cd "$scripts_dir/.." && pwd)"
+fixtures_root="$repo_root/.touchstone/checker/fixtures"
+
+find_checker() {  # <name> -> absolute path on stdout, or nothing
+  local name="$1" d p
+  for d in "$repo_root/.touchstone/checker/pre-commit" "$repo_root/.touchstone/checker/pre-push" "$repo_root/.touchstone/checker/standalone"; do
+    p="$d/check-$name.sh"
+    [ -f "$p" ] && { printf '%s\n' "$p"; return 0; }
+  done
+  p="$(find "$repo_root/skills" -name "check-$name.sh" 2>/dev/null | head -1)"
+  [ -n "$p" ] && printf '%s\n' "$p"
+}
+
+# run_rail_checker <name> <root-dir> <checker-path> -- sets rail_out, rail_rc.
+# Per-checker env mirrors that checker's own --self-test block (only
+# prose-budget needs one today: PROSE_FILE_BUDGET/PROSE_TOTAL_BUDGET).
+run_rail_checker() {
+  case "$1" in
+    prose-budget)
+      rail_out="$(PROSE_FILE_BUDGET=5 PROSE_TOTAL_BUDGET=10 TOUCHSTONE_CHECK_ROOT="$2" bash "$3" 2>&1)"; rail_rc=$? ;;
+    *)
+      rail_out="$(TOUCHSTONE_CHECK_ROOT="$2" bash "$3" 2>&1)"; rail_rc=$? ;;
+  esac
+}
+
+shopt -s nullglob
+for fxd in "$fixtures_root"/*/; do
+  name="$(basename "$fxd")"
+  checker="$(find_checker "$name")"
+  if [ -z "$checker" ]; then
+    echo "FAIL: rail $name (no check-$name.sh under checker stage dirs or skills/**)"; fail=1
+    continue
+  fi
+  warn_only=0; grep -q 'WARN-ONLY' "$checker" && warn_only=1
+
+  subdirs=("$fxd"*/)
+  if [ "${#subdirs[@]}" -eq 0 ]; then
+    # single-file fixture (e.g. close-ready/green.md, close-ready/red.md)
+    if grep -q -- '--self-test' "$checker"; then
+      rail_out="$(bash "$checker" --self-test 2>&1)"; rail_rc=$?
+      if [ "$rail_rc" -eq 0 ]; then
+        echo "PASS: rail $name self-test"
+      else
+        echo "FAIL: rail $name self-test (rc=$rail_rc)"; echo "$rail_out"; fail=1
+      fi
+    else
+      echo "FAIL: rail $name (single-file fixture, but $checker has no --self-test)"; fail=1
+    fi
+    continue
+  fi
+
+  for sub in "${subdirs[@]}"; do
+    subname="$(basename "$sub")"
+    case "$subname" in
+      green*) want=notrip ;;
+      red*) want=trip ;;
+      *) echo "FAIL: rail $name $subname (fixture dir name must start with green or red)"; fail=1; continue ;;
+    esac
+    run_rail_checker "$name" "$sub" "$checker"
+    tripped=0
+    if [ "$warn_only" -eq 1 ]; then
+      printf '%s' "$rail_out" | grep -q 'WARN' && tripped=1
+    else
+      [ "$rail_rc" -ne 0 ] && tripped=1
+    fi
+    ok=0
+    [ "$want" = trip ]   && [ "$tripped" -eq 1 ] && ok=1
+    [ "$want" = notrip ] && [ "$tripped" -eq 0 ] && ok=1
+    if [ "$ok" -eq 1 ]; then
+      echo "PASS: rail $name $subname"
+    else
+      echo "FAIL: rail $name $subname (tripped=$tripped want=$want rc=$rail_rc)"; echo "$rail_out"; fail=1
+    fi
+  done
+done
+shopt -u nullglob
+
+# ---- AC-28: invoke --self-test on every checker that defines one
+for d in "$repo_root/.touchstone/checker/pre-commit" "$repo_root/.touchstone/checker/pre-push" "$repo_root/.touchstone/checker/standalone"; do
+  [ -d "$d" ] || continue
+  while IFS= read -r f; do
+    grep -q -- '--self-test' "$f" || continue
+    expect_exit "self-test $(basename "$f" .sh)" zero bash "$f" --self-test
+  done < <(find "$d" -maxdepth 1 -name 'check-*.sh' | sort)
+done
+while IFS= read -r f; do
+  grep -q -- '--self-test' "$f" || continue
+  expect_exit "self-test $(basename "$f" .sh)" zero bash "$f" --self-test
+done < <(find "$repo_root/skills" -name 'check-*.sh' | sort)
 
 exit "$fail"
