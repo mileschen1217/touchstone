@@ -176,7 +176,7 @@ fi
 expect_grep "four tabs in order" -eq 1 '>首頁</button><button data-tab="1" aria-selected="false">契約</button><button data-tab="2" aria-selected="false">結構變化</button><button data-tab="3" aria-selected="false">紀錄</button>'
 expect_grep "three phase groups" -ge 3 '<h2>Phase '
 expect_grep "front page: blocker list" -ge 1 '<h3>阻擋清單</h3>'
-expect_grep "front page: gate strip" -ge 1 '<table class="gates">'
+expect_grep "front page: gate strip" -ge 1 'class="strip"'
 expect_grep "front page: sticky strip" -ge 1 '<div class="strip">'
 expect_grep "explainer inlined (h1 text)" -ge 1 'Alpha buy-in explainer'
 expect_grep "no iframe" -eq 0 '<iframe'
@@ -239,10 +239,10 @@ import re, sys, html as H, yaml, os
 h = open(sys.argv[1], encoding='utf-8').read()
 front = re.search(r'<section class="tab" id="tab-0">(.*?)<section class="tab" id="tab-1">', h, re.S).group(1)
 heads = re.findall(r'<section class="fs"><h3>([^<]*)</h3>', front)
-want = ['決策', 'gate 條', '阻擋清單', '怎麼驗的', '檢查表']
+want = ['決策', '阻擋清單', '怎麼驗的', '檢查表']
 assert heads == want, heads
 pr = open(sys.argv[2], encoding='utf-8').read()
-assert re.findall(r'^## (.+)$', pr, re.M) == want, 'pr-body sections differ from the tab order'
+assert [x for x in re.findall(r'^## (.+)$', pr, re.M) if x != 'gate 條'] == want, 'pr-body sections differ from the page order'
 assert 'D-1' in pr, 'pr-body lacks the D-1 overlay'
 # no whole-file pre block in the YAML phase's sections (Map + Ship + 契約)
 for tab_id in ('1', '2'):

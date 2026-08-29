@@ -961,7 +961,7 @@ def quiz_html(p):
         if not isinstance(it, dict): continue
         res = f' <span class="pill {"ok" if sval(it.get("result")) == "pass" else "crit"}">{html.escape(sval(it.get("result")))}</span>' if it.get('result') else ''
         out += f'<li>{yv(it.get("id"), k)}{res} · {yv(it.get("question"), k)}<details class="fold"><summary>{lab("答案")}</summary><div class="fold-body">{yv(it.get("answer"), k)} · {lab("錨點")} <code>{html.escape(sval(it.get("anchor")))}</code></div></details></li>'
-    return collapsed(f'<span class="lead">{lab("題目")}</span> <span class="num">{len(items)}</span>', f'<ol class="quiz">{out}</ol>')
+    return f'<div id="{attr(k + "--quiz")}">' + collapsed(f'<span class="lead">{lab("題目")}</span> <span class="num">{len(items)}</span>', f'<ol class="quiz">{out}</ol>') + '</div>'
 
 def waiting_union(p, s):
     out = [(os.path.basename(p['spec']), w) for w in s['yaml'].get('waiting_on_human') or []]
@@ -1096,10 +1096,13 @@ def front_sections(p, s):
     head = f'<p class="decision">{yv(yd.get("epic"), k)} · {lab("第")} {yv(yd.get("phase"), k)}/{n_ph} {lab("階段")} · {zpill(state)}{f" <span class=\"num\">{n}</span>" if n else ""}</p><p class="aim">{yv(yd.get("title"), k)}</p>'
     secs.append(('決策', head, f"{sval(yd.get('epic'))} · 第 {sval(yd.get('phase'))}/{n_ph} 階段 · {ZH[state]}{f' ({n})' if n else ''}\n\n{sval(yd.get('title'))}"))
     g_txt = '\n'.join(f"- {ZH[g]}: {ZH[st]}" + (f" — round {sval(d.get('round'))} {sval(d.get('verdict'))} C={sval((d.get('counts') or {}).get('C'))} H={sval((d.get('counts') or {}).get('H'))} M={sval((d.get('counts') or {}).get('M'))} L={sval((d.get('counts') or {}).get('L'))}" if d else '') for g, st, d, rel, _ in gate_rows(p))
-    secs.append(('gate 條', gate_strip_html(p, s), g_txt))
+    secs.append(('gate 條', None, g_txt))   # html None → not rendered on the page; the strip carries the gates
     bl = open_blockers(p); wu = waiting_union(p, s)
     items = [f'<li><label><input type="checkbox" data-check="{attr(k + "|" + sval(f.get("id")))}"> {zpill(f.get("severity"))} <a class="code" data-jump="{attr("finding--" + sval(f.get("id")))}" tabindex="0">{html.escape(sval(f.get("id")))}</a> {yv(f.get("summary"), k)}</label></li>' for rel, f in bl]
-    items += [f'<li><label><input type="checkbox" data-check="{attr(k + "|" + sval(w))}"> {yv(w, k)} <a href="{attr(src)}" title="{attr(src)}">{lab("來源")}</a></label></li>' for src, w in wu]
+    def wlink(w):
+        t = yv(w, k)
+        return re.sub(r'QZ-1 到 QZ-7', f'<a class="code" data-jump="{attr(k + "--quiz")}" tabindex="0">QZ-1 到 QZ-7</a>', t)
+    items += [f'<li><label><input type="checkbox" data-check="{attr(k + "|" + sval(w))}"> {wlink(w)} <a href="{attr(src)}" title="{attr(src)}">{lab("來源")}</a></label></li>' for src, w in wu]
     bl_html = f'<ul class="todo check">{capped(items)}</ul>' if items else f'<p class="placeholder">沒有阻擋項</p>'
     bl_txt = '\n'.join([f"- [ ] {sval(f.get('severity'))} {sval(f.get('id'))} {sval(f.get('summary'))}" for rel, f in bl] + [f"- [ ] {sval(w)} ({src})" for src, w in wu]) or '(none)'
     secs.append(('阻擋清單', bl_html, bl_txt))
@@ -1157,7 +1160,7 @@ pr_body_text = None
 if current:
     s0 = specs[current['spec']]
     secs = front_sections(current, s0)
-    front.append('<article class="front">' + ''.join(f'<section class="fs"><h3>{html.escape(l)}</h3>{h}</section>' for l, h, _ in secs) + '</article>')
+    front.append('<article class="front">' + ''.join(f'<section class="fs"><h3>{html.escape(l)}</h3>{h}</section>' for l, h, _ in secs if h is not None) + '</article>')
     pr_body_text = '\n\n'.join(f'## {l}\n\n{t}' for l, _, t in secs) + '\n'
 else:
     waiting = []
@@ -1194,7 +1197,7 @@ for p in phases:
         parts.append(f'<h4>Requirements</h4><div class="tbl"><table><tr><th>REQ</th><th>SHALL</th><th>驗收條件</th></tr>{rows}</table></div>')
     full = md_to_html(s['body'], p['key'], define=True)
     parts.append(collapsed('<span class="lead">Full spec text</span> <span class="muted">(' + str(s['body'].count(chr(10)) + 1) + ' lines; the AC and REQ anchors live here)</span>', full))
-    legacy_summ = '<span class="lead">' + lab('legacy markdown spec') + '</span> ' + html.escape(s['title'])
+    legacy_summ = '<span class="lead">' + lab('舊版 markdown spec') + '</span> ' + html.escape(s['title'])
     tab['契約'][p['key']].append(f'<article>{collapsed(legacy_summ, "".join(parts))}</article>')
 epic_parts = []
 if aim: epic_parts.append(f'<p class="aim">{inline(aim, "epic")}</p>' + meta_line(index_fm))
@@ -1266,7 +1269,7 @@ for p in phases:
     other = [d for d in devs if not any(l.split()[0].lower() in d.lower() for l, _ in s['panels'])]
     if other:
         cards += '<section class="panel"><h4>Other deviations</h4><ul>' + ''.join(f'<li>{inline(d, p["key"])}</li>' for d in other) + '</ul></section>'
-    lp_summ = '<span class="lead">' + lab('legacy phase map') + '</span> ' + html.escape(s['title'])
+    lp_summ = '<span class="lead">' + lab('舊版 phase map') + '</span> ' + html.escape(s['title'])
     lp_body = '<div class="panels">' + cards + '</div>'
     tab['結構變化'][p['key']].append(f'<article>{collapsed(lp_summ, lp_body)}</article>')
 if not phases:
@@ -1289,9 +1292,9 @@ for p in phases:
         links = ' '.join(f'<a href="{attr(f)}"><span class="file">{html.escape(os.path.basename(f))}</span></a>' for f in raw)
         residual = sum(1 for f in d.get('findings') or [] if isinstance(f, dict) and sval(f.get('status')) in ('open', 'unverified'))
         rows += (f'<tr><td>{zh(d.get("gate"))}</td><td class="num">{yv(d.get("round"), k)}</td><td>{zpill(d.get("verdict"))}</td>'
-                 f'<td>{counts_html(d, k)}</td><td class="num">{residual}</td><td>{lab(next_action(d))}</td><td class="num">{len(raw)}</td></tr>')
+                 f'<td>{counts_html(d, k)}</td><td class="num">{residual}</td><td>{lab(next_action(d))}</td></tr>')
         raw_links.append((rel, raw))
-    summary = f'<div class="tbl"><table><tr><th>門</th><th>輪</th><th>裁決</th><th>發現</th><th>待處理</th><th>下一步</th><th>原始檔</th></tr>{rows}</table></div>' if rs else '<p class="placeholder">no review.yaml for this phase yet</p>'
+    summary = f'<div class="tbl"><table><tr><th>門</th><th>輪</th><th>裁決</th><th>發現</th><th>待處理</th><th>下一步</th></tr>{rows}</table></div>' if rs else '<p class="placeholder">no review.yaml for this phase yet</p>'
     folds = ''
     for rel, d in rs:
         fl = [f for f in d.get('findings') or [] if isinstance(f, dict)]
@@ -1339,7 +1342,7 @@ for rel in files:
         if base == 'review.md':
             v = verdict_lines(body)
             inner = (f'<ul class="verdict">{"".join(f"<li>{inline(l, p[chr(107)+chr(101)+chr(121)])}</li>" for l in v)}</ul>' if v else '<p class="muted">no verdict line found in review.md</p>') + collapsed('<span class="lead">Synthesis</span> <span class="muted">(review.md)</span>', md_to_html(body, p["key"]))
-            lr_summ = '<span class="lead">' + lab('legacy review') + '</span> <span class="file">' + html.escape(rel) + '</span>'
+            lr_summ = '<span class="lead">' + lab('舊版審查') + '</span> <span class="file">' + html.escape(rel) + '</span>'
             tab['紀錄'][p['key']].append(f'<article>{collapsed(lr_summ, inner)}</article>')
         elif base.startswith('deviation'):
             continue
@@ -1431,7 +1434,7 @@ document.querySelector('.theme').addEventListener('click',function(){var cur=roo
 
 def phase_header(g):
     if g is EPIC:
-        return '<h2>Epic</h2>'
+        return '<h2>Epic 層</h2>'
     s = specs[g['spec']]
     title = f'第 {sval(s["yaml"].get("phase"))} 階段 · {sval(s["yaml"].get("title"))}' if 'yaml' in s else g['title']
     return f'<h2>{html.escape(title)}</h2><p class="meta">{fspan(g["spec"])}</p>'
