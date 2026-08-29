@@ -734,6 +734,11 @@ for rel in files:
 def reviews_for(p):
     return [(rel, d) for rel, d in reviews if phase_of(rel) is p or d.get('target') == os.path.basename(p['spec'])]
 
+KNOWN_GATES = ('design-review', 'deliverable-review')
+def extra_gates(p):
+    """Gate names found in this phase's review.yaml files beyond the known ones, sorted."""
+    return tuple(sorted({sval(d.get('gate')) for rel, d in reviews_for(p) if sval(d.get('gate')) and sval(d.get('gate')) not in KNOWN_GATES}))
+
 def dev_lines_for(p):
     if p is EPIC:
         return [d for d in deviation_lines if not any(q['slug'] and (q['slug'] in d or f"phase {q['num']}" in d.lower()) for q in phases)]
@@ -965,7 +970,7 @@ def quiz_html(p):
 
 def waiting_union(p, s):
     out = [(os.path.basename(p['spec']), w) for w in s['yaml'].get('waiting_on_human') or []]
-    for gate in ('design-review', 'deliverable-review'):
+    for gate in KNOWN_GATES + extra_gates(p):
         rel, d = newest_review(p, gate)
         if d: out += [(rel, w) for w in d.get('waiting_on_human') or []]
     if yaml_dev:
@@ -983,7 +988,7 @@ ZH = {
     'original': '原始', 'fix-induced': '修復引入',
     'add': '新增', 'change': '改動', 'remove': '移除',
     'position': '位置', 'structure': '結構前後', 'interface': '介面差異', 'scope': '範圍', 'none': '未歸面板',
-    'design-review': '設計審查', 'deliverable-review': '交付審查', 'tests': '測試', 'quiz': '理解測驗', 'ship-gate': '出貨門',
+    'design-review': '設計審查', 'deliverable-review': '交付審查', 'plugin-review': 'plugin 審查', 'tests': '測試', 'quiz': '理解測驗', 'ship-gate': '出貨門',
     'draft': '草稿', 'accepted-candidate': '待接受', 'accepted': '已接受', 'superseded': '已取代',
     'active': '進行中', 'proposed': '提議', 'paused': '暫停', 'done': '完成', 'cancelled': '取消',
     'approvable': '可核准', 'blocked': '被擋住', 'not-reviewed': '尚未審',
@@ -1019,7 +1024,7 @@ def newest_review(p, gate):
 def open_blockers(p):
     """Open Critical/High findings across the newest round of each gate."""
     out = []
-    for gate in ('design-review', 'deliverable-review'):
+    for gate in KNOWN_GATES + extra_gates(p):
         rel, d = newest_review(p, gate)
         if not d: continue
         for f in d.get('findings') or []:
@@ -1037,8 +1042,11 @@ def quiz_state():
     if all(r == 'pass' for r in res): return 'pass'
     return 'pending'
 def gate_rows(p):
+    """The known-gate/tests/quiz/ship-gate rows, sorted exactly as before (byte-identical
+    when no other gate exists); any other gate found in this phase's review.yaml files is
+    appended after, sorted — always after the known gates, per the extension rule."""
     rows = []
-    for gate in ('design-review', 'deliverable-review'):
+    for gate in KNOWN_GATES:
         rel, d = newest_review(p, gate)
         if not d: rows.append((gate, 'pending', None, None, '')); continue
         v = sval(d.get('verdict'))
@@ -1047,11 +1055,17 @@ def gate_rows(p):
     rows.append(('tests', 'n/a', None, None, ''))
     rows.append(('quiz', quiz_state(), None, 'deviation.yaml' if yaml_dev else None, ''))
     rows.append(('ship-gate', 'n/a', None, None, ''))
-    return sorted(rows, key=lambda r: {'fail': 0, 'pending': 1, 'pass': 2, 'n/a': 3}[r[1]])
+    rows = sorted(rows, key=lambda r: {'fail': 0, 'pending': 1, 'pass': 2, 'n/a': 3}[r[1]])
+    for gate in extra_gates(p):
+        rel, d = newest_review(p, gate)
+        v = sval(d.get('verdict')) if d else ''
+        st = 'pass' if v == 'approve' else 'fail'
+        rows.append((gate, st, d, rel, ''))
+    return rows
 def decision(p, s):
     n_block = len(open_blockers(p)) + len(waiting_union(p, s))
     if n_block: return 'blocked', n_block
-    if any(st == 'pending' and g in ('design-review', 'deliverable-review') for g, st, *_ in gate_rows(p)): return 'not-reviewed', 0
+    if any(st == 'pending' and g in KNOWN_GATES for g, st, *_ in gate_rows(p)): return 'not-reviewed', 0
     return 'approvable', 0
 def next_action(d):
     c = d.get('counts') if isinstance(d.get('counts'), dict) else {}
@@ -1063,7 +1077,7 @@ def next_action(d):
 def counts_html(d, owner):
     c = d.get('counts') if isinstance(d.get('counts'), dict) else {}
     return ' '.join(f'{lab(ZH[k])} {yv(c.get(k), owner)}' for k in ('C', 'H', 'M', 'L'))
-GATE_OWNER = {'design-review': 'author', 'deliverable-review': 'builder', 'tests': 'builder', 'quiz': 'owner', 'ship-gate': 'owner'}
+GATE_OWNER = {'design-review': 'author', 'deliverable-review': 'builder', 'plugin-review': 'builder', 'tests': 'builder', 'quiz': 'owner', 'ship-gate': 'owner'}
 def gate_strip_html(p, s):
     k = p['key']
     rows = ''
@@ -1098,7 +1112,7 @@ def front_sections(p, s):
             f'<div><dt>{lab("狀態")}</dt><dd>{zpill(state)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</dd></div></dl>'
             f'<p class="aim">{yv(yd.get("title"), k)}</p>')
     secs.append(('決策', head, f"{sval(yd.get('epic'))} · 第 {sval(yd.get('phase'))}/{n_ph} 階段 · {ZH[state]}{f' ({n})' if n else ''}\n\n{sval(yd.get('title'))}"))
-    g_txt = '\n'.join(f"- {ZH[g]}: {ZH[st]}" + (f" — round {sval(d.get('round'))} {sval(d.get('verdict'))} C={sval((d.get('counts') or {}).get('C'))} H={sval((d.get('counts') or {}).get('H'))} M={sval((d.get('counts') or {}).get('M'))} L={sval((d.get('counts') or {}).get('L'))}" if d else '') for g, st, d, rel, _ in gate_rows(p))
+    g_txt = '\n'.join(f"- {ZH.get(g, g)}: {ZH[st]}" + (f" — round {sval(d.get('round'))} {sval(d.get('verdict'))} C={sval((d.get('counts') or {}).get('C'))} H={sval((d.get('counts') or {}).get('H'))} M={sval((d.get('counts') or {}).get('M'))} L={sval((d.get('counts') or {}).get('L'))}" if d else '') for g, st, d, rel, _ in gate_rows(p))
     secs.append(('gate 條', None, g_txt))   # html None → not rendered on the page; the strip carries the gates
     bl = open_blockers(p); wu = waiting_union(p, s)
     items = [f'<li><label><input type="checkbox" data-check="{attr(k + "|" + sval(f.get("id")))}"> {zpill(f.get("severity"))} <a class="code" data-jump="{attr("finding--" + sval(f.get("id")))}" tabindex="0">{html.escape(sval(f.get("id")))}</a> {yv(f.get("summary"), k)}</label></li>' for rel, f in bl]
@@ -1149,7 +1163,7 @@ def front_sections(p, s):
     ck_items += [f'<li>{zpill("pending")} {yv(w, k)}</li>' for src, w in wu]
     footer = zpill('approvable') if state == 'approvable' else f'{zpill("blocked")} <span class="num">{n}</span>' if state == 'blocked' else zpill('not-reviewed')
     ck_html = f'<ol class="checklist">{capped(ck_items)}</ol><p class="footer">{lab("結論")} {footer}</p>'
-    ck_txt = '\n'.join(f"- [ ] {ZH[g]}: {ZH[st]}" for g, st, *_ in gate_rows(p) if st in ('fail', 'pending')) + ''.join(f"\n- [ ] {sval(f.get('severity'))} {sval(f.get('id'))}" for rel, f in bl) + ''.join(f"\n- [ ] {sval(w)}" for src, w in wu) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
+    ck_txt = '\n'.join(f"- [ ] {ZH.get(g, g)}: {ZH[st]}" for g, st, *_ in gate_rows(p) if st in ('fail', 'pending')) + ''.join(f"\n- [ ] {sval(f.get('severity'))} {sval(f.get('id'))}" for rel, f in bl) + ''.join(f"\n- [ ] {sval(w)}" for src, w in wu) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
     secs.append(('檢查表', ck_html, ck_txt))
     return secs
 
@@ -1463,16 +1477,21 @@ def render_tab(i, t):
 buttons = ''.join(f'<button data-tab="{i}" aria-selected="false">{html.escape(t)}</button>' for i, t in enumerate(TABS))
 tabs_html = ''.join(render_tab(i, t) for i, t in enumerate(TABS))
 notes_html = f'<div class="notes">{" ".join(html.escape(n) for n in notes)}</div>' if notes else ''
-def strip_gate(g, st, rel):
+def strip_gate(g, st, d, rel):
+    """Chip text: the two known gates keep the derived pass/fail/pending status
+    (unchanged, byte-for-byte). A gate outside the known ones shows its round's
+    actual verdict (e.g. 修改 for revise), since 'fail' alone would blur
+    revise/block; tests/quiz/ship-gate (d is None) keep the derived status too."""
     tail = ''
     if st in ('fail', 'pending'):
         tail = ' · ' + zh(GATE_OWNER.get(g, ''))
         if rel:
             tail += ' · <a href="' + attr(rel) + '" title="' + attr(rel) + '">' + lab('紀錄') + '</a>'
-    return '<span class="g"><span class="gl">' + zh(g) + '</span>' + zpill(st) + tail + '</span>'
+    pill = zpill(d.get('verdict')) if (d is not None and g not in KNOWN_GATES) else zpill(st)
+    return '<span class="g"><span class="gl">' + zh(g) + '</span>' + pill + tail + '</span>'
 if current:
     st, n = decision(current, specs[current['spec']])
-    strip_html = f'<div class="strip"><span class="decision"><span class="gl">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))}</span> · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段</span><span class="g"><span class="gl">狀態</span>{zpill(st)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</span>' + ''.join(strip_gate(g, s_, rel_) for g, s_, d_, rel_, _ in gate_rows(current)) + '</div>'
+    strip_html = f'<div class="strip"><span class="decision"><span class="gl">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))}</span> · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段</span><span class="g"><span class="gl">狀態</span>{zpill(st)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</span>' + ''.join(strip_gate(g, s_, d_, rel_) for g, s_, d_, rel_, _ in gate_rows(current)) + '</div>'
 else:
     strip_html = '<div class="strip"><span class="placeholder">尚無 YAML phase</span></div>'
 page = f"""<!doctype html>
