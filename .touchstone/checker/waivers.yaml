@@ -1,0 +1,7 @@
+# waivers.yaml — nodes that plugin-map.sh reports as orphan or test-only but are
+# live. Each waiver states why the node has no in-edge and when that was last
+# reviewed. A waived node keeps its dependents live (it is a reachability root),
+# appears in neither orphans nor test_only, and becomes a *stale* waiver the
+# moment a real (non-declared-only) in-edge from a non-test node appears — the
+# graph checker fails on stale waivers, so the ledger cannot rot silently.
+- {node: scripts/install-git-hooks.sh, reason: "provisions .git/hooks; one-shot installer, run by a human per ADR-0029", reviewed: 2026-08-29}

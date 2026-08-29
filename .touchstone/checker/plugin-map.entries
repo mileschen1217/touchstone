@@ -1,0 +1,21 @@
+# plugin-map.entries — the declared entry set reachability starts from.
+# One repo-relative path per line; `#` starts a comment; every line must exist.
+# plugin-map.sh errors when a SKILL.md on disk, hooks/hooks.json or
+# scripts/tests-smoke/run-smoke.sh is missing here, or when a listed path is not
+# on disk. A node reachable from none of these is an orphan (unless waived in
+# waivers.yaml); a node reachable only through run-smoke.sh is test-only.
+
+skills/anvil/SKILL.md
+skills/assay/SKILL.md
+skills/code-review/SKILL.md
+skills/cross-provider-reviewer/SKILL.md
+skills/crucible/SKILL.md
+skills/deliverable-review/SKILL.md
+skills/design-review/SKILL.md
+skills/design-spec/SKILL.md
+skills/epic-driven-roadmap/SKILL.md   # human slash entry
+skills/grounded-claims/SKILL.md       # human slash entry
+skills/init/SKILL.md                  # human slash entry
+
+hooks/hooks.json
+scripts/tests-smoke/run-smoke.sh
