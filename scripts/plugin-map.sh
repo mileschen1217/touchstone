@@ -100,6 +100,13 @@ for sub, key, want in (('red-orphan', 'orphans', ['scripts/lonely.sh']),
     if d is not None:
         report(d.get(key) == want, lbl, repr(d.get(key)))
 
+lbl = 'plugin-graph green-waived-orphan: the waived node is in neither orphans nor test_only, no stale/invalid waiver'
+d = mapped(os.path.join(GRAPH, 'green-waived-orphan'), lbl)
+if d is not None:
+    ok = (not d.get('orphans') and not d.get('test_only') and not d.get('stale_waivers')
+          and not d.get('invalid_waivers') and 'scripts/lonely.sh' in {n['id'] for n in (d.get('nodes') or [])})
+    report(ok, lbl, 'orphans=%r test_only=%r stale=%r invalid=%r' % (d.get('orphans'), d.get('test_only'), d.get('stale_waivers'), d.get('invalid_waivers')))
+
 lbl = 'plugin-graph red-invalid-waiver: invalid_waivers non-empty'
 d = mapped(os.path.join(GRAPH, 'red-invalid-waiver'), lbl)
 if d is not None:
@@ -638,7 +645,7 @@ stages = []
 for num, entry in STAGES:
     if entry not in nodeset:
         continue
-    blocked = skill_stage_entries - {entry}      # a stage stops at the next stage's skill
+    blocked = set(stage_entries) - {entry}       # a stage stops at every other stage's entry, skill or fragment
     lset = closure(entry, blocked)
     # contexts = the entry plus every skill it invokes (transitively) inside the stage
     contexts, stack, seen_ctx = [entry], [entry], {entry}
@@ -689,7 +696,10 @@ def is_tested(p):
     while the runner carries that loop) — the same three consumers check-fixture-consumers
     enforces."""
     b = os.path.basename(p)
-    if p in smoke_text or b in smoke_text:
+    # token-bounded: `map.sh` inside `plugin-map.sh`, or `run.sh` inside `foo-run.sh`, is not a mention
+    def named(needle):
+        return re.search(r'(?<![\w-])' + re.escape(needle) + r'(?![\w-])', smoke_text) is not None
+    if named(p) or named(b):
         return True
     m = re.match(r'^check-(.*)\.sh$', b)
     if m and m.group(1) in fixture_dirs:
