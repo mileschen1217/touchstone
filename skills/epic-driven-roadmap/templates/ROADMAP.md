@@ -1,6 +1,5 @@
 # <Project Name> Roadmap
-<!-- Pure tracker. Hosts with a roadmap renderer: run it to regenerate this file
-     (and ROADMAP.html) from epic index files instead of hand-editing. -->
+<!-- Pure tracker: rows only, indexed from the epic index files. -->
 
 ## Scope
 

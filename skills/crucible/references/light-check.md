@@ -26,9 +26,10 @@ content the agent receives.
 
 Convergence: the stopping rule at
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
-governs — Critical/High → fix → ONE re-dispatch; a surviving Critical is a
-blocked line the human rules at the terminal accept. Only Critical+High = 0
-proceeds.
+governs, with its outcomes: 0 Critical and High < T → close and proceed;
+High only (after the one re-dispatch) → the surviving markers ride to the human
+at the terminal accept; a surviving Critical is a blocked line the human rules
+there.
 
 Dispatch failure: re-dispatch once (technical retry); failing again, report
 "light check incomplete" and halt — never skip silently, never fabricate a

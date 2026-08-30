@@ -38,19 +38,25 @@ Anvil's three duties inside this stage:
    the failing test to write first; a parser/guard-shaped task's contract asks
    which admitted input shapes the suite feeds.
 3. **Deviation log** — a build-time gap against the spec is a `D-n` entry in the
-   epic's `deviation.yaml` (stage, panel, `which_stage_could_have_caught`) the
-   moment it is found, never a note in the run report.
+   epic's `deviation.yaml` the moment it is found, never a note in the run
+   report: `{id, phase, date, stage, panel, gap: {title, detail},
+   which_stage_could_have_caught, catcher, disposition: {title, detail}, refs}` —
+   `refs` names the AC/REQ the build deviates from; `derived: true` (with
+   `refs: []`) only when the entry records process, not a contract gap. Field
+   set: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/deviation.schema.yaml`.
 
-Conductor unavailable (skill absent) → fall back to the light loop: build
-directly with dispatched workers, then continue at Stage 3; state the fallback
-in the run report.
+Conductor unavailable (skill absent) → build under
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/light-loop.md` (read it; the same three
+duties apply), then continue at Stage 3; state the fallback in the run report.
 
 ## Stage 3 — deliverable-review
 
 Invoke `Skill(skill: "touchstone:deliverable-review")` on the branch range with
 the spec as the governing spec. Anvil never promotes an AC to verified — an
 `unverified` status in review.yaml survives intact to Evidence Reckoning.
-Critical/High block.
+Convergence and what blocks: the stopping rule the gate injects,
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
+— anvil reads its outcome and never re-runs the gate past its budget.
 
 ## Terminal — reviewed deliverable on a branch
 

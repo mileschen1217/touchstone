@@ -45,8 +45,11 @@ spec revision goes straight to `/touchstone:design-spec` +
    - **PRD+seams light contract** — batch-shaped work (sweeps, migrations):
      problem + batches + acceptance seams (≥1 per load-bearing ruling) +
      unbreakable invariants, the problem/invariant fields citing the facts
-     source's rows. It skips step 4; before its terminal accept run the light
-     check in `references/light-check.md`.
+     source's rows (a facts source qualifies per
+     `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/confirmed-facts-source.md`).
+     It skips step 4; before its terminal accept run the light check in
+     `references/light-check.md`; its build runs under
+     `${CLAUDE_PLUGIN_ROOT}/skills/_shared/light-loop.md`.
 4. **(Full form only.)** Set `status: accepted-candidate`, invoke
    `/touchstone:design-review <spec>` — the gate runs pre-accept, here. The
    gate governs its own convergence; crucible only surfaces its terminal
@@ -66,5 +69,5 @@ inline line naming the standing decision and why it still holds.
 Present the contract (clean-gated spec, or light-checked PRD+seams) for the
 single terminal accept; accept promotes `accepted-candidate → accepted`. Name
 the build phase (`/touchstone:anvil` for a full spec; the light loop for
-PRD+seams) as next. Crucible stops at the contract — it never invokes the
+PRD+seams, `skills/_shared/light-loop.md`) as next. Crucible stops at the contract — it never invokes the
 build, never emits requirements, never assigns US-N ids.
