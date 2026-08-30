@@ -5,13 +5,13 @@ referenced-by: [design-review, deliverable-review, assay]
 
 # Dispatch provenance — canonical reference
 
-Sole canonical home of who-actually-reviewed provenance for a lens × arm review round.
+Sole home of who-actually-reviewed provenance for a review round.
 
-**Lens** — one review perspective (a prompt with its own subject and finding types). **Arm** — one execution of a lens in a context of its own: `cc` (a fresh Claude Code agent) or `codex`. A gate declares its lens set and, per lens, the arms that run it; vendor diversity is a property of the arm set, never of the gate.
+**Lens** — one review perspective (a prompt with its own subject and finding types). **Arm** — one execution of a lens in its own context: `cc` (a fresh Claude Code agent) or `codex`. A gate declares its lens set and, per lens, its arms; vendor diversity is a property of the arm set.
 
 ## Where provenance lives
 
-`review.yaml` (field set: `skills/_shared/schemas/review.schema.yaml`) is the single output of a review round; there is no separate envelope file.
+`review.yaml` (field set: `skills/_shared/schemas/review.schema.yaml`) is a round's single output; there is no envelope file.
 
 | Field | Meaning |
 |---|---|
@@ -23,8 +23,8 @@ Sole canonical home of who-actually-reviewed provenance for a lens × arm review
 | `challenger` | design-review: the arm that ran the challenger lens |
 | `waiting_on_human` | the complete current list of `W-n` items for this gate — presence = still waiting; a resolved item is removed, never annotated |
 
-Total failure (no lens produced content) → no review.yaml is written; the gate surfaces the failure and stops.
+No lens produced content → no review.yaml; the gate surfaces the failure and stops.
 
 ## Presentation duty
 
-`degraded: true` → the presenting gate shows the reason VERBATIM and gets explicit human acknowledgement before reporting ready — even at C+H = 0. A clean round triggers nothing.
+`degraded: true` → the presenting gate shows the reason VERBATIM and gets explicit human acknowledgement before reporting ready, even at C+H = 0.

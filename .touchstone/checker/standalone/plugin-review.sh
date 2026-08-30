@@ -61,11 +61,15 @@ def decide(rnd, max_rounds, pct, total, prev_total, new_ch):
 
 def waiting(findings):
     out = []
+    n = 0
     for f in findings:
         if f.get('status') == 'open' and f.get('severity') in ('C', 'H'):
-            out.append('%s %s %s:%s — %s' % (f.get('id'), f.get('severity'),
-                                             f.get('file', '?'), f.get('line', 0),
-                                             f.get('summary', '')))
+            n += 1
+            title = '%s %s %s:%s — %s' % (f.get('id'), f.get('severity'),
+                                          f.get('file', '?'), f.get('line', 0),
+                                          f.get('summary', ''))
+            out.append({'id': 'W-%d' % n, 'kind': 'fix', 'owner': 'maintainer',
+                        'title': title, 'refs': []})
     return out
 
 mode = sys.argv[1]
@@ -96,8 +100,10 @@ elif mode == 'selftest':
     print('%s plateau: round-2 85%% total 61 vs 61, no new C/H -> %s' % ('PASS' if r == 'stop=plateau' else 'FAIL', r))
     w = waiting([{'id': 'F-1', 'severity': 'H', 'status': 'open', 'file': 'skills/a/SKILL.md', 'line': 12, 'summary': 'rule without consumer'},
                  {'id': 'F-2', 'severity': 'M', 'status': 'open', 'file': 'skills/b/SKILL.md', 'line': 3, 'summary': 'noise'}])
-    ok &= w == ['F-1 H skills/a/SKILL.md:12 — rule without consumer']
-    print('%s waiting_on_human lists only open C/H: %s' % ('PASS' if len(w) == 1 else 'FAIL', w))
+    w_expect = [{'id': 'W-1', 'kind': 'fix', 'owner': 'maintainer',
+                 'title': 'F-1 H skills/a/SKILL.md:12 — rule without consumer', 'refs': []}]
+    ok &= w == w_expect
+    print('%s waiting_on_human lists only open C/H as W-n objects: %s' % ('PASS' if w == w_expect else 'FAIL', w))
     # (b) round-2 reaches the threshold
     r = decide(2, 3, 91.7, 66, 61, False)
     ok &= r == 'stop=threshold'
@@ -114,8 +120,10 @@ elif mode == 'selftest':
     ok &= r == 'stop=max-rounds'
     print('%s hard cap: --rounds beyond 3 -> %s' % ('PASS' if r == 'stop=max-rounds' else 'FAIL', r))
     w = waiting([{'id': 'F-3', 'severity': 'H', 'status': 'open', 'file': 'agents/x.md', 'line': 7, 'summary': 'declared-vs-actual'}])
-    ok &= len(w) == 1
-    print('%s round-3 open H carried to waiting_on_human: %s' % ('PASS' if len(w) == 1 else 'FAIL', w))
+    w3_expect = [{'id': 'W-1', 'kind': 'fix', 'owner': 'maintainer',
+                  'title': 'F-3 H agents/x.md:7 — declared-vs-actual', 'refs': []}]
+    ok &= w == w3_expect
+    print('%s round-3 open H carried to waiting_on_human as a W-n object: %s' % ('PASS' if w == w3_expect else 'FAIL', w))
     sys.exit(0 if ok else 1)
 else:
     sys.exit('plugin-review.sh: unknown loop mode %s' % mode)
@@ -301,7 +309,7 @@ def lens_name(v):
 
 TYPES = ('coverage-gap', 'real-defect', 'refinement', 'soundness')
 
-def norm(f, agent):
+def norm(f, arm):
     ty = str(f.get('type', 'refinement')).lower().strip()
     ty = ty if ty in TYPES else 'refinement'
     sev = str(f.get('severity', 'M')).strip().upper()[:1]
@@ -310,11 +318,11 @@ def norm(f, agent):
         line = int(f.get('line') or 0)
     except Exception:
         line = 0
-    return {'agent': agent, 'lens': lens_name(f.get('lens', 4)), 'type': ty,
+    return {'found_by': [arm], 'lens': lens_name(f.get('lens', 4)), 'type': ty,
             'severity': sev, 'file': str(f.get('file') or '(unlocated)'), 'line': line,
             'summary': ' '.join(str(f.get('summary') or '').split())[:400] or '(no summary)',
             'fix': ' '.join(str(f.get('fix') or '').split())[:400] or '(no fix given)',
-            'status': 'open'}
+            'status': 'open', 'refs': []}
 
 findings = [norm(f, 'codex') for f in parsed if isinstance(f, dict)]
 
@@ -344,7 +352,8 @@ for c in cc:
     n = norm(c, 'cc')
     hit = next((f for f in findings if f['file'] == n['file'] and f['type'] == n['type']), None)
     if hit:
-        hit['agent'] = 'codex+cc'
+        if 'cc' not in hit['found_by']:
+            hit['found_by'] = hit['found_by'] + ['cc']
         hit['summary'] = (hit['summary'] + ' | cc: ' + n['summary'])[:800]
         collapsed += 1
     else:
@@ -354,12 +363,13 @@ for i, f in enumerate(findings, 1):
     f['id'] = 'F-%d' % i
     f['provenance'] = provenance_of(f['file'], f['line'])
 
-order = ['id', 'agent', 'lens', 'type', 'provenance', 'severity', 'file', 'line',
-         'summary', 'fix', 'status']
+order = ['id', 'lens', 'type', 'provenance', 'severity', 'file', 'line',
+         'summary', 'fix', 'status', 'found_by', 'refs']
 findings = [{k: f[k] for k in order} for f in findings]
 
 counts = {s: sum(1 for f in findings if f['severity'] == s) for s in ('C', 'H', 'M', 'L')}
-providers = ['codex', 'cc'] if providers_cc == '1' else ['codex']
+arms = ['codex', 'cc'] if providers_cc == '1' else ['codex']
+providers = [{'lens': it['name'], 'arms': list(arms)} for it in items]
 degraded = bool(degraded_reason) or providers_cc != '1'
 reason = degraded_reason
 if providers_cc != '1':
@@ -442,12 +452,17 @@ if len(findings) != int(want_n):
 if mode == 'clean':
     if doc.get('degraded'):
         errs.append('degraded=%r reason=%r' % (doc.get('degraded'), doc.get('degraded_reason')))
-    need = ('id', 'agent', 'lens', 'type', 'provenance', 'severity', 'file',
-            'line', 'summary', 'fix', 'status')
+    need = ('id', 'found_by', 'lens', 'type', 'provenance', 'severity', 'file',
+            'line', 'summary', 'fix', 'status', 'refs')
     for f in findings:
         miss = [k for k in need if k not in f]
         if miss:
             errs.append('%s missing %s' % (f.get('id'), miss))
+        if not f.get('found_by'):
+            errs.append('%s found_by empty' % f.get('id'))
+    prov = doc.get('providers') or []
+    if prov and not all(isinstance(p, dict) and 'lens' in p and 'arms' in p for p in prov):
+        errs.append('providers not per-lens: %r' % prov)
 elif mode == 'partial':
     if doc.get('degraded_reason') != 'partial':
         errs.append('degraded_reason=%r want partial' % doc.get('degraded_reason'))
@@ -480,16 +495,20 @@ if [ "${1:-}" = "--self-test" ]; then
   : > "$st_dir/cc-empty.txt"
 
   parser_case() {  # <label> <msg-file> <want-findings> <clean|partial|noscore>
-    local label="$1" msg="$2" want="$3" mode="$4" line rc
+    local label="$1" msg="$2" want="$3" mode="$4" line rc ca_out ca_rc
     line="$(python3 -c "$PARSE_PY" "$msg" "$rubric" "$st_dir/review.yaml" \
       "$st_dir/score.md" 1 selftest selftest.spec.yaml "" "$st_dir/cc-empty.txt" \
       "" "$st_root" 1 2>&1)"; rc=$?
     if [ "$rc" -ne 0 ]; then
       echo "FAIL parser $label — PARSE_PY rc=$rc: $line"; st_fail=1; return
     fi
+    ca_out="$(bash "$st_root/scripts/check-artifact.sh" review "$st_dir/review.yaml" --root "$st_root" 2>&1)"; ca_rc=$?
+    if [ "$ca_rc" -ne 0 ]; then
+      echo "FAIL parser $label — check-artifact.sh review rc=$ca_rc: $ca_out"; st_fail=1; return
+    fi
     if python3 -c "$PARSE_ASSERT_PY" "$st_dir/review.yaml" "$st_dir/score.md" \
         "$want" "$mode" "$line"; then
-      echo "PASS parser $label"
+      echo "PASS parser $label (review.yaml validates)"
     else
       echo "FAIL parser $label"; st_fail=1
     fi
