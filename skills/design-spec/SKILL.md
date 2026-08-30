@@ -47,8 +47,7 @@ or interview records yourself.
 Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/confirmed-facts-source.md`
 and follow it exactly for qualification and citation granularity. Delta: a
 validation failure (any trigger class) is dispositioned by asking the human or
-by a `waiting_on_human[]` entry (`{id: W-n, kind, owner, title, detail?, refs?}`,
-the question shaped per
+by a `waiting_on_human[]` entry (a `W-n` object per the schema, the question shaped per
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/human-question-template.md`) —
 never a silent scope or invariant entry. The
 AC layer is authored HERE — a source hands over confirmed facts, never pre-drafted ACs.

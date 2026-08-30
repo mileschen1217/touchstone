@@ -63,7 +63,7 @@ One file per round: round 1 at `<epic-dir>/design-review-<date>/review.yaml`, th
 
 - `providers`: one entry per declared lens with the arms that produced content; `challenger: cc`; `degraded` / `degraded_reason` per Phase 3.
 - `findings[]`: merge keyed by lens. Each challenger marker → `type` and `provenance` as emitted; **the challenger lens's severity is derived from marker type at merge (`coverage-gap` / `real-defect` → H, `refinement` → L) and is never reviewer-assigned**. Each document-lens finding → the arm's severity and type. Same `field` + same `type` across arms → one finding, `found_by` listing both arms; otherwise `found_by` = the one arm. Every finding carries `refs` = the AC/REQ/INV ids its `field` path resolves to, or `[]` with `field` naming a non-spec locator. `counts` computed from severities.
-- `waiting_on_human`: the complete current list of `W-n` objects for this gate (`{id, kind, owner, title, detail?, refs?}`; presence = still waiting) — an item resolved this round is dropped, a new ruling the human owes is added.
+- `waiting_on_human`: the complete current list of `W-n` objects for this gate (shape: the schema; presence = still waiting) — an item resolved this round is dropped, a new ruling the human owes is added.
 - `rulings[]`: every ledger id this round appended (routing of a marker to the human vs the authoring session: the injected stopping rule); a ruling is written to the assay record as `- <id> (<date>, stage: design-review) · …` and its id listed here; a marker resolved by the authoring session records its `fix`.
 - Validate before reporting: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" review <file> --root <epic-dir>` — exit 0.
 

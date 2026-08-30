@@ -78,7 +78,7 @@ Write `<epic-dir>/deliverable-review-<date>/review.yaml` — `gate: deliverable-
 
 - `findings[]`, merged by lens: every quality finding with `file` + `line` and `refs: []`; every uncovered AC or violated / undecidable invariant as a finding on its field path (`requirements[REQ-n].acs[AC-n]`, `invariants[INV-n]`) with `refs` = the ids that path resolves to, and `status: unverified` where the conformance arm could not decide. Same `field` + same `type` across arms → one finding with `found_by` listing both; otherwise `found_by` = the one arm.
 - `providers`: per declared lens, which arms produced content; `degraded` / `degraded_reason` per Phase 1 and Phase 3.
-- `waiting_on_human`: every `W-n` item (`{id, kind, owner, title, detail?, refs?}`) still owed by the human after this round — a complete list, so presence means still waiting.
+- `waiting_on_human`: every `W-n` item (shape: the schema) still owed by the human after this round — a complete list, so presence means still waiting.
 - Validate with `check-artifact.sh review` (`--root <epic-dir>`; exit 0 required). The raw arm outputs sit in the round dir (`raw_cc.md`; a Codex arm's `raw_codex.jsonl` + `last-message.txt`); no other review file.
 
 Critical/High block. Convergence: the injected stopping rule. `degraded: true` → the presentation duty in `provenance.md`, before reporting ready.
