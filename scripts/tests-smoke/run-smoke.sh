@@ -539,6 +539,55 @@ while IFS= read -r f; do
   expect_exit "self-test $(basename "$f" .sh)" zero bash "$f" --self-test
 done < <(find "$repo_root/skills" -name '*.sh' | sort)
 
+# ---- dossier type-role self-check (regression ratchet for the 2026-08-30 owner reads):
+# a label is a key beside a value — never a heading, never a table value.
+ui_root="$(mktemp -d)"; mkdir -p "$ui_root/.touchstone/epics"
+cp -R "$here/fixtures/dossier-epic" "$ui_root/.touchstone/epics/2026-01-01-fixture"
+rm -f "$ui_root/.touchstone/epics/2026-01-01-fixture/dossier.html"
+bash "$scripts_dir/dossier-render.sh" "$ui_root/.touchstone/epics/2026-01-01-fixture" >/dev/null 2>&1
+ui_html="$ui_root/.touchstone/epics/2026-01-01-fixture/dossier.html"
+python3 - "$ui_html" <<'PY' || { echo "FAIL: dossier type-role self-check"; fail=1; }
+import re, sys
+h = open(sys.argv[1], encoding='utf-8').read()
+bad = {
+  'fold heading that is only a label': re.findall(r'<summary><span class="label">[^<]*</span></summary>', h),
+  'heading (h2-h4) whose text is only a label': re.findall(r'<h[234][^>]*><span class="label">[^<]*</span>\s*</h[234]>', h),
+  'table value cell styled as a label': re.findall(r'<td[^>]*><span class="label">[^<]*</span></td>', h),
+  'label with nothing beside it in a paragraph': re.findall(r'<p[^>]*><span class="label">[^<]*</span></p>', h),
+}
+for k, v in bad.items():
+    assert not v, '%s: %d hit(s), e.g. %s' % (k, len(v), v[0][:80])
+# every font-size in the style block is a role token, never a literal
+css = re.search(r'<style>(.*?)</style>', h, re.S).group(1)
+lit = re.findall(r'font-size:\s*[0-9.]+(?:rem|px)', css.split('@media')[0].replace('html{font-size:16px}', ''))
+assert not lit, 'literal font sizes in the style block: %s' % lit[:5]
+print('PASS: dossier type roles — no label used as a heading or a value; every size is a role token')
+PY
+
+# ---- dossier width probe: no horizontal overflow at phone / tablet / desktop widths.
+# Needs a headless Chrome; absent → a visible SKIP line (never a silent pass).
+ui_chrome=""
+for c in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" google-chrome chromium chromium-browser; do
+  if [ -x "$c" ] || command -v "$c" >/dev/null 2>&1; then ui_chrome="$c"; break; fi
+done
+if [ -n "$ui_chrome" ]; then
+  ui_probe="$ui_root/probe.html"
+  # every tab visible, every fold open, and the measured widths written into <title>
+  sed -e 's/\.tab{display:none}/.tab{display:block}/' -e 's/<details class="fold">/<details class="fold" open>/g' \
+      -e 's|</body>|<script>document.title="W="+document.documentElement.scrollWidth+"/"+document.documentElement.clientWidth</script></body>|' \
+      "$ui_html" > "$ui_probe"
+  for w in 390 768 1280; do
+    t="$("$ui_chrome" --headless=new --disable-gpu --hide-scrollbars --window-size="$w,900" --virtual-time-budget=2000 \
+          --dump-dom "file://$ui_probe" 2>/dev/null | grep -o '<title>W=[0-9]*/[0-9]*</title>' | head -1)"
+    sw="${t#*W=}"; sw="${sw%%/*}"; cw="${t#*/}"; cw="${cw%%<*}"
+    if [ -n "$sw" ] && [ -n "$cw" ] && [ "$sw" -le "$cw" ]; then echo "PASS: dossier width probe ${w}px (scroll $sw ≤ client $cw)"
+    else echo "FAIL: dossier width probe ${w}px (title=$t)"; fail=1; fi
+  done
+else
+  echo "SKIP: dossier width probe — no headless Chrome on this host"
+fi
+rm -rf "$ui_root"
+
 # ---- check-exec-bits-all.sh: the untracked-file branch (filesystem mode) — the
 # committed red fixture is tracked, so it trips on the index rule; this scratch
 # tree has no git index and a 644 script.
