@@ -842,6 +842,19 @@ ui_chrome=""
 for c in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" google-chrome chromium chromium-browser; do
   if [ -x "$c" ] || command -v "$c" >/dev/null 2>&1; then ui_chrome="$c"; break; fi
 done
+# Capability check before any width measurement: a Chrome that launches but cannot
+# --dump-dom a trivial page (sandbox, broken install) is reported as an environment
+# SKIP with its first stderr line — never as a layout FAIL with an empty title.
+if [ -n "$ui_chrome" ]; then
+  ui_cap_err="$(mktemp)"
+  ui_cap="$("$ui_chrome" --headless=new --disable-gpu --virtual-time-budget=500 \
+             --dump-dom 'data:text/html,<title>capok</title>' 2>"$ui_cap_err" | grep -c '<title>capok</title>')"
+  if [ "${ui_cap:-0}" -lt 1 ]; then
+    echo "SKIP: dossier width probes — Chrome at $ui_chrome cannot --dump-dom ($(head -1 "$ui_cap_err" | cut -c1-120))"
+    ui_chrome=""
+  fi
+  rm -f "$ui_cap_err"
+fi
 if [ -n "$ui_chrome" ]; then
   ui_probe="$ui_root/probe.html"
   # every tab visible, every fold open, and the measured widths written into <title>
