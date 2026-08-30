@@ -917,6 +917,19 @@ assert i != -1 and 'AC-2' in rec[i:i + 600], 'QZ-2 does not show the missing id'
 assert 'title="pass">通過</abbr>' in rec, 'no manual quiz item shows its recorded pass result'
 print('PASS: dossier AC-15 — deviation entries and quiz items grouped by phase; the ref-set item shows its checker-derived miss with the missing id; manual items show their result')
 PY
+# ---- panel overlay is phase-scoped: the fixture's gamma spec is phase 3; D-1 (phase 3, interface) belongs on
+# its panels, D-2 / D-3 (phase 1 / 2, panel none) do not (regression ratchet for the owner's 2026-08-30 dossier read)
+python3 - "$sm_out" <<'PY' || { echo "FAIL: dossier panel overlay leaks other phases' D-n entries"; fail=1; }
+import re, sys
+h = open(sys.argv[1], encoding='utf-8').read()
+sec = re.search(r'<section class="tab" id="tab-2".*?(?=<section class="tab" id="tab-3")', h, re.S).group(0)
+m = re.search(r'<h2[^>]*>[^<]*Gamma.*?(?=<h2|\Z)', sec, re.S)
+assert m, 'gamma phase block not found in 結構變化'
+g = m.group(0)
+assert 'deviation--D-1' in g, 'gamma panels lost their own phase-3 entry D-1'
+assert 'deviation--D-2' not in g and 'deviation--D-3' not in g, 'gamma (phase 3) panels carry phase-1/2 entries'
+print('PASS: dossier panel overlay is phase-scoped (gamma shows D-1 only, never the phase-1/2 entries)')
+PY
 rm -rf "$sm_root"
 
 # ---- AC-17 negative: no .claude-plugin/plugin.json → no structure panel, no metrics

@@ -838,10 +838,12 @@ def yaml_contract_card(p, s):
         parts.append(collapsed(f'<span class="lead">{lab("agent 用欄位")}</span> <span class="muted">{lab("需求 · 驗收條件 · 不變式 · 變更 · 契約介面")}</span>', ''.join(agent)))
     return f'<article>{"".join(parts)}</article>'
 
-def dev_entries_for_panel(key):
+def dev_entries_for_panel(key, phase=None):
+    """D-n entries on one panel; with `phase` given, only the entries whose own `phase` field names that phase."""
     if not yaml_dev: return []
     key = PANEL_OF.get(key, key)
-    return [e for e in yaml_dev.get('entries') or [] if isinstance(e, dict) and sval(e.get('panel')) == key]
+    return [e for e in yaml_dev.get('entries') or [] if isinstance(e, dict) and sval(e.get('panel')) == key
+            and (phase is None or sval(e.get('phase')) == phase)]
 
 def title_detail(v, owner):
     """gap / disposition: {title, detail?} — title is the lead, detail (if any) trails muted."""
@@ -868,13 +870,13 @@ def dev_entry_html(e, owner, anchor=True):
 def yaml_panels_html(p, s, legacy_lines, anchor=True):
     k, cards = p['key'], ''
     for (label, key), (_, text) in zip(YAML_PANELS, s['panels']):
-        hits = dev_entries_for_panel(key)
+        hits = dev_entries_for_panel(key, p['num'])
         mark = '<span class="pill warn">built ≠ planned</span>' if hits else '<span class="pill ok">as planned</span>'
         body = f'<p>{yv(text, k)}</p>'
         if hits:
             body += f'<p class="delta">{lab("偏離")}</p><ul>' + ''.join(dev_entry_html(e, k, anchor) for e in hits) + '</ul>'
         cards += f'<section class="panel"><h4>{html.escape(label)} {mark}</h4>{body}</section>'
-    other = dev_entries_for_panel('none')
+    other = dev_entries_for_panel('none', p['num'])
     if other:
         cards += f'<section class="panel"><h4>{html.escape("未歸面板的偏離")}</h4><ul>' + ''.join(dev_entry_html(e, k, anchor) for e in other) + '</ul></section>'
     if legacy_lines:
@@ -1355,7 +1357,7 @@ def front_sections(p, s):
     by_panel = {}
     for e in dn: by_panel.setdefault(sval(e.get('panel')), []).append(sval(e.get('id')))
     sc_html = f'<p>{lab("偏離契約")} <span class="num">{len(dn)}</span> · ' + ' · '.join(f'{zh(pn)} {" ".join(link_codes(i, k) for i in ids)}' for pn, ids in by_panel.items()) + f' · <a data-jump="{attr(k + "--structure")}" tabindex="0" class="code">結構變化</a></p>' if dn else f'<p>{lab("偏離契約")} <span class="num">0</span> · <a data-jump="{attr(k + "--structure")}" tabindex="0" class="code">結構變化</a></p>'
-    sc_txt = '\n\n'.join(f"### {ZH.get(PANEL_OF[key], label)} — {'built ≠ planned' if dev_entries_for_panel(key) else 'as planned'}\n\n{sval(text)}" + ''.join(f"\n- {sval(e.get('id'))} · {sval(e.get('gap'))} · 處置: {sval(e.get('disposition'))}" for e in dev_entries_for_panel(key)) for (label, key), (_, text) in zip(YAML_PANELS, s['panels'] or []))
+    sc_txt = '\n\n'.join(f"### {ZH.get(PANEL_OF[key], label)} — {'built ≠ planned' if dev_entries_for_panel(key, p['num']) else 'as planned'}\n\n{sval(text)}" + ''.join(f"\n- {sval(e.get('id'))} · {sval(e.get('gap'))} · 處置: {sval(e.get('disposition'))}" for e in dev_entries_for_panel(key, p['num'])) for (label, key), (_, text) in zip(YAML_PANELS, s['panels'] or []))
     secs[0] = ('決策', secs[0][1] + sc_html, secs[0][2] + '\n\n' + sc_txt)
     check = [(zh(g), zpill(st), '') for g, st, d, rel, _ in gate_rows(p)]
     ck_items = [f'<li>{zpill(st)} {zh(g)}</li>' for g, st, d, rel, _ in gate_rows(p) if st in ('fail', 'pending')]
@@ -1448,8 +1450,8 @@ if adr_lines:
     tab['契約']['epic'].append('<article>' + collapsed(f'<span class="lead">{lab("ADR")}</span> <span class="num">{len(adr_lines)}</span>', f'<ul class="adr">{"".join(adr_lines)}</ul>') + '</article>')
 
 # 結構變化 — picture first, then the four panels with D-n badges (entries folded), legacy lines folded
-def dev_badge(key):
-    hits = dev_entries_for_panel(key)
+def dev_badge(key, phase=None):
+    hits = dev_entries_for_panel(key, phase)
     return f'<span class="pill warn">{zh("built-ne-planned")} · {len(hits)}</span>' if hits else zpill('as-planned', 'ok')
 for p in phases:
     s = specs[p['spec']]
@@ -1463,12 +1465,12 @@ for p in phases:
         cards = ''
         if s['panels']:
             for (label, key), (_, text) in zip(YAML_PANELS, s['panels']):
-                hits = dev_entries_for_panel(key)
+                hits = dev_entries_for_panel(key, p['num'])
                 body = f'<p>{yv(text, p["key"])}</p>'
                 if hits:
                     body += collapsed(f'<span class="lead">{lab("偏離")}</span> <span class="num">{len(hits)}</span>', '<ul>' + ''.join(dev_entry_html(e, p['key']) for e in hits) + '</ul>')
-                cards += f'<section class="panel"><h4>{zh(PANEL_OF[key])} {dev_badge(key)}</h4>{body}</section>'
-        other = dev_entries_for_panel('none')
+                cards += f'<section class="panel"><h4>{zh(PANEL_OF[key])} {dev_badge(key, p["num"])}</h4>{body}</section>'
+        other = dev_entries_for_panel('none', p['num'])
         if other:
             cards += f'<section class="panel"><h4>{zh("none")}</h4><ul>' + ''.join(dev_entry_html(e, p['key']) for e in other) + '</ul></section>'
         if devs:
