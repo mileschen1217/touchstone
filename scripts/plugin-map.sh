@@ -356,13 +356,21 @@ notes = []
 LOAD_RE = re.compile(r'(?<![A-Za-z])(inject|load|prepend)', re.I)
 WRITE_RE = re.compile(r'(?<![A-Za-z])writ(e|es|ing|ten)', re.I)
 
+READ_VERB_RE = re.compile(r'\b(read|reads|reading|consult|consults|follow|follows)\b', re.I)
+
 def edge_kind(target, line):
     if kinds[target] == 'agent':                     return 'dispatches'
     if target.endswith('.sh'):                       return 'runs'
     if LOAD_RE.search(line):                         return 'loads'
-    # a schema is written *against*, never produced — a write verb on a schema
-    # line is a read of the contract, not an output edge
-    if WRITE_RE.search(line) and kinds[target] != 'schema': return 'writes'
+    # a line that both reads and writes ("Read templates/x.md and write <out>") names an
+    # existing node as its INPUT — the written thing is the output placeholder, never the
+    # node. A read verb on the line therefore wins over a write verb (plugin-review probe
+    # 2026-08-30: epic-index.md dropped out of stage 0's load set on exactly this shape).
+    if READ_VERB_RE.search(line):                    return 'reads'
+    # a prose node (skill, fragment, reference, schema, doc) is never an OUTPUT of another node:
+    # a write verb beside it means "written against / per this contract" — a read. `writes`
+    # survives only for non-prose targets.
+    if WRITE_RE.search(line) and kinds[target] not in LOADED_KINDS: return 'writes'
     return 'reads'
 
 def add_edge(src, dst, kind, at, declared_only=False):
