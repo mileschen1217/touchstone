@@ -6,5 +6,4 @@
 # graph checker fails on stale waivers, so the ledger cannot rot silently.
 - {node: scripts/install-git-hooks.sh, reason: "provisions .git/hooks; one-shot installer, run by a human per ADR-0029", reviewed: 2026-08-29}
 - {node: skills/_shared/schemas/deviation.schema.yaml, reason: "reached by scripts/check-artifact.sh:22 through the <kind>.schema.yaml dispatch — the text never spells the basename; only run-smoke.sh names it", reviewed: 2026-08-30}
-- {node: .touchstone/checker/standalone/render-on-write.sh, reason: "PostToolUse hook target; its only caller is .claude/settings.json, outside the node set (spec: outside the graph checks)", reviewed: 2026-08-30}
 - {node: .touchstone/checker/standalone/plugin-review.sh, reason: "human-command entry — the maintainer session runs it per CLAUDE.md § Build / Test (plugin-review trigger); never shipped, never globbed by the hook", reviewed: 2026-08-30}

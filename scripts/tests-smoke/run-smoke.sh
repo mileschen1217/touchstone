@@ -46,6 +46,7 @@ expect_out "check-artifact spec: dangling traces_to" "requirements[REQ-1].traces
 expect_out "check-artifact spec: duplicate AC id" "duplicate id AC-1" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
 expect_out "check-artifact spec: dangling edge endpoint" "delta.edges[0].to: 'nowhere' names no block id" bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
 expect_out "check-artifact spec: missing phase_map" "phase_map: required" bash "$ca" spec "$ax/spec-red-nomap.yaml" --root "$ax"
+
 expect_exit "check-artifact review green" zero bash "$ca" review "$ax/review-green.yaml" --root "$ax"
 expect_exit "check-artifact review red" nonzero bash "$ca" review "$ax/review-red.yaml" --root "$ax"
 expect_out "check-artifact review: duplicate F id" "duplicate id F-3" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
@@ -53,16 +54,49 @@ expect_out "check-artifact review: missing waiting_on_human" "waiting_on_human: 
 expect_out "check-artifact review: field path unresolvable in target" "'requirements[REQ-99].acs[AC-1]' resolves to nothing in the target spec" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
 expect_out "check-artifact review: [*] on an empty list resolves to nothing" "'waiting_on_human[*]' resolves to nothing" bash "$ca" review "$ax/review-red-star.yaml" --root "$ax"
 expect_out "check-artifact review: degraded without reason" "degraded_reason: required when degraded is true" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
-expect_exit "check-artifact deviation green" zero bash "$ca" deviation "$ax/deviation-green.yaml"
-expect_exit "check-artifact deviation red" nonzero bash "$ca" deviation "$ax/deviation-red.yaml"
-expect_out "check-artifact deviation: missing which_stage_could_have_caught" "entries[D-1].which_stage_could_have_caught: required" bash "$ca" deviation "$ax/deviation-red.yaml"
-expect_out "check-artifact deviation: invalid panel" "entries[D-1].panel: 'flow' not in" bash "$ca" deviation "$ax/deviation-red.yaml"
-expect_out "check-artifact deviation: quiz answer names no field id" "quiz.items[QZ-1].answer: names no field id" bash "$ca" deviation "$ax/deviation-red.yaml"
+
+# AC-3: waiting_on_human is a list of W-n objects — the legacy list-of-strings shape is rejected
+expect_exit "check-artifact review: legacy waiting_on_human strings" nonzero bash "$ca" review "$ax/review-red-legacy-w.yaml" --root "$ax"
+expect_out "check-artifact review: legacy waiting_on_human[0] not an object" "waiting_on_human[0]: expected object" bash "$ca" review "$ax/review-red-legacy-w.yaml" --root "$ax"
+
+# AC-5: duplicate W-n id
+expect_exit "check-artifact review: duplicate W id" nonzero bash "$ca" review "$ax/review-red-dup-w.yaml" --root "$ax"
+expect_out "check-artifact review: duplicate W id names W-1" "duplicate id W-1" bash "$ca" review "$ax/review-red-dup-w.yaml" --root "$ax"
+
+# AC-4: a finding's refs value must resolve to a US/REQ/AC/INV id in the target spec
+expect_exit "check-artifact review: unresolved refs id" nonzero bash "$ca" review "$ax/review-red-ref.yaml" --root "$ax"
+expect_out "check-artifact review: unresolved refs id names findings[F-1].refs[0]" "findings[F-1].refs[0]: 'AC-99' resolves to no id in spec-green.yaml" bash "$ca" review "$ax/review-red-ref.yaml" --root "$ax"
+
+# AC-48: a finding with no field, no file and empty refs has no locator; file+line beside refs:[] is fine (green half below)
+expect_exit "check-artifact review: no locator" nonzero bash "$ca" review "$ax/review-red-noloc.yaml" --root "$ax"
+expect_out "check-artifact review: no locator names the finding" "findings[F-1]: no locator (field, file or refs)" bash "$ca" review "$ax/review-red-noloc.yaml" --root "$ax"
+
+expect_exit "check-artifact deviation green" zero bash "$ca" deviation "$ax/deviation-green.yaml" --root "$ax"
+expect_out "check-artifact deviation green: ref-set grading prints a miss line" "quiz QZ-1: miss — missing [AC-3] extra [AC-4]" bash "$ca" deviation "$ax/deviation-green.yaml" --root "$ax"
+expect_exit "check-artifact deviation red" nonzero bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
+expect_out "check-artifact deviation: missing which_stage_could_have_caught" "entries[D-1].which_stage_could_have_caught: required" bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
+expect_out "check-artifact deviation: invalid panel" "entries[D-1].panel: 'flow' not in" bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
+expect_out "check-artifact deviation: quiz answer names no field id" "quiz.items[QZ-1].answer: names no field id" bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
+
+# AC-5: duplicate QZ-n id
+expect_exit "check-artifact deviation: duplicate QZ id" nonzero bash "$ca" deviation "$ax/deviation-red-dup-qz.yaml" --root "$ax"
+expect_out "check-artifact deviation: duplicate QZ id names QZ-1" "duplicate id QZ-1" bash "$ca" deviation "$ax/deviation-red-dup-qz.yaml" --root "$ax"
+
+# AC-7: an entry's empty refs is legal only beside derived: true
+expect_exit "check-artifact deviation: empty refs without derived" nonzero bash "$ca" deviation "$ax/deviation-red-refs-empty.yaml" --root "$ax"
+expect_out "check-artifact deviation: empty refs without derived names entries[D-1].refs" "entries[D-1].refs: empty refs require derived: true" bash "$ca" deviation "$ax/deviation-red-refs-empty.yaml" --root "$ax"
+
+# AC-8: optional metrics block — a wrong inner type errors; a valid block and no block both exit 0
+expect_exit "check-artifact deviation: metrics.stage1_tokens wrong type" nonzero bash "$ca" deviation "$ax/deviation-red-metrics.yaml" --root "$ax"
+expect_out "check-artifact deviation: metrics.stage1_tokens wrong type names the path" "metrics.stage1_tokens: expected integer" bash "$ca" deviation "$ax/deviation-red-metrics.yaml" --root "$ax"
+expect_exit "check-artifact deviation: valid metrics block" zero bash "$ca" deviation "$ax/deviation-green-metrics.yaml" --root "$ax"
+
 python3 - "$ca" "$ax" <<'PY3' || { echo "FAIL: check-artifact edge cases"; fail=1; }
 import subprocess, sys, os, tempfile, shutil
 ca, ax = sys.argv[1], sys.argv[2]
 t = tempfile.mkdtemp()
 shutil.copy(os.path.join(ax, 'spec-green.yaml'), t); shutil.copy(os.path.join(ax, 'ledger.md'), t)
+shutil.copy(os.path.join(ax, 'phase1.spec.yaml'), t)
 def run(kind, text, name):
     p = os.path.join(t, name); open(p, 'w').write(text)
     r = subprocess.run(['bash', ca, kind, p, '--root', t], capture_output=True, text=True)
@@ -80,8 +114,31 @@ rc, out = run('spec', spec.replace('date: 2026-01-01', 'date: "2026-01-01"'), 's
 assert rc == 0, out   # quoted date string accepted
 rc, out = run('spec', spec.replace('date: 2026-01-01', 'date: 20260101'), 's3.yaml')
 assert rc == 1 and 'date: expected date' in out, out
+
+# AC-4 green half: refs [AC-2] (a real id) exits 0
+ref_red = open(os.path.join(ax, 'review-red-ref.yaml')).read()
+rc, out = run('review', ref_red.replace('refs: [AC-99]', 'refs: [AC-2]'), 'r3.yaml')
+assert rc == 0, out
+
+# AC-48 green half: file + line beside refs: [] exits 0
+noloc_red = open(os.path.join(ax, 'review-red-noloc.yaml')).read()
+noloc_green = noloc_red.replace('refs: []', 'file: skills/design-review/SKILL.md\n    line: 12\n    refs: []')
+rc, out = run('review', noloc_green, 'r4.yaml')
+assert rc == 0, out
+
+# AC-6 grading: order-independent set equality prints pass; an absent answer_refs prints unanswered (never pass)
+dev_green = open(os.path.join(ax, 'deviation-green.yaml')).read()
+rc, out = run('deviation', dev_green.replace('answer_refs: [AC-1, AC-4]', 'answer_refs: [AC-3, AC-1]'), 'd1.yaml')
+assert rc == 0 and 'quiz QZ-1: pass' in out, out
+rc, out = run('deviation', dev_green.replace('      answer_refs: [AC-1, AC-4]\n', ''), 'd2.yaml')
+assert rc == 0 and 'quiz QZ-1: unanswered' in out and 'quiz QZ-1: pass' not in out, out
+
+# no resolution spec for an item's phase → warn, exit unchanged (mirrors the ledger-not-found behaviour)
+rc, out = run('deviation', dev_green.replace('phase: 1\n      kind: ref-set', 'phase: 99\n      kind: ref-set'), 'd3.yaml')
+assert rc == 0 and 'no spec for phase 99 found under --root' in out, out
+
 shutil.rmtree(t)
-print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type')
+print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type, refs resolution (AC-4), locator rule (AC-48), ref-set grading (AC-6), phase-not-found warn')
 PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
 # the three schema files exist and every top-level field carries a reader tag
@@ -381,57 +438,268 @@ PY
 
 rm -rf "$tmp_root"
 
-# ---- render-on-write.sh: the PostToolUse re-render hook, against a scratch
-# project root holding two epics. It must render exactly the epic that was
-# written, never a sibling, and never follow a path out of the epics/ tree.
+# ---- render-on-write.sh (shipped hook):
+# hooks/render-on-write.sh: the shipped PostToolUse re-render hook, against
+# scratch project roots. Payload shapes fed (steering, anvil duty 2): a
+# non-yaml write; a yaml write outside any epics dir; a yaml under an epic
+# (A vs B isolation); a yaml nested under an epic sub/dir; a relative
+# file_path resolved via payload cwd; empty stdin; stdin that is not JSON; a
+# .yaml naming an epic dir that does not exist on disk; a traversal payload
+# (`epics/../../x.yaml`) against a stub renderer + a control fire that proves
+# the stub is reachable; a custom `workspace_root` in touchstone.yaml; the
+# epic archive mirror (W/archive/epics/<epic>/); a malformed *.spec.yaml
+# (AC-34); a PATH with no python3 (AC-49); and a 100-invocation timing loop
+# on a non-epic path (AC-35). AC-32/AC-36 are asserted directly against the
+# shipped hooks.json / waivers.yaml / plugin-map.sh output.
 if command -v jq >/dev/null 2>&1; then
-  ro_hook="$(cd "$scripts_dir/.." && pwd)/.touchstone/checker/standalone/render-on-write.sh"
-  ro_root="$(mktemp -d)"
-  mkdir -p "$ro_root/.touchstone/epics" "$ro_root/scripts"
-  cp -R "$here/fixtures/dossier-epic" "$ro_root/.touchstone/epics/2026-02-01-alpha"
-  cp -R "$here/fixtures/dossier-epic" "$ro_root/.touchstone/epics/2026-02-02-beta"
-  rm -f "$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html" \
-        "$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
-  cp "$scripts_dir/dossier-render.sh" "$ro_root/scripts/dossier-render.sh"
-  ro_a="$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html"
-  ro_b="$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
+  ro_hook="$hooks_dir/render-on-write.sh"
+  ro_repo_root="$(cd "$hooks_dir/.." && pwd)"
 
-  ro_fire() {  # <label> <written-file-path>
-    local label="$1" fp="$2" out rc
-    out="$(jq -nc --arg fp "$fp" --arg cwd "$ro_root" \
-      '{tool_input:{file_path:$fp}, cwd:$cwd}' \
-      | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_hook" 2>&1)"; rc=$?
+  # <label> <scratch-root> <written-file-path> [<cwd-override>]
+  ro_fire() {
+    local label="$1" root="$2" fp="$3" cwd out rc
+    cwd="${4:-$root}"
+    out="$(jq -nc --arg fp "$fp" --arg cwd "$cwd" '{tool_input:{file_path:$fp}, cwd:$cwd}' \
+      | CLAUDE_PROJECT_DIR="$root" bash "$root/hooks/render-on-write.sh" 2>&1)"; rc=$?
     if [ "$rc" -eq 0 ]; then echo "PASS: render-on-write $label (exit 0)"
     else echo "FAIL: render-on-write $label (rc=$rc): $out"; fail=1; fi
   }
 
-  ro_fire "non-yaml write" "$ro_root/.touchstone/epics/2026-02-01-alpha/index.md"
+  # ---- scratch A/B project: two epics, real renderer at the scratch's own
+  # plugin root ($ro_root/scripts, $ro_root/hooks — decision 4: the renderer
+  # resolves relative to the hook's OWN directory, never <root>/scripts/).
+  ro_root="$(mktemp -d)"
+  mkdir -p "$ro_root/.touchstone/epics" "$ro_root/scripts" "$ro_root/hooks"
+  cp -R "$fx/dossier-epic" "$ro_root/.touchstone/epics/2026-02-01-alpha"
+  cp -R "$fx/dossier-epic" "$ro_root/.touchstone/epics/2026-02-02-beta"
+  rm -f "$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html" \
+        "$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
+  cp "$scripts_dir/dossier-render.sh" "$ro_root/scripts/dossier-render.sh"
+  cp "$ro_hook" "$ro_root/hooks/render-on-write.sh"
+  ro_a="$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html"
+  ro_b="$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
+
+  ro_fire "non-yaml write" "$ro_root" "$ro_root/.touchstone/epics/2026-02-01-alpha/index.md"
   if [ ! -f "$ro_a" ] && [ ! -f "$ro_b" ]; then
     echo "PASS: render-on-write non-yaml renders nothing"
   else echo "FAIL: render-on-write non-yaml rendered a dossier"; fail=1; fi
 
-  ro_fire "yaml under epic A" "$ro_root/.touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml"
+  ro_fire "yaml under epic A" "$ro_root" "$ro_root/.touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml"
   if [ -f "$ro_a" ] && [ ! -f "$ro_b" ]; then
     echo "PASS: render-on-write renders A's dossier and leaves B untouched"
   else echo "FAIL: render-on-write A=$([ -f "$ro_a" ] && echo yes || echo no) B=$([ -f "$ro_b" ] && echo yes || echo no)"; fail=1; fi
 
-  # Traversal: swap in a stub renderer that leaves a marker when invoked — the
-  # real renderer also fails on `epics/..` (no index.md), so "no dossier appeared"
-  # would pass with or without the path guard. The guard is proven only by the
-  # renderer never being called, and by the hook printing nothing.
+  # nested subdir under epic A still resolves to A (epic = first path
+  # component below "epics/", regardless of depth)
+  mkdir -p "$ro_root/.touchstone/epics/2026-02-01-alpha/sub/dir"
+  rm -f "$ro_a"
+  ro_fire "yaml nested under epic A/sub/dir" "$ro_root" "$ro_root/.touchstone/epics/2026-02-01-alpha/sub/dir/x.yaml"
+  if [ -f "$ro_a" ]; then echo "PASS: render-on-write nested path resolves epic A"
+  else echo "FAIL: render-on-write nested path did not render A"; fail=1; fi
+
+  # relative file_path, resolved via payload cwd (not the hook's own cwd)
+  rm -f "$ro_a"
+  ro_fire "relative file_path via cwd" "$ro_root" ".touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml" "$ro_root"
+  if [ -f "$ro_a" ]; then echo "PASS: render-on-write relative file_path resolves via cwd"
+  else echo "FAIL: render-on-write relative file_path did not render"; fail=1; fi
+
+  # yaml outside any epics dir -> silent no-op, no dossier
+  rm -f "$ro_a"
+  mkdir -p "$ro_root/outside"
+  ro_out_noise="$(jq -nc --arg fp "$ro_root/outside/x.yaml" --arg cwd "$ro_root" '{tool_input:{file_path:$fp}, cwd:$cwd}' \
+    | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_out_rc=$?
+  if [ "$ro_out_rc" -eq 0 ] && [ -z "$ro_out_noise" ]; then
+    echo "PASS: render-on-write yaml outside epics dir is a silent no-op"
+  else echo "FAIL: render-on-write yaml outside epics dir rc=$ro_out_rc out=$ro_out_noise"; fail=1; fi
+
+  # empty stdin -> silent no-op
+  ro_empty_out="$(printf '' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_empty_rc=$?
+  if [ "$ro_empty_rc" -eq 0 ] && [ -z "$ro_empty_out" ]; then
+    echo "PASS: render-on-write empty stdin is a silent no-op"
+  else echo "FAIL: render-on-write empty stdin rc=$ro_empty_rc out=$ro_empty_out"; fail=1; fi
+
+  # stdin that is not JSON -> silent no-op (jq's own failure is swallowed)
+  ro_badjson_out="$(printf 'not json at all' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_badjson_rc=$?
+  if [ "$ro_badjson_rc" -eq 0 ] && [ -z "$ro_badjson_out" ]; then
+    echo "PASS: render-on-write non-JSON stdin is a silent no-op"
+  else echo "FAIL: render-on-write non-JSON stdin rc=$ro_badjson_rc out=$ro_badjson_out"; fail=1; fi
+
+  # a .yaml naming an epic dir that does not exist on disk -> silent no-op
+  ro_missing_out="$(jq -nc --arg fp "$ro_root/.touchstone/epics/2099-01-01-ghost/x.yaml" --arg cwd "$ro_root" '{tool_input:{file_path:$fp}, cwd:$cwd}' \
+    | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_missing_rc=$?
+  if [ "$ro_missing_rc" -eq 0 ] && [ -z "$ro_missing_out" ]; then
+    echo "PASS: render-on-write missing epic dir is a silent no-op"
+  else echo "FAIL: render-on-write missing epic dir rc=$ro_missing_rc out=$ro_missing_out"; fail=1; fi
+
+  # Traversal: swap in a stub renderer at the scratch's own scripts/ dir that
+  # leaves a marker when invoked — the real renderer also fails on
+  # `epics/..` (no index.md), so "no dossier appeared" would pass with or
+  # without the path guard. The guard is proven only by the renderer never
+  # being called, and by the hook printing nothing.
   printf '#!/usr/bin/env bash\ntouch "%s/RENDERER-INVOKED"\nexit 0\n' "$ro_root" > "$ro_root/scripts/dossier-render.sh"
-  ro_out="$(jq -nc --arg fp "$ro_root/.touchstone/epics/../../x.yaml" --arg cwd "$ro_root" \
-    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_hook" 2>&1)"; ro_rc=$?
-  if [ "$ro_rc" -eq 0 ] && [ -z "$ro_out" ] && [ ! -e "$ro_root/RENDERER-INVOKED" ]; then
+  ro_trav_out="$(jq -nc --arg fp "$ro_root/.touchstone/epics/../../x.yaml" --arg cwd "$ro_root" \
+    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_trav_rc=$?
+  if [ "$ro_trav_rc" -eq 0 ] && [ -z "$ro_trav_out" ] && [ ! -e "$ro_root/RENDERER-INVOKED" ]; then
     echo "PASS: render-on-write traversal payload never invokes the renderer (exit 0, silent)"
-  else echo "FAIL: render-on-write traversal payload rc=$ro_rc invoked=$([ -e "$ro_root/RENDERER-INVOKED" ] && echo yes || echo no) out=$ro_out"; fail=1; fi
-  # control: the stub IS invoked for a legitimate yaml write (so the marker test can fail)
+  else echo "FAIL: render-on-write traversal payload rc=$ro_trav_rc invoked=$([ -e "$ro_root/RENDERER-INVOKED" ] && echo yes || echo no) out=$ro_trav_out"; fail=1; fi
+  # control: the stub IS invoked for a legitimate yaml write
   jq -nc --arg fp "$ro_root/.touchstone/epics/2026-02-02-beta/deviation.yaml" --arg cwd "$ro_root" \
-    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_hook" >/dev/null 2>&1
+    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" >/dev/null 2>&1
   if [ -e "$ro_root/RENDERER-INVOKED" ]; then echo "PASS: render-on-write control: stub renderer invoked for a real epic yaml"
   else echo "FAIL: render-on-write control: stub renderer never invoked"; fail=1; fi
 
   rm -rf "$ro_root"
+
+  # ---- custom workspace_root: touchstone.yaml sets workspace_root: ws
+  ro_root2="$(mktemp -d)"
+  mkdir -p "$ro_root2/ws/epics" "$ro_root2/scripts" "$ro_root2/.claude" "$ro_root2/hooks"
+  cp -R "$fx/dossier-epic" "$ro_root2/ws/epics/2026-03-01-cust"
+  rm -f "$ro_root2/ws/epics/2026-03-01-cust/dossier.html"
+  cp "$scripts_dir/dossier-render.sh" "$ro_root2/scripts/dossier-render.sh"
+  cp "$ro_hook" "$ro_root2/hooks/render-on-write.sh"
+  printf 'workspace_root: ws\n' > "$ro_root2/.claude/touchstone.yaml"
+  ro_c="$ro_root2/ws/epics/2026-03-01-cust/dossier.html"
+  ro_fire "custom workspace_root" "$ro_root2" "$ro_root2/ws/epics/2026-03-01-cust/2026-01-04-gamma.spec.yaml"
+  if [ -f "$ro_c" ]; then echo "PASS: render-on-write custom workspace_root renders under ws/epics"
+  else echo "FAIL: render-on-write custom workspace_root did not render"; fail=1; fi
+  rm -rf "$ro_root2"
+
+  # ---- archive mirror: W/archive/epics/<epic>/ — the epic archive shared
+  # with dossier-render.sh, NOT config-resolver's bundle.archive = W/archive/specs
+  ro_root3="$(mktemp -d)"
+  mkdir -p "$ro_root3/.touchstone/archive/epics" "$ro_root3/scripts" "$ro_root3/hooks"
+  cp -R "$fx/dossier-epic" "$ro_root3/.touchstone/archive/epics/2026-01-01-old"
+  rm -f "$ro_root3/.touchstone/archive/epics/2026-01-01-old/dossier.html"
+  cp "$scripts_dir/dossier-render.sh" "$ro_root3/scripts/dossier-render.sh"
+  cp "$ro_hook" "$ro_root3/hooks/render-on-write.sh"
+  ro_d="$ro_root3/.touchstone/archive/epics/2026-01-01-old/dossier.html"
+  ro_fire "archive epic path" "$ro_root3" "$ro_root3/.touchstone/archive/epics/2026-01-01-old/2026-01-04-gamma.spec.yaml"
+  if [ -f "$ro_d" ]; then echo "PASS: render-on-write renders the archived epic and only it"
+  else echo "FAIL: render-on-write archive epic path did not render"; fail=1; fi
+  rm -rf "$ro_root3"
+
+  # ---- AC-34: a malformed *.spec.yaml written beside an already-rendered
+  # dossier -> exactly one 'dossier-render failed: ' line, exit 0, the
+  # previous dossier.html byte-identical.
+  ro_root4="$(mktemp -d)"
+  mkdir -p "$ro_root4/.touchstone/epics" "$ro_root4/scripts" "$ro_root4/hooks"
+  cp -R "$fx/dossier-epic" "$ro_root4/.touchstone/epics/2026-02-05-fail"
+  cp "$scripts_dir/dossier-render.sh" "$ro_root4/scripts/dossier-render.sh"
+  cp "$ro_hook" "$ro_root4/hooks/render-on-write.sh"
+  ro_e="$ro_root4/.touchstone/epics/2026-02-05-fail/dossier.html"
+  jq -nc --arg fp "$ro_root4/.touchstone/epics/2026-02-05-fail/2026-01-04-gamma.spec.yaml" --arg cwd "$ro_root4" \
+    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root4" bash "$ro_root4/hooks/render-on-write.sh" >/dev/null 2>&1
+  if [ -f "$ro_e" ]; then
+    ro_e_before="$(cat "$ro_e")"
+    printf 'id: [unclosed\n' > "$ro_root4/.touchstone/epics/2026-02-05-fail/2026-02-05-bad.spec.yaml"
+    ro_ac34_out="$(jq -nc --arg fp "$ro_root4/.touchstone/epics/2026-02-05-fail/2026-02-05-bad.spec.yaml" --arg cwd "$ro_root4" \
+      '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root4" bash "$ro_root4/hooks/render-on-write.sh" 2>&1)"; ro_ac34_rc=$?
+    ro_ac34_lines="$(printf '%s\n' "$ro_ac34_out" | wc -l | tr -d ' ')"
+    ro_e_after="$(cat "$ro_e")"
+    if [ "$ro_ac34_rc" -eq 0 ] && [ "$ro_ac34_lines" -eq 1 ] \
+       && printf '%s' "$ro_ac34_out" | grep -qE '^\{"systemMessage":"dossier-render failed: ' \
+       && [ "$ro_e_before" = "$ro_e_after" ]; then
+      echo "PASS: render-on-write AC-34 malformed yaml: one line, exit 0, previous dossier byte-identical"
+    else
+      echo "FAIL: render-on-write AC-34 rc=$ro_ac34_rc lines=$ro_ac34_lines out=$ro_ac34_out changed=$([ "$ro_e_before" = "$ro_e_after" ] && echo no || echo yes)"; fail=1
+    fi
+  else
+    echo "FAIL: render-on-write AC-34 setup: initial dossier never rendered"; fail=1
+  fi
+  rm -rf "$ro_root4"
+
+  # ---- AC-49: PATH with no python3 -> exactly one skip line, exit 0, no dossier
+  ro_root5="$(mktemp -d)"
+  mkdir -p "$ro_root5/.touchstone/epics" "$ro_root5/scripts" "$ro_root5/hooks"
+  cp -R "$fx/dossier-epic" "$ro_root5/.touchstone/epics/2026-02-06-nopy"
+  rm -f "$ro_root5/.touchstone/epics/2026-02-06-nopy/dossier.html"
+  cp "$scripts_dir/dossier-render.sh" "$ro_root5/scripts/dossier-render.sh"
+  cp "$ro_hook" "$ro_root5/hooks/render-on-write.sh"
+  ro_nopy_dir="$(mktemp -d)"
+  for ro_tool in bash jq git dirname cat sed grep basename head printf mktemp env; do
+    ro_tp="$(command -v "$ro_tool" 2>/dev/null || true)"
+    [ -n "$ro_tp" ] && ln -sf "$ro_tp" "$ro_nopy_dir/$ro_tool"
+  done
+  ro_ac49_out="$(jq -nc --arg fp "$ro_root5/.touchstone/epics/2026-02-06-nopy/2026-01-04-gamma.spec.yaml" --arg cwd "$ro_root5" \
+    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root5" PATH="$ro_nopy_dir" bash "$ro_root5/hooks/render-on-write.sh" 2>&1)"; ro_ac49_rc=$?
+  if [ "$ro_ac49_rc" -eq 0 ] \
+     && [ "$ro_ac49_out" = '{"systemMessage":"dossier-render skipped: python3 not found"}' ] \
+     && [ ! -f "$ro_root5/.touchstone/epics/2026-02-06-nopy/dossier.html" ]; then
+    echo "PASS: render-on-write AC-49 no python3: exactly one skip line, exit 0, no dossier"
+  else
+    echo "FAIL: render-on-write AC-49 rc=$ro_ac49_rc out=$ro_ac49_out"; fail=1
+  fi
+  rm -rf "$ro_root5" "$ro_nopy_dir"
+
+  # ---- AC-35: 100 sequential invocations on a non-epic path; mean
+  # wall-clock per invocation <= 50ms (proxy for median — a tight,
+  # low-variance loop of cheap subprocess calls has no long tail to separate
+  # from the median; stated here as the PASS/FAIL line documents).
+  ro_root6="$(mktemp -d)"
+  mkdir -p "$ro_root6/.touchstone/epics" "$ro_root6/scripts" "$ro_root6/hooks" "$ro_root6/outside"
+  cp "$scripts_dir/dossier-render.sh" "$ro_root6/scripts/dossier-render.sh"
+  cp "$ro_hook" "$ro_root6/hooks/render-on-write.sh"
+  ro_payload="$(jq -nc --arg fp "$ro_root6/outside/x.yaml" --arg cwd "$ro_root6" '{tool_input:{file_path:$fp}, cwd:$cwd}')"
+  if command -v python3 >/dev/null 2>&1; then
+    ro_t0="$(python3 -c 'import time; print(time.time())')"
+    ro_i=0
+    ro_ac35_bad=0
+    while [ "$ro_i" -lt 100 ]; do
+      if ! printf '%s' "$ro_payload" | CLAUDE_PROJECT_DIR="$ro_root6" bash "$ro_root6/hooks/render-on-write.sh" >/dev/null 2>&1; then
+        ro_ac35_bad=$((ro_ac35_bad+1))
+      fi
+      ro_i=$((ro_i+1))
+    done
+    ro_t1="$(python3 -c 'import time; print(time.time())')"
+    ro_mean_ms="$(python3 -c "print('%.2f' % ((${ro_t1}-${ro_t0})*1000/100))")"
+    ro_within="$(python3 -c "print(1 if (${ro_t1}-${ro_t0})*1000/100 <= 50.0 else 0)")"
+    if [ "$ro_within" = "1" ] && [ "$ro_ac35_bad" -eq 0 ]; then
+      echo "PASS: render-on-write AC-35 timing: mean ${ro_mean_ms}ms/invocation over 100 runs (median proxy), all exit 0"
+    else
+      echo "FAIL: render-on-write AC-35 timing: mean ${ro_mean_ms}ms/invocation (want <=50ms), nonzero-exit-count=$ro_ac35_bad"; fail=1
+    fi
+  else
+    echo "FAIL: render-on-write AC-35 skipped — python3 not found for timing"; fail=1
+  fi
+  rm -rf "$ro_root6"
+
+  # ---- AC-32: hooks.json contract + old standalone path gone + waiver removed
+  if jq -e '.hooks.PostToolUse[] | select(.matcher=="Write|Edit") | .hooks[] | select(.command=="${CLAUDE_PLUGIN_ROOT}/hooks/render-on-write.sh")' \
+      "$hooks_dir/hooks.json" >/dev/null 2>&1; then
+    echo "PASS: render-on-write hooks.json carries the contract hook-entry"
+  else echo "FAIL: render-on-write hooks.json missing the contract hook-entry"; fail=1; fi
+
+  if [ ! -e "$ro_repo_root/.touchstone/checker/standalone/render-on-write.sh" ]; then
+    echo "PASS: render-on-write old standalone path no longer exists"
+  else echo "FAIL: render-on-write old standalone path still exists"; fail=1; fi
+
+  ro_waiver_count="$(grep -c 'render-on-write.sh' "$ro_repo_root/.touchstone/checker/waivers.yaml" 2>/dev/null)"
+  ro_waiver_count="${ro_waiver_count:-0}"
+  if [ "$ro_waiver_count" -eq 0 ]; then
+    echo "PASS: render-on-write waivers.yaml no longer names render-on-write.sh"
+  else echo "FAIL: render-on-write waivers.yaml still names render-on-write.sh ($ro_waiver_count line(s))"; fail=1; fi
+
+  # ---- AC-36: plugin-map.sh reachability — reached from hooks.json, not an
+  # orphan, no waiver (stale or invalid) names it.
+  ro_map_json="$(bash "$scripts_dir/plugin-map.sh" 2>&1)"; ro_map_rc=$?
+  if [ "$ro_map_rc" -eq 0 ]; then
+    ro_map_check="$(printf '%s' "$ro_map_json" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+node = "hooks/render-on-write.sh"
+orphan = node in d.get("orphans", [])
+waived = node in d.get("stale_waivers", []) or node in d.get("invalid_waivers", [])
+reached = any(e["from"] == "hooks/hooks.json" and e["to"] == node for e in d.get("edges", []))
+print("ok" if (reached and not orphan and not waived) else "bad:reached=%s,orphan=%s,waived=%s" % (reached, orphan, waived))
+')"
+    if [ "$ro_map_check" = "ok" ]; then
+      echo "PASS: render-on-write reached from hooks.json, not an orphan, no waiver names it"
+    else
+      echo "FAIL: render-on-write plugin-map check: $ro_map_check"; fail=1
+    fi
+  else
+    echo "FAIL: render-on-write plugin-map.sh exit $ro_map_rc: $ro_map_json"; fail=1
+  fi
 else
   echo "FAIL: render-on-write block skipped — jq not found"; fail=1
 fi
