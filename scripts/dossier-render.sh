@@ -765,7 +765,7 @@ def yaml_table(rows, header, owner, anchor_col=None, stem=''):
 
 def acs_findings_index(p):
     """AC/REQ/INV id -> [(rel, finding), ...] across every review.yaml of this phase, keyed by
-    `refs` only — never by `field`, `summary` or `fix` prose (AC-13: a finding is linked and
+    `refs` only — never by `field`, `summary` or `fix` prose (a finding is linked and
     counted under exactly the ids in its refs)."""
     idx = {}
     for rel, d in reviews_for(p):
@@ -1023,7 +1023,7 @@ def run_plugin_map(root):
 
 def structure_map_html(root):
     """The 結構變化 tab's epic-level map panel — exists iff <root>/.claude-plugin/plugin.json
-    exists (AC-17); plugin-map.sh runs at most once, root-relative, never via a bare
+    exists; plugin-map.sh runs at most once, root-relative, never via a bare
     PATH lookup, so absence never invokes it."""
     if not root or not os.path.isfile(os.path.join(root, '.claude-plugin', 'plugin.json')):
         return ''
@@ -1115,7 +1115,7 @@ def quiz_list_html(items, owner):
 
 def quiz_html(p):
     """The current phase's own quiz (front page): items/entries filtered to p['num'] —
-    an item's `phase` field decides, never which file it lives in (AC-15)."""
+    an item's `phase` field decides, never which file it lives in."""
     k = p['key']
     if yaml_dev is None:
         return '<p class="placeholder">尚無 deviation.yaml</p>'
@@ -1130,7 +1130,7 @@ def quiz_html(p):
 
 def waiting_item_html(rel, gate, w, owner):
     """A waiting item: {id, kind, owner, title, detail?, refs?} — one row per object, no
-    row ever produced by scanning prose with CODE_RE (AC-14)."""
+    row ever produced by scanning prose with CODE_RE."""
     refs = ' '.join(link_codes(sval(r), owner) for r in (w.get('refs') or []))
     detail = f' <span class="muted">{yv(w.get("detail"), owner)}</span>' if w.get('detail') else ''
     wid = sval(w.get('id'))
@@ -1144,7 +1144,7 @@ def waiting_item_html(rel, gate, w, owner):
 def waiting_union(p, s):
     """Every W-n object currently open across this phase's spec, its newest review round
     per gate, and deviation.yaml — {source record, gate} derived from the file it came
-    from (AC-14), never from a filename/slug guess."""
+    from, never from a filename/slug guess."""
     out = [(os.path.basename(p['spec']), 'spec', w) for w in s['yaml'].get('waiting_on_human') or [] if isinstance(w, dict)]
     for gate in KNOWN_GATES + extra_gates(p):
         rel, d = newest_review(p, gate)
@@ -1324,7 +1324,7 @@ def front_sections(p, s):
     if unv:
         def last_id(f):
             # refs (structured, authoritative) first — a locator field is a fallback,
-            # never the finding's summary/fix prose (AC-13)
+            # never the finding's summary/fix prose
             ids = [sval(r) for r in (f.get('refs') or []) if isinstance(r, str) and re.fullmatch(r'(AC|REQ|INV|US)-\d+', sval(r))]
             if ids: return ids[-1]
             m = re.findall(r'\b((?:AC|REQ|INV|US)-\d+)\b', sval(f.get('field')))
@@ -1534,7 +1534,7 @@ for p in phases:
         folds += collapsed(f'<span class="lead">{lab("建置帳")}</span> <span class="num">{sum(1 for i, st, l in ledger_stage_lines if st.startswith(("build", "deliverable-review", "phase-ship")))}</span>', f'<ul id="{attr(k + "--ledger")}">{items}</ul>')
     tab['紀錄'][k].append(f'<article><h3 class="file-title">{yv(s["yaml"].get("title"), k)}</h3>{summary}{folds}</article>')
 # deviation entries + quiz items group by their own `phase` field, never by which file/
-# YAML-phase holds deviation.yaml (AC-15) — placed into the matching phase's 紀錄 group
+# YAML-phase holds deviation.yaml — placed into the matching phase's 紀錄 group
 # (legacy markdown phases included), else the epic group.
 PHASE_BY_NUM = {pp['num']: pp for pp in phases}
 dev_by_phase, quiz_by_phase = {}, {}

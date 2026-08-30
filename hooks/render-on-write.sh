@@ -109,7 +109,7 @@ plugin_root="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd -P)" || exit 0
 renderer="$plugin_root/scripts/dossier-render.sh"
 [ -f "$renderer" ] || exit 0
 
-# AC-49: no python3 on PATH -> skip silently (one line), touch no dossier.
+# No python3 on PATH -> skip silently (one line), touch no dossier.
 if ! command -v python3 >/dev/null 2>&1; then
   jq -nc '{systemMessage:"dossier-render skipped: python3 not found"}' 2>/dev/null \
     || printf '{"systemMessage":"dossier-render skipped: python3 not found"}\n'
