@@ -743,8 +743,15 @@ def dev_lines_for(p):
     if p is EPIC:
         return [d for d in deviation_lines if not any(q['slug'] and (q['slug'] in d or f"phase {q['num']}" in d.lower()) for q in phases)]
     return [d for d in deviation_lines if (p['slug'] and p['slug'] in d) or f"phase {p['num']}" in d.lower()]
+def phase_num(p, i):
+    """A YAML phase's number is its spec's own `phase` field (the key deviation entries, quiz
+    items and metrics carry); a markdown-era phase keeps the index table's row number."""
+    yd = (specs.get(p['spec']) or {}).get('yaml')
+    if isinstance(yd, dict) and isinstance(yd.get('phase'), int) and not isinstance(yd.get('phase'), bool):
+        return str(yd['phase'])
+    return next((r[0] for r in phase_table_rows if p['spec'] in r[2]), str(i + 1))
 for i, p in enumerate(phases):
-    p['num'] = next((r[0] for r in phase_table_rows if p['spec'] in r[2]), str(i + 1))
+    p['num'] = phase_num(p, i)
 
 # ---------- YAML projection (every sentence is a field value; labels are the only renderer text) ----------
 def yv(v, owner):
@@ -1289,7 +1296,7 @@ if not root:
 yaml_phases = [p for p in phases if 'yaml' in specs[p['spec']]]
 current = yaml_phases[-1] if yaml_phases else None   # newest YAML phase = the one under decision
 for i, p in enumerate(phases):
-    p['num'] = next((r[0] for r in phase_table_rows if p['spec'] in r[2]), str(i + 1))
+    p['num'] = phase_num(p, i)
 
 def front_sections(p, s):
     """[(label, html, text)] — the 首頁 in reading order; text = the PR-body projection."""
