@@ -30,7 +30,8 @@ Governing spec: the caller's `spec` argument, else the active epic's
 `status: accepted` `*.spec.yaml`; the epic dir is `bundle.epics` of
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md` (follow it).
 Unresolvable → the conformance and honor-check lenses are not dispatched; emit exactly one line,
-`no governing spec — conformance not audited`, and run the quality lens alone.
+`no governing spec — conformance not audited`, run the quality lens alone, and report its
+findings in the run message — no review.yaml is written (the record needs a `target`).
 
 Builder — always detect, even under a forced arm:
 `git log --format=%B <range> | grep -iE '^Co-Authored-By:.*(codex|gpt-?5|openai)'`.

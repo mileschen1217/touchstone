@@ -40,7 +40,7 @@ Timeout chain, explicit and single: envelope `timeout_seconds` > this file's `${
 
 ## Dispatch — Path C (prompt prefix)
 
-Invoke Codex via `Bash` with `run_in_background: false`:
+Your FIRST tool call is this `Bash` invocation (`run_in_background: false`) — never read the task first and answer it yourself; the caller records a return without `raw_codex.jsonl` beside it as not-Codex:
 
 ```bash
 # Do NOT add -s read-only.
