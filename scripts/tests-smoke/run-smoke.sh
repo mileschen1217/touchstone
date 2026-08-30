@@ -1118,4 +1118,157 @@ expect_exit "check-exec-bits-all untracked 755 script passes" zero \
   env TOUCHSTONE_CHECK_ROOT="$eb_root" bash "$repo_root/.touchstone/checker/pre-commit/check-exec-bits-all.sh"
 rm -rf "$eb_root"
 
+# T2 additions — dossier-render.sh quiz/metrics/coverage render (REQ-6 AC-18, REQ-7 AC-22,
+# REQ-5 coverage render / design decision 3). Self-contained: uses only run-smoke's existing
+# helpers ($fx, $scripts_dir, expect_exit, fail) and $fx/dossier-epic's own phase specs
+# (index.md, alpha/beta/gamma) which T1's migration does not touch — only deviation.yaml
+# and review.yaml content is built here, deterministically, so these asserts do not depend
+# on the exact prose T1 chooses when it migrates the shared fixture's deviation.yaml.
+
+# ---- AC-18: quiz reads `result` only — pass / miss / unanswered, no kind branch ----
+t2q_root="$(mktemp -d)"
+mkdir -p "$t2q_root/epic"
+cp -R "$fx/dossier-epic"/. "$t2q_root/epic/"
+rm -f "$t2q_root/epic/dossier.html"
+cat > "$t2q_root/epic/deviation.yaml" <<'YAML'
+entries: []
+quiz:
+  waived: false
+  items:
+    - id: QZ-1
+      phase: 3
+      question: does a passed item show pass?
+      answer: "yes, via result: pass"
+      refs: [AC-1]
+      anchor: phase_map.interface_delta
+      result: pass
+    - id: QZ-2
+      phase: 3
+      question: does a missed item show miss?
+      answer: "an answer the AI judged incomplete"
+      refs: [AC-1]
+      anchor: phase_map.interface_delta
+      result: miss
+    - id: QZ-3
+      phase: 3
+      question: does an item with no answer show unanswered?
+      refs: [AC-1]
+      anchor: phase_map.interface_delta
+waiting_on_human: []
+YAML
+expect_exit "dossier T2 quiz fixture renders" zero bash "$scripts_dir/dossier-render.sh" "$t2q_root/epic"
+t2q_out="$t2q_root/epic/dossier.html"
+if grep -q 'QZ-1 <span class="pill ok"><abbr class="enum" title="pass">' "$t2q_out" \
+   && grep -q 'QZ-2 <span class="pill muted"><abbr class="enum" title="miss">' "$t2q_out" \
+   && grep -q 'QZ-3 <span class="pill muted"><abbr class="enum" title="unanswered">' "$t2q_out"; then
+  echo "PASS: dossier AC-18 — quiz pass/miss/unanswered read from result only"
+else
+  echo "FAIL: dossier AC-18 — quiz pass/miss/unanswered not rendered from result alone"; fail=1
+fi
+if grep -qE 'expected_refs|answer_refs|ref-set' "$scripts_dir/dossier-render.sh"; then
+  echo "FAIL: dossier AC-18 — dossier-render.sh still references the retired ref-set grading"; fail=1
+else
+  echo "PASS: dossier AC-18 — no expected_refs/answer_refs/ref-set left in dossier-render.sh"
+fi
+rm -rf "$t2q_root"
+
+# ---- AC-22: metrics is a per-phase list — one row per phase, phases with no entry read
+# "no metrics recorded", phases with an entry carry data. The metrics panel only renders
+# under a plugin root (design decision 2 keeps AC-17's existing gating), so this root
+# carries .claude-plugin/plugin.json and a logging-stub scripts/plugin-map.sh, same as the
+# AC-17 positive fixture above. ----
+t2m_root="$(mktemp -d)"
+mkdir -p "$t2m_root/.claude-plugin" "$t2m_root/scripts" "$t2m_root/epic"
+printf '{"name":"scratch","version":"0.0.0"}\n' > "$t2m_root/.claude-plugin/plugin.json"
+printf '#!/usr/bin/env bash\necho "{}"\n' > "$t2m_root/scripts/plugin-map.sh"
+chmod +x "$t2m_root/scripts/plugin-map.sh"
+printf -- '---\nslug: metrics-demo\nstatus: active\nstarted: 2026-01-01\nlanded:\n---\n\n# Metrics demo\n\n**Aim:** exercise the per-phase metrics table.\n\n## Phases\n\n| # | Title | Spec | Plan | Status | Landed |\n|---|---|---|---|---|---|\n| 1 | One | [spec](2026-01-01-p1.spec.yaml) | — | active | |\n| 2 | Two | [spec](2026-01-02-p2.spec.yaml) | — | active | |\n| 3 | Three | [spec](2026-01-03-p3.spec.yaml) | — | active | |\n| 4 | Four | [spec](2026-01-04-p4.spec.yaml) | — | active | |\n' > "$t2m_root/epic/index.md"
+for n in 1 2 3 4; do
+  sed -e "s/^id: .*/id: SPEC-metrics-demo-p$n/" -e "s/^title: .*/title: Phase $n/" \
+      -e "s/^phase: .*/phase: $n/" -e "s/^date: .*/date: 2026-01-0$n/" \
+      "$fx/dossier-epic/2026-01-04-gamma.spec.yaml" > "$t2m_root/epic/2026-01-0$n-p$n.spec.yaml"
+done
+cat > "$t2m_root/epic/deviation.yaml" <<'YAML'
+entries: []
+quiz: {waived: true, items: []}
+metrics:
+  - phase: 3
+    wall_clock_h: 7.5
+    human_turns: 82
+    dispatches: 14
+    lens_h: {challenger: 2, coverage: 1}
+    stage_tokens: [{stage: 0, tokens: 100}, {stage: 1, tokens: 24701}]
+    false_edges: 0
+    instrument_churn: {shape_driven_lines: 20, other_lines: 0}
+    measured_at: "ca2036d1234567890abcdef1234567890abcdef"
+  - phase: 4
+    wall_clock_h: 3.2
+    human_turns: 12
+    dispatches: 6
+    lens_h: {verification-honesty: 1}
+    stage_tokens: [{stage: 0, tokens: 90}, {stage: 1, tokens: 21000}]
+    false_edges: 0
+    instrument_churn: {shape_driven_lines: 5, other_lines: 0}
+    measured_at: "af28d231234567890abcdef1234567890abcdef"
+waiting_on_human: []
+YAML
+expect_exit "dossier T2 metrics fixture renders" zero bash "$scripts_dir/dossier-render.sh" --root "$t2m_root" "$t2m_root/epic"
+t2m_out="$t2m_root/epic/dossier.html"
+python3 - "$t2m_out" <<'PY' || { echo "FAIL: dossier AC-22 — metrics table structural checks"; fail=1; }
+import re, sys
+h = open(sys.argv[1], encoding='utf-8').read()
+m = re.search(r'phase 量測.*?<table>(.*?)</table>', h, re.S)
+assert m, 'metrics table not found on the page'
+rows = re.findall(r'<tr>(.*?)</tr>', m.group(1), re.S)[1:]  # drop header row
+assert len(rows) == 4, 'want 4 rows (phase set 1-4), got %d' % len(rows)
+assert 'no metrics recorded' in rows[0] and 'no metrics recorded' in rows[1], 'phases 1-2 must read "no metrics recorded"'
+assert '82' in rows[2] and '7.5' in rows[2], 'phase 3 row must carry its recorded data'
+assert '12' in rows[3] and '3.2' in rows[3], 'phase 4 row must carry its recorded data'
+print('PASS: dossier AC-22 — one row per phase; phases 1-2 "no metrics recorded"; phases 3-4 carry data')
+PY
+rm -rf "$t2m_root"
+
+# ---- coverage (AC-15 render side, design decision 3): a review round carrying coverage[]
+# shows a compact covered count beside its C/H/M/L counts; a round with no coverage key
+# renders as today ----
+t2c_root="$(mktemp -d)"
+mkdir -p "$t2c_root/epic"
+cp -R "$fx/dossier-epic"/. "$t2c_root/epic/"
+rm -f "$t2c_root/epic/dossier.html"
+python3 - "$t2c_root/epic/design-review-gamma/review.yaml" <<'PY'
+import sys
+p = sys.argv[1]
+text = open(p, encoding='utf-8').read()
+if 'coverage:' not in text:
+    text = text.replace(
+        'findings:',
+        'coverage:\n  - {ref: AC-1, status: covered, evidence: "held"}\n  - {ref: AC-2, status: covered, evidence: "held"}\nfindings:',
+        1,
+    )
+    open(p, 'w', encoding='utf-8').write(text)
+PY
+mkdir -p "$t2c_root/epic/deliverable-review-gamma"
+cat > "$t2c_root/epic/deliverable-review-gamma/review.yaml" <<'YAML'
+gate: deliverable-review
+target: 2026-01-04-gamma.spec.yaml
+sha: fixture
+round: 1
+providers: [{lens: conformance, arms: [cc]}]
+challenger: cc
+degraded: false
+verdict: approve
+counts: {C: 0, H: 0, M: 0, L: 0}
+findings: []
+waiting_on_human: []
+YAML
+expect_exit "dossier T2 coverage fixture renders" zero bash "$scripts_dir/dossier-render.sh" "$t2c_root/epic"
+t2c_out="$t2c_root/epic/dossier.html"
+n_covered="$(grep -o 'class="label">covered</span> <span class="num">[0-9]*</span>' "$t2c_out" | wc -l | tr -d ' ')"
+if [ "$n_covered" = "1" ] && grep -q 'covered</span> <span class="num">2</span>' "$t2c_out"; then
+  echo "PASS: dossier coverage — covered count renders for the round carrying coverage[], absent for the round without"
+else
+  echo "FAIL: dossier coverage — covered count did not render exactly once (got $n_covered occurrences)"; fail=1
+fi
+rm -rf "$t2c_root"
+
 exit "$fail"
