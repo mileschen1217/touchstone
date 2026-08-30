@@ -323,8 +323,8 @@ elif kind == 'deviation':
             seen_phases.add(ph)
         st = m.get('stage_tokens')
         if isinstance(st, list):
-            stages = sorted(x.get('stage') for x in st if isinstance(x, dict))
-            if stages != [0, 1, 2, 3, 4, 5]:
+            stages = sorted(x.get('stage') for x in st if isinstance(x, dict) and isinstance(x.get('stage'), int))
+            if stages != [0, 1, 2, 3, 4, 5] or len(st) != 6:
                 errors.append(f"metrics[{mi}].stage_tokens: stages 0-5 each exactly once")
 
 for w in warns: print(f"warn: {w}")
