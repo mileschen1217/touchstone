@@ -1332,7 +1332,7 @@ for p in phases:
         links = ' '.join(f'<a href="{attr(f)}"><span class="file">{html.escape(os.path.basename(f))}</span></a>' for f in raw)
         residual = sum(1 for f in d.get('findings') or [] if isinstance(f, dict) and sval(f.get('status')) in ('open', 'unverified'))
         rows += (f'<tr><td>{zh(d.get("gate"))}</td><td class="num">{yv(d.get("round"), k)}</td><td>{zpill(d.get("verdict"))}</td>'
-                 f'<td>{counts_html(d, k)}</td><td class="num">{residual}</td><td>{lab(next_action(d))}</td></tr>')
+                 f'<td>{counts_html(d, k)}</td><td class="num">{residual}</td><td>{html.escape(next_action(d))}</td></tr>')
         raw_links.append((rel, raw))
     summary = f'<div class="tbl"><table><tr><th>門</th><th>輪</th><th>裁決</th><th>發現</th><th>待處理</th><th>下一步</th></tr>{rows}</table></div>' if rs else '<p class="placeholder">no review.yaml for this phase yet</p>'
     folds = ''
