@@ -1,8 +1,8 @@
 # Reviewer Prompts — Batch Additions
 
-Injected into the conformance context per SKILL.md Phase 2, when
-the diff touches test files. Single canonical home — do not duplicate this
-text elsewhere.
+Injected into the conformance lens per SKILL.md Phase 2 on every round; each
+rule below names the diffs it applies to. Single canonical home — do not
+duplicate this text elsewhere.
 
 ## Batch checklist
 

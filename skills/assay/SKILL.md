@@ -94,14 +94,11 @@ Scope. When the intent changes only single-party artifacts (an
 ordinary one-consumer file edit), no seam-map is required — the negative branch is
 reachable and stays cheap.
 
-- **Saturation** is the multi-channel plateau the method (`reach-discovery.md`) applies —
-  swept via ≥2 orthogonal channels; a single-search first-hit is not a seam-map.
-- **Sub-floor (a channel unavailable — shallow clone / no history).** Declare the
-  unavailable channel in the seam-map. With ≥2 channels still available, absence does
-  not block reaching the plateau over the available channels (declared, not silently
-  skipped). With **fewer than 2** channels available, the plateau is unobservable: mark
-  the seam-map **reach-under-determined** and carry it to the human with that limitation
-  stated — never render it as a confident plateau.
+- **Saturation** and its **sub-floor** (a channel unavailable — shallow clone / no history;
+  when the plateau becomes unobservable and the seam-map is marked
+  **reach-under-determined**) are the method's own rules in `reach-discovery.md` — apply
+  them as written there; carry an under-determined seam-map to the human with that
+  limitation stated, never as a confident plateau.
 
 ## Unknown disposition
 
@@ -113,7 +110,7 @@ A known unknown enters from three sources — laydown residuals (rows neither co
 | yes | expensive | **flip-trigger bypass** or scope cut — never silent proceed |
 | no | — | deferred log |
 
-**Structural fork case** — a fork entry with ≥2 viable approaches and durability stakes: author an ADR per `adr-authoring.md` (same directory) with the flip-trigger, bet-owner, and assumptions fields, the human as bet-owner; grade it against `references/arch-rubric.md`. For a fork worth critique evidence, dispatch `touchstone:cross-provider-reviewer` (internal role `architecture-critique`) — adaptable, omit only with the reason recorded in the ADR.
+**Structural fork case** — a fork entry with ≥2 viable approaches and durability stakes: author an ADR per `adr-authoring.md` (same directory) with the flip-trigger, bet-owner, and assumptions fields, the human as bet-owner; grade it against `references/arch-rubric.md`. For a fork worth critique evidence, dispatch the two critique arms directly in one message — `Agent(subagent_type: "touchstone:code-reviewer", …)` with the validation rubric and `Agent(subagent_type: "touchstone:codex-reviewer", …)` with the pressure-test lens, both lens texts and the synthesis rule in `references/critique-lens.md` (read it first; the fallback when the codex arm is unavailable is recorded degraded per `${CLAUDE_PLUGIN_ROOT}/skills/_shared/provenance.md`) — adaptable, omit only with the reason recorded in the ADR.
 
 ## Consensus render — the object of the yes
 

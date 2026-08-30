@@ -29,13 +29,21 @@ pointer names the single home of any longer rule.
 
 ## Review vocabulary
 
-- **deliverable review** — the one gate after a build: a spec-conformance agent
-  (per-AC evidence, invariant checks) and a cross-vendor code-quality agent, one
+- **lens × arm review** (ADR-0042, supersedes ADR-0041's composite ruling) — a
+  **lens** is one review perspective; an **arm** is one execution of it in its own
+  context (`cc` or `codex`). A gate declares its lens set and dispatches every lens
+  to each of its arms; the merge is keyed by lens; vendor diversity is a property of
+  the arm set, required only where independence (reviewer ≠ builder) would otherwise
+  fail — deliverable-review's quality lens. Single home: `skills/_shared/provenance.md`.
+- **deliverable review** — the one gate after a build: the conformance lens
+  (per-AC evidence), the honor-check lens (invariant checks executed) and the
+  quality lens (its arm set holds the vendor opposite the builder), one
   `review.yaml`, one human accept; backed by the pre-push C/H blocker. `/touchstone:code-review batch` is its alias.
-- **review.yaml** — the single output of a review round (gate, providers, degraded,
-  verdict, counts, findings F-n by field path, rulings); schema home
+- **review.yaml** — the single output of a review round (gate, providers per lens,
+  degraded, verdict, counts, findings F-n by field path with `refs` and `found_by`,
+  rulings, `W-n` waiting items); schema home
   `skills/_shared/schemas/review.schema.yaml`; provenance fields
-  `skills/cross-provider-reviewer/references/provenance.md`.
+  `skills/_shared/provenance.md`.
 - **live-bearing AC / live artifact** — an AC undischargeable offline, and the
   captured real-boundary output (with producer + freshness provenance) that
   discharges it; single home: `skills/_shared/inject/live-bearing-predicate.md`.

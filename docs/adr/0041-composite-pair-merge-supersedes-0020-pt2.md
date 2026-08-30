@@ -1,7 +1,7 @@
 ---
 kind: workflow
 adr_id: 0041
-status: Accepted
+status: Superseded by ADR-0042 (the composite ruling; the pair-merge measurement stands as history)
 date: 2026-07-20
 supersedes: 0020 (pt 2's composite-pair application only)
 ---
