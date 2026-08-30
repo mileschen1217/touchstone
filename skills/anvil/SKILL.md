@@ -61,8 +61,8 @@ Convergence and what blocks: the stopping rule the gate injects,
 ## Terminal — reviewed deliverable on a branch
 
 Present the branch, the review.yaml verdict, and any surviving `unverified` list
-for the human's final-accept — an informed accept: the post-build pair (the
-dossier's 首頁 + comprehension quiz, home: `epic-driven-roadmap`
-`references/phase-ship.md`) runs BEFORE the accept is acted on. **Anvil stops
-before ship** — never push, open a PR, merge, or release, on any path including
-halts.
+for the human's final-accept of the build. The post-build pair (the dossier's
+首頁 + comprehension quiz) is not this accept's step: it runs at phase-ship, after
+the push and before the PR approve, per `epic-driven-roadmap`
+`references/phase-ship.md`. **Anvil stops before ship** — never push, open a PR,
+merge, or release, on any path including halts.
