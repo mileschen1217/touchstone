@@ -856,6 +856,148 @@ else
 fi
 rm -rf "$ui_root"
 
+# ---- dossier-render fields-only + structure panel:
+# T2 additions — dossier-render.sh reads fields only (REQ-4 / AC-13, AC-14, AC-15, AC-17,
+# AC-18). Self-contained: uses only run-smoke's existing helpers ($here, $fx, $scripts_dir,
+# $repo_root, expect_exit, expect_out, fail) and the $ui_chrome path already probed by the
+# width-probe block above.
+
+# ---- AC-13 / AC-14 / AC-15: render the migrated dossier-epic fixture once, assert all three
+sm_root="$(mktemp -d)"
+mkdir -p "$sm_root/.touchstone/epics"
+cp -R "$fx/dossier-epic" "$sm_root/.touchstone/epics/2026-01-01-fixture"
+rm -f "$sm_root/.touchstone/epics/2026-01-01-fixture/dossier.html"
+sm_ed="$sm_root/.touchstone/epics/2026-01-01-fixture"
+expect_exit "dossier AC-13/14/15 fixture renders" zero bash "$scripts_dir/dossier-render.sh" "$sm_ed"
+sm_out="$sm_ed/dossier.html"
+python3 - "$sm_out" <<'PY' || { echo "FAIL: dossier AC-13/14/15 structural checks"; fail=1; }
+import re, sys
+h = open(sys.argv[1], encoding='utf-8').read()
+chunks = re.split(r'<section class="tab" id="tab-(\d)">', h)[1:]
+t = {chunks[i]: chunks[i + 1] for i in range(0, len(chunks), 2)}
+
+# AC-13: F-2's refs=[AC-3] link/count it under AC-3 only; AC-4 (prose-only mention in F-2's
+# summary) is auto-linked for display but contributes to no count or list.
+m3 = re.search(r'id="2026-01-04-gamma\.spec--AC-3" class="ac">.*?</tr>', h, re.S)
+m4 = re.search(r'id="2026-01-04-gamma\.spec--AC-4" class="ac">.*?</tr>', h, re.S)
+assert m3 and 'data-jump="finding--F-2"' in m3.group(0), 'AC-3 row missing the F-2 finding link/count'
+assert m4 and 'data-jump="finding--F-2"' not in m4.group(0), 'AC-4 row wrongly counts/links F-2 (must count refs only)'
+assert 'data-jump="2026-01-04-gamma.spec--AC-4" tabindex="0">AC-4</a>' in h, 'AC-4 not auto-linked for display in F-2 prose'
+print('PASS: dossier AC-13 — finding linked/counted under refs only; a prose-only id is auto-linked for display and contributes to no count')
+
+# AC-14: exactly 3 waiting rows (2 from design-review-gamma/review.yaml, 1 from
+# deviation.yaml; the spec's own waiting_on_human is migrated to []), each carrying
+# title/owner/kind plus its source record and gate; a legacy prose AC-n token (index.md
+# Open Questions: "Does REQ-1 of phase 2 subsume AC-2?") produces no row.
+front = t['0']
+wrows = re.findall(r'<li><label><input type="checkbox"[^>]*>.*?來源</span></a></label></li>', front, re.S)
+assert len(wrows) == 3, 'want exactly 3 waiting rows, got %d' % len(wrows)
+for title in ('rule on the collision rename', 'accept F-1 as is', 'confirm the equals form stays'):
+    assert any(title in r for r in wrows), 'missing waiting row for %r' % title
+assert all('負責' in r for r in wrows), 'a waiting row is missing its owner'
+assert sum('設計審查' in r for r in wrows) == 2, 'want 2 rows sourced from design-review-gamma/review.yaml (gate=design-review)'
+assert sum('>門</span> build' in r for r in wrows) == 1, 'want 1 row sourced from deviation.yaml (gate=build)'
+assert 'of phase 2 subsume' in h, 'sanity: the legacy prose sentence with an AC-n token must still be on the page (its AC-2 token is auto-linked, splitting the literal sentence around it)'
+print('PASS: dossier AC-14 — exactly 3 waiting rows from fields only, each carrying title/owner/kind/source+gate; a legacy prose AC-n token produced no row')
+
+# AC-15: deviation entries + quiz items appear under per-phase headings (1, 2, 3); the
+# ref-set item (QZ-2, phase 1, expected [AC-1,AC-2] vs answered [AC-1]) shows the
+# checker-derived miss with the missing id; the manual items (QZ-1/QZ-3) show their
+# recorded result.
+rec = t['3']
+for ph in ('Phase 1', 'Phase 2', 'Phase 3'):
+    assert f'<h3 class="file-title">{ph}</h3>' in rec, 'missing per-phase heading %r' % ph
+assert 'title="miss">未過</abbr>' in rec, 'QZ-2 does not show its checker-derived miss result'
+i = rec.find('QZ-2')
+assert i != -1 and 'AC-2' in rec[i:i + 600], 'QZ-2 does not show the missing id'
+assert 'title="pass">通過</abbr>' in rec, 'no manual quiz item shows its recorded pass result'
+print('PASS: dossier AC-15 — deviation entries and quiz items grouped by phase; the ref-set item shows its checker-derived miss with the missing id; manual items show their result')
+PY
+rm -rf "$sm_root"
+
+# ---- AC-17 negative: no .claude-plugin/plugin.json → no structure panel, no metrics
+# section, and plugin-map.sh is never invoked — proved literally with a logging stub at
+# the exact path dossier-render.sh would run (<root>/scripts/plugin-map.sh).
+ac17_neg="$(mktemp -d)"
+mkdir -p "$ac17_neg/.touchstone/epics/2026-03-01-scratch" "$ac17_neg/scripts"
+printf -- '---\nslug: scratch\nstatus: active\n---\n\n# Scratch\n\n**Aim:** x.\n' > "$ac17_neg/.touchstone/epics/2026-03-01-scratch/index.md"
+ac17_neg_log="$ac17_neg/pm-log.txt"
+printf '#!/usr/bin/env bash\necho "invoked $*" >> %q\necho "{}"\n' "$ac17_neg_log" > "$ac17_neg/scripts/plugin-map.sh"
+chmod +x "$ac17_neg/scripts/plugin-map.sh"
+ac17_neg_ed="$ac17_neg/.touchstone/epics/2026-03-01-scratch"
+expect_exit "dossier AC-17 negative renders" zero bash "$scripts_dir/dossier-render.sh" --root "$ac17_neg" "$ac17_neg_ed"
+if [ -s "$ac17_neg_log" ]; then
+  echo "FAIL: dossier AC-17 negative — plugin-map.sh invoked without plugin.json ($(cat "$ac17_neg_log"))"; fail=1
+else
+  echo "PASS: dossier AC-17 negative — plugin-map.sh never invoked without plugin.json"
+fi
+if grep -q 'id="structure-map"' "$ac17_neg_ed/dossier.html" || grep -q 'phase 量測' "$ac17_neg_ed/dossier.html"; then
+  echo "FAIL: dossier AC-17 negative — structure panel or metrics section rendered without plugin.json"; fail=1
+else
+  echo "PASS: dossier AC-17 negative — no structure panel, no metrics section without plugin.json"
+fi
+rm -rf "$ac17_neg"
+
+# ---- AC-17 positive control + AC-18 width probe: a scratch root WITH plugin.json, whose
+# scripts/plugin-map.sh is a logging stub returning stage data with long load chains (the
+# shape design decision 6 asks the width probe to stress) — panel present, invocation
+# logged, and the width probe passes with the panel in the page.
+ac17_pos="$(mktemp -d)"
+mkdir -p "$ac17_pos/.claude-plugin" "$ac17_pos/.touchstone/checker/baselines" "$ac17_pos/.touchstone/epics/2026-03-02-scratch2" "$ac17_pos/scripts"
+printf '{"name":"scratch","version":"0.0.0"}\n' > "$ac17_pos/.claude-plugin/plugin.json"
+printf 'max_stage_load_tokens 1234\nuntested_reachable_shell_lines 5\n' > "$ac17_pos/.touchstone/checker/baselines/plugin-ratchets.txt"
+printf -- '---\nslug: scratch2\nstatus: active\n---\n\n# Scratch2\n\n**Aim:** x.\n' > "$ac17_pos/.touchstone/epics/2026-03-02-scratch2/index.md"
+ac17_pos_log="$ac17_pos/pm-log.txt"
+ac17_pos_json="$ac17_pos/stages.json"
+python3 - "$ac17_pos_json" <<'PY'
+import json, sys
+stages = [{'stage': i, 'entry': 'skills/fake-stress-skill-%d/SKILL.md' % i,
+           'load_set': ['skills/fake-stress-skill-%d/references/some-fairly-long-fragment-name-%02d.md' % (i, j) for j in range(25)],
+           'lines': 100 + i, 'unique_lines': 90 + i} for i in range(3)]
+data = {'nodes': [], 'edges': [], 'entries': [], 'stages': stages, 'false_edges': [], 'orphans': [],
+        'test_only': [], 'skills': [], 'metrics': {}, 'stale_waivers': [], 'invalid_waivers': [], 'notes': []}
+open(sys.argv[1], 'w', encoding='utf-8').write(json.dumps(data))
+PY
+printf '#!/usr/bin/env bash\necho "invoked $*" >> %q\ncat %q\n' "$ac17_pos_log" "$ac17_pos_json" > "$ac17_pos/scripts/plugin-map.sh"
+chmod +x "$ac17_pos/scripts/plugin-map.sh"
+ac17_pos_ed="$ac17_pos/.touchstone/epics/2026-03-02-scratch2"
+expect_exit "dossier AC-17 positive renders" zero bash "$scripts_dir/dossier-render.sh" --root "$ac17_pos" "$ac17_pos_ed"
+ac17_pos_out="$ac17_pos_ed/dossier.html"
+if [ -s "$ac17_pos_log" ] && grep -q 'id="structure-map"' "$ac17_pos_out"; then
+  echo "PASS: dossier AC-17 positive — plugin-map.sh invoked (logged), structure panel present"
+else
+  inv="no"; [ -s "$ac17_pos_log" ] && inv="yes"
+  pan="no"; grep -q 'id="structure-map"' "$ac17_pos_out" && pan="yes"
+  echo "FAIL: dossier AC-17 positive — invoked=$inv panel=$pan"; fail=1
+fi
+expect_out "dossier AC-17 positive — ratchet values rendered" 'max_stage_load_tokens' cat "$ac17_pos_out"
+
+# ---- AC-18 half: the width probe passes with the structure panel (long load chains)
+# present, at 390/768/1280 — reuses $ui_chrome as already probed above.
+if [ -n "$ui_chrome" ]; then
+  ac17_probe="$ac17_pos/probe.html"
+  sed -e 's/\.tab{display:none}/.tab{display:block}/' -e 's/<details class="fold">/<details class="fold" open>/g' \
+      -e 's|</body>|<script>document.title="W="+document.documentElement.scrollWidth+"/"+document.documentElement.clientWidth</script></body>|' \
+      "$ac17_pos_out" > "$ac17_probe"
+  for w in 390 768 1280; do
+    t="$("$ui_chrome" --headless=new --disable-gpu --hide-scrollbars --window-size="$w,900" --virtual-time-budget=2000 \
+          --dump-dom "file://$ac17_probe" 2>/dev/null | grep -o '<title>W=[0-9]*/[0-9]*</title>' | head -1)"
+    sw="${t#*W=}"; sw="${sw%%/*}"; cw="${t#*/}"; cw="${cw%%<*}"
+    if [ -n "$sw" ] && [ -n "$cw" ] && [ "$sw" -le "$cw" ]; then echo "PASS: dossier width probe with structure panel ${w}px (scroll $sw ≤ client $cw)"
+    else echo "FAIL: dossier width probe with structure panel ${w}px (title=$t)"; fail=1; fi
+  done
+else
+  echo "SKIP: dossier width probe with structure panel — no headless Chrome on this host"
+fi
+rm -rf "$ac17_pos"
+
+# ---- shellcheck: scripts/dossier-render.sh's bash wrapper stays clean
+if command -v shellcheck >/dev/null 2>&1; then
+  expect_exit "shellcheck scripts/dossier-render.sh" zero shellcheck "$scripts_dir/dossier-render.sh"
+else
+  echo "SKIP: shellcheck scripts/dossier-render.sh — shellcheck not on this host"
+fi
+
 # ---- check-exec-bits-all.sh: the untracked-file branch (filesystem mode) — the
 # committed red fixture is tracked, so it trips on the index rule; this scratch
 # tree has no git index and a 644 script.
