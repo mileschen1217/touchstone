@@ -8,7 +8,7 @@ description: |
   scope/AC errors before build; skip when it is contained enough that the contract
   costs more than it saves. Heuristic: the change introduces a new contract
   (API / CLI / IPC / skill / agent) or its design decisions are expensive to get wrong
-  across modules. On first invocation in a project, runs setup to record the specs directory.
+  across modules. Paths come from the config-resolver (`/touchstone:init` writes them once per project).
 allowed-tools:
   - Bash
   - Read
