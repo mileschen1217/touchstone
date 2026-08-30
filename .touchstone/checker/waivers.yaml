@@ -6,3 +6,4 @@
 # graph checker fails on stale waivers, so the ledger cannot rot silently.
 - {node: scripts/install-git-hooks.sh, reason: "provisions .git/hooks; one-shot installer, run by a human per ADR-0029", reviewed: 2026-08-29}
 - {node: .touchstone/checker/standalone/plugin-review.sh, reason: "human-command entry — the maintainer session runs it per CLAUDE.md § Build / Test (plugin-review trigger); never shipped, never globbed by the hook", reviewed: 2026-08-30}
+- {node: conductor:orchestration-mode, reason: "external node — a separate plugin that anvil invokes by Skill call (fallback skills/_shared/light-loop.md); not on this tree, so the map can carry no file edge to it", reviewed: 2026-08-31}

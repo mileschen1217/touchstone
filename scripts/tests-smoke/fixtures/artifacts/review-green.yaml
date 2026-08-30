@@ -10,6 +10,8 @@ degraded: false
 verdict: approve
 counts: {C: 0, H: 1, M: 0, L: 0}
 rulings: [Q-20]
+coverage:
+  - {ref: AC-1, status: covered, evidence: "handled in the design"}
 findings:
   - id: F-1
     lens: coverage

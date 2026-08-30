@@ -14,12 +14,7 @@ quiz:
   items:
     - id: QZ-1
       phase: 1
-      question: q1
-      refs: [AC-1]
-      anchor: requirements[REQ-1].acs[AC-1]
-    - id: QZ-1
-      phase: 1
-      question: q2
-      refs: [AC-1]
+      question: q
+      refs: [AC-99]
       anchor: requirements[REQ-1].acs[AC-1]
 waiting_on_human: []

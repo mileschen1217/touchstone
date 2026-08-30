@@ -1,6 +1,6 @@
 ---
 name: anvil
-description: Use when an accepted contract (spec.yaml with status accepted) needs to be built — entry check → conductor orchestration-mode (commander decomposes under the AC-coverage floor) → deliverable-review → human final-accept. Stops before ship. Out of scope — a spec not yet `status: accepted`, or a PRD+seams light contract (built through the light loop directly).
+description: Use when an accepted contract (spec.yaml with status accepted) needs to be built — entry check → conductor orchestration-mode (commander decomposes under the AC-coverage floor) → deliverable-review → hand-off to phase-ship. Stops before ship. Out of scope — a spec not yet `status: accepted`.
 allowed-tools: [Bash, Read, Skill, Agent, Edit, Write]
 user-invocable: true
 kind: workflow
@@ -58,11 +58,10 @@ Convergence and what blocks: the stopping rule the gate injects,
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
 — anvil reads its outcome and never re-runs the gate past its budget.
 
-## Terminal — reviewed deliverable on a branch
+## Terminal — reviewed deliverable on a branch, handed to phase-ship
 
-Present the branch, the review.yaml verdict, and any surviving `unverified` list
-for the human's final-accept of the build. The post-build pair (the dossier's
-首頁 + comprehension quiz) is not this accept's step: it runs at phase-ship, after
-the push and before the PR approve, per `epic-driven-roadmap`
-`references/phase-ship.md`. **Anvil stops before ship** — never push, open a PR,
-merge, or release, on any path including halts.
+Hand the branch, the review.yaml verdict, and any surviving `unverified` list to
+phase-ship (`epic-driven-roadmap` `references/phase-ship.md`) — they are inputs
+to the ship informed-accept there, the second of a unit of work's two human
+accepts; anvil asks for no accept of its own. **Anvil stops before ship** — never
+push, open a PR, merge, or release, on any path including halts.

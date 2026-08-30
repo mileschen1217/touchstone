@@ -6,6 +6,7 @@ description: |
   Idempotent without --reset. Trigger phrases: "set up
   touchstone", "init touchstone", "/touchstone:init".
 kind: workflow
+user-invocable: true
 ---
 
 # touchstone:init

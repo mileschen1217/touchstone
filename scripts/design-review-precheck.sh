@@ -25,6 +25,12 @@ if ! out="$(bash "$here/check-artifact.sh" spec "$spec" --root "$dir" 2>&1)"; th
   echo "BLOCK: spec does not validate (check-artifact spec)"; echo "$out"; exit 1
 fi
 [ -n "$out" ] && echo "$out"
+# an explicit out-of-scope is the contract's scope bound — an empty non_goals blocks
+ng="$(python3 -c 'import sys,yaml
+d = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+v = d.get("non_goals") if isinstance(d, dict) else None
+print("empty" if not v else "ok")' "$spec")"
+[ "$ng" = "empty" ] && { echo "BLOCK: non_goals empty — the contract states no out-of-scope route"; exit 1; }
 if [ "$attest" -eq 1 ]; then
   base="$(basename "$spec")"
   found="$(python3 - "$dir" "$base" <<'PY'

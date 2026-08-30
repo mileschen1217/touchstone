@@ -2,13 +2,11 @@
 name: design-spec
 kind: workflow
 description: |
-  Generate a design spec (spec.yaml) for a non-trivial feature. Writes fields per
-  skills/_shared/schemas/spec.schema.yaml into the epic's directory. Invoke when the change
-  is cross-cutting or risky enough that the spec's cost is repaid by catching
-  scope/AC errors before build; skip when it is contained enough that the contract
-  costs more than it saves. Heuristic: the change introduces a new contract
-  (API / CLI / IPC / skill / agent) or its design decisions are expensive to get wrong
-  across modules. Paths come from the config-resolver (`/touchstone:init` writes them once per project).
+  Generate the contract (spec.yaml) — the one contract shape both of crucible's forms,
+  full and short, produce. Writes fields per skills/_shared/schemas/spec.schema.yaml
+  into the epic's directory from an assay record's consensus. Invoked by crucible after
+  assay, or directly for a spec revision. Paths come from the config-resolver
+  (`/touchstone:init` writes them once per project).
 allowed-tools:
   - Bash
   - Read
@@ -18,6 +16,7 @@ allowed-tools:
   - Glob
   - Agent
   - Skill
+user-invocable: false
 ---
 
 # design-spec
@@ -25,10 +24,8 @@ allowed-tools:
 Produce `spec.yaml` — fields, not prose — and write it as Draft. Promotion (accept,
 build) is downstream; the challenge pass runs inside `/touchstone:design-review` round 1.
 
-**When to invoke** — the heuristic lives in the frontmatter description above.
-Breadth alone does not qualify — a fixed-invariant multi-module sweep takes a
-PRD+seams light contract instead. An explicit user request overrides the
-heuristic either way.
+**When to invoke** — crucible chooses the contract form (full or short); both
+forms produce this same `spec.yaml`, so this skill runs for every contract.
 
 **Load vocabulary** — follow
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`, then load

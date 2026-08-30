@@ -7,18 +7,18 @@ metrics:
     wall_clock_h: 2.5
     human_turns: 3
     dispatches: 4
-    lens_h: {coverage: 1, design-soundness: 1}
-    stage_tokens: [{stage: 0, tokens: 100}, {stage: 1, tokens: 200}]
+    lens_h: {coverage: 1}
+    stage_tokens: [{stage: 0, tokens: 100}]
     false_edges: 0
     instrument_churn: {shape_driven_lines: 10, other_lines: 2}
     measured_at: "0123456789abcdef0123456789abcdef01234567"
-  - phase: 2
+  - phase: 1
     wall_clock_h: 1.0
     human_turns: 1
     dispatches: 1
     lens_h: {coverage: 1}
-    stage_tokens: [{stage: 2, tokens: 50}]
-    false_edges: 1
+    stage_tokens: [{stage: 1, tokens: 50}]
+    false_edges: 0
     instrument_churn: {shape_driven_lines: 5, other_lines: 0}
     measured_at: "abcdef0123456789abcdef0123456789abcdef01"
 waiting_on_human: []

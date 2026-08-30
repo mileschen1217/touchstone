@@ -16,11 +16,13 @@ leaves a dual-home and is noted in the close report.
    `status: done` and `landed: <YYYY-MM-DD>`; fill the Retrospective block
    (bullets only — What worked / What pivoted / What to do differently, ≤5
    lines total).
-2. **Comprehension cite.** Reference each phase's Post-build pair (the dossier's
-   首頁 + the quiz block of its `deviation.yaml`, produced at phase ship —
-   single home: `references/phase-ship.md`) in the close report; close never
-   re-runs the quiz. A phase that shipped without its pair → produce it now,
-   per phase-ship.md, before closing.
+2. **Comprehension cite.** Reference each phase's two accepts — the contract
+   accept (its assay record's readiness ruling) and the ship informed-accept
+   (the Post-build pair: the dossier's 首頁 + the quiz block of its
+   `deviation.yaml`, produced at phase ship — single home:
+   `references/phase-ship.md`) — in the close report; close never re-runs the
+   quiz and asks for no accept of its own. A phase that shipped without its
+   pair → produce it now, per phase-ship.md, before closing.
 3. Run Evidence Reckoning (§ below); append its section to the epic index.
    Then ask the fixed recall question — "這個 epic 裡,你抓到哪些 gates 沒抓到的?" —
    and append every answer to `.touchstone/gate-miss.md` in the six-field
@@ -30,7 +32,9 @@ leaves a dual-home and is noted in the close report.
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/skills/epic-driven-roadmap/check-close-ready.sh" .touchstone/epics/<epic-dir>/index.md
    ```
-   Show the full output. Non-zero → fix and re-run.
+   Show the full output. Non-zero → fix and re-run. Only a zero exit here
+   licenses the stamps of step 1 — when the check fails after step 1 already
+   ran, revert those stamps before fixing.
 5. Run the Disposition pass (§ below).
 5a. The shipped hook re-rendered the dossier at every write above; run
    `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>`

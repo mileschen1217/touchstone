@@ -35,22 +35,20 @@ quiz:
   items:
     - id: QZ-1
       phase: 3
-      kind: manual
       question: which panel changed during the build?
+      refs: [AC-1]
       anchor: phase_map.interface_delta
       answer: the interface panel, through D-1
       result: pass
     - id: QZ-2
       phase: 1
-      kind: ref-set
       question: which acceptance criteria does the dry-run fix touch?
+      refs: [AC-1]
       anchor: phase_map.position
-      expected_refs: [AC-1, AC-2]
-      answer_refs: [AC-1]
     - id: QZ-3
       phase: 2
-      kind: manual
       question: what replaced the header proposal in beta?
+      refs: [AC-1]
       anchor: phase_map.interface_delta
       answer: a flag
       result: pass

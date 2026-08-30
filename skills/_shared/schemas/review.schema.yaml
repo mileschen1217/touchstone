@@ -5,6 +5,9 @@
 # (design-review rounds); its presence in the round-1 file is the challenge attestation.
 # Waiting item shape is homed in spec.schema.yaml's header.
 # A finding with no `field`, no `file` and empty/absent `refs` is an error (no locator).
+# `coverage[]` holds the conformance lens's covered AC/INV rows; findings[] holds only
+# unverified or violated rows for that lens — a conformance finding carrying status:
+# covered is rejected (check-artifact.sh).
 kind: review
 type: object
 additionalProperties: false
@@ -44,6 +47,20 @@ properties:
       M: {type: integer}
       L: {type: integer}
   rulings: {type: array, reader: agent, items: {type: string}, ledger_ref: true}
+  coverage:
+    type: array
+    reader: agent
+    items:
+      type: object
+      required: [ref, status, evidence]
+      additionalProperties: false
+      properties:
+        ref:
+          type: string
+          pattern: '^(AC|INV)-\d+$'
+          spec_ref: true
+        status: {type: string, enum: [covered]}
+        evidence: {type: string}
   findings:
     type: array
     reader: agent

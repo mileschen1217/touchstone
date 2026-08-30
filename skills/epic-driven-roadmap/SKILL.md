@@ -16,6 +16,7 @@ allowed-tools:
   - Edit
   - Grep
   - Glob
+user-invocable: true
 ---
 
 # epic-driven-roadmap
@@ -28,7 +29,7 @@ findings belong in a content doc, never in a tracker; any paragraph longer
 than one sentence here is a rule violation — move it to a content doc and
 link.
 
-**Status vocabulary:** `proposed | active | paused | done | cancelled`.
+**Status vocabulary:** `proposed | active | done`.
 
 Three procedures: **Scaffold** a new epic, **Close** an epic, **Audit**
 status drift. Skip this skill entirely if the project has neither a
@@ -79,7 +80,7 @@ Status drift and doc-graph health — run on demand or weekly:
 - **Status drift** — every `ROADMAP.md` row's status must match its epic
   index frontmatter `status:`. Mismatch → finding.
 - **Staleness** — any `active` epic whose index is untouched
-  (`git log -1 --format=%cs`) for >30 days → flag for push / pause / close.
+  (`git log -1 --format=%cs`) for >30 days → flag for push / close.
 - **Orphans** — an epic dir with no `ROADMAP.md` row, or a row pointing at a
   missing index → finding.
 - **Broken links** — every `[text](path)` in an epic index must resolve;

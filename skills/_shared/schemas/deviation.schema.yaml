@@ -1,10 +1,15 @@
-# deviation.schema.yaml — build-time deviations (D-n) and, in phase 1, the phase quiz block.
-# Keywords as in spec.schema.yaml. Waiting item shape is homed in spec.schema.yaml's header.
-# A quiz manual answer must name the field id it resolves to (checked by check-artifact);
-# `anchor` is the field path per the field-path grammar. `refs` (on entries and quiz items)
-# resolves against the `*.spec.yaml` under --root whose top-level `phase` equals that
-# entry's/item's own `phase` — see spec.schema.yaml's header for the spec_ref keyword.
+# deviation.schema.yaml — build-time deviations (D-n), the phase quiz block, and the
+# per-phase metrics list. Keywords as in spec.schema.yaml. Waiting item shape is homed
+# in spec.schema.yaml's header.
+# A quiz item's `refs` must resolve in the phase-matched spec; `result` is required once
+# `answer` is present (checked by check-artifact.sh). `anchor` is the field path per the
+# field-path grammar. `refs` (on entries and quiz items) resolves against the `*.spec.yaml`
+# under --root whose top-level `phase` equals that entry's/item's own `phase` — see
+# spec.schema.yaml's header for the spec_ref keyword.
 # An entry's `refs` may be empty only beside `derived: true`.
+# `metrics` is a list with one entry per phase, appended by scripts/phase-metrics.sh at
+# phase-ship; check-artifact.sh rejects a duplicate phase and a measured_at that is not a
+# 40-hex sha.
 kind: deviation
 type: object
 additionalProperties: false
@@ -57,51 +62,54 @@ properties:
         type: array
         items:
           type: object
-          required: [id, phase, kind, question, anchor]
+          required: [id, phase, question, refs, anchor]
           additionalProperties: false
           properties:
             id: {type: string, id: QZ}
             phase: {type: integer}
-            kind: {type: string, enum: [ref-set, manual]}
             question: {type: string}
-            anchor: {type: string, field_path: true}
             answer: {type: string}
-            expected_refs:
-              type: array
-              items:
-                type: string
-                pattern: '^(US|REQ|AC|INV)-\d+$'
-                spec_ref: true
-            answer_refs:
-              type: array
-              items:
-                type: string
-                pattern: '^(US|REQ|AC|INV)-\d+$'
-                spec_ref: true
             refs:
               type: array
+              minItems: 1
               items:
                 type: string
                 pattern: '^(US|REQ|AC|INV)-\d+$'
-                spec_ref: true
+            anchor: {type: string, field_path: true}
             result: {type: string, enum: [pass, miss]}
   metrics:
-    type: object
+    type: array
     reader: human
-    required: [phase, stage1_tokens, false_edges, instrument_churn, measured_at]
-    additionalProperties: false
-    properties:
-      phase: {type: integer}
-      stage1_tokens: {type: integer}
-      false_edges: {type: integer}
-      instrument_churn:
-        type: object
-        required: [shape_driven_lines, other_lines]
-        additionalProperties: false
-        properties:
-          shape_driven_lines: {type: integer}
-          other_lines: {type: integer}
-      measured_at: {type: string}
+    items:
+      type: object
+      required: [phase, wall_clock_h, human_turns, dispatches, lens_h, stage_tokens, false_edges, instrument_churn, measured_at]
+      additionalProperties: false
+      properties:
+        phase: {type: integer}
+        wall_clock_h: {type: number}
+        human_turns: {type: integer}
+        dispatches: {type: integer}
+        lens_h:
+          type: object
+          additionalProperties: {type: integer}
+        stage_tokens:
+          type: array
+          items:
+            type: object
+            required: [stage, tokens]
+            additionalProperties: false
+            properties:
+              stage: {type: integer, enum: [0, 1, 2, 3, 4, 5]}
+              tokens: {type: integer}
+        false_edges: {type: integer}
+        instrument_churn:
+          type: object
+          required: [shape_driven_lines, other_lines]
+          additionalProperties: false
+          properties:
+            shape_driven_lines: {type: integer}
+            other_lines: {type: integer}
+        measured_at: {type: string, pattern: '^[0-9a-f]{40}$'}
   waiting_on_human:
     type: array
     reader: human

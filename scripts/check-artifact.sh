@@ -12,10 +12,13 @@
 # ledger references (basis / why_ref / consensus / rulings — an id resolves iff the ledger
 # has a line starting `- <id>` or `| <id>`), field-path grammar on review findings and
 # quiz anchors (resolved in the target spec when --root is given), path-free phase_map,
-# degraded_reason when degraded, quiz answers naming a field id, `pattern` on a string
-# value, `minItems` on an array, `spec_ref` resolution (below), and two per-kind rules:
-# a review finding with no locator (field/file/refs all absent or empty), and a deviation
-# entry whose refs is empty without `derived: true`.
+# degraded_reason when degraded, `pattern` on a string value, `minItems` on an array,
+# `spec_ref` resolution (below), and per-kind rules: a review finding with no locator
+# (field/file/refs all absent or empty); a review finding whose lens is conformance and
+# status is covered (coverage rows belong in coverage[], not findings[]); a deviation
+# entry whose refs is empty without `derived: true`; a deviation quiz item whose refs
+# does not resolve in the phase-matched spec, or whose answer is present without a
+# result; a deviation metrics list with a duplicate phase.
 #
 # spec_ref resolution — the value of a `refs`-shaped field must name a US/REQ/AC/INV id
 # defined in a *resolution spec*: kind spec → the file itself; kind review → the `target`
@@ -58,13 +61,14 @@ spec_refs = []    # (path, value, phase) — spec_ref-tagged refs-list values
 
 def type_ok(v, t):
     return {'string': lambda: isinstance(v, str), 'date': lambda: isinstance(v, (str, datetime.date)), 'integer': lambda: isinstance(v, int) and not isinstance(v, bool),
+            'number': lambda: isinstance(v, (int, float)) and not isinstance(v, bool),
             'boolean': lambda: isinstance(v, bool), 'array': lambda: isinstance(v, list),
             'object': lambda: isinstance(v, dict)}.get(t, lambda: True)()
 
-def walk(v, s, p, phase=None):
+def walk(v, s, p, phase=None, parent=None):
     if 'oneOf' in s:
         for alt in s['oneOf']:
-            n = len(errors); walk(v, alt, p, phase)
+            n = len(errors); walk(v, alt, p, phase, parent)
             if len(errors) == n: return
             del errors[n:]
         errors.append(f"{p}: matches none of the allowed forms"); return
@@ -72,9 +76,14 @@ def walk(v, s, p, phase=None):
     if t and not type_ok(v, t):
         errors.append(f"{p}: expected {t}"); return
     if 'enum' in s and v not in s['enum']:
-        errors.append(f"{p}: '{v}' not in {s['enum']}")
+        # a review finding's lens=conformance + status=covered names a distinct rule (coverage
+        # rows belong in coverage[]), not the generic "not in enum" message (AC-14)
+        if kind == 'review' and v == 'covered' and re.fullmatch(r'findings\[[^\]]+\]\.status', p) and isinstance(parent, dict) and parent.get('lens') == 'conformance':
+            errors.append(f"{p}: covered rows belong in coverage[]")
+        else:
+            errors.append(f"{p}: '{v}' not in {s['enum']}")
     if t == 'array' and 'minItems' in s and len(v) < s['minItems']:
-        errors.append(f"{p}: expected at least {s['minItems']} item(s)")
+        errors.append(f"{p}: minItems {s['minItems']}")
     fam = s.get('id')
     if fam and isinstance(v, str):
         if fam in ('US', 'REQ', 'AC', 'INV', 'F', 'D', 'QZ', 'W') and not re.fullmatch(fam + r'-\d+', v):
@@ -102,14 +111,16 @@ def walk(v, s, p, phase=None):
         new_phase = phase
         if isinstance(v, dict) and isinstance(v.get('phase'), int) and not isinstance(v.get('phase'), bool):
             new_phase = v['phase']
+        ap = s.get('additionalProperties')
         for k, x in v.items():
-            if k in props: walk(x, props[k], f"{p}.{k}" if p else k, new_phase)
-            elif s.get('additionalProperties') is False: errors.append(f"{p + '.' if p else ''}{k}: unknown key")
+            if k in props: walk(x, props[k], f"{p}.{k}" if p else k, new_phase, v)
+            elif ap is False: errors.append(f"{p + '.' if p else ''}{k}: unknown key")
+            elif isinstance(ap, dict): walk(x, ap, f"{p}.{k}" if p else k, new_phase, v)
     elif t == 'array' and 'items' in s:
         it = s['items']
         for i, x in enumerate(v):
             sel = x.get('id') if isinstance(x, dict) and isinstance(x.get('id'), str) else str(i)
-            walk(x, it, f"{p}[{sel}]", phase)
+            walk(x, it, f"{p}[{sel}]", phase, parent)
 
 walk(doc, schema, '')
 
@@ -177,6 +188,21 @@ def resolves_id(x, id_sets):
     fam = x.split('-', 1)[0]
     return fam in id_sets and x in id_sets[fam]
 
+# kind == 'deviation' resolution target: the *.spec.yaml directly under --root whose
+# top-level phase equals ph (cached per phase). Used both by the generic spec_ref
+# resolution below (entries[].refs) and by the quiz refs rule in per-kind rules.
+_phase_cache = {}
+def spec_for_phase(ph):
+    if ph in _phase_cache: return _phase_cache[ph]
+    found = None
+    for f in sorted(glob.glob(os.path.join(root, '*.spec.yaml'))):
+        try: d = yaml.safe_load(open(f, encoding='utf-8'))
+        except yaml.YAMLError: continue
+        if isinstance(d, dict) and d.get('phase') == ph:
+            found = (f, spec_ids_for(d)); break
+    _phase_cache[ph] = found
+    return found
+
 if spec_refs:
     if kind == 'spec':
         self_ids = spec_ids_for(doc)
@@ -199,17 +225,6 @@ if spec_refs:
                 warned.add(key)
                 warns.append(f"{key}: target spec not found under --root; refs unresolved")
     elif kind == 'deviation':
-        phase_cache = {}
-        def spec_for_phase(ph):
-            if ph in phase_cache: return phase_cache[ph]
-            found = None
-            for f in sorted(glob.glob(os.path.join(root, '*.spec.yaml'))):
-                try: d = yaml.safe_load(open(f, encoding='utf-8'))
-                except yaml.YAMLError: continue
-                if isinstance(d, dict) and d.get('phase') == ph:
-                    found = (f, spec_ids_for(d)); break
-            phase_cache[ph] = found
-            return found
         warned = set()
         for p, x, ph in spec_refs:
             key = p.rsplit('[', 1)[0]
@@ -281,34 +296,31 @@ elif kind == 'deviation':
     for it in (q.get('items') or []) if isinstance(q, dict) else []:
         if not isinstance(it, dict): continue
         iid = it.get('id')
-        k = it.get('kind')
-        if k == 'ref-set':
-            if 'expected_refs' not in it:
-                errors.append(f"quiz.items[{iid}].expected_refs: required for kind ref-set")
-            if 'answer' in it:
-                errors.append(f"quiz.items[{iid}].answer: forbidden for kind ref-set")
-            if 'result' in it:
-                errors.append(f"quiz.items[{iid}].result: forbidden for kind ref-set (derived)")
-            if 'answer_refs' not in it:
-                print(f"quiz {iid}: unanswered")
+        if 'answer' in it and 'result' not in it:
+            errors.append(f"quiz.items[{iid}].result: required once answered")
+        ph = it.get('phase')
+        refs_v = it.get('refs') if isinstance(it.get('refs'), list) else []
+        if refs_v:
+            if ph is None:
+                warns.append(f"quiz.items[{iid}].refs: no phase on this item; refs unresolved")
             else:
-                exp = set(it.get('expected_refs') or [])
-                ans = set(it.get('answer_refs') or [])
-                if exp == ans:
-                    print(f"quiz {iid}: pass")
+                found = spec_for_phase(ph)
+                if found is None:
+                    warns.append(f"quiz.items[{iid}].refs: no spec for phase {ph} found under --root; refs unresolved")
                 else:
-                    missing = sorted(exp - ans)
-                    extra = sorted(ans - exp)
-                    print(f"quiz {iid}: miss — missing [{', '.join(missing)}] extra [{', '.join(extra)}]")
-        elif k == 'manual':
-            if 'expected_refs' in it:
-                errors.append(f"quiz.items[{iid}].expected_refs: forbidden for kind manual")
-            if 'answer_refs' in it:
-                errors.append(f"quiz.items[{iid}].answer_refs: forbidden for kind manual")
-            if 'answer' not in it:
-                errors.append(f"quiz.items[{iid}].answer: required for kind manual")
-            elif not re.search(r'\b(US|REQ|AC|INV|F|D|QZ)-\d+\b|\w+\[[^\]]+\]', str(it.get('answer', ''))):
-                errors.append(f"quiz.items[{iid}].answer: names no field id")
+                    f, tids = found
+                    for r in refs_v:
+                        if isinstance(r, str) and not resolves_id(r, tids):
+                            errors.append(f"quiz.items[{iid}].refs: {r} does not resolve")
+
+    seen_phases = set()
+    for m in doc.get('metrics') or []:
+        if not isinstance(m, dict): continue
+        ph = m.get('phase')
+        if ph in seen_phases:
+            errors.append(f"metrics: duplicate phase {ph}")
+        else:
+            seen_phases.add(ph)
 
 for w in warns: print(f"warn: {w}")
 for e in errors: print(e)

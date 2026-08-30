@@ -36,9 +36,13 @@ pointer names the single home of any longer rule.
   the arm set, required only where independence (reviewer ≠ builder) would otherwise
   fail — deliverable-review's quality lens. Single home: `skills/_shared/provenance.md`.
 - **deliverable review** — the one gate after a build: the conformance lens
-  (per-AC evidence), the honor-check lens (invariant checks executed) and the
+  (per-AC evidence — covered rows in `coverage[]`, only unverified / violated rows as
+  findings), the honor-check lens (invariant checks executed) and the
   quality lens (its arm set holds the vendor opposite the builder), one
-  `review.yaml`, one human accept; backed by the pre-push C/H blocker. `/touchstone:code-review batch` is its alias.
+  `review.yaml`, fed to the ship informed-accept; backed by the pre-push C/H blocker. `/touchstone:code-review batch` is its alias.
+- **stopping rule** — one injected fragment governs every gate's rounds
+  (design-review, deliverable-review, the local plugin-review); single home:
+  `skills/_shared/inject/severity-tiered-stopping-rule.md`.
 - **review.yaml** — the single output of a review round (gate, providers per lens,
   degraded, verdict, counts, findings F-n by field path with `refs` and `found_by`,
   rulings, `W-n` waiting items); schema home
@@ -65,16 +69,25 @@ pointer names the single home of any longer rule.
 
 ## Build vocabulary
 
+- **two accepts** — a unit of work passes exactly two human accepts: the
+  **contract accept** (crucible's terminal) and the **ship informed-accept** (the
+  phase-ship pair's yes; the PR approve is that yes acted on).
+- **contract form** — full or short, chosen by crucible from three escalation
+  triggers (party-facing contract change / open structural fork / problem-finding);
+  both forms produce one `spec.yaml` and pass design-review — short runs assay's
+  short form and the gate's single round. Single home: `skills/crucible/SKILL.md`.
 - **crucible** — front-end orchestrator: explore → assay → design-spec →
-  design-review, terminating at one human accept of the contract.
+  design-review, terminating at the contract accept.
 - **anvil** — back-end orchestrator: entry check → conductor orchestration-mode →
-  final review → human final-accept. Task decomposition, grading, dispatch, and
+  deliverable-review → hand-off to phase-ship. Task decomposition, grading, dispatch, and
   per-task acceptance belong to conductor; task-contract/result schemas have their
   single home in the conductor plugin.
 - **AC-coverage floor** — before dispatch, every AC-N maps to ≥1 conductor task
   contract (or an explicit deferred row); blocks industrialising a dropped AC.
 - **light loop** — the no-orchestrator path (direct work + dispatch) used when
-  conductor is absent or the contract is a PRD+seams light contract.
+  conductor is absent.
+- **phase metrics** — one entry per phase in `deviation.yaml.metrics`, printed by
+  `scripts/phase-metrics.sh` at phase-ship; the only instrument phase 4 added.
 
 ## Fragment index
 

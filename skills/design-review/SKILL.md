@@ -1,9 +1,9 @@
 ---
 name: design-review
 kind: workflow
-description: Pre-Build review gate for design documents (spec.yaml, plan, ADR) — one gate, four lenses each dispatched to its arms, one review.yaml per round. Out of scope — anything not a contract-bearing design document.
+description: Pre-Build review gate for design documents (spec.yaml, plan, ADR) — one gate, three lenses each dispatched to its arms, one review.yaml per round; a short-chain spec gets one round of two lenses. Out of scope — anything not a contract-bearing design document.
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent]
-user-invocable: true
+user-invocable: false
 ---
 
 # /touchstone:design-review
@@ -11,6 +11,8 @@ user-invocable: true
 ## Scope
 
 In scope: `*.spec.yaml`, plan, ADR (`**/plans/**`, `**/adr/**`); else reply "not in scope — specs / plans / ADRs only" and exit. Subject status: `accepted-candidate` is the normal subject; `accepted` → treat as re-review; `draft` → reply "draft — not gated" and exit.
+
+**Mode.** A spec whose `facts_source` record's readiness ruling says "short form" selects the **short-chain mode**: one round, the challenger and verification-honesty lenses only, the stopping rule's re-verify dispatch unused — the round closes on its own outcome. Every other subject runs the full mode: three lenses, the injected rule's full budget.
 
 ## Phase 1 — Inject
 
@@ -41,15 +43,16 @@ Non-zero → surface the full `BLOCK:` output verbatim, **do not dispatch** — 
 
 ## Phase 3 — Dispatch: every lens to each of its arms, one message
 
-The declared lens set of this gate (the arms column is the default configuration; the caller may add an arm, never remove the last one — a lens with zero arms is a skill defect):
+The declared lens set of this gate (the arms column is the default configuration; the caller may add an arm, never remove the last one — a lens with zero arms is a skill defect; the short-chain mode dispatches the first and third rows only):
 
 ```yaml
 lenses:
-  - {name: challenger,                arms: [cc],    prompt_home: skills/design-review/references/challenger.md}
-  - {name: design-soundness,          arms: [codex], prompt_home: skills/design-review/references/lenses.md}
-  - {name: verification-honesty,      arms: [codex], prompt_home: skills/design-review/references/lenses.md}
-  - {name: communication-auditability, arms: [codex], prompt_home: skills/design-review/references/lenses.md}
+  - {name: challenger,           arms: [cc],    prompt_home: skills/design-review/references/challenger.md}
+  - {name: design-soundness,     arms: [cc],    prompt_home: skills/design-review/references/lenses.md}
+  - {name: verification-honesty, arms: [codex], prompt_home: skills/design-review/references/lenses.md}
 ```
+
+A cc arm carrying design-soundness runs in a fresh context, never the challenger's.
 
 Probe first: `codex --version >/dev/null 2>&1 && echo codex_healthy=1 || echo codex_healthy=0`. Then issue every `Agent` call in ONE assistant message — one call per arm, carrying every lens assigned to that arm (an arm's output tags each finding `[lens: …]`):
 
@@ -67,7 +70,7 @@ One file per round: round 1 at `<epic-dir>/design-review-<date>/review.yaml`, th
 - `rulings[]`: every ledger id this round appended (routing of a marker to the human vs the authoring session: the injected stopping rule); a ruling is written to the assay record as `- <id> (<date>, stage: design-review) · …` and its id listed here; a marker resolved by the authoring session records its `fix`.
 - Validate before reporting: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" review <file> --root <epic-dir>` — exit 0.
 
-Convergence: the injected stopping rule — this round's C/H feeds its initial round. Build waits until the rule closes; `degraded: true` → the presentation duty in `provenance.md`, before Build.
+Convergence: the injected stopping rule — this round's C/H feeds its initial round (short-chain mode: that round is the whole run). Build waits until the rule closes; `degraded: true` → the presentation duty in `provenance.md`, before Build.
 
 **Post-review re-distill (once C+H = 0).** Re-distill every `shall` to one sentence and every AC to its Then (rule home: design-spec § 4); a meaning-changing edit re-enters review, never rides the verdict.
 

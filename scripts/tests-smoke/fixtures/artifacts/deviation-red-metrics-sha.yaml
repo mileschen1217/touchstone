@@ -1,0 +1,15 @@
+entries: []
+quiz:
+  waived: false
+  items: []
+metrics:
+  - phase: 1
+    wall_clock_h: 2.5
+    human_turns: 3
+    dispatches: 4
+    lens_h: {coverage: 1}
+    stage_tokens: [{stage: 0, tokens: 100}]
+    false_edges: 0
+    instrument_churn: {shape_driven_lines: 10, other_lines: 2}
+    measured_at: abc123
+waiting_on_human: []

@@ -1,0 +1,25 @@
+gate: deliverable-review
+target: spec-green.yaml
+sha: abc123
+round: 1
+providers:
+  - {lens: conformance, arms: [cc]}
+challenger: cc
+degraded: false
+verdict: revise
+counts: {C: 0, H: 1, M: 0, L: 0}
+rulings: []
+coverage:
+  - {ref: AC-1, status: covered, evidence: "D-1 disposition covers AC-1"}
+findings:
+  - id: F-1
+    lens: conformance
+    type: coverage-gap
+    provenance: original
+    severity: H
+    field: requirements[REQ-1].acs[AC-2].then
+    summary: mistakenly reported as a covered finding instead of a coverage[] row
+    fix: move to coverage[]
+    status: covered
+    found_by: [cc]
+waiting_on_human: []

@@ -1,14 +1,18 @@
 ---
 injected-by: [design-review, deliverable-review]
-referenced-by: [crucible, design-spec, anvil]
+referenced-by: [design-spec, anvil, plugin-review.sh]
 kind: bridge
 ---
 
 # Severity-tiered stopping rule (single home)
 
+The one stopping rule of every review gate — design-review, deliverable-review, and the
+touchstone-local plugin-review alike; no gate carries a second budget, threshold, or
+plateau rule of its own.
+
 **Budget = initial review + at most ONE re-verify dispatch.** T = 3 (adjustable by a
-human ruling recorded in the epic's calibration ledger). "Zero new findings" is a
-stopping criterion nowhere in the suite.
+human ruling recorded in the epic's calibration ledger). **Terminator: a round that
+reports zero new Critical and zero new High closes the gate.**
 
 **Severity qualification (gate on coverage, not polish).** A finding earns Critical or
 High ONLY by exposing an uncovered behaviour (a requirement / party / path carrying no
@@ -18,15 +22,19 @@ refinement) — is Low by construction: its marker rides to the human, it never 
 it never enters the re-verify budget below.
 
 **Initial round:**
+- zero new Critical and zero new High → close (the terminator; nothing to fix, no diff).
 - any Critical, or High ≥ T → fix all → ONE combined re-verify dispatch.
 - 0 Critical and High < T → fix all → close; the fix diff rides the verdict to the next
-  human checkpoint (a clean round attaches no diff).
+  human checkpoint.
+
+A short-chain design-review spends the initial round only; its re-verify dispatch is
+never issued.
 
 **Re-verify round (budget spent — no further autonomous dispatch):**
 - any Critical → the artifact is **blocked** and surfaced to the human at the next
-  existing checkpoint (terminal accept / PR approve / batch report), with a three-path
-  menu — authorize one more round / change approach / cut scope. It stays non-passing
-  (spec not accepted / commit not made / batch not closed) until the human rules.
+  existing checkpoint (contract accept / ship informed-accept / batch report), with a
+  three-path menu — authorize one more round / change approach / cut scope. It stays
+  non-passing (spec not accepted / commit not made / batch not closed) until the human rules.
 - High only → fix; the diff + markers ride the verdict to the human.
 
 **No unauthorized third round:** while a re-verify round reports any Critical, the loop
@@ -49,4 +57,4 @@ derived from type at merge): initial challenge + ONE re-challenge inside the sam
 human and never blocks; `coverage-gap` / `real-defect` markers are the backlog. Route a
 backlog marker by content — one that would change a user-story or a requirement's SHALL
 headline goes to the human, an AC-level one is resolved by the authoring AI and logged;
-the terminal human accept covers both.
+the contract accept covers both.
