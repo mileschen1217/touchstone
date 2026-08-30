@@ -5,7 +5,7 @@ referenced-by: [design-review, deliverable-review, assay]
 
 # Dispatch provenance — canonical reference
 
-Sole home of who-actually-reviewed provenance for a review round.
+Sole home of review-round provenance.
 
 **Lens** — one review perspective (a prompt with its own subject and finding types). **Arm** — one execution of a lens in its own context: `cc` (a fresh Claude Code agent) or `codex`. A gate declares its lens set and, per lens, its arms; vendor diversity is a property of the arm set.
 

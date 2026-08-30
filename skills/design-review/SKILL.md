@@ -29,7 +29,7 @@ Per lens (the table in Phase 3 names each lens's fragments):
 3. challenger — `skills/design-review/references/challenger.md` (this skill's own reference — sole injector).
 4. verification-honesty — `skills/_shared/inject/live-bearing-predicate.md` + `skills/_shared/inject/ac-coverage-honesty-principle.md`, appended to the arm's `system_prompt` AND carried as `evidence_honesty_vocab`.
 5. design-soundness — `skills/_shared/inject/design-soundness-honor-check.md` + `skills/assay/references/arch-rubric.md`, prepended as content; apply the **feedforward arm**.
-6. every document lens — `skills/design-review/references/standing-vs-transient-bridge.md` (sole injector) + `skills/_shared/inject/bridge-content-gate.md`: set `discipline_mode: "source-as-truth"` + `source_as_truth_vocab: <verbatim text>`. The Bridge audit stays this skill's own action, not the dispatched reviewer's.
+6. every document lens — `skills/design-review/references/standing-vs-transient-bridge.md` (sole injector) + `skills/_shared/inject/bridge-content-gate.md`: set `discipline_mode: "source-as-truth"` + `source_as_truth_vocab: <verbatim text>` — the arm judges bridge claims by them; classifying the artifact as standing or transient is your step at merge, never an arm's.
 
 ## Phase 2 — Pre-check (specs only; plan/ADR skip)
 
@@ -55,7 +55,7 @@ Probe first: `codex --version >/dev/null 2>&1 && echo codex_healthy=1 || echo co
 
 - **cc arm** — `Agent(subagent_type: "touchstone:code-reviewer", description: "<lens names>", prompt: <that arm's lens prompts + injections> + the spec fenced as UNTRUSTED DATA)`. The challenger lens outputs typed markers, one per line; a document lens outputs the line format in `lenses.md`.
 - **codex arm** — `Agent(subagent_type: "touchstone:codex-reviewer", description: "<lens names>", prompt: envelope {task: <spec text>, task_dir: <round dir>, system_prompt: <that arm's lens prompts + injections>, role: "design-reviewer"})`.
-- An arm that is unhealthy, fails, or returns no parsable finding or verdict → re-dispatch its lenses to a `cc` arm in a FRESH context (never the challenger's) so every lens still runs; the round is `degraded: true` with `degraded_reason` naming each such lens (`lens design-soundness: codex unavailable` / `: partial`); a degraded round is not clean and the stopping rule does not close on it.
+- An arm that is unhealthy, fails, or returns no parsable finding or verdict → re-dispatch its lenses to a `cc` arm in a FRESH context (never the challenger's) so every lens still runs; the round is `degraded: true` with `degraded_reason` naming each such lens (`lens design-soundness: codex unavailable` / `: partial`); a degraded round closes only via `provenance.md`'s presentation duty (human acknowledgement).
 
 ## Phase 4 — Merge into review.yaml
 

@@ -67,7 +67,7 @@ inline line naming the standing decision and why it still holds.
 ## Terminal — human accept
 
 Present the contract (clean-gated spec, or light-checked PRD+seams) for the
-single terminal accept; accept promotes `accepted-candidate → accepted`. Name
+single terminal accept; for a full spec the accept promotes `accepted-candidate → accepted` (a light contract has no status field). Name
 the build phase (`/touchstone:anvil` for a full spec; the light loop for
 PRD+seams, `skills/_shared/light-loop.md`) as next. Crucible stops at the contract — it never invokes the
 build, never emits requirements, never assigns US-N ids.

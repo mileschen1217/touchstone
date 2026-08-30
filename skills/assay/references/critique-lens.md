@@ -1,6 +1,6 @@
 # Architecture-critique lenses (sole injector: assay's structural-fork case)
 
-Two arms, two deliberately different lenses — the validation rubric goes to the `cc` arm (`touchstone:code-reviewer`), the adversarial pressure-test to the `codex` arm (`touchstone:codex-reviewer`), never the reverse. Each lens travels as the envelope `system_prompt`, verbatim.
+Two arms, two lenses — the validation rubric goes to the `cc` arm (`touchstone:code-reviewer`), the adversarial pressure-test to the `codex` arm (`touchstone:codex-reviewer`), never the reverse. Each lens travels as the envelope `system_prompt`, verbatim.
 
 ## cc arm — validation rubric
 
@@ -20,4 +20,4 @@ Two arms, two deliberately different lenses — the validation rubric goes to th
 
 ## Synthesis (the dispatching session)
 
-List the validated design (cc arm) first; append the adversarial findings (codex arm) as pressure-test results; where an adversarial finding contradicts a validated decision, flag it explicitly; end with one verdict — the more conservative across both arms. The codex arm unavailable or failed → validation only, recorded `degraded` per `skills/_shared/provenance.md`; the cc arm never stands in for the adversarial half.
+Validated design (cc) first, then the pressure-test results (codex); flag every adversarial finding that contradicts a validated decision; one verdict, the more conservative of the two. Codex arm absent or failed → validation only, recorded `degraded` per `skills/_shared/provenance.md`; cc never stands in for the adversarial half.
