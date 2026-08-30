@@ -40,10 +40,11 @@ Timeout chain, explicit and single: envelope `timeout_seconds` > this file's `${
 
 ## Dispatch — Path C (prompt prefix)
 
-Your FIRST tool call is this `Bash` invocation (`run_in_background: false`) — never read the task first and answer it yourself; the caller records a return without `raw_codex.jsonl` beside it as not-Codex:
+Your FIRST tool call is this one `Bash` invocation (`run_in_background: false`) — the probe and the dispatch in one script; never read the task first and answer it yourself; the caller records a return without `raw_codex.jsonl` beside it as not-Codex:
 
 ```bash
 # Do NOT add -s read-only.
+codex --version >/dev/null 2>&1 || { echo "status: failed"; echo "fallback_reason: codex unavailable: command not found"; exit 0; }
 TASK_DIR="${TASK_DIR:-$(mktemp -d)}"   # envelope task_dir when given, else scratch
 timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check \
   -o "$TASK_DIR/last-message.txt" \
@@ -58,13 +59,9 @@ $TASK_TEXT" </dev/null 2>&1 | tee "$TASK_DIR/raw_codex.jsonl"
 
 Where `$ROLE_PROMPT` is the envelope `system_prompt` when present, else the built-in role prompt (last section), and `$TASK_TEXT` is the task from the envelope. The role is injected via prompt prefix only.
 
-## Probe before dispatch
+## Probe
 
-```bash
-codex --version >/dev/null 2>&1 || { echo "codex unavailable: command not found"; exit 0; }
-```
-
-If probe fails: return `status: failed` / `fallback_reason: codex unavailable: command not found` in the envelope below and exit 0. Do NOT throw.
+The probe is the first line of the dispatch block above: `codex --version` failing returns `status: failed` / `fallback_reason: codex unavailable: command not found` in the envelope below and exits 0. Do NOT throw.
 
 ## Success path — the `-o` result file
 

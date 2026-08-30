@@ -74,11 +74,12 @@ abs="$abs_dir/$(basename "$abs")"
 w=""
 wcfg="$root/.claude/touchstone.yaml"
 if [ -f "$wcfg" ]; then
-  w="$(grep -m1 '^workspace_root:' "$wcfg" 2>/dev/null | sed 's/^workspace_root:[[:space:]]*//')"
-  w="${w%%#*}"
-  w="$(printf '%s' "$w" | sed 's/[[:space:]]*$//')"
-  w="${w#\"}"; w="${w%\"}"
-  w="${w#\'}"; w="${w%\'}"
+  w="$(grep -m1 -E '^[[:space:]]*workspace_root:' "$wcfg" 2>/dev/null | sed -E 's/^[[:space:]]*workspace_root:[[:space:]]*//')"
+  case "$w" in
+    \"*) w="${w#\"}"; w="${w%%\"*}" ;;          # double-quoted value: everything up to the closing quote
+    \'*) w="${w#\'}"; w="${w%%\'*}" ;;          # single-quoted value
+    *)   w="${w%%#*}"; w="$(printf '%s' "$w" | sed 's/[[:space:]]*$//')" ;;   # bare value: strip a trailing comment
+  esac
 fi
 [ -n "$w" ] || w=".touchstone"
 case "$w" in

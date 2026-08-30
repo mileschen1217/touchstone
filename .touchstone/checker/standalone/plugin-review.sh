@@ -368,13 +368,16 @@ order = ['id', 'lens', 'type', 'provenance', 'severity', 'file', 'line',
 findings = [{k: f[k] for k in order} for f in findings]
 
 counts = {s: sum(1 for f in findings if f['severity'] == s) for s in ('C', 'H', 'M', 'L')}
-arms = ['codex', 'cc'] if providers_cc == '1' else ['codex']
+# the CC arm counts only when its file yielded parsable findings — a flag alone is not an arm
+cc_ran = providers_cc == '1' and len(cc) > 0
+arms = ['codex', 'cc'] if cc_ran else ['codex']
 providers = [{'lens': it['name'], 'arms': list(arms)} for it in items]
-degraded = bool(degraded_reason) or providers_cc != '1'
+degraded = bool(degraded_reason) or not cc_ran
 reason = degraded_reason
-if providers_cc != '1':
+if not cc_ran:
     stand = ('partial: CC arm not dispatched — standalone run; the calling session '
-             'dispatches the CC arm and passes --cc-findings')
+             'dispatches the CC arm and passes --cc-findings') if providers_cc != '1' else \
+            'partial: --cc-findings given but no parsable CC finding — the CC arm is not recorded'
     reason = (degraded_reason + '; ' + stand) if degraded_reason else stand
 
 doc = {'gate': 'plugin-review', 'target': target, 'sha': sha, 'round': rnd,
@@ -449,9 +452,13 @@ findings = doc.get('findings') or []
 errs = []
 if len(findings) != int(want_n):
     errs.append('findings=%d want %s' % (len(findings), want_n))
+STAND = ('partial: CC arm not dispatched — standalone run; the calling session '
+         'dispatches the CC arm and passes --cc-findings')   # the parser cases run standalone (no CC arm)
 if mode == 'clean':
-    if doc.get('degraded'):
+    if doc.get('degraded') and doc.get('degraded_reason') != STAND:
         errs.append('degraded=%r reason=%r' % (doc.get('degraded'), doc.get('degraded_reason')))
+    if [pv['arms'] for pv in (doc.get('providers') or [])] != [['codex']] * len(doc.get('providers') or []):
+        errs.append('standalone run must record the codex arm only: %r' % doc.get('providers'))
     need = ('id', 'found_by', 'lens', 'type', 'provenance', 'severity', 'file',
             'line', 'summary', 'fix', 'status', 'refs')
     for f in findings:
@@ -464,10 +471,10 @@ if mode == 'clean':
     if prov and not all(isinstance(p, dict) and 'lens' in p and 'arms' in p for p in prov):
         errs.append('providers not per-lens: %r' % prov)
 elif mode == 'partial':
-    if doc.get('degraded_reason') != 'partial':
+    if (doc.get('degraded_reason') or '').split(';')[0].strip() != 'partial':
         errs.append('degraded_reason=%r want partial' % doc.get('degraded_reason'))
 elif mode == 'noscore':
-    if doc.get('degraded_reason') != 'partial':
+    if (doc.get('degraded_reason') or '').split(';')[0].strip() != 'partial':
         errs.append('degraded_reason=%r want partial' % doc.get('degraded_reason'))
     if 'No criterion scores were parsed' not in open(score, encoding='utf-8').read():
         errs.append('score.md does not report the scores as absent')
@@ -498,7 +505,7 @@ if [ "${1:-}" = "--self-test" ]; then
     local label="$1" msg="$2" want="$3" mode="$4" line rc ca_out ca_rc
     line="$(python3 -c "$PARSE_PY" "$msg" "$rubric" "$st_dir/review.yaml" \
       "$st_dir/score.md" 1 selftest selftest.spec.yaml "" "$st_dir/cc-empty.txt" \
-      "" "$st_root" 1 2>&1)"; rc=$?
+      "" "$st_root" 0 2>&1)"; rc=$?
     if [ "$rc" -ne 0 ]; then
       echo "FAIL parser $label — PARSE_PY rc=$rc: $line"; st_fail=1; return
     fi
@@ -641,7 +648,7 @@ root="$(cd "$root" && pwd)"
 if ! command -v codex >/dev/null 2>&1; then
   cat >&2 <<EOF
 plugin-review.sh: codex not on PATH — no round directory and no review.yaml written.
-  Liveness rule (single home): skills/cross-provider-reviewer/references/provenance.md —
+  Liveness rule (single home): skills/_shared/provenance.md —
   \`codex\` is listed in providers only when the round dir holds its raw_codex.jsonl and
   last-message.txt; a round without them is not a cross-vendor round.
 EOF

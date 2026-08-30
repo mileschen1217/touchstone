@@ -70,6 +70,10 @@ expect_out "check-artifact review: unresolved refs id names findings[F-1].refs[0
 # AC-48: a finding with no field, no file and empty refs has no locator; file+line beside refs:[] is fine (green half below)
 expect_exit "check-artifact review: no locator" nonzero bash "$ca" review "$ax/review-red-noloc.yaml" --root "$ax"
 expect_out "check-artifact review: no locator names the finding" "findings[F-1]: no locator (field, file or refs)" bash "$ca" review "$ax/review-red-noloc.yaml" --root "$ax"
+expect_exit "check-artifact review: empty providers" nonzero bash "$ca" review "$ax/review-red-providers-empty.yaml" --root "$ax"
+expect_out "check-artifact review: empty providers names minItems" "providers: expected at least 1 item(s)" bash "$ca" review "$ax/review-red-providers-empty.yaml" --root "$ax"
+expect_exit "check-artifact review: found_by arm outside its lens providers" nonzero bash "$ca" review "$ax/review-red-foundby-arm.yaml" --root "$ax"
+expect_out "check-artifact review: found_by arm outside its lens providers is named" "found_by: 'cc' is not an arm of lens 'design-soundness' in providers" bash "$ca" review "$ax/review-red-foundby-arm.yaml" --root "$ax"
 
 expect_exit "check-artifact deviation green" zero bash "$ca" deviation "$ax/deviation-green.yaml" --root "$ax"
 expect_out "check-artifact deviation green: ref-set grading prints a miss line" "quiz QZ-1: miss — missing [AC-3] extra [AC-4]" bash "$ca" deviation "$ax/deviation-green.yaml" --root "$ax"

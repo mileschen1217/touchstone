@@ -258,10 +258,19 @@ if kind == 'spec':
 elif kind == 'review':
     if doc.get('degraded') is True and not doc.get('degraded_reason'):
         errors.append("degraded_reason: required when degraded is true")
+    lens_arms = {}
+    for pv in doc.get('providers') or []:
+        if isinstance(pv, dict) and isinstance(pv.get('lens'), str):
+            lens_arms.setdefault(pv['lens'], set()).update(a for a in (pv.get('arms') or []) if isinstance(a, str))
     for f in doc.get('findings') or []:
         if not isinstance(f, dict): continue
         if not f.get('field') and not f.get('file') and not f.get('refs'):
             errors.append(f"findings[{f.get('id')}]: no locator (field, file or refs)")
+        # an arm a finding credits must be an arm that ran that lens (providers is the record of what ran)
+        if isinstance(f.get('lens'), str) and isinstance(f.get('found_by'), list):
+            for a in f['found_by']:
+                if a not in lens_arms.get(f['lens'], set()):
+                    errors.append(f"findings[{f.get('id')}].found_by: '{a}' is not an arm of lens '{f['lens']}' in providers")
 elif kind == 'deviation':
     for e in doc.get('entries') or []:
         if not isinstance(e, dict): continue
