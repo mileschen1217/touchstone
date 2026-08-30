@@ -93,29 +93,29 @@ elif mode == 'selftest':
     # (a) round-2 at 85 %, no rise, no new C/H -> plateau, waiting_on_human carries the open C/H
     r = decide(2, 3, 85.0, 61, 61, False)
     ok &= r == 'stop=plateau'
-    print('%s AC-32 plateau: round-2 85%% total 61 vs 61, no new C/H -> %s' % ('PASS' if r == 'stop=plateau' else 'FAIL', r))
+    print('%s plateau: round-2 85%% total 61 vs 61, no new C/H -> %s' % ('PASS' if r == 'stop=plateau' else 'FAIL', r))
     w = waiting([{'id': 'F-1', 'severity': 'H', 'status': 'open', 'file': 'skills/a/SKILL.md', 'line': 12, 'summary': 'rule without consumer'},
                  {'id': 'F-2', 'severity': 'M', 'status': 'open', 'file': 'skills/b/SKILL.md', 'line': 3, 'summary': 'noise'}])
     ok &= w == ['F-1 H skills/a/SKILL.md:12 — rule without consumer']
-    print('%s AC-32 waiting_on_human lists only open C/H: %s' % ('PASS' if len(w) == 1 else 'FAIL', w))
+    print('%s waiting_on_human lists only open C/H: %s' % ('PASS' if len(w) == 1 else 'FAIL', w))
     # (b) round-2 reaches the threshold
     r = decide(2, 3, 91.7, 66, 61, False)
     ok &= r == 'stop=threshold'
-    print('%s AC-32 threshold: round-2 91.7%% -> %s' % ('PASS' if r == 'stop=threshold' else 'FAIL', r))
+    print('%s threshold: round-2 91.7%% -> %s' % ('PASS' if r == 'stop=threshold' else 'FAIL', r))
     # (c) round-2 introduces a new H -> continue
     r = decide(2, 3, 84.7, 61, 61, True)
     ok &= r == 'continue'
-    print('%s AC-32 new C/H: round-2 no rise but a new H -> %s' % ('PASS' if r == 'continue' else 'FAIL', r))
+    print('%s new C/H: round-2 no rise but a new H -> %s' % ('PASS' if r == 'continue' else 'FAIL', r))
     # (d) round 3 with an open H -> max-rounds, never a round-4
     r = decide(3, 3, 88.9, 64, 61, True)
     ok &= r == 'stop=max-rounds'
-    print('%s AC-33 round cap: round-3 rising, new H -> %s (no round-4)' % ('PASS' if r == 'stop=max-rounds' else 'FAIL', r))
+    print('%s round cap: round-3 rising, new H -> %s (no round-4)' % ('PASS' if r == 'stop=max-rounds' else 'FAIL', r))
     r = decide(4, 3, 50.0, 36, 30, True)
     ok &= r == 'stop=max-rounds'
-    print('%s AC-33 hard cap: --rounds beyond 3 -> %s' % ('PASS' if r == 'stop=max-rounds' else 'FAIL', r))
+    print('%s hard cap: --rounds beyond 3 -> %s' % ('PASS' if r == 'stop=max-rounds' else 'FAIL', r))
     w = waiting([{'id': 'F-3', 'severity': 'H', 'status': 'open', 'file': 'agents/x.md', 'line': 7, 'summary': 'declared-vs-actual'}])
     ok &= len(w) == 1
-    print('%s AC-33 round-3 open H carried to waiting_on_human: %s' % ('PASS' if len(w) == 1 else 'FAIL', w))
+    print('%s round-3 open H carried to waiting_on_human: %s' % ('PASS' if len(w) == 1 else 'FAIL', w))
     sys.exit(0 if ok else 1)
 else:
     sys.exit('plugin-review.sh: unknown loop mode %s' % mode)
@@ -603,7 +603,7 @@ done
 epic="$(cd "$epic" && pwd)"
 case "$rounds" in ''|*[!0-9]*) echo "plugin-review.sh: --rounds must be a number" >&2; exit 2 ;; esac
 [ "$rounds" -ge 1 ] || rounds=1
-[ "$rounds" -le 3 ] || rounds=3          # AC-33: hard cap, no round-4 ever
+[ "$rounds" -le 3 ] || rounds=3          # hard cap, no round-4 ever
 [ -z "$cc_findings" ] || [ -f "$cc_findings" ] || { echo "plugin-review.sh: no such --cc-findings file: $cc_findings" >&2; exit 2; }
 [ -f "$rubric" ] || { echo "plugin-review.sh: rubric missing: $rubric" >&2; exit 2; }
 
@@ -617,7 +617,7 @@ fi
 [ -d "$root" ] || { echo "plugin-review.sh: no such root: $root" >&2; exit 2; }
 root="$(cd "$root" && pwd)"
 
-# Liveness (AC-31): no Codex, no artifact. A plugin-review round is never recorded
+# Liveness: no Codex, no artifact. A plugin-review round is never recorded
 # as cross-vendor without the Codex artifacts.
 if ! command -v codex >/dev/null 2>&1; then
   cat >&2 <<EOF
@@ -647,7 +647,7 @@ stop=""; rnd_done=0; pct_last="0.0"; c_last=0; h_last=0
 while : ; do
   mkdir -p "$day_dir"
   n=$(( $(find "$day_dir" -maxdepth 1 -type d -name 'round-*' 2>/dev/null | wc -l | tr -d ' ') + 1 ))
-  if [ "$n" -gt 3 ]; then                                       # AC-33: never a round-4
+  if [ "$n" -gt 3 ]; then                                       # never a round-4
     stop="max-rounds"; rnd_done=$((n - 1))
     lastdir="$day_dir/round-$rnd_done"
     [ -f "$lastdir/score.md" ] && pct_last="$(sed -n 's/.*pct=\([0-9.]*\).*/\1/p' "$lastdir/score.md" | tail -1)"
