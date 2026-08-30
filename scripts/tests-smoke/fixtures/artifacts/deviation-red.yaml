@@ -1,15 +1,19 @@
 entries:
   - id: D-1
+    phase: 1
     date: 2026-01-02
     stage: build
     panel: flow
-    gap: the flag also needs a short form
+    gap: {title: missing short form, detail: the flag also needs a short form}
     catcher: builder
-    disposition: added -f
+    disposition: {title: added short flag, detail: "added -f"}
+    refs: [AC-1]
 quiz:
   waived: false
   items:
     - id: QZ-1
+      phase: 1
+      kind: manual
       question: what changed?
       answer: a short form was added
       anchor: requirements[REQ-1].acs[AC-1]

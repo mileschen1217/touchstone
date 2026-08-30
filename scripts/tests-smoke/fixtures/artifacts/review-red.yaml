@@ -2,14 +2,14 @@ gate: design-review
 target: spec-green.yaml
 sha: abc123
 round: 1
-providers: [cc]
+providers:
+  - {lens: coverage, arms: [cc]}
 degraded: true
 verdict: revise
 counts: {C: 0, H: 2, M: 0, L: 0}
 rulings: []
 findings:
   - id: F-3
-    agent: challenger
     lens: coverage
     type: coverage-gap
     provenance: original
@@ -18,8 +18,8 @@ findings:
     summary: dangling
     fix: none
     status: open
+    found_by: [cc]
   - id: F-3
-    agent: challenger
     lens: coverage
     type: coverage-gap
     provenance: original
@@ -28,3 +28,4 @@ findings:
     summary: duplicate id
     fix: none
     status: open
+    found_by: [cc]

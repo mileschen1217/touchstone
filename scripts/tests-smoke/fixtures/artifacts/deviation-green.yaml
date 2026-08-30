@@ -1,16 +1,27 @@
 entries:
   - id: D-1
+    phase: 1
     date: 2026-01-02
     stage: build
     panel: interface
-    gap: the flag also needs a short form
+    gap: {title: missing short form, detail: the flag also needs a short form}
     which_stage_could_have_caught: assay
     catcher: builder
-    disposition: added -f; AC-1 unchanged
+    disposition: {title: added short flag, detail: "added -f; AC-1 unchanged"}
+    refs: [AC-1]
 quiz:
   waived: false
   items:
     - id: QZ-1
+      phase: 1
+      kind: ref-set
+      question: which ACs does the short flag touch?
+      anchor: requirements[REQ-1].acs[AC-1]
+      expected_refs: [AC-1, AC-3]
+      answer_refs: [AC-1, AC-4]
+    - id: QZ-2
+      phase: 1
+      kind: manual
       question: what changed at the interface?
       answer: a short form -f was added next to --flag (D-1, requirements[REQ-1].acs[AC-1])
       anchor: requirements[REQ-1].acs[AC-1]

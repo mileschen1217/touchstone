@@ -1,0 +1,27 @@
+entries:
+  - id: D-1
+    phase: 1
+    date: 2026-01-02
+    stage: build
+    panel: interface
+    gap: {title: t, detail: d}
+    which_stage_could_have_caught: assay
+    catcher: builder
+    disposition: {title: t2, detail: d2}
+    refs: [AC-1]
+quiz:
+  waived: false
+  items:
+    - id: QZ-1
+      phase: 1
+      kind: manual
+      question: q1
+      answer: requirements[REQ-1].acs[AC-1]
+      anchor: requirements[REQ-1].acs[AC-1]
+    - id: QZ-1
+      phase: 1
+      kind: manual
+      question: q2
+      answer: requirements[REQ-1].acs[AC-1]
+      anchor: requirements[REQ-1].acs[AC-1]
+waiting_on_human: []

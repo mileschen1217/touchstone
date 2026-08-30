@@ -7,17 +7,17 @@ providers:
 challenger: cc
 degraded: false
 verdict: revise
-counts: {C: 0, H: 0, M: 1, L: 0}
+counts: {C: 0, H: 1, M: 0, L: 0}
 rulings: []
 findings:
   - id: F-1
     lens: coverage
-    type: refinement
+    type: coverage-gap
     provenance: original
-    severity: M
-    field: waiting_on_human[*]
-    summary: star on a list this spec leaves empty
-    fix: none
+    severity: H
+    refs: []
+    summary: no locator at all
+    fix: add one
     status: open
     found_by: [cc]
 waiting_on_human: []

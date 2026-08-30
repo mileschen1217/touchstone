@@ -1,0 +1,27 @@
+entries:
+  - id: D-1
+    phase: 1
+    date: 2026-01-02
+    stage: build
+    panel: interface
+    gap: {title: t, detail: d}
+    which_stage_could_have_caught: assay
+    catcher: builder
+    disposition: {title: t2, detail: d2}
+    refs: [AC-1]
+quiz:
+  waived: false
+  items:
+    - id: QZ-1
+      phase: 1
+      kind: manual
+      question: q
+      answer: requirements[REQ-1].acs[AC-1]
+      anchor: requirements[REQ-1].acs[AC-1]
+metrics:
+  phase: 1
+  stage1_tokens: 25000
+  false_edges: 0
+  instrument_churn: {shape_driven_lines: 10, other_lines: 2}
+  measured_at: abc123
+waiting_on_human: []
