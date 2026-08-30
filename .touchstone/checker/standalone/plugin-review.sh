@@ -134,9 +134,35 @@ for n in d.get('nodes') or []:
     i = n.get('id', '')
     if i.startswith('agents/') or i.startswith('hooks/'):
         sel.add(i)
+# prose only: the rubric reviews instruction text (skills, fragments, references, agents,
+# hooks.json, schemas). Shell scripts are run, not read into a context — a 109 KB renderer
+# in the prompt was 30 % of it and noise to every rubric item.
 for p in sorted(sel):
+    if p.endswith('.sh'):
+        continue
     if os.path.isfile(os.path.join(root, p)):
         print(p)
+PY
+)
+
+# Map summary for the reviewer: what each stage loads, the divergences, the two ratchet
+# numbers — not the 150-edge list with file:line coordinates (64 KB, 18 % of the prompt).
+MAPSUM_PY=$(cat <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1], encoding='utf-8'))
+out = {
+  'stages': [{'stage': s.get('stage'), 'entry': s.get('entry'), 'lines': s.get('lines'),
+              'unique_lines': s.get('unique_lines'), 'load_set': s.get('load_set')} for s in d.get('stages') or []],
+  'skills': d.get('skills'),
+  'false_edges': d.get('false_edges'),
+  'orphans': d.get('orphans'),
+  'test_only': d.get('test_only'),
+  'stale_waivers': d.get('stale_waivers'),
+  'invalid_waivers': d.get('invalid_waivers'),
+  'metrics': {k: v for k, v in (d.get('metrics') or {}).items() if k != 'untested_reachable_shell_files'},
+  'notes': d.get('notes'),
+}
+json.dump(out, sys.stdout, ensure_ascii=False, indent=1)
 PY
 )
 
@@ -682,13 +708,13 @@ VERDICT: approve|revise|block
 EOF
     cat "$rubric"
     echo
-    echo "=== PLUGIN MAP (JSON, computed from the tree on this run) ==="
-    cat "$map_json"
+    echo "=== PLUGIN MAP (summary: per-stage load sets and lines, declared-but-absent edges, orphans, test-only nodes, waiver state, ratchet metrics; computed from the tree on this run) ==="
+    python3 -c "$MAPSUM_PY" "$map_json"
     echo
-    echo "=== PLUGIN TEXT (every file in stages[*].load_set, agents/, hooks/) ==="
+    echo "=== PLUGIN TEXT (every prose file in stages[*].load_set, agents/, hooks/; each line prefixed <n>:) ==="
     while IFS= read -r f; do
       echo "=== $f"
-      nl -ba "$root/$f"
+      awk '{ printf "%d:%s\n", NR, $0 }' "$root/$f"
       echo
     done < "$file_list"
     echo "=== END PLUGIN TEXT ==="
