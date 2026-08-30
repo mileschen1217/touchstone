@@ -797,6 +797,9 @@ fixtures_root="$repo_root/.touchstone/checker/fixtures"
 # ---- plugin-map.sh's own self-test: it runs the map over the same fixture
 # trees the rail owns and asserts the graph / entries / metrics contract.
 expect_exit "plugin-map.sh --self-test" zero bash "$scripts_dir/plugin-map.sh" --self-test
+# ---- phase-metrics.sh's own self-test (the phase-4 instrument: turns / gap-excluded hours /
+# dispatches from a synthetic transcript; lens_h joined by the review's target-spec phase)
+expect_exit "phase-metrics.sh --self-test" zero bash "$scripts_dir/phase-metrics.sh" --self-test
 
 find_checker() {  # <name> -> absolute path on stdout, or nothing
   local name="$1" d p
