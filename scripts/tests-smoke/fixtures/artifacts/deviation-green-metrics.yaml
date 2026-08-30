@@ -8,7 +8,7 @@ metrics:
     human_turns: 3
     dispatches: 4
     lens_h: {coverage: 1, design-soundness: 1}
-    stage_tokens: [{stage: 0, tokens: 100}, {stage: 1, tokens: 200}]
+    stage_tokens: [{stage: 0, tokens: 100}, {stage: 1, tokens: 200}, {stage: 2, tokens: 30}, {stage: 3, tokens: 40}, {stage: 4, tokens: 10}, {stage: 5, tokens: 20}]
     false_edges: 0
     instrument_churn: {shape_driven_lines: 10, other_lines: 2}
     measured_at: "0123456789abcdef0123456789abcdef01234567"
@@ -17,7 +17,7 @@ metrics:
     human_turns: 1
     dispatches: 1
     lens_h: {coverage: 1}
-    stage_tokens: [{stage: 2, tokens: 50}]
+    stage_tokens: [{stage: 0, tokens: 1}, {stage: 1, tokens: 2}, {stage: 2, tokens: 50}, {stage: 3, tokens: 3}, {stage: 4, tokens: 4}, {stage: 5, tokens: 5}]
     false_edges: 1
     instrument_churn: {shape_driven_lines: 5, other_lines: 0}
     measured_at: "abcdef0123456789abcdef0123456789abcdef01"

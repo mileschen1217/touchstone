@@ -610,7 +610,7 @@ def field(items, label):
 def pill(status):
     s = (status or '').lower()
     cls = {'accepted': 'ok', 'done': 'ok', 'active': 'accent', 'accepted-candidate': 'warn', 'proposed': 'muted',
-           'draft': 'muted', 'paused': 'warn', 'cancelled': 'crit', 'blocked': 'crit'}.get(s, 'muted')
+           'draft': 'muted', 'blocked': 'crit'}.get(s, 'muted')
     return f'<span class="pill {cls}">{html.escape(status or "—")}</span>'
 
 META_ZH = {'date': '日期', 'kind': '種類', 'type': '類型', 'started': '開始', 'landed': '落地'}
@@ -1209,7 +1209,7 @@ ZH = {
     'position': '位置', 'structure': '結構前後', 'interface': '介面差異', 'scope': '範圍', 'none': '未歸面板',
     'design-review': '設計審查', 'deliverable-review': '交付審查', 'plugin-review': 'plugin 審查', 'tests': '測試', 'quiz': '理解測驗', 'ship-gate': '出貨門',
     'draft': '草稿', 'accepted-candidate': '待接受', 'accepted': '已接受', 'superseded': '已取代',
-    'active': '進行中', 'proposed': '提議', 'paused': '暫停', 'done': '完成', 'cancelled': '取消',
+    'active': '進行中', 'proposed': '提議', 'done': '完成',
     'approvable': '可核准', 'blocked': '被擋住', 'not-reviewed': '尚未審',
     'true': '是', 'false': '否',
     'degraded': '降級', 'as-planned': '如計畫', 'built-ne-planned': '實作≠計畫', 'live-bearing': '需實跑',
@@ -1226,8 +1226,8 @@ def zh(v):
 def zpill(v, cls=None):
     v = sval(v)
     c = cls or {'approve': 'ok', 'pass': 'ok', 'fixed': 'ok', 'accepted': 'ok', 'done': 'ok', 'approvable': 'ok',
-                'revise': 'warn', 'pending': 'warn', 'waived': 'warn', 'accepted-candidate': 'warn', 'paused': 'warn', 'not-reviewed': 'warn', 'unverified': 'warn',
-                'block': 'crit', 'fail': 'crit', 'open': 'crit', 'blocked': 'crit', 'cancelled': 'crit',
+                'revise': 'warn', 'pending': 'warn', 'waived': 'warn', 'accepted-candidate': 'warn', 'not-reviewed': 'warn', 'unverified': 'warn',
+                'block': 'crit', 'fail': 'crit', 'open': 'crit', 'blocked': 'crit',
                 'n/a': 'muted', 'draft': 'muted', 'proposed': 'muted'}.get(v, 'muted')
     return f'<span class="pill {c}">{zh(v)}</span>'
 ROW_CAP = 7

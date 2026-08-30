@@ -405,7 +405,7 @@ if cc_file and os.path.isfile(cc_file):
 collapsed = 0
 for c in cc:
     n = norm(c, 'cc')
-    hit = next((f for f in findings if f['file'] == n['file'] and f['type'] == n['type']), None)
+    hit = next((f for f in findings if f['file'] == n['file'] and f['type'] == n['type'] and f['lens'] == n['lens']), None)
     if hit:
         if 'cc' not in hit['found_by']:
             hit['found_by'] = hit['found_by'] + ['cc']
@@ -425,8 +425,8 @@ findings = [{k: f[k] for k in order} for f in findings]
 counts = {s: sum(1 for f in findings if f['severity'] == s) for s in ('C', 'H', 'M', 'L')}
 # the CC arm counts only when its file yielded parsable findings — a flag alone is not an arm
 cc_ran = providers_cc == '1' and len(cc) > 0
-arms = ['codex', 'cc'] if cc_ran else ['codex']
-providers = [{'lens': it['name'], 'arms': list(arms)} for it in items]
+# codex carries all four lenses; the cc arm carries items 2 and 3 only (cc-prompt.txt)
+providers = [{'lens': it['name'], 'arms': ['codex'] + (['cc'] if cc_ran and it['n'] in (2, 3) else [])} for it in items]
 degraded = bool(degraded_reason) or not cc_ran
 reason = degraded_reason
 if not cc_ran:

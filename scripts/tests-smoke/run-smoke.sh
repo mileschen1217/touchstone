@@ -121,6 +121,8 @@ expect_out "check-artifact deviation: metrics duplicate phase names the phase" "
 expect_exit "check-artifact deviation: metrics measured_at not 40-hex" nonzero bash "$ca" deviation "$ax/deviation-red-metrics-sha.yaml" --root "$ax"
 expect_out "check-artifact deviation: metrics measured_at not 40-hex names the path" "metrics[0].measured_at" bash "$ca" deviation "$ax/deviation-red-metrics-sha.yaml" --root "$ax"
 expect_exit "check-artifact deviation: valid metrics list (two distinct phases)" zero bash "$ca" deviation "$ax/deviation-green-metrics.yaml" --root "$ax"
+expect_exit "check-artifact deviation: metrics stage_tokens missing stages" nonzero bash "$ca" deviation "$ax/deviation-red-metrics-stages.yaml" --root "$ax"
+expect_out "check-artifact deviation: metrics stage_tokens missing stages names the path" "metrics[0].stage_tokens: stages 0-5 each exactly once" bash "$ca" deviation "$ax/deviation-red-metrics-stages.yaml" --root "$ax"
 
 python3 - "$ca" "$ax" <<'PY3' || { echo "FAIL: check-artifact edge cases"; fail=1; }
 import subprocess, sys, os, tempfile, shutil
@@ -194,7 +196,7 @@ metrics:
     human_turns: 1
     dispatches: 1
     lens_h: {{coverage: 1}}
-    stage_tokens: [{{stage: 0, tokens: 10}}]
+    stage_tokens: [{{stage: 0, tokens: 10}}, {{stage: 1, tokens: 1}}, {{stage: 2, tokens: 1}}, {{stage: 3, tokens: 1}}, {{stage: 4, tokens: 1}}, {{stage: 5, tokens: 1}}]
     false_edges: 0
     instrument_churn: {{shape_driven_lines: 1, other_lines: 0}}
     measured_at: {sha}

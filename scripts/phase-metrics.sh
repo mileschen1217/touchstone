@@ -172,6 +172,10 @@ try:
                repr(entry.get('lens_h')))
         ma = str(entry.get('measured_at') or '')
         report(re.fullmatch(r'[0-9a-f]{40}', ma) is not None, 'measured_at is 40-hex', repr(ma))
+        st = entry.get('stage_tokens') or []
+        report(sorted(x.get('stage') for x in st) == [0, 1, 2, 3, 4, 5] and all(x.get('tokens', 0) > 0 for x in st),
+               'stage_tokens has stages 0-5 from the plugin root, each > 0', repr(st))
+        report(isinstance(entry.get('false_edges'), int), 'false_edges is an integer', repr(entry.get('false_edges')))
         report(entry.get('phase') == 0, 'phase == 0', repr(entry.get('phase')))
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
@@ -411,12 +415,16 @@ for rv, raw, reason in excluded:
     sys.stderr.write('  excluded: %s (target=%r reason=%s)\n' % (rv, raw, reason))
 
 # ------------------------------------------------------------- stage_tokens / false_edges
-map_out = subprocess.run(['bash', pm], capture_output=True, text=True)
+# the plugin root is this script's own tree (scripts/..), never the caller's cwd
+map_root = os.path.dirname(os.path.dirname(os.path.abspath(pm)))
+map_out = subprocess.run(['bash', pm, '--root', map_root], capture_output=True, text=True)
 if map_out.returncode != 0:
     sys.stderr.write('phase-metrics.sh: plugin-map.sh failed (rc=%d): %s\n' % (map_out.returncode, map_out.stderr[:2000]))
     sys.exit(1)
 map_doc = json.loads(map_out.stdout)
-map_root = subprocess.run(['git', 'rev-parse', '--show-toplevel'], capture_output=True, text=True).stdout.strip()
+if sorted(st.get('stage') for st in map_doc.get('stages', [])) != [0, 1, 2, 3, 4, 5]:
+    sys.stderr.write('phase-metrics.sh: plugin-map.sh returned no stages 0-5 for root %s\n' % map_root)
+    sys.exit(1)
 
 stage_tokens = []
 for st in map_doc.get('stages', []):

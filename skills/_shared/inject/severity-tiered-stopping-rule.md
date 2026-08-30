@@ -27,8 +27,8 @@ it never enters the re-verify budget below.
 - 0 Critical and High < T → fix all → close; the fix diff rides the verdict to the next
   human checkpoint.
 
-A short-chain design-review spends the initial round only; its re-verify dispatch is
-never issued.
+A short-chain design-review and the touchstone-local plugin-review spend the initial
+round only; their re-verify dispatch is never issued — residue rides to the next phase.
 
 **Re-verify round (budget spent — no further autonomous dispatch):**
 - any Critical → the artifact is **blocked** and surfaced to the human at the next

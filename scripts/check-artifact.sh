@@ -314,13 +314,18 @@ elif kind == 'deviation':
                             errors.append(f"quiz.items[{iid}].refs: {r} does not resolve")
 
     seen_phases = set()
-    for m in doc.get('metrics') or []:
+    for mi, m in enumerate(doc.get('metrics') or []):
         if not isinstance(m, dict): continue
         ph = m.get('phase')
         if ph in seen_phases:
             errors.append(f"metrics: duplicate phase {ph}")
         else:
             seen_phases.add(ph)
+        st = m.get('stage_tokens')
+        if isinstance(st, list):
+            stages = sorted(x.get('stage') for x in st if isinstance(x, dict))
+            if stages != [0, 1, 2, 3, 4, 5]:
+                errors.append(f"metrics[{mi}].stage_tokens: stages 0-5 each exactly once")
 
 for w in warns: print(f"warn: {w}")
 for e in errors: print(e)
