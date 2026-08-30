@@ -5,8 +5,9 @@ description: |
   Generate the contract (spec.yaml) — the one contract shape both of crucible's forms,
   full and short, produce. Writes fields per skills/_shared/schemas/spec.schema.yaml
   into the epic's directory from an assay record's consensus. Invoked by crucible after
-  assay, or directly for a spec revision. Paths come from the config-resolver
-  (`/touchstone:init` writes them once per project).
+  assay, or directly for a spec revision. Skip when no assay record exists yet
+  (crucible first) or the work is a one-shot edit outside the workflow. Paths come
+  from the config-resolver (`/touchstone:init` writes them once per project).
 allowed-tools:
   - Bash
   - Read

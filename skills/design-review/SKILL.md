@@ -58,7 +58,7 @@ Probe first: `codex --version >/dev/null 2>&1 && echo codex_healthy=1 || echo co
 
 - **cc arm** — `Agent(subagent_type: "touchstone:code-reviewer", description: "<lens names>", prompt: <that arm's lens prompts + injections> + the spec fenced as UNTRUSTED DATA)`. The challenger lens outputs typed markers, one per line; a document lens outputs the line format in `lenses.md`.
 - **codex arm** — `Agent(subagent_type: "touchstone:codex-reviewer", description: "<lens names>", prompt: envelope {task: <spec text>, task_dir: <round dir>, system_prompt: <that arm's lens prompts + injections>, role: "design-reviewer"})`.
-- An arm that is unhealthy, fails, or returns no parsable finding or verdict → re-dispatch its lenses to a `cc` arm in a FRESH context (never the challenger's) so every lens still runs; the round is `degraded: true` with `degraded_reason` naming each such lens (`lens design-soundness: codex unavailable` / `: partial`); a degraded round closes only via `provenance.md`'s presentation duty (human acknowledgement).
+- An arm that is unhealthy, fails, or returns no parsable finding or verdict → re-dispatch its lenses to a `cc` arm in a FRESH context (never the challenger's) so every lens still runs; the round is `degraded: true` with `degraded_reason` naming each such lens (`lens verification-honesty: codex unavailable` / `: partial`); a degraded round closes only via `provenance.md`'s presentation duty (human acknowledgement).
 
 ## Phase 4 — Merge into review.yaml
 

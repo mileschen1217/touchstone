@@ -29,9 +29,11 @@ CLAUDE.md may override the base branch).
 Governing spec: the caller's `spec` argument, else the active epic's
 `status: accepted` `*.spec.yaml`; the epic dir is `bundle.epics` of
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md` (follow it).
-Unresolvable → the conformance and honor-check lenses are not dispatched; emit exactly one line,
-`no governing spec — conformance not audited`, run the quality lens alone, and report its
-findings in the run message — no review.yaml is written (the record needs a `target`).
+Unresolvable (a direct invocation only — anvil always passes the spec, so its hand-off
+to phase-ship always carries a review.yaml) → the conformance and honor-check lenses are
+not dispatched; emit exactly one line, `no governing spec — conformance not audited`, run
+the quality lens alone, and report its findings in the run message — no review.yaml is
+written (the record needs a `target`).
 
 Builder — always detect, even under a forced arm:
 `git log --format=%B <range> | grep -iE '^Co-Authored-By:.*(codex|gpt-?5|openai)'`.

@@ -6,6 +6,10 @@
 # field-path grammar. `refs` (on entries and quiz items) resolves against the `*.spec.yaml`
 # under --root whose top-level `phase` equals that entry's/item's own `phase` — see
 # spec.schema.yaml's header for the spec_ref keyword.
+# Entry fields the builder fills by judgment beside gap/disposition: `panel` = the
+# phase_map panel the gap belongs to (none when it belongs to no human panel);
+# `which_stage_could_have_caught` = the earliest stage whose gate should have caught it;
+# `catcher` = who actually found it (builder / reviewer / owner, with the instrument).
 # An entry's `refs` may be empty only beside `derived: true`.
 # `metrics` is a list with one entry per phase, appended by scripts/phase-metrics.sh at
 # phase-ship; check-artifact.sh rejects a duplicate phase and a measured_at that is not a

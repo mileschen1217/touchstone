@@ -6,7 +6,9 @@ is crucible's contract accept). The PR approve is that yes acted on, not a furth
 ruling. There is no explainer file: the dossier's 首頁 (decision line → gate strip →
 blocker checklist → how-verified → structure → do-confirm checklist) is the explainer,
 and the PR body is its text projection. Anvil's terminal hand-off (branch, review
-verdict, unverified list) is this moment's input.
+verdict, unverified list) is this moment's input: the unverified list is what the 首頁's
+blocker checklist shows, and an unverified live-bearing AC on it blocks the informed
+accept until its live artifact exists or the AC is deferred to a later phase.
 
 ## Pre-approve — Post-build pair (single home; close step 2 cites this)
 
