@@ -57,3 +57,12 @@ consumer project accumulated a `stamps.jsonl` it never read.
   superseded for consumers; touchstone's own epics keep running them locally.
 - Flip-trigger unchanged in spirit: a gate-calibration question that needs consumer data
   re-enables the stamp write only — never Eval Reckon in consumers.
+
+## Amendment 2026-08-29 — stamp axis retired
+
+After one phase of use, `stamps.jsonl` and the Eval Reckon page
+(`.touchstone/checker/standalone/eval-reckon.md`) had zero consumers (test-consumer
+audit 2026-08-29): no skill, script, or reference read either file. Both are deleted.
+The product axis (`gate-miss.md`, `deviation.yaml`) is unchanged. The 2026-08-28
+amendment's "touchstone's own epics keep running them locally" clause is superseded —
+nothing runs them anywhere now.

@@ -1,5 +1,5 @@
 ---
-injected-by: [assay, design-spec]
+injected-by: [assay]
 referenced-by: [design-spec template § Risks / Open Questions]
 kind: bridge
 ---

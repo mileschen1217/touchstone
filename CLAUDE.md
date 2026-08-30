@@ -39,8 +39,11 @@ Use `/triage` and `/to-issues` skills to move work from local drafts to GitHub.
 
 - Lint shell: `shellcheck scripts/*.sh`
 - Prose budget (R1 ratchet: <=3000 lines total, <=200 per file): `bash .touchstone/checker/pre-commit/check-prose-budget.sh`
-- Run tests: `bash scripts/tests-smoke/run-smoke.sh`
+- Run tests: `bash scripts/tests-smoke/run-smoke.sh` — includes the checker rail loop (every `.touchstone/checker/fixtures/<name>/` green/red tree through `check-<name>.sh`) and every `--self-test`.
 - Lint test shell: `shellcheck scripts/tests-smoke/*.sh`
+- Live plugin map (who loads whom, lines per stage, orphans, false edges — computed from the tree, never committed): `bash scripts/plugin-map.sh` (JSON), `--skill <name>` (one skill's load set), `--mermaid` (the stage picture).
+- Checker rail, run automatically by the hook on `git commit` / `git push`: pre-commit `check-plugin-graph.sh` (false edges, unwaived orphans, test-only nodes, stale waivers — entry set `.touchstone/checker/plugin-map.entries`, waiver ledger `.touchstone/checker/waivers.yaml`), `check-fixture-consumers.sh`, `check-manifest-counts.sh`; pre-push `check-plugin-ratchets.sh` (baseline `.touchstone/checker/baselines/plugin-ratchets.txt` — commit a lower value when the checker prints `ratchet may fall`).
+- **Plugin review (touchstone-local, never shipped):** when a diff touches any `.touchstone/shipped-surface.txt` prefix, the maintainer session runs `bash .touchstone/checker/standalone/plugin-review.sh <epic-dir>` (rubric `.touchstone/checker/standalone/plugin-review-rubric.md`; Codex arm inside the script, CC arm dispatched by the session and passed as `--cc-findings`) **before** `/touchstone:deliverable-review`; its review.yaml (`gate: plugin-review`) is subject to the same C+H = 0 push gate.
 - Plugin reload after edits: `/reload-plugins`
 - Smoke test: install plugin in a clean repo, run `/touchstone:init`, exercise stage skills. After deploying a new version (`/plugins update` → `/reload-plugins`), exercise one stage skill to verify the cache.
 

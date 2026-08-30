@@ -31,7 +31,7 @@ expect_out() {
 }
 
 # ---- check-artifact.sh: one green + one red per kind; each violation class asserted by line
-ax="$fx/artifacts"; ca="$scripts_dir/check-artifact.sh"
+ax="$here/fixtures/artifacts"; ca="$scripts_dir/check-artifact.sh"
 expect_exit "check-artifact spec green (bootstrap-shaped)" zero bash "$ca" spec "$ax/spec-green.yaml" --root "$ax"
 expect_out "check-artifact spec: numeric literal without basis is a warning" "warn: requirements[REQ-1].acs[AC-3].then: numeric literal" bash "$ca" spec "$ax/spec-green.yaml" --root "$ax"
 expect_exit "check-artifact spec red" nonzero bash "$ca" spec "$ax/spec-red.yaml" --root "$ax"
@@ -96,17 +96,12 @@ for f in os.listdir(d):
 print('PASS: three schemas, every top-level field reader-tagged')
 PY2
 
-expect_exit "check-evidence-reckoning.sh green" zero \
-  bash "$scripts_dir/check-evidence-reckoning.sh" "$fx/reckoning-index-green.md" "$fx/reckoning-spec.md"
-expect_exit "check-evidence-reckoning.sh red" nonzero \
-  bash "$scripts_dir/check-evidence-reckoning.sh" "$fx/reckoning-index-red.md" "$fx/reckoning-spec.md"
-
 # ---- design-review-precheck.sh: schema floor, draft skip, legacy md block, --attest
 pc="$scripts_dir/design-review-precheck.sh"
 expect_exit "design-review-precheck.sh green" zero bash "$pc" "$ax/spec-green.yaml"
 expect_exit "design-review-precheck.sh red" nonzero bash "$pc" "$ax/spec-red.yaml"
 expect_out "design-review-precheck.sh draft skipped" "PRE-CHECK skipped: draft" bash "$pc" "$ax/spec-red-nomap.yaml"
-expect_exit "design-review-precheck.sh legacy md blocked" nonzero bash "$pc" "$fx/reckoning-spec.md"
+expect_exit "design-review-precheck.sh legacy md blocked" nonzero bash "$pc" "$ax/legacy-spec.md"
 qd="$(mktemp -d)"; sed 's/^status: draft/status: "draft"/' "$ax/spec-red-nomap.yaml" > "$qd/q.yaml"
 expect_out "design-review-precheck.sh quoted draft skipped" "PRE-CHECK skipped: draft" bash "$pc" "$qd/q.yaml"
 rm -rf "$qd"
@@ -140,7 +135,7 @@ fi
 # placement, ADR resolution, and determinism are all exercised offline.
 tmp_root="$(mktemp -d)"
 mkdir -p "$tmp_root/.touchstone/epics" "$tmp_root/.touchstone/archive/epics" "$tmp_root/docs/adr"
-cp -R "$fx/dossier-epic" "$tmp_root/.touchstone/epics/2026-01-01-fixture"
+cp -R "$here/fixtures/dossier-epic" "$tmp_root/.touchstone/epics/2026-01-01-fixture"
 rm -f "$tmp_root/.touchstone/epics/2026-01-01-fixture/dossier.html"
 printf '# gate-miss\n\n- 2026-01-02 | fixture | a miss | assay | human | L\n' > "$tmp_root/.touchstone/gate-miss.md"
 printf -- '---\nstatus: Accepted\n---\n\n# ADR-0038 fixture decision\n\nBody.\n' > "$tmp_root/docs/adr/0038-fixture.md"
@@ -385,5 +380,223 @@ print('PASS: dossier same-date grouping by slug; date-only file in epic group')
 PY
 
 rm -rf "$tmp_root"
+
+# ---- render-on-write.sh: the PostToolUse re-render hook, against a scratch
+# project root holding two epics. It must render exactly the epic that was
+# written, never a sibling, and never follow a path out of the epics/ tree.
+if command -v jq >/dev/null 2>&1; then
+  ro_hook="$(cd "$scripts_dir/.." && pwd)/.touchstone/checker/standalone/render-on-write.sh"
+  ro_root="$(mktemp -d)"
+  mkdir -p "$ro_root/.touchstone/epics" "$ro_root/scripts"
+  cp -R "$here/fixtures/dossier-epic" "$ro_root/.touchstone/epics/2026-02-01-alpha"
+  cp -R "$here/fixtures/dossier-epic" "$ro_root/.touchstone/epics/2026-02-02-beta"
+  rm -f "$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html" \
+        "$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
+  cp "$scripts_dir/dossier-render.sh" "$ro_root/scripts/dossier-render.sh"
+  ro_a="$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html"
+  ro_b="$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
+
+  ro_fire() {  # <label> <written-file-path>
+    local label="$1" fp="$2" out rc
+    out="$(jq -nc --arg fp "$fp" --arg cwd "$ro_root" \
+      '{tool_input:{file_path:$fp}, cwd:$cwd}' \
+      | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_hook" 2>&1)"; rc=$?
+    if [ "$rc" -eq 0 ]; then echo "PASS: render-on-write $label (exit 0)"
+    else echo "FAIL: render-on-write $label (rc=$rc): $out"; fail=1; fi
+  }
+
+  ro_fire "non-yaml write" "$ro_root/.touchstone/epics/2026-02-01-alpha/index.md"
+  if [ ! -f "$ro_a" ] && [ ! -f "$ro_b" ]; then
+    echo "PASS: render-on-write non-yaml renders nothing"
+  else echo "FAIL: render-on-write non-yaml rendered a dossier"; fail=1; fi
+
+  ro_fire "yaml under epic A" "$ro_root/.touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml"
+  if [ -f "$ro_a" ] && [ ! -f "$ro_b" ]; then
+    echo "PASS: render-on-write renders A's dossier and leaves B untouched"
+  else echo "FAIL: render-on-write A=$([ -f "$ro_a" ] && echo yes || echo no) B=$([ -f "$ro_b" ] && echo yes || echo no)"; fail=1; fi
+
+  # Traversal: swap in a stub renderer that leaves a marker when invoked — the
+  # real renderer also fails on `epics/..` (no index.md), so "no dossier appeared"
+  # would pass with or without the path guard. The guard is proven only by the
+  # renderer never being called, and by the hook printing nothing.
+  printf '#!/usr/bin/env bash\ntouch "%s/RENDERER-INVOKED"\nexit 0\n' "$ro_root" > "$ro_root/scripts/dossier-render.sh"
+  ro_out="$(jq -nc --arg fp "$ro_root/.touchstone/epics/../../x.yaml" --arg cwd "$ro_root" \
+    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_hook" 2>&1)"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ -z "$ro_out" ] && [ ! -e "$ro_root/RENDERER-INVOKED" ]; then
+    echo "PASS: render-on-write traversal payload never invokes the renderer (exit 0, silent)"
+  else echo "FAIL: render-on-write traversal payload rc=$ro_rc invoked=$([ -e "$ro_root/RENDERER-INVOKED" ] && echo yes || echo no) out=$ro_out"; fail=1; fi
+  # control: the stub IS invoked for a legitimate yaml write (so the marker test can fail)
+  jq -nc --arg fp "$ro_root/.touchstone/epics/2026-02-02-beta/deviation.yaml" --arg cwd "$ro_root" \
+    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_hook" >/dev/null 2>&1
+  if [ -e "$ro_root/RENDERER-INVOKED" ]; then echo "PASS: render-on-write control: stub renderer invoked for a real epic yaml"
+  else echo "FAIL: render-on-write control: stub renderer never invoked"; fail=1; fi
+
+  rm -rf "$ro_root"
+else
+  echo "FAIL: render-on-write block skipped — jq not found"; fail=1
+fi
+
+# ---- generic checker rail loop (REQ-6/AC-26/AC-27): every
+# .touchstone/checker/fixtures/<name>/ tree gets a green PASS (must not trip)
+# and a red PASS (must trip); a single-file fixture (close-ready) runs the
+# checker's own --self-test instead. "Trip" = nonzero exit, or — for a
+# WARN-ONLY checker (header carries the literal WARN-ONLY, always exit 0) —
+# stdout/stderr contains WARN. A fixture with no matching checker, or a
+# layout the loop can't map, is a FAIL line, never a silent skip.
+repo_root="$(cd "$scripts_dir/.." && pwd)"
+fixtures_root="$repo_root/.touchstone/checker/fixtures"
+
+# ---- plugin-map.sh's own self-test: it runs the map over the same fixture
+# trees the rail owns and asserts the graph / entries / metrics contract.
+expect_exit "plugin-map.sh --self-test" zero bash "$scripts_dir/plugin-map.sh" --self-test
+
+find_checker() {  # <name> -> absolute path on stdout, or nothing
+  local name="$1" d p
+  for d in "$repo_root/.touchstone/checker/pre-commit" "$repo_root/.touchstone/checker/pre-push" "$repo_root/.touchstone/checker/standalone"; do
+    p="$d/check-$name.sh"
+    [ -f "$p" ] && { printf '%s\n' "$p"; return 0; }
+  done
+  p="$(find "$repo_root/skills" -name "check-$name.sh" 2>/dev/null | head -1)"
+  [ -n "$p" ] && printf '%s\n' "$p"
+}
+
+# run_rail_checker <name> <root-dir> <checker-path> -- sets rail_out, rail_rc.
+# Per-checker env mirrors that checker's own --self-test block (only
+# prose-budget needs one today: PROSE_FILE_BUDGET/PROSE_TOTAL_BUDGET).
+run_rail_checker() {
+  case "$1" in
+    prose-budget)
+      rail_out="$(PROSE_FILE_BUDGET=5 PROSE_TOTAL_BUDGET=10 TOUCHSTONE_CHECK_ROOT="$2" bash "$3" 2>&1)"; rail_rc=$? ;;
+    *)
+      rail_out="$(TOUCHSTONE_CHECK_ROOT="$2" bash "$3" 2>&1)"; rail_rc=$? ;;
+  esac
+}
+
+shopt -s nullglob
+for fxd in "$fixtures_root"/*/; do
+  name="$(basename "$fxd")"
+  checker="$(find_checker "$name")"
+  if [ -z "$checker" ]; then
+    echo "FAIL: rail $name (no check-$name.sh under checker stage dirs or skills/**)"; fail=1
+    continue
+  fi
+  warn_only=0; grep -q 'WARN-ONLY' "$checker" && warn_only=1
+
+  subdirs=("$fxd"*/)
+  if [ "${#subdirs[@]}" -eq 0 ]; then
+    # single-file fixture (e.g. close-ready/green.md, close-ready/red.md)
+    if grep -q -- '--self-test' "$checker"; then
+      rail_out="$(bash "$checker" --self-test 2>&1)"; rail_rc=$?
+      if [ "$rail_rc" -eq 0 ]; then
+        echo "PASS: rail $name self-test"
+      else
+        echo "FAIL: rail $name self-test (rc=$rail_rc)"; echo "$rail_out"; fail=1
+      fi
+    else
+      echo "FAIL: rail $name (single-file fixture, but $checker has no --self-test)"; fail=1
+    fi
+    continue
+  fi
+
+  for sub in "${subdirs[@]}"; do
+    subname="$(basename "$sub")"
+    case "$subname" in
+      green*) want=notrip ;;
+      red*) want=trip ;;
+      *) echo "FAIL: rail $name $subname (fixture dir name must start with green or red)"; fail=1; continue ;;
+    esac
+    run_rail_checker "$name" "$sub" "$checker"
+    tripped=0
+    if [ "$warn_only" -eq 1 ]; then
+      printf '%s' "$rail_out" | grep -q 'WARN' && tripped=1
+    else
+      [ "$rail_rc" -ne 0 ] && tripped=1
+    fi
+    ok=0
+    [ "$want" = trip ]   && [ "$tripped" -eq 1 ] && ok=1
+    [ "$want" = notrip ] && [ "$tripped" -eq 0 ] && ok=1
+    if [ "$ok" -eq 1 ]; then
+      echo "PASS: rail $name $subname"
+    else
+      echo "FAIL: rail $name $subname (tripped=$tripped want=$want rc=$rail_rc)"; echo "$rail_out"; fail=1
+    fi
+  done
+done
+shopt -u nullglob
+
+# ---- invoke --self-test on every script that defines one. The glob is `*.sh`,
+# not `check-*.sh`: a standalone tool under the same stage dirs carries a
+# self-test too, and a check-only glob left it uninvoked.
+for d in "$repo_root/.touchstone/checker/pre-commit" "$repo_root/.touchstone/checker/pre-push" "$repo_root/.touchstone/checker/standalone"; do
+  [ -d "$d" ] || continue
+  while IFS= read -r f; do
+    grep -q -- '--self-test' "$f" || continue
+    expect_exit "self-test $(basename "$f" .sh)" zero bash "$f" --self-test
+  done < <(find "$d" -maxdepth 1 -name '*.sh' | sort)
+done
+while IFS= read -r f; do
+  grep -q -- '--self-test' "$f" || continue
+  expect_exit "self-test $(basename "$f" .sh)" zero bash "$f" --self-test
+done < <(find "$repo_root/skills" -name '*.sh' | sort)
+
+# ---- dossier type-role self-check (regression ratchet for the 2026-08-30 owner reads):
+# a label is a key beside a value — never a heading, never a table value.
+ui_root="$(mktemp -d)"; mkdir -p "$ui_root/.touchstone/epics"
+cp -R "$here/fixtures/dossier-epic" "$ui_root/.touchstone/epics/2026-01-01-fixture"
+rm -f "$ui_root/.touchstone/epics/2026-01-01-fixture/dossier.html"
+bash "$scripts_dir/dossier-render.sh" "$ui_root/.touchstone/epics/2026-01-01-fixture" >/dev/null 2>&1
+ui_html="$ui_root/.touchstone/epics/2026-01-01-fixture/dossier.html"
+python3 - "$ui_html" <<'PY' || { echo "FAIL: dossier type-role self-check"; fail=1; }
+import re, sys
+h = open(sys.argv[1], encoding='utf-8').read()
+bad = {
+  'fold heading that is only a label': re.findall(r'<summary><span class="label">[^<]*</span></summary>', h),
+  'heading (h2-h4) whose text is only a label': re.findall(r'<h[234][^>]*><span class="label">[^<]*</span>\s*</h[234]>', h),
+  'table value cell styled as a label': re.findall(r'<td[^>]*><span class="label">[^<]*</span></td>', h),
+  'label with nothing beside it in a paragraph': re.findall(r'<p[^>]*><span class="label">[^<]*</span></p>', h),
+}
+for k, v in bad.items():
+    assert not v, '%s: %d hit(s), e.g. %s' % (k, len(v), v[0][:80])
+# every font-size in the style block is a role token, never a literal
+css = re.search(r'<style>(.*?)</style>', h, re.S).group(1)
+lit = re.findall(r'font-size:\s*[0-9.]+(?:rem|px)', css.split('@media')[0].replace('html{font-size:16px}', ''))
+assert not lit, 'literal font sizes in the style block: %s' % lit[:5]
+print('PASS: dossier type roles — no label used as a heading or a value; every size is a role token')
+PY
+
+# ---- dossier width probe: no horizontal overflow at phone / tablet / desktop widths.
+# Needs a headless Chrome; absent → a visible SKIP line (never a silent pass).
+ui_chrome=""
+for c in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" google-chrome chromium chromium-browser; do
+  if [ -x "$c" ] || command -v "$c" >/dev/null 2>&1; then ui_chrome="$c"; break; fi
+done
+if [ -n "$ui_chrome" ]; then
+  ui_probe="$ui_root/probe.html"
+  # every tab visible, every fold open, and the measured widths written into <title>
+  sed -e 's/\.tab{display:none}/.tab{display:block}/' -e 's/<details class="fold">/<details class="fold" open>/g' \
+      -e 's|</body>|<script>document.title="W="+document.documentElement.scrollWidth+"/"+document.documentElement.clientWidth</script></body>|' \
+      "$ui_html" > "$ui_probe"
+  for w in 390 768 1280; do
+    t="$("$ui_chrome" --headless=new --disable-gpu --hide-scrollbars --window-size="$w,900" --virtual-time-budget=2000 \
+          --dump-dom "file://$ui_probe" 2>/dev/null | grep -o '<title>W=[0-9]*/[0-9]*</title>' | head -1)"
+    sw="${t#*W=}"; sw="${sw%%/*}"; cw="${t#*/}"; cw="${cw%%<*}"
+    if [ -n "$sw" ] && [ -n "$cw" ] && [ "$sw" -le "$cw" ]; then echo "PASS: dossier width probe ${w}px (scroll $sw ≤ client $cw)"
+    else echo "FAIL: dossier width probe ${w}px (title=$t)"; fail=1; fi
+  done
+else
+  echo "SKIP: dossier width probe — no headless Chrome on this host"
+fi
+rm -rf "$ui_root"
+
+# ---- check-exec-bits-all.sh: the untracked-file branch (filesystem mode) — the
+# committed red fixture is tracked, so it trips on the index rule; this scratch
+# tree has no git index and a 644 script.
+eb_root="$(mktemp -d)"; mkdir -p "$eb_root/hooks"; printf '#!/bin/sh\n' > "$eb_root/hooks/x.sh"; chmod 644 "$eb_root/hooks/x.sh"
+expect_out "check-exec-bits-all untracked 644 script trips on filesystem mode" "filesystem mode 644, untracked" \
+  env TOUCHSTONE_CHECK_ROOT="$eb_root" bash "$repo_root/.touchstone/checker/pre-commit/check-exec-bits-all.sh"
+chmod 755 "$eb_root/hooks/x.sh"
+expect_exit "check-exec-bits-all untracked 755 script passes" zero \
+  env TOUCHSTONE_CHECK_ROOT="$eb_root" bash "$repo_root/.touchstone/checker/pre-commit/check-exec-bits-all.sh"
+rm -rf "$eb_root"
 
 exit "$fail"

@@ -19,3 +19,5 @@
 - 2026-08-29 | human-facing-comm dossier.html | 頁內 Q-x/AC-n 連結在 claude.ai 檔案檢視器內跳 external link(href="#" 被檢視器攔截) | 應然:dossier smoke(在目標檢視器實測連結) | 實然:human@phase-ship 點擊 | M
 - 2026-08-29 | human-facing-comm dossier.html 首頁(quiz round 1) | QZ-6 答漏 AC-12、AC-15（未驗證清單把 4 條 AC 與 1 條不變式合計成 5，數不清）；QZ-3 對但暴露 spec phase_map.interface_delta 仍寫「Ship 面」（Q-24 後已併成首頁） | 應然:dossier-render(未驗證分組顯示)/ design-spec human 欄位隨裁決更新 | 實然:human@quiz | M
 - 2026-08-29 | human-facing-comm dossier.html | 排版：strip 的 gate 名稱與狀態 pill 換行後配對不清；決策行同樣；折疊區內字級與未折疊不一致 | 應然:dossier-render 視覺自檢（各寬度、摺疊全開） | 實然:human@閱讀 | L
+- 2026-08-30 | human-facing-comm dossier.html 首頁(quiz phase 2) | QZ-10 三支 commit 檢查器名字全對但說不出各擋什麼；QZ-13 plugin 審查說不出停止條件（90 %／分數不升且無新 C-H／第三輪）——首頁與 phase map 只寫「commit 時擋假邊與孤兒」，沒把三支檢查器與停止規則各自講一句 | 應然:design-spec(phase_map 人讀欄位要逐支檢查器一句話+審查停止規則) / dossier-render(檢查器軌道有自己的段) | 實然:human@quiz | M
+- 2026-08-30 | human-facing-comm dossier.html 結構變化 tab | 排版：面板標題（位置／結構前後）與內文幾乎同大小；結構圖縮到不能讀；三種字體並存（頁首襯線、面板標題、內文）；偏離條目各欄位混排、欄位標籤（哪一階段可抓到）比值（design-review）還小 | 應然:dossier-render(字級階層：標題>標籤>內文；圖可讀寬度；單一字體家族；偏離條目固定欄位表) | 實然:human@quiz 閱讀 | M

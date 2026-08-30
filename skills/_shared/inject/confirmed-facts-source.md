@@ -1,5 +1,5 @@
 ---
-injected-by: [design-spec, crucible]
+injected-by: [design-spec]
 referenced-by: [assay]
 ---
 

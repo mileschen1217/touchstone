@@ -1,0 +1,4 @@
+# fixture
+skills/
+agents/
+commands/

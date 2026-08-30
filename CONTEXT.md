@@ -44,9 +44,8 @@ pointer names the single home of any longer rule.
 
 ## Eval vocabulary
 
-- **gate stamp** — one line appended after each gate run in touchstone's own
-  epics (`.touchstone/checker/standalone/eval-reckon.md`, repo-local — not shipped);
-  the which-gate-pays-rent axis.
+- **gate stamp** — retired 2026-08-29 (ADR-0039 amendment): no gate appends one
+  anywhere.
 - **use-point failure event** — one line recorded when an artifact fails in use
   (`date | artifact | event | expected locus | actual locus | severity`); instances:
   `gate-miss.md` (human catches what a gate missed), build deviation logs,

@@ -1,6 +1,6 @@
 ---
 name: cross-provider-reviewer
-description: Pattern A composite skill — one composite, two internal roles. `review` runs CC `code-reviewer` + Codex `codex-reviewer` in parallel and synthesizes with explicit divergence labeling; `architecture-critique` sends the same two arms a validation rubric (CC) and an adversarial pressure-test lens (Codex). Auto-falls back to CC-only when Codex unavailable. Callers — `/touchstone:design-review` (doc-review `system_prompt`, internal role `review`), `/touchstone:assay` structural-fork case (internal role `architecture-critique`), and ad-hoc cross-provider review.
+description: Pattern A composite skill — one composite, two internal roles. `review` runs CC `code-reviewer` + Codex `codex-reviewer` in parallel and synthesizes with explicit divergence labeling; `architecture-critique` sends the same two arms a validation rubric (CC) and an adversarial pressure-test lens (Codex). Auto-falls back to CC-only when Codex unavailable. Callers — `/touchstone:assay` structural-fork case (internal role `architecture-critique`), and ad-hoc cross-provider review.
 allowed-tools:
   - Bash
   - Read

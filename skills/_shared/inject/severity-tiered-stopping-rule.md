@@ -1,6 +1,6 @@
 ---
 injected-by: [design-review, deliverable-review]
-referenced-by: [design-spec, anvil, crucible]
+referenced-by: [crucible]
 kind: bridge
 ---
 

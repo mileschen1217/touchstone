@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# check-review-summary.sh — pre-push guard: block if the newest review.yaml under
-# .touchstone/epics/ carries Critical or High findings (counts.C + counts.H > 0).
+# check-review-summary.sh — pre-push guard: for each gate (design-review, deliverable-review,
+# plugin-review, …) take the newest review.yaml under .touchstone/epics/ and block if it
+# carries OPEN Critical or High findings (findings[].status == open; counts.C + counts.H
+# when the file has no findings list). Newest-per-gate: a newer clean file from one gate
+# never hides another gate's open findings.
 #
 # Absence → passthrough: no review.yaml, no PyYAML, or unreadable counts → exit 0.
 # The guard does not mandate a review before every push — only that an existing
@@ -13,6 +16,25 @@ if [ "${1:-}" = "--self-test" ]; then
   TOUCHSTONE_CHECK_ROOT="$t" "$0" && { echo "self-test FAIL: C+H>0 passed"; exit 1; }
   printf 'gate: deliverable-review\ncounts: {C: 0, H: 0, M: 2, L: 0}\n' > "$t/.touchstone/epics/e/review-1/review.yaml"
   TOUCHSTONE_CHECK_ROOT="$t" "$0" || { echo "self-test FAIL: C+H=0 blocked"; exit 1; }
+  # newest-per-gate: an older gate with an open H is not hidden by a newer clean gate
+  mkdir -p "$t/.touchstone/epics/e/pr" "$t/.touchstone/epics/e/dr"
+  printf 'gate: plugin-review\ncounts: {C: 0, H: 1, M: 0, L: 0}\nfindings:\n  - {id: F-1, severity: H, status: open}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  sleep 1
+  printf 'gate: deliverable-review\ncounts: {C: 0, H: 0, M: 0, L: 0}\nfindings: []\n' > "$t/.touchstone/epics/e/dr/review.yaml"
+  rm -f "$t/.touchstone/epics/e/review-1/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" >/dev/null && { echo "self-test FAIL: newer clean gate hid an older open H"; exit 1; }
+  # statuses: fixed discharges; unverified blocks; waived blocks without a ruling, passes with one
+  printf 'gate: plugin-review\ncounts: {C: 0, H: 1, M: 0, L: 0}\nfindings:\n  - {id: F-1, severity: H, status: fixed}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" || { echo "self-test FAIL: all-fixed blocked"; exit 1; }
+  printf 'gate: plugin-review\ncounts: {C: 1, H: 1, M: 0, L: 0}\nfindings:\n  - {id: F-1, severity: C, status: unverified}\n  - {id: F-2, severity: H, status: unverified}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" >/dev/null && { echo "self-test FAIL: unverified C/H passed"; exit 1; }
+  printf 'gate: plugin-review\ncounts: {C: 0, H: 1, M: 0, L: 0}\nrulings: []\nfindings:\n  - {id: F-1, severity: H, status: waived}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" >/dev/null && { echo "self-test FAIL: waived H without a ruling passed"; exit 1; }
+  printf 'gate: plugin-review\ncounts: {C: 0, H: 1, M: 0, L: 0}\nrulings: [Q-1]\nfindings:\n  - {id: F-1, severity: H, status: waived}\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" || { echo "self-test FAIL: waived H with a ruling blocked"; exit 1; }
+  # empty findings list with non-zero counts falls back to counts
+  printf 'gate: plugin-review\ncounts: {C: 1, H: 2, M: 0, L: 0}\nfindings: []\n' > "$t/.touchstone/epics/e/pr/review.yaml"
+  TOUCHSTONE_CHECK_ROOT="$t" "$0" >/dev/null && { echo "self-test FAIL: empty findings + counts C+H=3 passed"; exit 1; }
   rm -rf "$t"; echo "self-test OK"; exit 0
 fi
 root="${TOUCHSTONE_CHECK_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}" || exit 0
@@ -22,28 +44,54 @@ search_dir="$root/.touchstone/epics"
 command -v python3 >/dev/null 2>&1 || exit 0
 python3 -c 'import yaml' 2>/dev/null || exit 0
 
-rf=""; best_ts=0
-while IFS= read -r f; do
-  ts="$(stat -f '%m' "$f" 2>/dev/null || stat -c '%Y' "$f" 2>/dev/null || echo 0)"
-  if [ "$ts" -gt "$best_ts" ] 2>/dev/null; then best_ts="$ts"; rf="$f"; fi
-done < <(find "$search_dir" -name "review.yaml" -type f 2>/dev/null)
-[ -n "$rf" ] || exit 0
-
-ch="$(python3 - "$rf" <<'PY'
-import sys, yaml
-try:
-    r = yaml.safe_load(open(sys.argv[1], encoding='utf-8')) or {}
-    c = r.get('counts') or {}
-    print(int(c.get('C', 0)) + int(c.get('H', 0)))
-except Exception:
-    print('')
+# Newest review.yaml PER GATE (design-review / deliverable-review / plugin-review …): a newer
+# clean file from one gate must not hide an older gate's open Critical/High findings.
+files="$(find "$search_dir" -name "review.yaml" -type f 2>/dev/null)"
+[ -n "$files" ] || exit 0
+blocks="$(python3 - <<'PY' "$files"
+import sys, os, yaml
+newest = {}
+for f in sys.argv[1].split('\n'):
+    if not f: continue
+    try:
+        r = yaml.safe_load(open(f, encoding='utf-8')) or {}
+        gate = str(r.get('gate') or '?')
+        ts = os.path.getmtime(f)
+    except Exception:
+        continue
+    if gate not in newest or ts > newest[gate][0]:
+        newest[gate] = (ts, f, r)
+for gate, (ts, f, r) in sorted(newest.items()):
+    # `counts` is the round's total; a finding's live state is its `status` (fixed / waived
+    # findings stay counted). Block on OPEN Critical/High findings; fall back to counts only
+    # when the file carries no findings list.
+    # Blocking statuses: `open`, and `unverified` (a fix with no evidence is not a fix).
+    # `waived` discharges only when the file records a ruling (rulings non-empty);
+    # `fixed` discharges. An absent OR empty findings list falls back to counts.
+    fs = r.get('findings')
+    try:
+        if isinstance(fs, list) and fs:
+            waive_ok = bool(r.get('rulings'))
+            ch = 0
+            for x in fs:
+                if not isinstance(x, dict) or x.get('severity') not in ('C', 'H'):
+                    continue
+                st = x.get('status', 'open')
+                if st in ('open', 'unverified') or (st == 'waived' and not waive_ok):
+                    ch += 1
+        else:
+            c = r.get('counts') or {}
+            ch = int(c.get('C', 0)) + int(c.get('H', 0))
+    except Exception:
+        continue
+    if ch > 0:
+        print('%s\t%d\t%s' % (gate, ch, f))
 PY
 )"
-[ -n "$ch" ] || exit 0
-if [ "$ch" -gt 0 ]; then
-  echo "[check-review-summary] BLOCK: newest review.yaml has Critical+High = $ch unresolved finding(s)"
-  echo "  source: $rf"
-  echo "  Fix or explicitly waive the findings before pushing."
-  exit 1
-fi
-exit 0
+[ -n "$blocks" ] || exit 0
+echo "[check-review-summary] BLOCK: the newest review.yaml of a gate has unresolved Critical+High finding(s)"
+printf '%s\n' "$blocks" | while IFS="$(printf '\t')" read -r gate ch f; do
+  echo "  $gate: C+H = $ch — $f"
+done
+echo "  Fix or explicitly waive the findings before pushing."
+exit 1

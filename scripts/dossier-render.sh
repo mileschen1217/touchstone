@@ -734,6 +734,11 @@ for rel in files:
 def reviews_for(p):
     return [(rel, d) for rel, d in reviews if phase_of(rel) is p or d.get('target') == os.path.basename(p['spec'])]
 
+KNOWN_GATES = ('design-review', 'deliverable-review')
+def extra_gates(p):
+    """Gate names found in this phase's review.yaml files beyond the known ones, sorted."""
+    return tuple(sorted({sval(d.get('gate')) for rel, d in reviews_for(p) if sval(d.get('gate')) and sval(d.get('gate')) not in KNOWN_GATES}))
+
 def dev_lines_for(p):
     if p is EPIC:
         return [d for d in deviation_lines if not any(q['slug'] and (q['slug'] in d or f"phase {q['num']}" in d.lower()) for q in phases)]
@@ -766,7 +771,7 @@ def yaml_contract_card(p, s):
     if yd.get('facts_source'):
         fs = yd['facts_source']
         parts.append(f'<p class="meta">{lab("帳")} <span class="file">{html.escape(sval(fs.get("record")))}</span> · {lab("引用裁決")} {len(fs.get("consensus") or [])}</p>')
-        agent.append(f'<h4>{lab("共識 id")}</h4><p>{" ".join(link_codes(sval(c), k) for c in fs.get("consensus") or [])}</p>')
+        agent.append(f'<h4>{html.escape("共識 id")}</h4><p>{" ".join(link_codes(sval(c), k) for c in fs.get("consensus") or [])}</p>')
     if yd.get('user_stories'):
         parts.append(collapsed(f'<span class="lead">{lab("使用者故事")}</span> <span class="num">{len(yd["user_stories"])}</span>', '<ul>' + ''.join(
             f'<li id="{attr(k + "--" + sval(u.get("id")))}">{inline(sval(u.get("id")), k, sval(u.get("id")))} · {yv(u.get("as"), k)} · {yv(u.get("want"), k)} · {yv(u.get("so_that"), k)}</li>'
@@ -788,21 +793,21 @@ def yaml_contract_card(p, s):
                 ab = ' '.join(link_codes(sval(b), k) for b in a.get('basis') or [])
                 lb = zpill('live-bearing', 'warn') if a.get('live_bearing') is True else ''
                 rows += f'<tr id="{attr(k + "--" + aid)}" class="ac"><td class="num">{html.escape(aid)} {lb}</td><td>{lab("給定")} {yv(a.get("given"), k)} · {lab("當")} {yv(a.get("when"), k)} · {lab("則")} {yv(a.get("then"), k)}</td><td></td><td class="num">{ab}</td></tr>'
-        agent.append(f'<h4>{lab("需求")}</h4><div class="tbl"><table><tr><th>id</th><th>應 / 給定 · 當 · 則</th><th>驗收條件</th><th>依據</th></tr>{rows}</table></div>')
+        agent.append(f'<h4>{html.escape("需求")}</h4><div class="tbl"><table><tr><th>id</th><th>應 / 給定 · 當 · 則</th><th>驗收條件</th><th>依據</th></tr>{rows}</table></div>')
     if yd.get('invariants'):
-        agent.append(f'<h4>{lab("不變式")}</h4>' + yaml_table([[i.get('id'), i.get('rule'), i.get('check'), i.get('why_ref')] for i in yd['invariants'] if isinstance(i, dict)], ['id', '規則', '檢查', '依據'], k, 0, k))
+        agent.append(f'<h4>{html.escape("不變式")}</h4>' + yaml_table([[i.get('id'), i.get('rule'), i.get('check'), i.get('why_ref')] for i in yd['invariants'] if isinstance(i, dict)], ['id', '規則', '檢查', '依據'], k, 0, k))
     d = yd.get('delta') if isinstance(yd.get('delta'), dict) else {}
     if d.get('blocks'):
         parts.append(f'<p class="meta">{lab("結構變更區塊")} <span class="num">{len(d["blocks"])}</span> · <a class="code" data-jump="{attr(k + "--structure")}" tabindex="0">結構變化</a></p>')
-        agent.append(f'<h4>{lab("變更區塊")}</h4>' + yaml_table([[b.get('id'), b.get('op'), b.get('kind'), b.get('purpose')] for b in d['blocks'] if isinstance(b, dict)], ['id', '動作', '種類', '目的'], k))
+        agent.append(f'<h4>{html.escape("變更區塊")}</h4>' + yaml_table([[b.get('id'), b.get('op'), b.get('kind'), b.get('purpose')] for b in d['blocks'] if isinstance(b, dict)], ['id', '動作', '種類', '目的'], k))
     if d.get('contracts'):
-        agent.append(f'<h4>{lab("契約介面")}</h4>' + yaml_table([[c.get('id'), c.get('schema')] for c in d['contracts'] if isinstance(c, dict)], ['id', 'schema'], k))
+        agent.append(f'<h4>{html.escape("契約介面")}</h4>' + yaml_table([[c.get('id'), c.get('schema')] for c in d['contracts'] if isinstance(c, dict)], ['id', 'schema'], k))
     if yd.get('non_goals'):
         parts.append(collapsed(f'<span class="lead">{lab("不做")}</span> <span class="num">{len(yd["non_goals"])}</span>', '<ul>' + ''.join(f'<li>{yv(n, k)}</li>' for n in yd['non_goals']) + '</ul>'))
     if yd.get('risks'):
         parts.append(collapsed(f'<span class="lead">{lab("風險")}</span> <span class="num">{len(yd["risks"])}</span>', yaml_table([[zh(r.get('priority')), r.get('problem'), r.get('measure'), r.get('why_ref')] for r in yd['risks'] if isinstance(r, dict)], ['優先', '問題', '對策', '依據'], k)))
     if yd.get('waiting_on_human'):
-        parts.append(f'<h4>{lab("等你裁")}</h4><ul class="todo">' + ''.join(f'<li>{yv(w, k)}</li>' for w in yd['waiting_on_human']) + '</ul>')
+        parts.append(f'<h4>{html.escape("等你裁")}</h4><ul class="todo">' + ''.join(f'<li>{yv(w, k)}</li>' for w in yd['waiting_on_human']) + '</ul>')
     if agent:
         parts.append(collapsed(f'<span class="lead">{lab("agent 用欄位")}</span> <span class="muted">{lab("需求 · 驗收條件 · 不變式 · 變更 · 契約介面")}</span>', ''.join(agent)))
     return f'<article>{"".join(parts)}</article>'
@@ -815,8 +820,12 @@ def dev_entries_for_panel(key):
 def dev_entry_html(e, owner, anchor=True):
     did = sval(e.get('id'))
     aid = f' id="{attr("deviation--" + did)}"' if anchor else ''
-    return (f'<li{aid}>{inline(did, owner, did)} · {yv(e.get("date"), owner)} · {lab("缺口")} {yv(e.get("gap"), owner)} · '
-            f'{lab("處置")} {yv(e.get("disposition"), owner)} · {lab("哪一階段可抓到")} {yv(e.get("which_stage_could_have_caught"), owner)}</li>')
+    # one deviation = one fixed-field record: head line (id · date), then label/value rows —
+    # never a run-on sentence where the labels drown between the values
+    return (f'<li{aid}><dl class="dev"><div class="head">{inline(did, owner, did)} <span class="muted">{yv(e.get("date"), owner)}</span></div>'
+            f'<div><dt>{lab("缺口")}</dt><dd>{yv(e.get("gap"), owner)}</dd></div>'
+            f'<div><dt>{lab("處置")}</dt><dd>{yv(e.get("disposition"), owner)}</dd></div>'
+            f'<div><dt>{lab("哪一階段可抓到")}</dt><dd>{yv(e.get("which_stage_could_have_caught"), owner)}</dd></div></dl></li>')
 
 def yaml_panels_html(p, s, legacy_lines, anchor=True):
     k, cards = p['key'], ''
@@ -826,12 +835,12 @@ def yaml_panels_html(p, s, legacy_lines, anchor=True):
         body = f'<p>{yv(text, k)}</p>'
         if hits:
             body += f'<p class="delta">{lab("偏離")}</p><ul>' + ''.join(dev_entry_html(e, k, anchor) for e in hits) + '</ul>'
-        cards += f'<section class="panel"><h4>{lab(label)} {mark}</h4>{body}</section>'
+        cards += f'<section class="panel"><h4>{html.escape(label)} {mark}</h4>{body}</section>'
     other = dev_entries_for_panel('none')
     if other:
-        cards += f'<section class="panel"><h4>{lab("未歸面板的偏離")}</h4><ul>' + ''.join(dev_entry_html(e, k, anchor) for e in other) + '</ul></section>'
+        cards += f'<section class="panel"><h4>{html.escape("未歸面板的偏離")}</h4><ul>' + ''.join(dev_entry_html(e, k, anchor) for e in other) + '</ul></section>'
     if legacy_lines:
-        cards += f'<section class="panel"><h4>{lab("舊版偏離行")}</h4><ul>' + ''.join(f'<li>{inline(d, k)}</li>' for d in legacy_lines) + '</ul></section>'
+        cards += f'<section class="panel"><h4>{html.escape("舊版偏離行")}</h4><ul>' + ''.join(f'<li>{inline(d, k)}</li>' for d in legacy_lines) + '</ul></section>'
     return f'<div class="panels">{cards}</div>'
 
 def review_verdict_line(rel, d, owner):
@@ -899,14 +908,20 @@ def structure_svg(blocks, edges):
     for i in ids: dep(i)
     rows = {}
     for i in ids: rows.setdefault(depth[i], []).append(i)
-    W, H, GX, GY, PAD = 150, 44, 22, 40, 14
-    cols = max(len(m) for m in rows.values())
+    W, H, GX, GY, PAD, MAXC = 150, 44, 22, 40, 14, 4
+    # a depth level with more than MAXC nodes wraps into several rows — the figure stays
+    # readable inside the text column instead of shrinking or scrolling sideways
+    lines = []
+    for dv, members in sorted(rows.items(), key=lambda kv: -kv[0]):
+        for j in range(0, len(members), MAXC): lines.append(members[j:j + MAXC])
+    cols = max(len(m) for m in lines)
     width = PAD * 2 + cols * W + (cols - 1) * GX
     pos = {}
-    for r, (dv, members) in enumerate(sorted(rows.items(), key=lambda kv: -kv[0])):
+    for r, members in enumerate(lines):
         off = (width - (len(members) * W + (len(members) - 1) * GX)) / 2
         for c, i in enumerate(members): pos[i] = (off + c * (W + GX), PAD + r * (H + GY))
-    height = PAD * 2 + len(rows) * H + (len(rows) - 1) * GY
+    height = PAD * 2 + len(lines) * H + (len(lines) - 1) * GY
+    # rows wrap at MAXC nodes so the figure fits the text column at readable size
     out = [f'<svg class="structure" viewBox="0 0 {width} {height}" role="img" aria-label="structure delta">',
            '<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>']
     for e in edges:
@@ -960,12 +975,12 @@ def quiz_html(p):
     for it in items:
         if not isinstance(it, dict): continue
         res = f' <span class="pill {"ok" if sval(it.get("result")) == "pass" else "crit"}">{html.escape(sval(it.get("result")))}</span>' if it.get('result') else ''
-        out += f'<li>{yv(it.get("id"), k)}{res} · {yv(it.get("question"), k)}<details class="fold"><summary>{lab("答案")}</summary><div class="fold-body">{yv(it.get("answer"), k)} · {lab("錨點")} <code>{html.escape(sval(it.get("anchor")))}</code></div></details></li>'
+        out += f'<li>{yv(it.get("id"), k)}{res} · {yv(it.get("question"), k)}<details class="fold"><summary><span class="lead">答案</span></summary><div class="fold-body">{yv(it.get("answer"), k)} · {lab("錨點")} <code>{html.escape(sval(it.get("anchor")))}</code></div></details></li>'
     return f'<div id="{attr(k + "--quiz")}">' + collapsed(f'<span class="lead">{lab("題目")}</span> <span class="num">{len(items)}</span>', f'<ol class="quiz">{out}</ol>') + '</div>'
 
 def waiting_union(p, s):
     out = [(os.path.basename(p['spec']), w) for w in s['yaml'].get('waiting_on_human') or []]
-    for gate in ('design-review', 'deliverable-review'):
+    for gate in KNOWN_GATES + extra_gates(p):
         rel, d = newest_review(p, gate)
         if d: out += [(rel, w) for w in d.get('waiting_on_human') or []]
     if yaml_dev:
@@ -983,7 +998,7 @@ ZH = {
     'original': '原始', 'fix-induced': '修復引入',
     'add': '新增', 'change': '改動', 'remove': '移除',
     'position': '位置', 'structure': '結構前後', 'interface': '介面差異', 'scope': '範圍', 'none': '未歸面板',
-    'design-review': '設計審查', 'deliverable-review': '交付審查', 'tests': '測試', 'quiz': '理解測驗', 'ship-gate': '出貨門',
+    'design-review': '設計審查', 'deliverable-review': '交付審查', 'plugin-review': 'plugin 審查', 'tests': '測試', 'quiz': '理解測驗', 'ship-gate': '出貨門',
     'draft': '草稿', 'accepted-candidate': '待接受', 'accepted': '已接受', 'superseded': '已取代',
     'active': '進行中', 'proposed': '提議', 'paused': '暫停', 'done': '完成', 'cancelled': '取消',
     'approvable': '可核准', 'blocked': '被擋住', 'not-reviewed': '尚未審',
@@ -1019,7 +1034,7 @@ def newest_review(p, gate):
 def open_blockers(p):
     """Open Critical/High findings across the newest round of each gate."""
     out = []
-    for gate in ('design-review', 'deliverable-review'):
+    for gate in KNOWN_GATES + extra_gates(p):
         rel, d = newest_review(p, gate)
         if not d: continue
         for f in d.get('findings') or []:
@@ -1036,22 +1051,39 @@ def quiz_state():
     if any(r == 'miss' for r in res): return 'fail'
     if all(r == 'pass' for r in res): return 'pass'
     return 'pending'
+def gate_state_after_rulings(d):
+    """A non-approve round whose Critical/High findings are all fixed or waived under a recorded
+    ruling is `waived`, never rewritten to pass — the reviewer's verdict stays as written."""
+    fs = [f for f in (d.get('findings') or []) if isinstance(f, dict) and sval(f.get('severity')) in ('C', 'H')]
+    open_ch = [f for f in fs if sval(f.get('status')) in ('open', 'unverified')]
+    if fs and not open_ch and d.get('rulings'):
+        return 'waived'
+    return 'fail'
 def gate_rows(p):
+    """The known-gate/tests/quiz/ship-gate rows, sorted exactly as before (byte-identical
+    when no other gate exists); any other gate found in this phase's review.yaml files is
+    appended after, sorted — always after the known gates, per the extension rule."""
     rows = []
-    for gate in ('design-review', 'deliverable-review'):
+    for gate in KNOWN_GATES:
         rel, d = newest_review(p, gate)
         if not d: rows.append((gate, 'pending', None, None, '')); continue
         v = sval(d.get('verdict'))
-        st = 'pass' if v == 'approve' else 'fail'
+        st = 'pass' if v == 'approve' else gate_state_after_rulings(d)
         rows.append((gate, st, d, rel, ''))
     rows.append(('tests', 'n/a', None, None, ''))
     rows.append(('quiz', quiz_state(), None, 'deviation.yaml' if yaml_dev else None, ''))
     rows.append(('ship-gate', 'n/a', None, None, ''))
-    return sorted(rows, key=lambda r: {'fail': 0, 'pending': 1, 'pass': 2, 'n/a': 3}[r[1]])
+    rows = sorted(rows, key=lambda r: {'fail': 0, 'pending': 1, 'pass': 2, 'n/a': 3}[r[1]])
+    for gate in extra_gates(p):
+        rel, d = newest_review(p, gate)
+        v = sval(d.get('verdict')) if d else ''
+        st = 'pass' if v == 'approve' else gate_state_after_rulings(d)
+        rows.append((gate, st, d, rel, ''))
+    return rows
 def decision(p, s):
     n_block = len(open_blockers(p)) + len(waiting_union(p, s))
     if n_block: return 'blocked', n_block
-    if any(st == 'pending' and g in ('design-review', 'deliverable-review') for g, st, *_ in gate_rows(p)): return 'not-reviewed', 0
+    if any(st == 'pending' and g in KNOWN_GATES for g, st, *_ in gate_rows(p)): return 'not-reviewed', 0
     return 'approvable', 0
 def next_action(d):
     c = d.get('counts') if isinstance(d.get('counts'), dict) else {}
@@ -1063,7 +1095,7 @@ def next_action(d):
 def counts_html(d, owner):
     c = d.get('counts') if isinstance(d.get('counts'), dict) else {}
     return ' '.join(f'{lab(ZH[k])} {yv(c.get(k), owner)}' for k in ('C', 'H', 'M', 'L'))
-GATE_OWNER = {'design-review': 'author', 'deliverable-review': 'builder', 'tests': 'builder', 'quiz': 'owner', 'ship-gate': 'owner'}
+GATE_OWNER = {'design-review': 'author', 'deliverable-review': 'builder', 'plugin-review': 'builder', 'tests': 'builder', 'quiz': 'owner', 'ship-gate': 'owner'}
 def gate_strip_html(p, s):
     k = p['key']
     rows = ''
@@ -1093,12 +1125,13 @@ def front_sections(p, s):
     state, n = decision(p, s)
     secs = []
     n_ph = len(phase_table_rows) or len(phases)
-    head = (f'<dl class="dec"><div><dt>{lab("epic")}</dt><dd>{yv(yd.get("epic"), k)}</dd></div>'
+    # title first (role: title), then the epic / phase / status key-value row (role: label + body)
+    head = (f'<p class="aim">{yv(yd.get("title"), k)}</p>'
+            f'<dl class="dec"><div><dt>{lab("epic")}</dt><dd>{yv(yd.get("epic"), k)}</dd></div>'
             f'<div><dt>{lab("階段")}</dt><dd>{yv(yd.get("phase"), k)} / {n_ph}</dd></div>'
-            f'<div><dt>{lab("狀態")}</dt><dd>{zpill(state)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</dd></div></dl>'
-            f'<p class="aim">{yv(yd.get("title"), k)}</p>')
+            f'<div><dt>{lab("狀態")}</dt><dd>{zpill(state)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</dd></div></dl>')
     secs.append(('決策', head, f"{sval(yd.get('epic'))} · 第 {sval(yd.get('phase'))}/{n_ph} 階段 · {ZH[state]}{f' ({n})' if n else ''}\n\n{sval(yd.get('title'))}"))
-    g_txt = '\n'.join(f"- {ZH[g]}: {ZH[st]}" + (f" — round {sval(d.get('round'))} {sval(d.get('verdict'))} C={sval((d.get('counts') or {}).get('C'))} H={sval((d.get('counts') or {}).get('H'))} M={sval((d.get('counts') or {}).get('M'))} L={sval((d.get('counts') or {}).get('L'))}" if d else '') for g, st, d, rel, _ in gate_rows(p))
+    g_txt = '\n'.join(f"- {ZH.get(g, g)}: {ZH[st]}" + (f" — round {sval(d.get('round'))} {sval(d.get('verdict'))} C={sval((d.get('counts') or {}).get('C'))} H={sval((d.get('counts') or {}).get('H'))} M={sval((d.get('counts') or {}).get('M'))} L={sval((d.get('counts') or {}).get('L'))}" if d else '') for g, st, d, rel, _ in gate_rows(p))
     secs.append(('gate 條', None, g_txt))   # html None → not rendered on the page; the strip carries the gates
     bl = open_blockers(p); wu = waiting_union(p, s)
     items = [f'<li><label><input type="checkbox" data-check="{attr(k + "|" + sval(f.get("id")))}"> {zpill(f.get("severity"))} <a class="code" data-jump="{attr("finding--" + sval(f.get("id")))}" tabindex="0">{html.escape(sval(f.get("id")))}</a> {yv(f.get("summary"), k)}</label></li>' for rel, f in bl]
@@ -1149,7 +1182,7 @@ def front_sections(p, s):
     ck_items += [f'<li>{zpill("pending")} {yv(w, k)}</li>' for src, w in wu]
     footer = zpill('approvable') if state == 'approvable' else f'{zpill("blocked")} <span class="num">{n}</span>' if state == 'blocked' else zpill('not-reviewed')
     ck_html = f'<ol class="checklist">{capped(ck_items)}</ol><p class="footer">{lab("結論")} {footer}</p>'
-    ck_txt = '\n'.join(f"- [ ] {ZH[g]}: {ZH[st]}" for g, st, *_ in gate_rows(p) if st in ('fail', 'pending')) + ''.join(f"\n- [ ] {sval(f.get('severity'))} {sval(f.get('id'))}" for rel, f in bl) + ''.join(f"\n- [ ] {sval(w)}" for src, w in wu) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
+    ck_txt = '\n'.join(f"- [ ] {ZH.get(g, g)}: {ZH[st]}" for g, st, *_ in gate_rows(p) if st in ('fail', 'pending')) + ''.join(f"\n- [ ] {sval(f.get('severity'))} {sval(f.get('id'))}" for rel, f in bl) + ''.join(f"\n- [ ] {sval(w)}" for src, w in wu) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
     secs.append(('檢查表', ck_html, ck_txt))
     return secs
 
@@ -1212,7 +1245,7 @@ if bullets(index_sections.get('Foundation', '')):
     epic_parts.append(collapsed(f'<span class="lead">{lab("基礎")}</span>', md_to_html(index_sections['Foundation'], 'epic')))
 for h in ('Pivots', 'Open Questions'):
     if h in index_sections and index_sections[h].strip() and not index_sections[h].strip().startswith('*('):
-        epic_parts.append(f'<h4>{lab(LAB_ZH.get(h, h))}</h4>' + md_to_html(index_sections[h], 'epic'))
+        epic_parts.append(f'<h4>{html.escape(LAB_ZH.get(h, h))}</h4>' + md_to_html(index_sections[h], 'epic'))
 if phase_table_rows:
     rows = [f'<tr><td class="num">{html.escape(r[0])}</td><td>{inline(r[1], "epic")}</td><td>{zpill(r[4].lower())}</td></tr>' for r in phase_table_rows]
     epic_parts.append(collapsed(f'<span class="lead">{lab("epic 歷史")}</span> <span class="num">{len(rows)}</span>', f'<div class="tbl"><table><tr><th>#</th><th>標題</th><th>狀態</th></tr>{"".join(rows)}</table></div>'))
@@ -1299,7 +1332,7 @@ for p in phases:
         links = ' '.join(f'<a href="{attr(f)}"><span class="file">{html.escape(os.path.basename(f))}</span></a>' for f in raw)
         residual = sum(1 for f in d.get('findings') or [] if isinstance(f, dict) and sval(f.get('status')) in ('open', 'unverified'))
         rows += (f'<tr><td>{zh(d.get("gate"))}</td><td class="num">{yv(d.get("round"), k)}</td><td>{zpill(d.get("verdict"))}</td>'
-                 f'<td>{counts_html(d, k)}</td><td class="num">{residual}</td><td>{lab(next_action(d))}</td></tr>')
+                 f'<td>{counts_html(d, k)}</td><td class="num">{residual}</td><td>{html.escape(next_action(d))}</td></tr>')
         raw_links.append((rel, raw))
     summary = f'<div class="tbl"><table><tr><th>門</th><th>輪</th><th>裁決</th><th>發現</th><th>待處理</th><th>下一步</th></tr>{rows}</table></div>' if rs else '<p class="placeholder">no review.yaml for this phase yet</p>'
     folds = ''
@@ -1386,43 +1419,52 @@ CSS = """
 :root{--bg:#f6f8f6;--panel:#ffffff;--ink:#1b2422;--muted:#5e6b67;--line:#d6ddd9;--accent:#1e6f6a;--accent-ink:#ffffff;--ok:#2f7d4f;--ok-bg:#e3f1e8;--warn:#9a6a12;--warn-bg:#f6ecd4;--crit:#a63a3a;--crit-bg:#f5dede;--code:#eef2ef;--fold:#f0f3f1}
 :root[data-theme="dark"]{--bg:#131817;--panel:#1b2220;--ink:#e6ece9;--muted:#93a09c;--line:#2b3532;--accent:#63c4b9;--accent-ink:#0f1a18;--ok:#7fd39f;--ok-bg:#1d3327;--warn:#e2b45b;--warn-bg:#3a2f16;--crit:#f08a8a;--crit-bg:#3b1f1f;--code:#222b28;--fold:#1f2725}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#131817;--panel:#1b2220;--ink:#e6ece9;--muted:#93a09c;--line:#2b3532;--accent:#63c4b9;--accent-ink:#0f1a18;--ok:#7fd39f;--ok-bg:#1d3327;--warn:#e2b45b;--warn-bg:#3a2f16;--crit:#f08a8a;--crit-bg:#3b1f1f;--code:#222b28;--fold:#1f2725}}
-*{box-sizing:border-box}html{font-size:16px}
+:root{--fs-display:1.5rem;--fs-headline:1.35rem;--fs-title:1.2rem;--fs-section:1.05rem;--fs-body:1rem;--fs-secondary:.93rem;--fs-label:.8rem;--fs-mono:.85rem}/* TYPE ROLES (Material-3 naming; one family, weight+size carry the hierarchy; every rule below references a role token, never a literal):
+   display  = the phase title (one per page)            1.5rem/700 ink
+   headline = the page title in the top bar              1.35rem/700 ink
+   title    = card titles (decision card, article, panel) 1.2rem/700 ink, hairline + 1.5rem above
+   section  = section heads, fold summaries, round heads  1.05rem/700 ink, 1.25rem above
+   body     = running text, list items, answers           1rem/400 ink
+   secondary= tables, fold bodies, record values          .93rem/400 muted
+   label    = a key beside a value (dt, th, .label) ONLY  .8rem/600 muted — never a heading
+   invariants: a heading is one role above the text it governs; a label sits next to a larger value;
+   a block boundary is a hairline + 1.5rem, never whitespace alone. */*{box-sizing:border-box}html{font-size:16px}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;line-height:1.55}
 .top{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);padding:.6rem 1.25rem;display:flex;align-items:baseline;gap:1.25rem;flex-wrap:wrap}
-.top h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;font-size:1.25rem;margin:0;text-wrap:balance}
-.top .slug{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.8rem;color:var(--muted)}
-.tabs{display:flex;gap:.25rem;flex-wrap:wrap}.tabs button{font:inherit;font-size:.85rem;letter-spacing:.02em;background:transparent;color:var(--muted);border:0;border-bottom:2px solid transparent;padding:.35rem .6rem;cursor:pointer}
+.top h1{font-weight:700;font-size:var(--fs-headline);margin:0;text-wrap:balance}
+.top .slug{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--fs-label);color:var(--muted)}
+.tabs{display:flex;gap:.25rem;flex-wrap:wrap}.tabs button{font:inherit;font-size:var(--fs-secondary);letter-spacing:.02em;background:transparent;color:var(--muted);border:0;border-bottom:2px solid transparent;padding:.35rem .6rem;cursor:pointer}
 .tabs button:hover{color:var(--ink)}.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
 .tabs button:focus-visible,.theme:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.theme{margin-left:auto;font:inherit;font-size:.8rem;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:.2rem .7rem;cursor:pointer}
+.theme{margin-left:auto;font:inherit;font-size:var(--fs-label);background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:.2rem .7rem;cursor:pointer}
 main{max-width:76ch;margin:0 auto;padding:1.25rem 1.25rem 4rem}.tab{display:none}.tab.active{display:block}
-.phase{margin:1.5rem 0 2.5rem}.phase>h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;font-size:1.35rem;margin:0 0 .25rem;display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;text-wrap:balance}
+.phase{margin:1.5rem 0 2.5rem}.phase>h2{font-weight:700;font-size:var(--fs-display);margin:0 0 .25rem;display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;text-wrap:balance}
 .phase>.meta{margin:0 0 1rem}
 article{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1rem 1.25rem;margin:0 0 1rem}
-article>h3.file-title{font-size:1.05rem;margin:0 0 .15rem;font-weight:600}h3{font-size:1rem;margin:1.25rem 0 .4rem}h4{font-size:.9rem;margin:1rem 0 .3rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
-h5,h6{font-size:.95rem;margin:.9rem 0 .3rem}
-p{margin:.45rem 0}.aim{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.25rem;line-height:1.4;margin:.25rem 0 .5rem;text-wrap:balance}
-.meta{font-size:.8rem;color:var(--muted);margin:.1rem 0 .75rem}.meta .file,.file{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.78rem}
+article>h3.file-title{font-size:var(--fs-title);margin:0 0 .35rem;font-weight:700}h3{font-size:var(--fs-section);font-weight:700;margin:1.25rem 0 .4rem}h4{font-size:var(--fs-section);margin:1.25rem 0 .4rem;color:var(--ink);font-weight:700}
+h5,h6{font-size:var(--fs-secondary);margin:.9rem 0 .3rem}
+p{margin:.45rem 0}.aim{font-size:var(--fs-title);font-weight:700;line-height:1.35;margin:0 0 .6rem;text-wrap:balance}
+.meta{font-size:var(--fs-label);color:var(--muted);margin:.1rem 0 .75rem}.meta .file,.file{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--fs-mono)}
 .muted{color:var(--muted)}.lead{font-weight:500}.placeholder{color:var(--muted);font-style:italic}
-.pill{display:inline-block;white-space:nowrap;font-size:.72rem;font-weight:600;letter-spacing:.03em;padding:.05rem .5rem;border-radius:999px;vertical-align:middle;border:1px solid transparent}
+.pill{display:inline-block;white-space:nowrap;font-size:var(--fs-label);font-weight:600;letter-spacing:.03em;padding:.05rem .5rem;border-radius:999px;vertical-align:middle;border:1px solid transparent}
 .pill.ok{color:var(--ok);background:var(--ok-bg)}.pill.warn{color:var(--warn);background:var(--warn-bg)}.pill.crit{color:var(--crit);background:var(--crit-bg)}.pill.accent{color:var(--accent);border-color:var(--accent)}.pill.muted{color:var(--muted);border-color:var(--line)}
 ul,ol{padding-left:1.3rem;margin:.35rem 0}li{margin:.2rem 0}ul.todo li{margin:.4rem 0}ul.adr{list-style:none;padding:0}ul.adr li{padding:.5rem 0;border-top:1px solid var(--line)}ul.adr li:first-child{border-top:0}
-.cite{font-size:.9rem;color:var(--muted)}ul.verdict{list-style:none;padding:0}ul.verdict li{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.82rem;padding:.15rem 0}
-ul.files{list-style:none;padding:0;font-size:.82rem}
-pre{background:var(--code);padding:.75rem .9rem;border-radius:4px;overflow-x:auto;font-size:.82rem;line-height:1.45}code{font-family:ui-monospace,"SF Mono",Menlo,monospace;background:var(--code);padding:.05rem .3rem;border-radius:3px;font-size:.86em}pre code{background:none;padding:0}
-.tbl{overflow-x:auto;margin:.5rem 0}table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border-bottom:1px solid var(--line);padding:.35rem .6rem;text-align:left;vertical-align:top}th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
-td.num,.num,a.code,.undef{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;font-size:.85rem}
+.cite{font-size:var(--fs-secondary);color:var(--muted)}ul.verdict{list-style:none;padding:0}ul.verdict li{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--fs-mono);padding:.15rem 0}
+ul.files{list-style:none;padding:0;font-size:var(--fs-mono)}
+pre{background:var(--code);padding:.75rem .9rem;border-radius:4px;overflow-x:auto;font-size:var(--fs-mono);line-height:1.45}code{font-family:ui-monospace,"SF Mono",Menlo,monospace;background:var(--code);padding:.05rem .3rem;border-radius:3px;font-size:.86em}pre code{background:none;padding:0}
+.tbl{overflow-x:auto;margin:.5rem 0}table{border-collapse:collapse;width:100%;font-size:var(--fs-secondary)}th,td{border-bottom:1px solid var(--line);padding:.35rem .6rem;text-align:left;vertical-align:top}th{font-size:var(--fs-label);color:var(--muted);font-weight:600}
+td.num,.num,a.code,.undef{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;font-size:var(--fs-mono)}
 a{color:var(--accent)}a.code,[data-jump]{color:var(--accent);cursor:pointer;text-decoration:none;border-bottom:1px dotted var(--accent)}
 .undef{color:var(--crit);background:var(--crit-bg);border-radius:3px;padding:0 .25rem;cursor:help}.undef::after{content:" (undefined)";font-size:.75em}
-details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5rem}details.fold>summary{cursor:pointer;color:var(--muted);list-style:none}details.fold>summary::before{content:"▸ ";color:var(--accent)}details.fold[open]>summary::before{content:"▾ "}.fold-body{margin-top:.75rem;font-size:.95rem;line-height:1.5}.fold-body p,.fold-body li{font-size:inherit}
-.panels{display:grid;gap:.75rem}.panel{background:var(--fold);border-radius:4px;padding:.75rem 1rem}.panel h4{margin:0 0 .4rem;display:flex;gap:.5rem;align-items:baseline}.delta{margin-top:.6rem}
-.notes{color:var(--muted);font-size:.85rem;border:1px dashed var(--line);padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem}
-.strip{position:sticky;top:3.1rem;z-index:1;background:var(--panel);border-bottom:1px solid var(--line);padding:.4rem 1.25rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;font-size:.85rem}.strip .decision{font-weight:600}.strip .g{white-space:nowrap}.decision{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.3rem;margin:.2rem 0}section.fs{margin:0 0 1.25rem}dl.dec{display:flex;gap:1.25rem;flex-wrap:wrap;margin:.2rem 0 .4rem}dl.dec div{display:flex;flex-direction:column}dl.dec dt{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}dl.dec dd{margin:0;font-size:1.15rem;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}section.fs>h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 .4rem}ul.check{list-style:none;padding:0}ul.check li{margin:.4rem 0}ul.check input{margin-right:.4rem}ol.checklist{padding-left:1.3rem}.footer{font-size:1.05rem;margin-top:.6rem}abbr.enum{text-decoration:none;border-bottom:1px dotted var(--muted)}table.gates td{vertical-align:middle}ul.findings li{margin:.5rem 0}details.inl{display:inline}details.inl>summary{display:inline;cursor:pointer;color:var(--muted);font-size:.8rem}.figure{margin:.5rem 0}.figure svg{width:100%;height:auto;max-width:720px;display:block;margin:0 auto}.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:.85rem;color:var(--muted)}ol.quiz li{margin:.5rem 0}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
+details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5rem}details.fold>summary{cursor:pointer;color:var(--ink);list-style:none}details.fold>summary .lead{font-weight:700;font-size:var(--fs-section)}details.fold>summary .label{font-size:inherit;color:inherit;font-weight:inherit}li>details.fold>summary,td>details.fold>summary{font-size:var(--fs-body);font-weight:700}li>details.fold>summary .lead{font-size:var(--fs-body)}details.fold>summary::before{content:"▸ ";color:var(--accent)}details.fold[open]>summary::before{content:"▾ "}.fold-body{margin-top:.75rem;font-size:var(--fs-body);line-height:1.55}.fold-body p,.fold-body li{font-size:inherit}
+.panels{display:grid;gap:.75rem}.panel{background:var(--fold);border-radius:4px;padding:.75rem 1rem}.panel h4{margin:0 0 .4rem;display:flex;gap:.5rem;align-items:baseline}.panel h4,.panel h4 abbr.enum{font-size:var(--fs-title);color:var(--ink);font-weight:700}.panel{padding:1rem 1.1rem}.panels{gap:1rem}.panel p{font-size:var(--fs-secondary)}dl.dev{margin:.35rem 0 .6rem;padding:.5rem .75rem;border-left:3px solid var(--line);display:grid;gap:.3rem}dl.dev .head{font-weight:600}dl.dev div{display:grid;grid-template-columns:8.5rem 1fr;gap:.6rem}dl.dev dt .label{font-size:var(--fs-label);color:var(--ink);text-transform:none;letter-spacing:0}dl.dev dd{margin:0;font-size:var(--fs-secondary);color:var(--muted)}ul:has(>li>dl.dev){list-style:none;padding-left:0}.delta{margin-top:.6rem}
+.notes{color:var(--muted);font-size:var(--fs-mono);border:1px dashed var(--line);padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem}
+.strip{position:sticky;top:3.1rem;z-index:1;background:var(--panel);border-bottom:1px solid var(--line);padding:.4rem 1.25rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;font-size:var(--fs-secondary)}.strip .decision{font-weight:600}.strip .g{white-space:nowrap}.decision{font-size:var(--fs-headline);margin:.2rem 0}section.fs{margin:1.5rem 0 0;padding-top:1rem;border-top:1px solid var(--line)}section.fs:first-of-type{margin-top:0;padding-top:0;border-top:0}dl.dec{display:flex;gap:1.5rem;flex-wrap:wrap;margin:0 0 .9rem;padding-bottom:.75rem;border-bottom:1px solid var(--line)}dl.dec div{display:flex;flex-direction:column}dl.dec dt{font-size:var(--fs-label);color:var(--muted)}dl.dec dd{margin:0;font-size:var(--fs-body);font-weight:600}section.fs>h3{font-size:var(--fs-section);font-weight:700;color:var(--ink);margin:0 0 .6rem}ul.check{list-style:none;padding:0}ul.check li{margin:.4rem 0}ul.check input{margin-right:.4rem}ol.checklist{padding-left:1.3rem}.footer{font-size:var(--fs-body);font-weight:600;margin-top:.6rem}abbr.enum{text-decoration:none;border-bottom:1px dotted var(--muted)}table.gates td{vertical-align:middle}ul.findings li{margin:.5rem 0}details.inl{display:inline}details.inl>summary{display:inline;cursor:pointer;color:var(--muted);font-size:var(--fs-label)}.figure{margin:.5rem 0;overflow-x:auto}.figure svg{width:100%;height:auto;display:block;margin:0 auto}.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:var(--fs-label);color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:var(--fs-mono);color:var(--muted)}ol.quiz li{margin:0;padding:.6rem 0;border-bottom:1px solid var(--line)}ol.quiz li:last-child{border-bottom:0}ol.quiz .fold-body{font-size:var(--fs-secondary)}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
 [id]{scroll-margin-top:4.5rem}:target,.flash{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
 @media (prefers-reduced-motion: no-preference){details.fold>summary{transition:color .15s}}
 body{overflow-wrap:anywhere}.top>*,.strip>*,.tabs{min-width:0}.tabs{flex:1 1 auto}.top h1{flex:1 1 100%}.file,code,a.code,[data-jump]{overflow-wrap:anywhere;word-break:break-word}
 .strip .g{white-space:nowrap;display:inline-flex;align-items:center;gap:.3rem;border:1px solid var(--line);border-radius:999px;padding:.1rem .55rem .1rem .6rem;background:var(--bg)}.strip .g .gl{font-weight:600}.strip .g a{margin-left:.15rem}.panels{grid-template-columns:1fr}svg.structure{max-width:100%}
-@media (max-width:640px){html{font-size:15px}.top{padding:.5rem .75rem;gap:.5rem}.strip{top:auto;position:static;padding:.4rem .75rem;font-size:.8rem}main{padding:.75rem .6rem 3rem}article{padding:.75rem .8rem}.decision{font-size:1.1rem}.aim{font-size:1.05rem}.tbl table{font-size:.82rem}th,td{padding:.3rem .4rem}}
+@media (max-width:640px){html{font-size:15px}.top{padding:.5rem .75rem;gap:.5rem}.strip{top:auto;position:static;padding:.4rem .75rem;font-size:var(--fs-label)}main{padding:.75rem .6rem 3rem}article{padding:.75rem .8rem}.decision{font-size:var(--fs-title)}.aim{font-size:var(--fs-section)}.tbl table{font-size:var(--fs-mono)}th,td{padding:.3rem .4rem}}
 """
 JS = """
 (function(){var root=document.documentElement;var key='dossier-theme';
@@ -1463,16 +1505,22 @@ def render_tab(i, t):
 buttons = ''.join(f'<button data-tab="{i}" aria-selected="false">{html.escape(t)}</button>' for i, t in enumerate(TABS))
 tabs_html = ''.join(render_tab(i, t) for i, t in enumerate(TABS))
 notes_html = f'<div class="notes">{" ".join(html.escape(n) for n in notes)}</div>' if notes else ''
-def strip_gate(g, st, rel):
+def strip_gate(g, st, d, rel):
+    """Chip text: the two known gates keep the derived pass/fail/pending status
+    (unchanged, byte-for-byte). A gate outside the known ones shows its round's
+    actual verdict (e.g. 修改 for revise), since 'fail' alone would blur
+    revise/block; tests/quiz/ship-gate (d is None) keep the derived status too."""
     tail = ''
     if st in ('fail', 'pending'):
         tail = ' · ' + zh(GATE_OWNER.get(g, ''))
         if rel:
             tail += ' · <a href="' + attr(rel) + '" title="' + attr(rel) + '">' + lab('紀錄') + '</a>'
-    return '<span class="g"><span class="gl">' + zh(g) + '</span>' + zpill(st) + tail + '</span>'
+    # a waived round (all C/H fixed or waived under a recorded ruling) shows 豁免, never the raw verdict
+    pill = zpill(d.get('verdict')) if (d is not None and g not in KNOWN_GATES and st != 'waived') else zpill(st)
+    return '<span class="g"><span class="gl">' + zh(g) + '</span>' + pill + tail + '</span>'
 if current:
     st, n = decision(current, specs[current['spec']])
-    strip_html = f'<div class="strip"><span class="decision"><span class="gl">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))}</span> · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段</span><span class="g"><span class="gl">狀態</span>{zpill(st)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</span>' + ''.join(strip_gate(g, s_, rel_) for g, s_, d_, rel_, _ in gate_rows(current)) + '</div>'
+    strip_html = f'<div class="strip"><span class="decision"><span class="gl">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))}</span> · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段</span><span class="g"><span class="gl">狀態</span>{zpill(st)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</span>' + ''.join(strip_gate(g, s_, d_, rel_) for g, s_, d_, rel_, _ in gate_rows(current)) + '</div>'
 else:
     strip_html = '<div class="strip"><span class="placeholder">尚無 YAML phase</span></div>'
 page = f"""<!doctype html>
