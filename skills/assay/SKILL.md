@@ -94,14 +94,11 @@ Scope. When the intent changes only single-party artifacts (an
 ordinary one-consumer file edit), no seam-map is required — the negative branch is
 reachable and stays cheap.
 
-- **Saturation** is the multi-channel plateau the method (`reach-discovery.md`) applies —
-  swept via ≥2 orthogonal channels; a single-search first-hit is not a seam-map.
-- **Sub-floor (a channel unavailable — shallow clone / no history).** Declare the
-  unavailable channel in the seam-map. With ≥2 channels still available, absence does
-  not block reaching the plateau over the available channels (declared, not silently
-  skipped). With **fewer than 2** channels available, the plateau is unobservable: mark
-  the seam-map **reach-under-determined** and carry it to the human with that limitation
-  stated — never render it as a confident plateau.
+- **Saturation** and its **sub-floor** (a channel unavailable — shallow clone / no history;
+  when the plateau becomes unobservable and the seam-map is marked
+  **reach-under-determined**) are the method's own rules in `reach-discovery.md` — apply
+  them as written there; carry an under-determined seam-map to the human with that
+  limitation stated, never as a confident plateau.
 
 ## Unknown disposition
 
@@ -113,7 +110,7 @@ A known unknown enters from three sources — laydown residuals (rows neither co
 | yes | expensive | **flip-trigger bypass** or scope cut — never silent proceed |
 | no | — | deferred log |
 
-**Structural fork case** — a fork entry with ≥2 viable approaches and durability stakes: author an ADR per `adr-authoring.md` (same directory) with the flip-trigger, bet-owner, and assumptions fields, the human as bet-owner; grade it against `references/arch-rubric.md`. For a fork worth critique evidence, dispatch `touchstone:cross-provider-reviewer` (internal role `architecture-critique`) — adaptable, omit only with the reason recorded in the ADR.
+**Structural fork case** — a fork entry with ≥2 viable approaches and durability stakes: author an ADR per `adr-authoring.md` (same directory) with the flip-trigger, bet-owner, and assumptions fields, the human as bet-owner; grade it against `references/arch-rubric.md`. For a fork worth critique evidence, dispatch the two critique arms directly in one message — `Agent(subagent_type: "touchstone:code-reviewer", …)` with the validation rubric and `Agent(subagent_type: "touchstone:codex-reviewer", …)` with the pressure-test lens, both lens texts and the synthesis rule in `references/critique-lens.md` (read it first; the fallback when the codex arm is unavailable is recorded degraded per `${CLAUDE_PLUGIN_ROOT}/skills/_shared/provenance.md`) — adaptable, omit only with the reason recorded in the ADR.
 
 ## Consensus render — the object of the yes
 
@@ -122,7 +119,7 @@ After the table converges (no open contradiction, every unknown dispositioned) a
 - Reuse the Presentation rules above; the depth-tier axis here is the entry's load-bearing STATUS — Scope / Invariants / Contract-facts entries get full text, Out-of-scope entries get one line. The render covers exactly the four subsections, never the record's `## Deferred log`.
 - **Seam-map in Scope (triggered intent).** When the intent changed a cross-boundary artifact, the Scope carries its saturated seam-map as `artifact → {party: file:line}` entries, each ending with a `[trace:]` to its confirmed row. A **zero-party** result — the sweep found no other party — is NOT dropped: it lands as an explicit `no other parties (swept via <channels>)` Scope entry (a valid zero-party plateau), so a mis-fired trigger (an artifact that was not actually cross-boundary) stays visible for review.
 - **Case-partition in Scope (opportunistic).** Scope MAY carry, for a rule whose case list the interview confirmed, one entry of the fixed shape `rule <content-phrase> → cases [...] (technique) [trace: ids]` — shape and terms homed in `${CLAUDE_PLUGIN_ROOT}/skills/_shared/breadth-discovery.md`. A list confirmed with no technique named still lands, marked `(partition-under-determined)`: the human's ruling is preserved instead of discarded, and no consumer may treat the marked entry as a valid baseline. Where the interview confirmed no such list there is no entry and no placeholder — that absence is the ordinary case rather than a gap, and nothing further is asked of the human on account of it.
-- **A carried baseline is human-confirmed.** The plateau-declared seam-map, and any case-partition entry beside it, becomes a verify-against baseline for any downstream stage ONLY after the human confirms it at the readiness yes (the standard Consensus yes covers both). That human yes — not the sweep or the enumeration on its own — is the ratchet (INV-5).
+- **A carried baseline is human-confirmed.** The plateau-declared seam-map, and any case-partition entry beside it, becomes a verify-against baseline for any downstream stage ONLY after the human confirms it at the readiness yes (the standard Consensus yes covers both). That human yes — not the sweep or the enumeration on its own — is the ratchet.
 - **Render before persist.** The record's `## Consensus` section is written only at or after the yes; while not yet persisted, keep the render's digest tier inline rather than collapsing to a record-file pointer.
 - **Re-render on a correction** (a falsified probe, or a correction at the readiness ask): re-converge and re-render on the corrected state — the eventual yes never lands on a stale render.
 
@@ -132,7 +129,7 @@ Immediately after the consensus render and BEFORE any readiness ask, publish con
 
 ## Readiness — explicit yes + a clean probe round
 
-Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all cells filled"; NOT "zero unknowns") AND the latest probe round had zero corrections — an ambiguous probe answer counts as a correction and folds back. Not ready → run the cheap probe(s), return to the table, re-converge. The readiness ruling cites the explicit yes and the clean round's dated `R-n` id; the ask refers the human to the pre-yes consensus render as its object. This same yes is the human confirmation of whichever baselines the consensus carries — the seam-map on a triggered cross-boundary-artifact intent, a case-partition wherever one was confirmed (the ratchet, INV-5) — and no downstream stage consumes either as a verify-against baseline before it.
+Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all cells filled"; NOT "zero unknowns") AND the latest probe round had zero corrections — an ambiguous probe answer counts as a correction and folds back. Not ready → run the cheap probe(s), return to the table, re-converge. The readiness ruling cites the explicit yes and the clean round's dated `R-n` id; the ask refers the human to the pre-yes consensus render as its object. This same yes is the human confirmation of whichever baselines the consensus carries — the seam-map on a triggered cross-boundary-artifact intent, a case-partition wherever one was confirmed (the ratchet) — and no downstream stage consumes either as a verify-against baseline before it.
 
 **The human rules readiness once.** Anything short of an explicit yes is not-ready — name the specific gap the non-answer signals and return to it, never round a soft or delegated reply up to consent. A delegation ("whatever you think") gets re-asked with two concrete options; an explicit correction folds into the table, re-renders the consensus, restates, loops. Only an explicit yes advances.
 

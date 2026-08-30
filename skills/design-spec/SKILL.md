@@ -8,7 +8,7 @@ description: |
   scope/AC errors before build; skip when it is contained enough that the contract
   costs more than it saves. Heuristic: the change introduces a new contract
   (API / CLI / IPC / skill / agent) or its design decisions are expensive to get wrong
-  across modules. On first invocation in a project, runs setup to record the specs directory.
+  across modules. Paths come from the config-resolver (`/touchstone:init` writes them once per project).
 allowed-tools:
   - Bash
   - Read
@@ -47,7 +47,9 @@ or interview records yourself.
 Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/confirmed-facts-source.md`
 and follow it exactly for qualification and citation granularity. Delta: a
 validation failure (any trigger class) is dispositioned by asking the human or
-by a `waiting_on_human[]` entry — never a silent scope or invariant entry. The
+by a `waiting_on_human[]` entry (a `W-n` object per the schema, the question shaped per
+`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/human-question-template.md`) —
+never a silent scope or invariant entry. The
 AC layer is authored HERE — a source hands over confirmed facts, never pre-drafted ACs.
 
 **Foundation is inherited, never re-elicited.** Write `foundation: inherit`; the
@@ -137,7 +139,9 @@ audit: no demote-to-invariant candidates."
   `user_stories` are the only human-read prose — prose beyond them is cut.
 - Terminal summary: spec path, `status: draft`
 - Next: crucible writes `accepted-candidate`, then `/touchstone:design-review`
-  runs the two-agent gate (challenger + cross-vendor lenses) before human accept
+  runs the lens × arm gate before human accept; its rounds converge under
+  `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
+  — a meaning-changing edit re-enters that gate
 - Usage: `/touchstone:design-spec` (interactive) or
   `/touchstone:design-spec <feature-name>` (skip name prompt)
 

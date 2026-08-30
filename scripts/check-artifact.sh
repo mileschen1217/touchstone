@@ -12,7 +12,17 @@
 # ledger references (basis / why_ref / consensus / rulings — an id resolves iff the ledger
 # has a line starting `- <id>` or `| <id>`), field-path grammar on review findings and
 # quiz anchors (resolved in the target spec when --root is given), path-free phase_map,
-# degraded_reason when degraded, quiz answers naming a field id.
+# degraded_reason when degraded, quiz answers naming a field id, `pattern` on a string
+# value, `minItems` on an array, `spec_ref` resolution (below), and two per-kind rules:
+# a review finding with no locator (field/file/refs all absent or empty), and a deviation
+# entry whose refs is empty without `derived: true`.
+#
+# spec_ref resolution — the value of a `refs`-shaped field must name a US/REQ/AC/INV id
+# defined in a *resolution spec*: kind spec → the file itself; kind review → the `target`
+# spec; kind deviation → the `*.spec.yaml` directly under --root whose top-level `phase`
+# equals the enclosing entry/quiz item's own `phase` (cached per phase). No resolution
+# spec found → one `warn:` line per occurrence, exit unchanged.
+#
 # --root <dir>: directory the ledger (spec `facts_source.record`) and a review's `target`
 # resolve against; default = the artifact's own directory.
 set -uo pipefail
@@ -27,7 +37,7 @@ command -v python3 >/dev/null 2>&1 || { echo "check-artifact.sh: python3 not fou
 python3 -c 'import yaml' 2>/dev/null || { echo "check-artifact.sh: PyYAML not installed — run: python3 -m pip install pyyaml" >&2; exit 2; }
 
 python3 - "$kind" "$file" "$schema" "$root" <<'PY'
-import sys, os, re, yaml, datetime
+import sys, os, re, yaml, datetime, glob
 
 kind, path, schema_path, root = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 root = os.path.abspath(root) if root else os.path.dirname(os.path.abspath(path))
@@ -44,16 +54,17 @@ ids = {}        # family -> {id: path}
 refs = []       # (path, family, value)
 ledger_refs = []  # (path, value)
 field_paths = []  # (path, value)
+spec_refs = []    # (path, value, phase) — spec_ref-tagged refs-list values
 
 def type_ok(v, t):
     return {'string': lambda: isinstance(v, str), 'date': lambda: isinstance(v, (str, datetime.date)), 'integer': lambda: isinstance(v, int) and not isinstance(v, bool),
             'boolean': lambda: isinstance(v, bool), 'array': lambda: isinstance(v, list),
             'object': lambda: isinstance(v, dict)}.get(t, lambda: True)()
 
-def walk(v, s, p):
+def walk(v, s, p, phase=None):
     if 'oneOf' in s:
         for alt in s['oneOf']:
-            n = len(errors); walk(v, alt, p)
+            n = len(errors); walk(v, alt, p, phase)
             if len(errors) == n: return
             del errors[n:]
         errors.append(f"{p}: matches none of the allowed forms"); return
@@ -62,9 +73,11 @@ def walk(v, s, p):
         errors.append(f"{p}: expected {t}"); return
     if 'enum' in s and v not in s['enum']:
         errors.append(f"{p}: '{v}' not in {s['enum']}")
+    if t == 'array' and 'minItems' in s and len(v) < s['minItems']:
+        errors.append(f"{p}: expected at least {s['minItems']} item(s)")
     fam = s.get('id')
     if fam and isinstance(v, str):
-        if fam in ('US', 'REQ', 'AC', 'INV', 'F', 'D', 'QZ') and not re.fullmatch(fam + r'-\d+', v):
+        if fam in ('US', 'REQ', 'AC', 'INV', 'F', 'D', 'QZ', 'W') and not re.fullmatch(fam + r'-\d+', v):
             errors.append(f"{p}: id must be {fam}-<n>")
         if v in ids.setdefault(fam, {}):
             errors.append(f"{p}: duplicate id {v} (first at {ids[fam][v]})")
@@ -75,6 +88,10 @@ def walk(v, s, p):
     if s.get('ledger_ref'):
         for x in (v if isinstance(v, list) else [v]): ledger_refs.append((p, x))
     if s.get('field_path') and isinstance(v, str): field_paths.append((p, v))
+    if s.get('pattern') and isinstance(v, str) and not re.fullmatch(s['pattern'], v):
+        errors.append(f"{p}: '{v}' does not match pattern {s['pattern']}")
+    if s.get('spec_ref') and isinstance(v, str):
+        spec_refs.append((p, v, phase))
     if s.get('path_free') and isinstance(v, str):
         m = re.search(r'\S+/\S+|\b\w+\.(md|sh|yaml|yml|json|py|js|html|txt|jsonl)\b', v)
         if m: errors.append(f"{p}: human-facing panel carries a path-like token '{m.group(0)}'")
@@ -82,14 +99,17 @@ def walk(v, s, p):
         props = s.get('properties', {})
         for k in s.get('required', []):
             if k not in v: errors.append(f"{p + '.' if p else ''}{k}: required")
+        new_phase = phase
+        if isinstance(v, dict) and isinstance(v.get('phase'), int) and not isinstance(v.get('phase'), bool):
+            new_phase = v['phase']
         for k, x in v.items():
-            if k in props: walk(x, props[k], f"{p}.{k}" if p else k)
+            if k in props: walk(x, props[k], f"{p}.{k}" if p else k, new_phase)
             elif s.get('additionalProperties') is False: errors.append(f"{p + '.' if p else ''}{k}: unknown key")
     elif t == 'array' and 'items' in s:
         it = s['items']
         for i, x in enumerate(v):
             sel = x.get('id') if isinstance(x, dict) and isinstance(x.get('id'), str) else str(i)
-            walk(x, it, f"{p}[{sel}]")
+            walk(x, it, f"{p}[{sel}]", phase)
 
 walk(doc, schema, '')
 
@@ -124,9 +144,11 @@ def under_root(rel, label):
         errors.append(f"{label}: '{rel}' escapes the --root directory"); return None
     return full
 target_doc = None
+target_path = None
 if kind == 'review':
     tp = under_root(doc.get('target'), 'target') or ''
     if tp and os.path.isfile(tp):
+        target_path = tp
         try: target_doc = yaml.safe_load(open(tp, encoding='utf-8'))
         except yaml.YAMLError: target_doc = None
 for p, fp in field_paths:
@@ -135,6 +157,74 @@ for p, fp in field_paths:
         errors.append(f"{p}: '{fp}' resolves to nothing in the target spec")
     elif kind == 'review' and target_doc is None:
         warns.append(f"{p}: target spec not found under --root; field path unresolved")
+
+# ---- spec_ref resolution (US/REQ/AC/INV ids on refs-list values)
+def spec_ids_for(d):
+    out = {'US': set(), 'REQ': set(), 'AC': set(), 'INV': set()}
+    if not isinstance(d, dict): return out
+    for us in d.get('user_stories') or []:
+        if isinstance(us, dict) and isinstance(us.get('id'), str): out['US'].add(us['id'])
+    for r in d.get('requirements') or []:
+        if not isinstance(r, dict): continue
+        if isinstance(r.get('id'), str): out['REQ'].add(r['id'])
+        for a in r.get('acs') or []:
+            if isinstance(a, dict) and isinstance(a.get('id'), str): out['AC'].add(a['id'])
+    for inv in d.get('invariants') or []:
+        if isinstance(inv, dict) and isinstance(inv.get('id'), str): out['INV'].add(inv['id'])
+    return out
+
+def resolves_id(x, id_sets):
+    fam = x.split('-', 1)[0]
+    return fam in id_sets and x in id_sets[fam]
+
+if spec_refs:
+    if kind == 'spec':
+        self_ids = spec_ids_for(doc)
+        base = os.path.basename(path)
+        for p, x, ph in spec_refs:
+            if not resolves_id(x, self_ids):
+                errors.append(f"{p}: '{x}' resolves to no id in {base}")
+    elif kind == 'review':
+        if target_doc is not None:
+            tids = spec_ids_for(target_doc)
+            tbase = os.path.basename(target_path)
+            for p, x, ph in spec_refs:
+                if not resolves_id(x, tids):
+                    errors.append(f"{p}: '{x}' resolves to no id in {tbase}")
+        else:
+            warned = set()
+            for p, x, ph in spec_refs:
+                key = p.rsplit('[', 1)[0]
+                if key in warned: continue
+                warned.add(key)
+                warns.append(f"{key}: target spec not found under --root; refs unresolved")
+    elif kind == 'deviation':
+        phase_cache = {}
+        def spec_for_phase(ph):
+            if ph in phase_cache: return phase_cache[ph]
+            found = None
+            for f in sorted(glob.glob(os.path.join(root, '*.spec.yaml'))):
+                try: d = yaml.safe_load(open(f, encoding='utf-8'))
+                except yaml.YAMLError: continue
+                if isinstance(d, dict) and d.get('phase') == ph:
+                    found = (f, spec_ids_for(d)); break
+            phase_cache[ph] = found
+            return found
+        warned = set()
+        for p, x, ph in spec_refs:
+            key = p.rsplit('[', 1)[0]
+            if ph is None:
+                if key in warned: continue
+                warned.add(key); warns.append(f"{key}: no phase on this item; refs unresolved")
+                continue
+            found = spec_for_phase(ph)
+            if found is None:
+                if key in warned: continue
+                warned.add(key); warns.append(f"{key}: no spec for phase {ph} found under --root; refs unresolved")
+                continue
+            f, tids = found
+            if not resolves_id(x, tids):
+                errors.append(f"{p}: '{x}' resolves to no id in {os.path.basename(f)}")
 
 # ---- ledger resolution
 ledger = None
@@ -168,11 +258,57 @@ if kind == 'spec':
 elif kind == 'review':
     if doc.get('degraded') is True and not doc.get('degraded_reason'):
         errors.append("degraded_reason: required when degraded is true")
+    lens_arms = {}
+    for pv in doc.get('providers') or []:
+        if isinstance(pv, dict) and isinstance(pv.get('lens'), str):
+            lens_arms.setdefault(pv['lens'], set()).update(a for a in (pv.get('arms') or []) if isinstance(a, str))
+    for f in doc.get('findings') or []:
+        if not isinstance(f, dict): continue
+        if not f.get('field') and not f.get('file') and not f.get('refs'):
+            errors.append(f"findings[{f.get('id')}]: no locator (field, file or refs)")
+        # an arm a finding credits must be an arm that ran that lens (providers is the record of what ran)
+        if isinstance(f.get('lens'), str) and isinstance(f.get('found_by'), list):
+            for a in f['found_by']:
+                if a not in lens_arms.get(f['lens'], set()):
+                    errors.append(f"findings[{f.get('id')}].found_by: '{a}' is not an arm of lens '{f['lens']}' in providers")
 elif kind == 'deviation':
+    for e in doc.get('entries') or []:
+        if not isinstance(e, dict): continue
+        refs_v = e.get('refs')
+        if isinstance(refs_v, list) and len(refs_v) == 0 and e.get('derived') is not True:
+            errors.append(f"entries[{e.get('id')}].refs: empty refs require derived: true")
     q = doc.get('quiz') or {}
     for it in (q.get('items') or []) if isinstance(q, dict) else []:
-        if isinstance(it, dict) and not re.search(r'\b(US|REQ|AC|INV|F|D|QZ)-\d+\b|\w+\[[^\]]+\]', str(it.get('answer', ''))):
-            errors.append(f"quiz.items[{it.get('id')}].answer: names no field id")
+        if not isinstance(it, dict): continue
+        iid = it.get('id')
+        k = it.get('kind')
+        if k == 'ref-set':
+            if 'expected_refs' not in it:
+                errors.append(f"quiz.items[{iid}].expected_refs: required for kind ref-set")
+            if 'answer' in it:
+                errors.append(f"quiz.items[{iid}].answer: forbidden for kind ref-set")
+            if 'result' in it:
+                errors.append(f"quiz.items[{iid}].result: forbidden for kind ref-set (derived)")
+            if 'answer_refs' not in it:
+                print(f"quiz {iid}: unanswered")
+            else:
+                exp = set(it.get('expected_refs') or [])
+                ans = set(it.get('answer_refs') or [])
+                if exp == ans:
+                    print(f"quiz {iid}: pass")
+                else:
+                    missing = sorted(exp - ans)
+                    extra = sorted(ans - exp)
+                    print(f"quiz {iid}: miss — missing [{', '.join(missing)}] extra [{', '.join(extra)}]")
+        elif k == 'manual':
+            if 'expected_refs' in it:
+                errors.append(f"quiz.items[{iid}].expected_refs: forbidden for kind manual")
+            if 'answer_refs' in it:
+                errors.append(f"quiz.items[{iid}].answer_refs: forbidden for kind manual")
+            if 'answer' not in it:
+                errors.append(f"quiz.items[{iid}].answer: required for kind manual")
+            elif not re.search(r'\b(US|REQ|AC|INV|F|D|QZ)-\d+\b|\w+\[[^\]]+\]', str(it.get('answer', ''))):
+                errors.append(f"quiz.items[{iid}].answer: names no field id")
 
 for w in warns: print(f"warn: {w}")
 for e in errors: print(e)

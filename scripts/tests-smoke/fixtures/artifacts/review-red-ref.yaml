@@ -7,17 +7,19 @@ providers:
 challenger: cc
 degraded: false
 verdict: revise
-counts: {C: 0, H: 0, M: 1, L: 0}
+counts: {C: 0, H: 1, M: 0, L: 0}
 rulings: []
 findings:
   - id: F-1
     lens: coverage
-    type: refinement
+    type: coverage-gap
     provenance: original
-    severity: M
-    field: waiting_on_human[*]
-    summary: star on a list this spec leaves empty
-    fix: none
+    severity: H
+    file: skills/design-review/SKILL.md
+    line: 12
+    refs: [AC-99]
+    summary: unresolved ref
+    fix: fix the ref
     status: open
     found_by: [cc]
 waiting_on_human: []

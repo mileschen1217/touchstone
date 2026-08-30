@@ -2,9 +2,7 @@ gate: design-review
 target: spec-green.yaml
 sha: abc123
 round: 1
-providers:
-  - {lens: coverage, arms: [cc, codex]}
-  - {lens: design-soundness, arms: [codex]}
+providers: []
 challenger: cc
 degraded: false
 verdict: approve

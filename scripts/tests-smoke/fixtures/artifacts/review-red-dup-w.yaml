@@ -1,0 +1,15 @@
+gate: design-review
+target: spec-green.yaml
+sha: abc123
+round: 1
+providers:
+  - {lens: coverage, arms: [cc]}
+challenger: cc
+degraded: false
+verdict: approve
+counts: {C: 0, H: 0, M: 0, L: 0}
+rulings: []
+findings: []
+waiting_on_human:
+  - {id: W-1, kind: ruling, owner: builder, title: first}
+  - {id: W-1, kind: answer, owner: builder, title: second}

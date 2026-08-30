@@ -3,6 +3,8 @@
 # (`<top>[<sel>].<key>…`, sel = stable id | 0-based index | `*`), resolved in the target
 # spec when --root is given. `challenger` names the provider that ran the challenger context
 # (design-review rounds); its presence in the round-1 file is the challenge attestation.
+# Waiting item shape is homed in spec.schema.yaml's header.
+# A finding with no `field`, no `file` and empty/absent `refs` is an error (no locator).
 kind: review
 type: object
 additionalProperties: false
@@ -13,7 +15,20 @@ properties:
   range: {type: string, reader: agent}       # deliverable-review: the reviewed commit range
   sha: {type: string, reader: agent}
   round: {type: integer, reader: agent}
-  providers: {type: array, reader: agent, items: {type: string, enum: [cc, codex]}}
+  providers:
+    type: array
+    reader: agent
+    minItems: 1
+    items:
+      type: object
+      required: [lens, arms]
+      additionalProperties: false
+      properties:
+        lens: {type: string}
+        arms:
+          type: array
+          minItems: 1
+          items: {type: string, enum: [cc, codex]}
   challenger: {type: string, reader: agent, enum: [cc, codex]}
   degraded: {type: boolean, reader: human}
   degraded_reason: {type: string, reader: human}
@@ -34,11 +49,10 @@ properties:
     reader: agent
     items:
       type: object
-      required: [id, agent, lens, type, provenance, severity, summary, fix, status]
+      required: [id, lens, type, provenance, severity, summary, fix, status, found_by]
       additionalProperties: false
       properties:
         id: {type: string, id: F}
-        agent: {type: string}
         lens: {type: string}
         type: {type: string, enum: [coverage-gap, real-defect, refinement, soundness]}
         provenance: {type: string, enum: [original, fix-induced]}
@@ -49,4 +63,32 @@ properties:
         summary: {type: string}
         fix: {type: string}
         status: {type: string, enum: [open, fixed, waived, unverified]}
-  waiting_on_human: {type: array, reader: human, items: {type: string}}
+        found_by:
+          type: array
+          minItems: 1
+          items: {type: string, enum: [cc, codex]}
+        refs:
+          type: array
+          items:
+            type: string
+            pattern: '^(US|REQ|AC|INV)-\d+$'
+            spec_ref: true
+  waiting_on_human:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [id, kind, owner, title]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: W}
+        kind: {type: string, enum: [ruling, answer, accept, fix]}
+        owner: {type: string}
+        title: {type: string}
+        detail: {type: string}
+        refs:
+          type: array
+          items:
+            type: string
+            pattern: '^(US|REQ|AC|INV)-\d+$'
+            spec_ref: true

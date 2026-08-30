@@ -1,5 +1,5 @@
-id: SPEC-fixture
-title: Fixture spec
+id: SPEC-fixture-phase1
+title: Fixture spec (deviation spec_ref resolution target, phase 1)
 epic: fixture
 phase: 1
 status: accepted

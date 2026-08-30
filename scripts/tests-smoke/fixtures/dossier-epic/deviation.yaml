@@ -1,17 +1,58 @@
 entries:
   - id: D-1
+    phase: 3
     date: 2026-01-05
     stage: build
     panel: interface
-    gap: the short form also needed an equals form
+    gap: {title: "the short form also needed an equals form", detail: "the flag parser accepted -f x but not -f=x"}
     which_stage_could_have_caught: assay
     catcher: builder
-    disposition: added -f=x; AC-1 unchanged
+    disposition: {title: "added -f=x", detail: "AC-1 unchanged; AC-3 covers the equals form"}
+    refs: [AC-1]
+  - id: D-2
+    phase: 1
+    date: 2026-01-02
+    stage: build
+    panel: none
+    gap: {title: "alpha shipped without a dry-run flag", detail: "the first pass had no --dry-run option"}
+    which_stage_could_have_caught: design-spec
+    catcher: author
+    disposition: {title: "flag added in a follow-up patch", detail: "no AC affected"}
+    refs: []
+    derived: true
+  - id: D-3
+    phase: 2
+    date: 2026-01-03
+    stage: build
+    panel: none
+    gap: {title: "beta's header proposal was replaced by a flag mid-build", detail: "the interface panel changed shape"}
+    which_stage_could_have_caught: assay
+    catcher: builder
+    disposition: {title: "flag kept; header dropped", detail: "beta's AC-1 covers the flag form"}
+    refs: []
 quiz:
   waived: false
   items:
     - id: QZ-1
+      phase: 3
+      kind: manual
       question: which panel changed during the build?
-      answer: the interface panel, through D-1
       anchor: phase_map.interface_delta
-waiting_on_human: [confirm the equals form stays]
+      answer: the interface panel, through D-1
+      result: pass
+    - id: QZ-2
+      phase: 1
+      kind: ref-set
+      question: which acceptance criteria does the dry-run fix touch?
+      anchor: phase_map.position
+      expected_refs: [AC-1, AC-2]
+      answer_refs: [AC-1]
+    - id: QZ-3
+      phase: 2
+      kind: manual
+      question: what replaced the header proposal in beta?
+      anchor: phase_map.interface_delta
+      answer: a flag
+      result: pass
+waiting_on_human:
+  - {id: W-1, kind: ruling, owner: owner, title: "confirm the equals form stays"}

@@ -1,6 +1,6 @@
 ---
 injected-by: [design-spec]
-referenced-by: [assay]
+referenced-by: [assay, crucible]
 ---
 
 # Confirmed-facts source (shared contract)

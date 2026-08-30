@@ -1,6 +1,10 @@
 # deviation.schema.yaml — build-time deviations (D-n) and, in phase 1, the phase quiz block.
-# Keywords as in spec.schema.yaml. A quiz answer must name the field id it resolves to
-# (checked by check-artifact); `anchor` is the field path per the field-path grammar.
+# Keywords as in spec.schema.yaml. Waiting item shape is homed in spec.schema.yaml's header.
+# A quiz manual answer must name the field id it resolves to (checked by check-artifact);
+# `anchor` is the field path per the field-path grammar. `refs` (on entries and quiz items)
+# resolves against the `*.spec.yaml` under --root whose top-level `phase` equals that
+# entry's/item's own `phase` — see spec.schema.yaml's header for the spec_ref keyword.
+# An entry's `refs` may be empty only beside `derived: true`.
 kind: deviation
 type: object
 additionalProperties: false
@@ -11,17 +15,37 @@ properties:
     reader: human
     items:
       type: object
-      required: [id, date, stage, panel, gap, which_stage_could_have_caught, catcher, disposition]
+      required: [id, phase, date, stage, panel, gap, which_stage_could_have_caught, catcher, disposition, refs]
       additionalProperties: false
       properties:
         id: {type: string, id: D}
+        phase: {type: integer}
         date: {type: date}
         stage: {type: string}
         panel: {type: string, enum: [position, structure, interface, scope, none]}
-        gap: {type: string}
+        gap:
+          type: object
+          required: [title, detail]
+          additionalProperties: false
+          properties:
+            title: {type: string}
+            detail: {type: string}
         which_stage_could_have_caught: {type: string}
         catcher: {type: string}
-        disposition: {type: string}
+        disposition:
+          type: object
+          required: [title, detail]
+          additionalProperties: false
+          properties:
+            title: {type: string}
+            detail: {type: string}
+        refs:
+          type: array
+          items:
+            type: string
+            pattern: '^(US|REQ|AC|INV)-\d+$'
+            spec_ref: true
+        derived: {type: boolean}
   quiz:
     type: object
     reader: human
@@ -33,12 +57,67 @@ properties:
         type: array
         items:
           type: object
-          required: [id, question, answer, anchor]
+          required: [id, phase, kind, question, anchor]
           additionalProperties: false
           properties:
             id: {type: string, id: QZ}
+            phase: {type: integer}
+            kind: {type: string, enum: [ref-set, manual]}
             question: {type: string}
-            answer: {type: string}
             anchor: {type: string, field_path: true}
+            answer: {type: string}
+            expected_refs:
+              type: array
+              items:
+                type: string
+                pattern: '^(US|REQ|AC|INV)-\d+$'
+                spec_ref: true
+            answer_refs:
+              type: array
+              items:
+                type: string
+                pattern: '^(US|REQ|AC|INV)-\d+$'
+                spec_ref: true
+            refs:
+              type: array
+              items:
+                type: string
+                pattern: '^(US|REQ|AC|INV)-\d+$'
+                spec_ref: true
             result: {type: string, enum: [pass, miss]}
-  waiting_on_human: {type: array, reader: human, items: {type: string}}
+  metrics:
+    type: object
+    reader: human
+    required: [phase, stage1_tokens, false_edges, instrument_churn, measured_at]
+    additionalProperties: false
+    properties:
+      phase: {type: integer}
+      stage1_tokens: {type: integer}
+      false_edges: {type: integer}
+      instrument_churn:
+        type: object
+        required: [shape_driven_lines, other_lines]
+        additionalProperties: false
+        properties:
+          shape_driven_lines: {type: integer}
+          other_lines: {type: integer}
+      measured_at: {type: string}
+  waiting_on_human:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [id, kind, owner, title]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: W}
+        kind: {type: string, enum: [ruling, answer, accept, fix]}
+        owner: {type: string}
+        title: {type: string}
+        detail: {type: string}
+        refs:
+          type: array
+          items:
+            type: string
+            pattern: '^(US|REQ|AC|INV)-\d+$'
+            spec_ref: true

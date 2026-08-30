@@ -1,6 +1,6 @@
 # Close an epic
 
-**Failure semantics.** Blocking — step 0 (ship verification), step 3 (the
+**Failure semantics.** Blocking — step 0 (ship verification), step 4 (the
 close-readiness check), and Evidence Reckoning's blocking rules (§ below).
 The Disposition pass (step 5) is an action list, not a gate — skipping an item
 leaves a dual-home and is noted in the close report.
@@ -21,22 +21,20 @@ leaves a dual-home and is noted in the close report.
    single home: `references/phase-ship.md`) in the close report; close never
    re-runs the quiz. A phase that shipped without its pair → produce it now,
    per phase-ship.md, before closing.
-3. Run:
-   ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/skills/epic-driven-roadmap/check-close-ready.sh" .touchstone/epics/<epic-dir>/index.md
-   ```
-   Show the full output. Non-zero → fix and re-run.
-4. Run Evidence Reckoning (§ below); append its section to the epic index.
+3. Run Evidence Reckoning (§ below); append its section to the epic index.
    Then ask the fixed recall question — "這個 epic 裡,你抓到哪些 gates 沒抓到的?" —
    and append every answer to `.touchstone/gate-miss.md` in the six-field
    primitive (`date | artifact | 事件 | 應然 locus | 實然 locus | severity`); an
    answer of "none" appends nothing — the close report records `recall: none`.
-5. Run the Disposition pass (§ below).
-5a. Regenerate the dossier:
+4. Run (it requires the Evidence Reckoning section of step 3):
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>
+   bash "${CLAUDE_PLUGIN_ROOT}/skills/epic-driven-roadmap/check-close-ready.sh" .touchstone/epics/<epic-dir>/index.md
    ```
-   Per the renderer header.
+   Show the full output. Non-zero → fix and re-run.
+5. Run the Disposition pass (§ below).
+5a. The shipped hook re-rendered the dossier at every write above; run
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>`
+   yourself only when the hook did not fire.
 6. Update `ROADMAP.md`: move the epic's row from § Active to § Completed
    with the landed date, pointing at the archived index path.
 7. Move the whole epic dir to `.touchstone/archive/epics/<epic-dir>/`

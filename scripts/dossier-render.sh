@@ -78,7 +78,7 @@ if find "$epic_dir" -name '*.yaml' | grep -q . && ! python3 -c 'import yaml' 2>/
 fi
 
 python3 - "$epic_dir" "$root_override" "$pr_body" <<'PYTHON_EOF'
-import sys, os, re, html, glob
+import sys, os, re, html, glob, subprocess, json
 try:
     import yaml
 except ImportError:
@@ -743,8 +743,15 @@ def dev_lines_for(p):
     if p is EPIC:
         return [d for d in deviation_lines if not any(q['slug'] and (q['slug'] in d or f"phase {q['num']}" in d.lower()) for q in phases)]
     return [d for d in deviation_lines if (p['slug'] and p['slug'] in d) or f"phase {p['num']}" in d.lower()]
+def phase_num(p, i):
+    """A YAML phase's number is its spec's own `phase` field (the key deviation entries, quiz
+    items and metrics carry); a markdown-era phase keeps the index table's row number."""
+    yd = (specs.get(p['spec']) or {}).get('yaml')
+    if isinstance(yd, dict) and isinstance(yd.get('phase'), int) and not isinstance(yd.get('phase'), bool):
+        return str(yd['phase'])
+    return next((r[0] for r in phase_table_rows if p['spec'] in r[2]), str(i + 1))
 for i, p in enumerate(phases):
-    p['num'] = next((r[0] for r in phase_table_rows if p['spec'] in r[2]), str(i + 1))
+    p['num'] = phase_num(p, i)
 
 # ---------- YAML projection (every sentence is a field value; labels are the only renderer text) ----------
 def yv(v, owner):
@@ -763,8 +770,22 @@ def yaml_table(rows, header, owner, anchor_col=None, stem=''):
         body += f'<tr{rid}>' + ''.join(f'<td>{c if (isinstance(c, str) and c.startswith("<abbr")) else inline(sval(c), owner, skip if j == anchor_col else None)}</td>' for j, c in enumerate(r)) + '</tr>'
     return f'<div class="tbl"><table><tr>{h}</tr>{body}</table></div>'
 
+def acs_findings_index(p):
+    """AC/REQ/INV id -> [(rel, finding), ...] across every review.yaml of this phase, keyed by
+    `refs` only — never by `field`, `summary` or `fix` prose (a finding is linked and
+    counted under exactly the ids in its refs)."""
+    idx = {}
+    for rel, d in reviews_for(p):
+        for f in d.get('findings') or []:
+            if not isinstance(f, dict): continue
+            for rid in (f.get('refs') or []):
+                rid = sval(rid)
+                if rid: idx.setdefault(rid, []).append((rel, f))
+    return idx
+
 def yaml_contract_card(p, s):
     yd, k = s['yaml'], p['key']
+    acs_idx = acs_findings_index(p)
     parts = [f'<h3 class="file-title">{yv(yd.get("title"), k)}</h3>',
              meta_line({kk: v for kk, v in s['fm'].items() if kk != 'status'}, fspan(p['spec']))]
     agent = []   # reader: agent fields — folded
@@ -792,7 +813,11 @@ def yaml_contract_card(p, s):
                 aid = sval(a.get('id'))
                 ab = ' '.join(link_codes(sval(b), k) for b in a.get('basis') or [])
                 lb = zpill('live-bearing', 'warn') if a.get('live_bearing') is True else ''
-                rows += f'<tr id="{attr(k + "--" + aid)}" class="ac"><td class="num">{html.escape(aid)} {lb}</td><td>{lab("給定")} {yv(a.get("given"), k)} · {lab("當")} {yv(a.get("when"), k)} · {lab("則")} {yv(a.get("then"), k)}</td><td></td><td class="num">{ab}</td></tr>'
+                fnd = acs_idx.get(aid) or []
+                fcell = (f'<span class="num">{len(fnd)}</span> ' + ' '.join(
+                    f'<a class="code" data-jump="{attr("finding--" + sval(f.get("id")))}" tabindex="0">{html.escape(sval(f.get("id")))}</a>'
+                    for _, f in fnd)) if fnd else ''
+                rows += f'<tr id="{attr(k + "--" + aid)}" class="ac"><td class="num">{html.escape(aid)} {lb}</td><td>{lab("給定")} {yv(a.get("given"), k)} · {lab("當")} {yv(a.get("when"), k)} · {lab("則")} {yv(a.get("then"), k)}</td><td>{fcell}</td><td class="num">{ab}</td></tr>'
         agent.append(f'<h4>{html.escape("需求")}</h4><div class="tbl"><table><tr><th>id</th><th>應 / 給定 · 當 · 則</th><th>驗收條件</th><th>依據</th></tr>{rows}</table></div>')
     if yd.get('invariants'):
         agent.append(f'<h4>{html.escape("不變式")}</h4>' + yaml_table([[i.get('id'), i.get('rule'), i.get('check'), i.get('why_ref')] for i in yd['invariants'] if isinstance(i, dict)], ['id', '規則', '檢查', '依據'], k, 0, k))
@@ -807,36 +832,57 @@ def yaml_contract_card(p, s):
     if yd.get('risks'):
         parts.append(collapsed(f'<span class="lead">{lab("風險")}</span> <span class="num">{len(yd["risks"])}</span>', yaml_table([[zh(r.get('priority')), r.get('problem'), r.get('measure'), r.get('why_ref')] for r in yd['risks'] if isinstance(r, dict)], ['優先', '問題', '對策', '依據'], k)))
     if yd.get('waiting_on_human'):
-        parts.append(f'<h4>{html.escape("等你裁")}</h4><ul class="todo">' + ''.join(f'<li>{yv(w, k)}</li>' for w in yd['waiting_on_human']) + '</ul>')
+        parts.append(f'<h4>{html.escape("等你裁")}</h4><ul class="todo">' + ''.join(
+            waiting_item_html(p['spec'], 'spec', w, k) for w in yd['waiting_on_human'] if isinstance(w, dict)) + '</ul>')
     if agent:
         parts.append(collapsed(f'<span class="lead">{lab("agent 用欄位")}</span> <span class="muted">{lab("需求 · 驗收條件 · 不變式 · 變更 · 契約介面")}</span>', ''.join(agent)))
     return f'<article>{"".join(parts)}</article>'
 
-def dev_entries_for_panel(key):
+def dev_entries_for_panel(key, phase=None):
+    """D-n entries on one panel; with `phase` given, only the entries whose own `phase` field names that phase."""
     if not yaml_dev: return []
     key = PANEL_OF.get(key, key)
-    return [e for e in yaml_dev.get('entries') or [] if isinstance(e, dict) and sval(e.get('panel')) == key]
+    return [e for e in yaml_dev.get('entries') or [] if isinstance(e, dict) and sval(e.get('panel')) == key
+            and (phase is None or sval(e.get('phase')) == phase)]
+
+def td_text(v):
+    """gap / disposition as plain text: the title, then the detail after an em dash (legacy string as is)."""
+    if isinstance(v, dict):
+        return sval(v.get('title')) + (f" — {sval(v.get('detail'))}" if v.get('detail') else '')
+    return sval(v)
+
+def title_detail(v, owner):
+    """gap / disposition: {title, detail?} — title is the lead, detail (if any) trails muted."""
+    if isinstance(v, dict):
+        t = f'<span class="lead">{yv(v.get("title"), owner)}</span>'
+        d = f' <span class="muted">{yv(v.get("detail"), owner)}</span>' if v.get('detail') else ''
+        return t + d
+    return yv(v, owner)  # legacy string shape, pre-migration
 
 def dev_entry_html(e, owner, anchor=True):
     did = sval(e.get('id'))
     aid = f' id="{attr("deviation--" + did)}"' if anchor else ''
+    derived = ' <span class="pill muted">process only</span>' if e.get('derived') is True else ''
+    refs = ' '.join(link_codes(sval(r), owner) for r in (e.get('refs') or []))
     # one deviation = one fixed-field record: head line (id · date), then label/value rows —
     # never a run-on sentence where the labels drown between the values
-    return (f'<li{aid}><dl class="dev"><div class="head">{inline(did, owner, did)} <span class="muted">{yv(e.get("date"), owner)}</span></div>'
-            f'<div><dt>{lab("缺口")}</dt><dd>{yv(e.get("gap"), owner)}</dd></div>'
-            f'<div><dt>{lab("處置")}</dt><dd>{yv(e.get("disposition"), owner)}</dd></div>'
-            f'<div><dt>{lab("哪一階段可抓到")}</dt><dd>{yv(e.get("which_stage_could_have_caught"), owner)}</dd></div></dl></li>')
+    return (f'<li{aid}><dl class="dev"><div class="head">{inline(did, owner, did)}{derived} <span class="muted">{yv(e.get("date"), owner)}</span></div>'
+            f'<div><dt>{lab("缺口")}</dt><dd>{title_detail(e.get("gap"), owner)}</dd></div>'
+            f'<div><dt>{lab("處置")}</dt><dd>{title_detail(e.get("disposition"), owner)}</dd></div>'
+            f'<div><dt>{lab("哪一階段可抓到")}</dt><dd>{yv(e.get("which_stage_could_have_caught"), owner)}</dd></div>'
+            + (f'<div><dt>{lab("依據")}</dt><dd>{refs}</dd></div>' if refs else '')
+            + '</dl></li>')
 
 def yaml_panels_html(p, s, legacy_lines, anchor=True):
     k, cards = p['key'], ''
     for (label, key), (_, text) in zip(YAML_PANELS, s['panels']):
-        hits = dev_entries_for_panel(key)
+        hits = dev_entries_for_panel(key, p['num'])
         mark = '<span class="pill warn">built ≠ planned</span>' if hits else '<span class="pill ok">as planned</span>'
         body = f'<p>{yv(text, k)}</p>'
         if hits:
             body += f'<p class="delta">{lab("偏離")}</p><ul>' + ''.join(dev_entry_html(e, k, anchor) for e in hits) + '</ul>'
         cards += f'<section class="panel"><h4>{html.escape(label)} {mark}</h4>{body}</section>'
-    other = dev_entries_for_panel('none')
+    other = dev_entries_for_panel('none', p['num'])
     if other:
         cards += f'<section class="panel"><h4>{html.escape("未歸面板的偏離")}</h4><ul>' + ''.join(dev_entry_html(e, k, anchor) for e in other) + '</ul></section>'
     if legacy_lines:
@@ -857,7 +903,7 @@ def review_findings_table(d, owner):
     for f in d.get('findings') or []:
         if not isinstance(f, dict): continue
         loc = sval(f.get('field')) or (sval(f.get('file')) + (f":{f['line']}" if f.get('line') is not None else ''))
-        rows.append([f.get('id'), f.get('severity'), f.get('type'), f.get('agent'), loc, f.get('summary'), f.get('status')])
+        rows.append([f.get('id'), f.get('severity'), f.get('type'), ' '.join(sval(a) for a in (f.get('found_by') or [])), loc, f.get('summary'), f.get('status')])
     if not rows:
         return f'<p class="placeholder">no findings</p>'
     return yaml_table(rows, ['id', '嚴重度', '類型', 'agent', '位置', '摘要', '狀態'], owner)
@@ -960,31 +1006,167 @@ def structure_overlay(p, s):
         tables += yaml_table([[e.get('op'), e.get('from'), e.get('to'), e.get('label')] for e in edges], ['動作', '從', '到', '說明'], k)
     return out + collapsed(f'<span class="lead">{lab("區塊與連線")}</span>', tables)
 
+# ---------- structure map panel (plugin repos only — dossier-map-panel) ----------
+def token_count(root, files):
+    """sum of byte sizes of the given file set / 4. Callers pass the union of
+    stages[].contexts[].files — the same context-loaded set plugin-map.sh itself counts
+    behind `unique_lines` — never `load_set` (that also carries scripts and their
+    transitive reads, which are run, not loaded into a context)."""
+    total = 0
+    for p in files:
+        try:
+            total += os.path.getsize(os.path.join(root, p))
+        except OSError:
+            pass
+    return total // 4
+
+def run_plugin_map(root):
+    """`bash <root>/scripts/plugin-map.sh --root <root>` — root-relative only, so the
+    absence guard (no call at all when plugin.json is missing) is provable on PATH."""
+    pm = os.path.join(root, 'scripts', 'plugin-map.sh')
+    try:
+        r = subprocess.run(['bash', pm, '--root', root], capture_output=True, text=True, timeout=120)
+    except Exception as e:
+        return None, str(e)
+    if r.returncode != 0:
+        lines = (r.stderr or r.stdout or '').splitlines()
+        return None, lines[0] if lines else f'plugin-map.sh exited {r.returncode}'
+    try:
+        return json.loads(r.stdout), None
+    except Exception as e:
+        return None, f'plugin-map.sh output not JSON: {e}'
+
+def structure_map_html(root):
+    """The 結構變化 tab's epic-level map panel — exists iff <root>/.claude-plugin/plugin.json
+    exists; plugin-map.sh runs at most once, root-relative, never via a bare
+    PATH lookup, so absence never invokes it."""
+    if not root or not os.path.isfile(os.path.join(root, '.claude-plugin', 'plugin.json')):
+        return ''
+    data, err = run_plugin_map(root)
+    if data is None:
+        return ('<article id="structure-map"><h3 class="file-title">結構地圖</h3>'
+                 f'<p class="placeholder">plugin-map.sh failed: {html.escape(err or "unknown error")}</p></article>')
+    stages = sorted((s for s in (data.get('stages') or []) if isinstance(s, dict)), key=lambda s: s.get('stage', 0))
+    cards = ''
+    for s in stages:
+        load_set = [sval(x) for x in (s.get('load_set') or [])]
+        ctx_files = set()
+        for c in (s.get('contexts') or []):
+            if isinstance(c, dict):
+                ctx_files.update(sval(x) for x in (c.get('files') or []))
+        tok = token_count(root, ctx_files)
+        chain = ''.join(f'<li><code>{html.escape(x)}</code></li>' for x in load_set)
+        cards += (f'<section class="panel"><h4>stage {html.escape(sval(s.get("stage")))} · {fspan(sval(s.get("entry")))}</h4>'
+                  f'<p class="meta">{lab("lines")} <span class="num">{html.escape(sval(s.get("lines")))}</span> · '
+                  f'{lab("unique_lines")} <span class="num">{html.escape(sval(s.get("unique_lines")))}</span> · '
+                  f'{lab("tokens")} <span class="num">{tok}</span></p>'
+                  + collapsed(f'<span class="lead">{lab("載入鏈")}</span> <span class="num">{len(load_set)}</span>', f'<ul class="files">{chain}</ul>')
+                  + '</section>')
+    stage_html = f'<div class="panels">{cards}</div>' if cards else '<p class="placeholder">no stage entries in plugin-map.sh output</p>'
+    fe, orphans = data.get('false_edges') or [], data.get('orphans') or []
+    top_meta = f'<p class="meta">{lab("false_edges")} <span class="num">{len(fe)}</span> · {lab("orphans")} <span class="num">{len(orphans)}</span></p>'
+    ratchet_rows, baseline = '', os.path.join(root, '.touchstone', 'checker', 'baselines', 'plugin-ratchets.txt')
+    if os.path.isfile(baseline):
+        for line in read(baseline).splitlines():
+            line = line.strip()
+            if not line or line.startswith('#'): continue
+            kv = line.split(None, 1)
+            if len(kv) == 2:
+                ratchet_rows += f'<tr><td>{html.escape(kv[0])}</td><td class="num">{html.escape(kv[1])}</td></tr>'
+    ratchet_html = f'<div class="tbl"><table><tr><th>ratchet</th><th>值</th></tr>{ratchet_rows}</table></div>' if ratchet_rows else '<p class="placeholder">no ratchet baseline</p>'
+    return f'<article id="structure-map"><h3 class="file-title">結構地圖</h3>{top_meta}{stage_html}{ratchet_html}</article>'
+
+def metrics_table_html():
+    """Every known phase's recorded deviation.yaml metrics, matched by metrics.phase;
+    absent → a placeholder row (design decision 5)."""
+    m = (yaml_dev or {}).get('metrics') if yaml_dev else None
+    m = m if isinstance(m, dict) else None
+    rows = ''
+    for p in phases:
+        pm = m if (m and sval(m.get('phase')) == p['num']) else None
+        if pm:
+            ic = pm.get('instrument_churn') if isinstance(pm.get('instrument_churn'), dict) else {}
+            rows += (f'<tr><td>{html.escape(p["num"])}</td><td class="num">{html.escape(sval(pm.get("stage1_tokens")))}</td>'
+                      f'<td class="num">{html.escape(sval(pm.get("false_edges")))}</td>'
+                      f'<td class="num">{html.escape(sval(ic.get("shape_driven_lines")))}</td>'
+                      f'<td class="num">{html.escape(sval(ic.get("other_lines")))}</td>'
+                      f'<td class="num">{html.escape(sval(pm.get("measured_at")))}</td></tr>')
+        else:
+            rows += f'<tr><td>{html.escape(p["num"])}</td><td colspan="5" class="placeholder">no metrics recorded</td></tr>'
+    if not rows:
+        return '<p class="placeholder">no phases</p>'
+    return f'<div class="tbl"><table><tr><th>phase</th><th>stage1_tokens</th><th>false_edges</th><th>shape_driven</th><th>other</th><th>measured_at</th></tr>{rows}</table></div>'
+
+def quiz_result(it):
+    """ref-set: checker-derived pass/miss by set equality (missing/extra listed);
+    manual: the recorded `result`. Mirrors check-artifact's grading (contract quiz-item)."""
+    if sval(it.get('kind')) == 'ref-set':
+        expected = {sval(x) for x in (it.get('expected_refs') or [])}
+        answered = it.get('answer_refs')
+        if answered is None:
+            return 'unanswered', [], []
+        answered = {sval(x) for x in answered}
+        missing, extra = sorted(expected - answered), sorted(answered - expected)
+        return ('pass' if not missing and not extra else 'miss'), missing, extra
+    return (sval(it.get('result')) or 'pending'), [], []
+
+def quiz_item_li(it, owner):
+    res, missing, extra = quiz_result(it)
+    res_pill = f' {zpill(res)}' if res != 'pending' else ''
+    if sval(it.get('kind')) == 'ref-set':
+        exp = ' '.join(link_codes(sval(x), owner) for x in (it.get('expected_refs') or []))
+        ans = ' '.join(link_codes(sval(x), owner) for x in (it.get('answer_refs') or []))
+        body = f'{lab("應含")} {exp}' + (f' · {lab("已答")} {ans}' if ans else '')
+        if missing: body += f' · {lab("少")} ' + ' '.join(link_codes(m, owner) for m in missing)
+        if extra: body += f' · {lab("多")} ' + ' '.join(link_codes(m, owner) for m in extra)
+    else:
+        body = yv(it.get('answer'), owner)
+    anchor = f' · {lab("錨點")} <code>{html.escape(sval(it.get("anchor")))}</code>' if it.get('anchor') else ''
+    return f'<li>{yv(it.get("id"), owner)}{res_pill} · {yv(it.get("question"), owner)}<details class="fold"><summary><span class="lead">答案</span></summary><div class="fold-body">{body}{anchor}</div></details></li>'
+
+def quiz_list_html(items, owner):
+    return collapsed(f'<span class="lead">{lab("題目")}</span> <span class="num">{len(items)}</span>',
+                      '<ol class="quiz">' + ''.join(quiz_item_li(it, owner) for it in items if isinstance(it, dict)) + '</ol>')
+
 def quiz_html(p):
+    """The current phase's own quiz (front page): items/entries filtered to p['num'] —
+    an item's `phase` field decides, never which file it lives in."""
     k = p['key']
-    q = (yaml_dev or {}).get('quiz') if yaml_dev else None
-    entries = (yaml_dev or {}).get('entries') or []
     if yaml_dev is None:
         return '<p class="placeholder">尚無 deviation.yaml</p>'
-    if not entries or (isinstance(q, dict) and q.get('waived') is True):
+    q = yaml_dev.get('quiz') if isinstance(yaml_dev.get('quiz'), dict) else {}
+    entries = [e for e in (yaml_dev.get('entries') or []) if isinstance(e, dict) and sval(e.get('phase')) == p['num']]
+    if not entries or q.get('waived') is True:
         return f'<p class="waiver">{lab("理解測驗免作")} · {lab("零偏離：本 phase 沒有 D-n")}</p>'
-    items = (q.get('items') or []) if isinstance(q, dict) else []
+    items = [i for i in (q.get('items') or []) if isinstance(i, dict) and sval(i.get('phase')) == p['num']]
     if not items:
         return '<p class="placeholder">理解測驗尚未出題</p>'
-    out = ''
-    for it in items:
-        if not isinstance(it, dict): continue
-        res = f' <span class="pill {"ok" if sval(it.get("result")) == "pass" else "crit"}">{html.escape(sval(it.get("result")))}</span>' if it.get('result') else ''
-        out += f'<li>{yv(it.get("id"), k)}{res} · {yv(it.get("question"), k)}<details class="fold"><summary><span class="lead">答案</span></summary><div class="fold-body">{yv(it.get("answer"), k)} · {lab("錨點")} <code>{html.escape(sval(it.get("anchor")))}</code></div></details></li>'
-    return f'<div id="{attr(k + "--quiz")}">' + collapsed(f'<span class="lead">{lab("題目")}</span> <span class="num">{len(items)}</span>', f'<ol class="quiz">{out}</ol>') + '</div>'
+    return f'<div id="{attr(k + "--quiz")}">' + quiz_list_html(items, k) + '</div>'
+
+def waiting_item_html(rel, gate, w, owner):
+    """A waiting item: {id, kind, owner, title, detail?, refs?} — one row per object, no
+    row ever produced by scanning prose with CODE_RE."""
+    refs = ' '.join(link_codes(sval(r), owner) for r in (w.get('refs') or []))
+    detail = f' <span class="muted">{yv(w.get("detail"), owner)}</span>' if w.get('detail') else ''
+    wid = sval(w.get('id'))
+    return (f'<li><label><input type="checkbox" data-check="{attr(owner + "|" + wid)}"> '
+            f'{zpill(w.get("kind"))} {yv(w.get("title"), owner)}{detail}'
+            + (f' · {refs}' if refs else '')
+            + f' · {lab("負責")} {yv(w.get("owner"), owner)}'
+            + (f' · {lab("門")} {zh(gate)}' if gate else '')
+            + f' <a href="{attr(rel)}" title="{attr(rel)}">{lab("來源")}</a></label></li>')
 
 def waiting_union(p, s):
-    out = [(os.path.basename(p['spec']), w) for w in s['yaml'].get('waiting_on_human') or []]
+    """Every W-n object currently open across this phase's spec, its newest review round
+    per gate, and deviation.yaml — {source record, gate} derived from the file it came
+    from, never from a filename/slug guess."""
+    out = [(os.path.basename(p['spec']), 'spec', w) for w in s['yaml'].get('waiting_on_human') or [] if isinstance(w, dict)]
     for gate in KNOWN_GATES + extra_gates(p):
         rel, d = newest_review(p, gate)
-        if d: out += [(rel, w) for w in d.get('waiting_on_human') or []]
+        if d:
+            out += [(rel, sval(d.get('gate')) or gate, w) for w in d.get('waiting_on_human') or [] if isinstance(w, dict)]
     if yaml_dev:
-        out += [('deviation.yaml', w) for w in yaml_dev.get('waiting_on_human') or []]
+        out += [('deviation.yaml', 'build', w) for w in yaml_dev.get('waiting_on_human') or [] if isinstance(w, dict)]
     return out
 
 # ---------- zh-TW label table (enum → label; identifiers never translated) ----------
@@ -1007,6 +1189,8 @@ ZH = {
     'component': '元件', 'skill': '技能', 'fragment': '片段', 'agent': 'agent', 'command': '指令', 'schema': 'schema', 'doc': '文件',
     'high': '高', 'medium': '中', 'low': '低', 'spec': 'spec', 'adr': 'ADR',
     'owner': '擁有者', 'builder': '建置者', 'author': '作者 session', 'complete': '完成', 'partial': '部分',
+    'ruling': '裁決', 'answer': '回答', 'accept': '接受', 'fix': '修',
+    'unanswered': '未答', 'miss': '未過',
 }
 def zh(v):
     """Enum value → zh-TW label with the English key kept as an abbr title."""
@@ -1041,14 +1225,17 @@ def open_blockers(p):
             if isinstance(f, dict) and sval(f.get('severity')) in ('C', 'H') and sval(f.get('status')) == 'open':
                 out.append((rel, f))
     return sorted(out, key=lambda x: (SEV_ORDER.get(sval(x[1].get('severity')), 9), sval(x[1].get('id'))))
-def quiz_state():
+def quiz_state(phase_num=None):
+    """Overall pass/fail/pending for one phase's quiz — items are scoped by their own
+    `phase` field (phase_num=None = every item, for callers with no single phase in view)."""
     if not yaml_dev: return 'pending'
     q = yaml_dev.get('quiz') if isinstance(yaml_dev.get('quiz'), dict) else {}
-    if not (yaml_dev.get('entries') or []) or q.get('waived') is True: return 'n/a'
-    items = [i for i in (q.get('items') or []) if isinstance(i, dict)]
+    entries = [e for e in (yaml_dev.get('entries') or []) if isinstance(e, dict) and (phase_num is None or sval(e.get('phase')) == phase_num)]
+    if not entries or q.get('waived') is True: return 'n/a'
+    items = [i for i in (q.get('items') or []) if isinstance(i, dict) and (phase_num is None or sval(i.get('phase')) == phase_num)]
     if not items: return 'pending'
-    res = [sval(i.get('result')) for i in items]
-    if any(r == 'miss' for r in res): return 'fail'
+    res = [quiz_result(i)[0] for i in items]
+    if any(r in ('miss', 'unanswered') for r in res): return 'fail'
     if all(r == 'pass' for r in res): return 'pass'
     return 'pending'
 def gate_state_after_rulings(d):
@@ -1071,7 +1258,7 @@ def gate_rows(p):
         st = 'pass' if v == 'approve' else gate_state_after_rulings(d)
         rows.append((gate, st, d, rel, ''))
     rows.append(('tests', 'n/a', None, None, ''))
-    rows.append(('quiz', quiz_state(), None, 'deviation.yaml' if yaml_dev else None, ''))
+    rows.append(('quiz', quiz_state(p['num']), None, 'deviation.yaml' if yaml_dev else None, ''))
     rows.append(('ship-gate', 'n/a', None, None, ''))
     rows = sorted(rows, key=lambda r: {'fail': 0, 'pending': 1, 'pass': 2, 'n/a': 3}[r[1]])
     for gate in extra_gates(p):
@@ -1117,7 +1304,7 @@ if not root:
 yaml_phases = [p for p in phases if 'yaml' in specs[p['spec']]]
 current = yaml_phases[-1] if yaml_phases else None   # newest YAML phase = the one under decision
 for i, p in enumerate(phases):
-    p['num'] = next((r[0] for r in phase_table_rows if p['spec'] in r[2]), str(i + 1))
+    p['num'] = phase_num(p, i)
 
 def front_sections(p, s):
     """[(label, html, text)] — the 首頁 in reading order; text = the PR-body projection."""
@@ -1135,17 +1322,14 @@ def front_sections(p, s):
     secs.append(('gate 條', None, g_txt))   # html None → not rendered on the page; the strip carries the gates
     bl = open_blockers(p); wu = waiting_union(p, s)
     items = [f'<li><label><input type="checkbox" data-check="{attr(k + "|" + sval(f.get("id")))}"> {zpill(f.get("severity"))} <a class="code" data-jump="{attr("finding--" + sval(f.get("id")))}" tabindex="0">{html.escape(sval(f.get("id")))}</a> {yv(f.get("summary"), k)}</label></li>' for rel, f in bl]
-    def wlink(w):
-        t = yv(w, k)
-        return re.sub(r'QZ-1 到 QZ-7', f'<a class="code" data-jump="{attr(k + "--quiz")}" tabindex="0">QZ-1 到 QZ-7</a>', t)
-    items += [f'<li><label><input type="checkbox" data-check="{attr(k + "|" + sval(w))}"> {wlink(w)} <a href="{attr(src)}" title="{attr(src)}">{lab("來源")}</a></label></li>' for src, w in wu]
+    items += [waiting_item_html(rel, gate, w, k) for rel, gate, w in wu]
     bl_html = f'<ul class="todo check">{capped(items)}</ul>' if items else f'<p class="placeholder">沒有阻擋項</p>'
-    bl_txt = '\n'.join([f"- [ ] {sval(f.get('severity'))} {sval(f.get('id'))} {sval(f.get('summary'))}" for rel, f in bl] + [f"- [ ] {sval(w)} ({src})" for src, w in wu]) or '(none)'
+    bl_txt = '\n'.join([f"- [ ] {sval(f.get('severity'))} {sval(f.get('id'))} {sval(f.get('summary'))}" for rel, f in bl] + [f"- [ ] {sval(w.get('title'))} ({rel})" for rel, gate, w in wu]) or '(none)'
     secs.append(('阻擋清單', bl_html, bl_txt))
     rel, d = newest_review(p, 'deliverable-review')
     acs = [a for r in yd.get('requirements') or [] if isinstance(r, dict) for a in (r.get('acs') or []) if isinstance(a, dict)]
     unv = [f for f in (d.get('findings') or [] if d else []) if isinstance(f, dict) and sval(f.get('status')) == 'unverified']
-    qs = quiz_state()
+    qs = quiz_state(p['num'])
     q = (yaml_dev or {}).get('quiz') if yaml_dev else {}
     qitems = [i for i in ((q.get('items') or []) if isinstance(q, dict) else []) if isinstance(i, dict)]
     qpass = sum(1 for i in qitems if sval(i.get('result')) == 'pass')
@@ -1153,15 +1337,20 @@ def front_sections(p, s):
               + (f' · {lab("最新交付審查")} {zh(d.get("verdict"))} <a href="{attr(rel)}" title="{attr(rel)}">{lab("紀錄")}</a>' if d else f' · {zpill("pending")}')
               + f'</p><p>{lab("理解測驗")} {zpill(qs)}' + (f' <span class="num">{qpass}/{len(qitems)}</span>' if qitems else '') + '</p>')
     if unv:
-        def last_id(fp):
-            ids = re.findall(r'\b((?:AC|REQ|INV|US)-\d+)\b', sval(fp)); return ids[-1] if ids else sval(fp)
-        unv_sorted = sorted(unv, key=lambda f: (re.sub(r'\d+', lambda m: m.group(0).zfill(4), last_id(f.get('field')))))
-        acs_u = [f for f in unv_sorted if last_id(f.get('field')).startswith('AC-')]
-        inv_u = [f for f in unv_sorted if not last_id(f.get('field')).startswith('AC-')]
-        v_html += f'<p class="meta">{lab("未驗證的驗收條件")} <span class="num">{len(acs_u)}</span></p><ul>' + capped([f'<li>{link_codes(last_id(f.get("field")), k)} {zpill("unverified")}</li>' for f in acs_u]) + '</ul>'
+        def last_id(f):
+            # refs (structured, authoritative) first — a locator field is a fallback,
+            # never the finding's summary/fix prose
+            ids = [sval(r) for r in (f.get('refs') or []) if isinstance(r, str) and re.fullmatch(r'(AC|REQ|INV|US)-\d+', sval(r))]
+            if ids: return ids[-1]
+            m = re.findall(r'\b((?:AC|REQ|INV|US)-\d+)\b', sval(f.get('field')))
+            return m[-1] if m else (sval(f.get('field')) or sval(f.get('file')))
+        unv_sorted = sorted(unv, key=lambda f: (re.sub(r'\d+', lambda m: m.group(0).zfill(4), last_id(f))))
+        acs_u = [f for f in unv_sorted if last_id(f).startswith('AC-')]
+        inv_u = [f for f in unv_sorted if not last_id(f).startswith('AC-')]
+        v_html += f'<p class="meta">{lab("未驗證的驗收條件")} <span class="num">{len(acs_u)}</span></p><ul>' + capped([f'<li>{link_codes(last_id(f), k)} {zpill("unverified")}</li>' for f in acs_u]) + '</ul>'
         if inv_u:
-            v_html += f'<p class="meta">{lab("未驗證的不變式")} <span class="num">{len(inv_u)}</span></p><ul>' + capped([f'<li>{link_codes(last_id(f.get("field")), k)} {zpill("unverified")}</li>' for f in inv_u]) + '</ul>'
-        v_html += collapsed(f'<span class="lead">{lab("未驗證詳情")}</span> <span class="num">{len(unv)}</span>', '<ul>' + ''.join(f'<li>{link_codes(last_id(f.get("field")), k)} · {yv(f.get("summary"), k)}</li>' for f in unv_sorted) + '</ul>')
+            v_html += f'<p class="meta">{lab("未驗證的不變式")} <span class="num">{len(inv_u)}</span></p><ul>' + capped([f'<li>{link_codes(last_id(f), k)} {zpill("unverified")}</li>' for f in inv_u]) + '</ul>'
+        v_html += collapsed(f'<span class="lead">{lab("未驗證詳情")}</span> <span class="num">{len(unv)}</span>', '<ul>' + ''.join(f'<li>{link_codes(last_id(f), k)} · {yv(f.get("summary"), k)}</li>' for f in unv_sorted) + '</ul>')
     nb = sum(1 for i, st, l in ledger_stage_lines if st.startswith(('build', 'deliverable-review', 'phase-ship')))
     if nb:
         v_html += f'<p class="meta">{lab("建置帳")} <a class="code" data-jump="{attr(k + "--ledger")}" tabindex="0">{nb}</a> {lab("則（含每個 prose commit 的 m-skill-review 裁決）")}</p>'
@@ -1174,15 +1363,15 @@ def front_sections(p, s):
     by_panel = {}
     for e in dn: by_panel.setdefault(sval(e.get('panel')), []).append(sval(e.get('id')))
     sc_html = f'<p>{lab("偏離契約")} <span class="num">{len(dn)}</span> · ' + ' · '.join(f'{zh(pn)} {" ".join(link_codes(i, k) for i in ids)}' for pn, ids in by_panel.items()) + f' · <a data-jump="{attr(k + "--structure")}" tabindex="0" class="code">結構變化</a></p>' if dn else f'<p>{lab("偏離契約")} <span class="num">0</span> · <a data-jump="{attr(k + "--structure")}" tabindex="0" class="code">結構變化</a></p>'
-    sc_txt = '\n\n'.join(f"### {ZH.get(PANEL_OF[key], label)} — {'built ≠ planned' if dev_entries_for_panel(key) else 'as planned'}\n\n{sval(text)}" + ''.join(f"\n- {sval(e.get('id'))} · {sval(e.get('gap'))} · 處置: {sval(e.get('disposition'))}" for e in dev_entries_for_panel(key)) for (label, key), (_, text) in zip(YAML_PANELS, s['panels'] or []))
+    sc_txt = '\n\n'.join(f"### {ZH.get(PANEL_OF[key], label)} — {'built ≠ planned' if dev_entries_for_panel(key, p['num']) else 'as planned'}\n\n{sval(text)}" + ''.join(f"\n- {sval(e.get('id'))} · {td_text(e.get('gap'))} · 處置: {td_text(e.get('disposition'))}" for e in dev_entries_for_panel(key, p['num'])) for (label, key), (_, text) in zip(YAML_PANELS, s['panels'] or []))
     secs[0] = ('決策', secs[0][1] + sc_html, secs[0][2] + '\n\n' + sc_txt)
     check = [(zh(g), zpill(st), '') for g, st, d, rel, _ in gate_rows(p)]
     ck_items = [f'<li>{zpill(st)} {zh(g)}</li>' for g, st, d, rel, _ in gate_rows(p) if st in ('fail', 'pending')]
     ck_items += [f'<li>{zpill(f.get("severity"))} {html.escape(sval(f.get("id")))}</li>' for rel, f in bl]
-    ck_items += [f'<li>{zpill("pending")} {yv(w, k)}</li>' for src, w in wu]
+    ck_items += [f'<li>{zpill("pending")} {yv(w.get("title"), k)}</li>' for rel, gate, w in wu]
     footer = zpill('approvable') if state == 'approvable' else f'{zpill("blocked")} <span class="num">{n}</span>' if state == 'blocked' else zpill('not-reviewed')
     ck_html = f'<ol class="checklist">{capped(ck_items)}</ol><p class="footer">{lab("結論")} {footer}</p>'
-    ck_txt = '\n'.join(f"- [ ] {ZH.get(g, g)}: {ZH[st]}" for g, st, *_ in gate_rows(p) if st in ('fail', 'pending')) + ''.join(f"\n- [ ] {sval(f.get('severity'))} {sval(f.get('id'))}" for rel, f in bl) + ''.join(f"\n- [ ] {sval(w)}" for src, w in wu) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
+    ck_txt = '\n'.join(f"- [ ] {ZH.get(g, g)}: {ZH[st]}" for g, st, *_ in gate_rows(p) if st in ('fail', 'pending')) + ''.join(f"\n- [ ] {sval(f.get('severity'))} {sval(f.get('id'))}" for rel, f in bl) + ''.join(f"\n- [ ] {sval(w.get('title'))}" for rel, gate, w in wu) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
     secs.append(('檢查表', ck_html, ck_txt))
     return secs
 
@@ -1267,8 +1456,8 @@ if adr_lines:
     tab['契約']['epic'].append('<article>' + collapsed(f'<span class="lead">{lab("ADR")}</span> <span class="num">{len(adr_lines)}</span>', f'<ul class="adr">{"".join(adr_lines)}</ul>') + '</article>')
 
 # 結構變化 — picture first, then the four panels with D-n badges (entries folded), legacy lines folded
-def dev_badge(key):
-    hits = dev_entries_for_panel(key)
+def dev_badge(key, phase=None):
+    hits = dev_entries_for_panel(key, phase)
     return f'<span class="pill warn">{zh("built-ne-planned")} · {len(hits)}</span>' if hits else zpill('as-planned', 'ok')
 for p in phases:
     s = specs[p['spec']]
@@ -1282,12 +1471,12 @@ for p in phases:
         cards = ''
         if s['panels']:
             for (label, key), (_, text) in zip(YAML_PANELS, s['panels']):
-                hits = dev_entries_for_panel(key)
+                hits = dev_entries_for_panel(key, p['num'])
                 body = f'<p>{yv(text, p["key"])}</p>'
                 if hits:
                     body += collapsed(f'<span class="lead">{lab("偏離")}</span> <span class="num">{len(hits)}</span>', '<ul>' + ''.join(dev_entry_html(e, p['key']) for e in hits) + '</ul>')
-                cards += f'<section class="panel"><h4>{zh(PANEL_OF[key])} {dev_badge(key)}</h4>{body}</section>'
-        other = dev_entries_for_panel('none')
+                cards += f'<section class="panel"><h4>{zh(PANEL_OF[key])} {dev_badge(key, p["num"])}</h4>{body}</section>'
+        other = dev_entries_for_panel('none', p['num'])
         if other:
             cards += f'<section class="panel"><h4>{zh("none")}</h4><ul>' + ''.join(dev_entry_html(e, p['key']) for e in other) + '</ul></section>'
         if devs:
@@ -1317,6 +1506,10 @@ if not phases:
 ed = dev_lines_for(EPIC)
 if ed:
     tab['結構變化']['epic'].append('<article>' + collapsed(f'<span class="lead">{lab("偏離紀錄（epic 層）")}</span> <span class="num">{len(ed)}</span>', '<ul>' + ''.join(f'<li>{inline(d, "epic")}</li>' for d in ed) + '</ul>') + '</article>')
+smap = structure_map_html(root)
+if smap:
+    tab['結構變化']['epic'].append(smap)
+    tab['結構變化']['epic'].append('<article>' + collapsed(f'<span class="lead">{lab("phase 量測")}</span>', metrics_table_html()) + '</article>')
 
 # 紀錄 — per YAML phase: round summary table first, findings folded, deviation entries folded; then md-era files; close sections at epic level
 records = {}  # (phase key, dir) -> [rel]
@@ -1341,17 +1534,42 @@ for p in phases:
         items = ''
         for f in sorted(fl, key=lambda f: (SEV_ORDER.get(sval(f.get('severity')), 9), sval(f.get('id')))):
             loc = sval(f.get('field')) or (sval(f.get('file')) + (f":{f['line']}" if f.get('line') is not None else ''))
-            items += f'<li id="{attr("finding--" + sval(f.get("id")))}">{zpill(f.get("severity"))} {zpill(f.get("status"))} {html.escape(sval(f.get("id")))} · {link_codes(loc, k) if sval(f.get("field")) else html.escape(loc)} · {yv(f.get("summary"), k)}<br><span class="muted">{lab("處置")} {yv(f.get("fix"), k)}</span></li>'
+            refs = ' '.join(link_codes(sval(r), k) for r in (f.get('refs') or []))
+            found = ' '.join(html.escape(sval(a)) for a in (f.get('found_by') or []))
+            items += (f'<li id="{attr("finding--" + sval(f.get("id")))}">{zpill(f.get("severity"))} {zpill(f.get("status"))} {html.escape(sval(f.get("id")))} · '
+                      + (f'{lab("依據")} {refs} · ' if refs else '')
+                      + f'{link_codes(loc, k) if sval(f.get("field")) else html.escape(loc)} · {yv(f.get("summary"), k)}'
+                      + (f' · {lab("抓到")} {found}' if found else '')
+                      + f'<br><span class="muted">{lab("處置")} {yv(f.get("fix"), k)}</span></li>')
         raw = next((r for rr, r in raw_links if rr == rel), [])
         rawl = ''.join(f'<li><a href="{attr(f)}" title="{attr(f)}">{fspan(os.path.basename(f))}</a></li>' for f in raw)
         folds += collapsed(f'<span class="lead">{zh(d.get("gate"))} {lab("第")} {yv(d.get("round"), k)} {lab("輪")} · {lab("發現")} <span class="num">{len(fl)}</span> · {lab("原始檔")} <span class="num">{len(raw)}</span></span>', f'<ul class="files">{rawl}</ul><ul class="findings">{items}</ul>')
-    if yaml_dev:
-        dn = [e for e in (yaml_dev.get('entries') or []) if isinstance(e, dict)]
-        folds += collapsed(f'<span class="lead">{lab("偏離紀錄")}</span> <span class="num">{len(dn)}</span>', '<ul>' + ''.join(dev_entry_html(e, k, anchor=False) for e in dn) + '</ul>')
     if ledger_stage_lines:
         items = ''.join(f'<li>{inline(l, k)}</li>' for i, st, l in ledger_stage_lines if st.startswith(('build', 'deliverable-review', 'phase-ship')))
         folds += collapsed(f'<span class="lead">{lab("建置帳")}</span> <span class="num">{sum(1 for i, st, l in ledger_stage_lines if st.startswith(("build", "deliverable-review", "phase-ship")))}</span>', f'<ul id="{attr(k + "--ledger")}">{items}</ul>')
     tab['紀錄'][k].append(f'<article><h3 class="file-title">{yv(s["yaml"].get("title"), k)}</h3>{summary}{folds}</article>')
+# deviation entries + quiz items group by their own `phase` field, never by which file/
+# YAML-phase holds deviation.yaml — placed into the matching phase's 紀錄 group
+# (legacy markdown phases included), else the epic group.
+PHASE_BY_NUM = {pp['num']: pp for pp in phases}
+dev_by_phase, quiz_by_phase = {}, {}
+if yaml_dev:
+    for e in yaml_dev.get('entries') or []:
+        if isinstance(e, dict): dev_by_phase.setdefault(sval(e.get('phase')), []).append(e)
+    _q = yaml_dev.get('quiz') if isinstance(yaml_dev.get('quiz'), dict) else {}
+    for it in (_q.get('items') or []):
+        if isinstance(it, dict): quiz_by_phase.setdefault(sval(it.get('phase')), []).append(it)
+for phnum in sorted(set(dev_by_phase) | set(quiz_by_phase)):
+    target = PHASE_BY_NUM.get(phnum)
+    key = target['key'] if target else 'epic'
+    ents, qitems_p = dev_by_phase.get(phnum, []), quiz_by_phase.get(phnum, [])
+    body = ''
+    if ents:
+        body += collapsed(f'<span class="lead">{lab("偏離紀錄")}</span> <span class="num">{len(ents)}</span>', '<ul>' + ''.join(dev_entry_html(e, key, anchor=False) for e in ents) + '</ul>')
+    if qitems_p:
+        body += quiz_list_html(qitems_p, key)
+    if body:
+        tab['紀錄'][key].append(f'<article><h3 class="file-title">Phase {html.escape(phnum)}</h3>{body}</article>')
 for rel in files:
     if rel == 'index.md': continue
     p = phase_of(rel); st = stage_of(rel); path = os.path.join(epic_dir, rel)

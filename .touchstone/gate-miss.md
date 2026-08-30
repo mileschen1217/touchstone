@@ -21,3 +21,4 @@
 - 2026-08-29 | human-facing-comm dossier.html | 排版：strip 的 gate 名稱與狀態 pill 換行後配對不清；決策行同樣；折疊區內字級與未折疊不一致 | 應然:dossier-render 視覺自檢（各寬度、摺疊全開） | 實然:human@閱讀 | L
 - 2026-08-30 | human-facing-comm dossier.html 首頁(quiz phase 2) | QZ-10 三支 commit 檢查器名字全對但說不出各擋什麼；QZ-13 plugin 審查說不出停止條件（90 %／分數不升且無新 C-H／第三輪）——首頁與 phase map 只寫「commit 時擋假邊與孤兒」，沒把三支檢查器與停止規則各自講一句 | 應然:design-spec(phase_map 人讀欄位要逐支檢查器一句話+審查停止規則) / dossier-render(檢查器軌道有自己的段) | 實然:human@quiz | M
 - 2026-08-30 | human-facing-comm dossier.html 結構變化 tab | 排版：面板標題（位置／結構前後）與內文幾乎同大小；結構圖縮到不能讀；三種字體並存（頁首襯線、面板標題、內文）；偏離條目各欄位混排、欄位標籤（哪一階段可抓到）比值（design-review）還小 | 應然:dossier-render(字級階層：標題>標籤>內文；圖可讀寬度；單一字體家族；偏離條目固定欄位表) | 實然:human@quiz 閱讀 | M
+- 2026-08-30 | human-facing-comm phase-3 post-build pair (quiz QZ-16/18/21, kind ref-set) | owner 答完即說「要列 AC 編號的題目沒意義——人不看 AC 卻要答是哪條」；ref-set 題形是 assay Q-25/US-2 依 owner 當時的想望寫進契約的，實際使用時不成立 | assay（想望的 consequence probe 沒探到「答題時的體驗」） | phase-ship（題目出了才發現） | M

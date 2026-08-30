@@ -1,6 +1,6 @@
 ---
 injected-by: [assay]
-referenced-by: [design-spec template § Risks / Open Questions]
+referenced-by: [design-spec]
 kind: bridge
 ---
 

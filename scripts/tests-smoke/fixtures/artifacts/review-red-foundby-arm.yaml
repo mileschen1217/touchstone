@@ -31,5 +31,5 @@ findings:
     summary: priority unobserved
     fix: cite
     status: open
-    found_by: [codex]
+    found_by: [cc]
 waiting_on_human: []

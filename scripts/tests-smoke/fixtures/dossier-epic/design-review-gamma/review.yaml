@@ -2,21 +2,33 @@ gate: design-review
 target: 2026-01-04-gamma.spec.yaml
 sha: fixture
 round: 1
-providers: [cc, codex]
+providers: [{lens: coverage, arms: [cc, codex]}]
 challenger: cc
 degraded: false
 verdict: approve
-counts: {C: 0, H: 0, M: 0, L: 1}
+counts: {C: 0, H: 0, M: 1, L: 1}
 rulings: [Q-1]
 findings:
   - id: F-1
-    agent: challenger
     lens: coverage
     type: refinement
     provenance: original
     severity: L
     field: requirements[REQ-1].acs[AC-1].then
+    found_by: [cc]
     summary: the then-clause could name the exit code
     fix: rides to the human
     status: open
-waiting_on_human: [accept F-1 as is]
+  - id: F-2
+    lens: coverage
+    type: coverage-gap
+    provenance: original
+    severity: M
+    refs: [AC-3]
+    found_by: [cc, codex]
+    summary: AC-3 has no negative case; the same gap likely touches AC-4's default form too
+    fix: add a negative-case AC
+    status: open
+waiting_on_human:
+  - {id: W-1, kind: ruling, owner: owner, title: "rule on the collision rename"}
+  - {id: W-2, kind: accept, owner: owner, title: "accept F-1 as is"}

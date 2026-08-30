@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # check-plugin-ratchets.sh — pre-push: two size ratchets from plugin-map.sh
-# (max_stage_load_lines, untested_reachable_shell_lines) must not exceed the
+# (max_stage_load_tokens, untested_reachable_shell_lines) must not exceed the
 # committed baseline (.touchstone/checker/baselines/plugin-ratchets.txt); a
 # measurement below baseline prints "ratchet may fall" for the maintainer to
 # tighten it — this checker never rewrites the baseline itself.
+# max_stage_load_tokens = the max over stages of (sum of the byte size of the
+# UNION of that stage's contexts[].files, under --root) / 4, integer division.
 #
 # plugin-map.sh is this checker's own sibling tool — never duplicated into a
 # fixture tree — located relative to THIS script's own path, then run with
@@ -37,7 +39,7 @@ read_key() {  # <key> -> prints the matching stripped "key value" line, or nothi
 
 malformed=0
 b_max=""; b_shell=""
-for key in max_stage_load_lines untested_reachable_shell_lines; do
+for key in max_stage_load_tokens untested_reachable_shell_lines; do
   line="$(read_key "$key")"
   if [ -z "$line" ]; then
     printf '[check-plugin-ratchets] BLOCK: baseline missing key: %s\n' "$key"
@@ -53,7 +55,7 @@ for key in max_stage_load_lines untested_reachable_shell_lines; do
       continue ;;
   esac
   case "$key" in
-    max_stage_load_lines) b_max="$val" ;;
+    max_stage_load_tokens) b_max="$val" ;;
     untested_reachable_shell_lines) b_shell="$val" ;;
   esac
 done
@@ -68,12 +70,27 @@ if [ "$map_rc" -ne 0 ]; then
 fi
 
 if ! metrics="$(printf '%s' "$map_json" | python3 -c '
-import json, sys
+import json, os, sys
 d = json.load(sys.stdin)
+root = sys.argv[1]
+max_tokens = 0
+for st in d.get("stages", []):
+    files = set()
+    for ctx in st.get("contexts", []):
+        files.update(ctx.get("files", []))
+    total_bytes = 0
+    for f in files:
+        try:
+            total_bytes += os.path.getsize(os.path.join(root, f))
+        except OSError:
+            pass
+    tokens = total_bytes // 4
+    if tokens > max_tokens:
+        max_tokens = tokens
 m = d.get("metrics", {})
-print(m.get("max_stage_load_lines", 0))
+print(max_tokens)
 print(m.get("untested_reachable_shell_lines", 0))
-' 2>&1)"; then
+' "$root" 2>&1)"; then
   printf '[check-plugin-ratchets] BLOCK: could not parse plugin-map.sh metrics:\n%s\n' "$metrics"
   exit 1
 fi
@@ -91,7 +108,7 @@ report_key() {  # <key> <measured> <baseline>
     printf 'ratchet may fall: %s %s \342\206\222 %s\n' "$key" "$b" "$m"
   fi
 }
-report_key max_stage_load_lines "$m_max" "$b_max"
+report_key max_stage_load_tokens "$m_max" "$b_max"
 report_key untested_reachable_shell_lines "$m_shell" "$b_shell"
 
 [ "$block" -eq 0 ] || exit 1

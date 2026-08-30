@@ -7,6 +7,17 @@
 #   ref: <family>         — value(s) must name an id of that family defined in this file
 #   ledger_ref: true      — value(s) must resolve in the ledger (a line starting `- <id>` or `| <id>`)
 #   path_free: true       — human panel text: no slash-separated names or file extensions
+#   pattern <regex>       — keyword `pattern`; a string value must fullmatch <regex>
+#   minItems: <n>         — array must carry at least n items
+#   spec_ref: true         — value must name a US/REQ/AC/INV id defined in a *resolution
+#                            spec*: this kind's file itself (spec), the review's `target`
+#                            (review), or the `*.spec.yaml` under --root whose top-level
+#                            `phase` equals the enclosing item's `phase` (deviation)
+#
+# Waiting item (shared shape, home = here; review.yaml and deviation.yaml point back at
+# this comment): {id: W-<n>, kind: ruling|answer|accept|fix, owner, title, detail?, refs?}
+# — required [id, kind, owner, title]. `refs` (here and everywhere else it appears) is a
+# refs-list: an array of strings, each matching the id grammar and resolved per spec_ref.
 kind: spec
 type: object
 additionalProperties: false
@@ -178,4 +189,22 @@ properties:
         measure: {type: string}
         priority: {type: string, enum: [high, medium, low]}
         why_ref: {type: string, ledger_ref: true}
-  waiting_on_human: {type: array, reader: human, items: {type: string}}
+  waiting_on_human:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [id, kind, owner, title]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: W}
+        kind: {type: string, enum: [ruling, answer, accept, fix]}
+        owner: {type: string}
+        title: {type: string}
+        detail: {type: string}
+        refs:
+          type: array
+          items:
+            type: string
+            pattern: '^(US|REQ|AC|INV)-\d+$'
+            spec_ref: true
