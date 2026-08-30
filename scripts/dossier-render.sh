@@ -845,6 +845,12 @@ def dev_entries_for_panel(key, phase=None):
     return [e for e in yaml_dev.get('entries') or [] if isinstance(e, dict) and sval(e.get('panel')) == key
             and (phase is None or sval(e.get('phase')) == phase)]
 
+def td_text(v):
+    """gap / disposition as plain text: the title, then the detail after an em dash (legacy string as is)."""
+    if isinstance(v, dict):
+        return sval(v.get('title')) + (f" — {sval(v.get('detail'))}" if v.get('detail') else '')
+    return sval(v)
+
 def title_detail(v, owner):
     """gap / disposition: {title, detail?} — title is the lead, detail (if any) trails muted."""
     if isinstance(v, dict):
@@ -1357,7 +1363,7 @@ def front_sections(p, s):
     by_panel = {}
     for e in dn: by_panel.setdefault(sval(e.get('panel')), []).append(sval(e.get('id')))
     sc_html = f'<p>{lab("偏離契約")} <span class="num">{len(dn)}</span> · ' + ' · '.join(f'{zh(pn)} {" ".join(link_codes(i, k) for i in ids)}' for pn, ids in by_panel.items()) + f' · <a data-jump="{attr(k + "--structure")}" tabindex="0" class="code">結構變化</a></p>' if dn else f'<p>{lab("偏離契約")} <span class="num">0</span> · <a data-jump="{attr(k + "--structure")}" tabindex="0" class="code">結構變化</a></p>'
-    sc_txt = '\n\n'.join(f"### {ZH.get(PANEL_OF[key], label)} — {'built ≠ planned' if dev_entries_for_panel(key, p['num']) else 'as planned'}\n\n{sval(text)}" + ''.join(f"\n- {sval(e.get('id'))} · {sval(e.get('gap'))} · 處置: {sval(e.get('disposition'))}" for e in dev_entries_for_panel(key, p['num'])) for (label, key), (_, text) in zip(YAML_PANELS, s['panels'] or []))
+    sc_txt = '\n\n'.join(f"### {ZH.get(PANEL_OF[key], label)} — {'built ≠ planned' if dev_entries_for_panel(key, p['num']) else 'as planned'}\n\n{sval(text)}" + ''.join(f"\n- {sval(e.get('id'))} · {td_text(e.get('gap'))} · 處置: {td_text(e.get('disposition'))}" for e in dev_entries_for_panel(key, p['num'])) for (label, key), (_, text) in zip(YAML_PANELS, s['panels'] or []))
     secs[0] = ('決策', secs[0][1] + sc_html, secs[0][2] + '\n\n' + sc_txt)
     check = [(zh(g), zpill(st), '') for g, st, d, rel, _ in gate_rows(p)]
     ck_items = [f'<li>{zpill(st)} {zh(g)}</li>' for g, st, d, rel, _ in gate_rows(p) if st in ('fail', 'pending')]
