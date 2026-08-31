@@ -34,8 +34,12 @@ shipping session) do the following in order:
       A question whose answer resolves to no field is a missing source field: fix
       upstream, re-project, re-author. Each question anchors to a D-n entry or one panel;
       drop test — if the owner's answer could not change whether they approve, the
-      question is out; at most 8, no minimum. Zero D-n entries → `quiz.waived: true`
-      (the page states the waiver visibly).
+      question is out; at most 8, no minimum. **Owner's frame, not the builder's:** a
+      question asks what changed, why, or what breaks — in the owner's terms, answerable
+      from the 首頁 alone; a question about internal accounting (a predicate's
+      implementation, a review round's mechanics, an id scheme) fails the drop test even
+      when the fact is true, and ids stay in `refs`/`anchor`, never in the question text.
+      Zero D-n entries → `quiz.waived: true` (the page states the waiver visibly).
 - [ ] **Form check on the pair** — before handing over, read the 首頁 and every quiz
       question as the owner will: (1) a code (an id, a coined term) used before it is
       defined on that page; (2) a judgment (a priority, a check choice, a non-goal) with

@@ -824,9 +824,11 @@ def yaml_contract_card(p, s):
     d = yd.get('delta') if isinstance(yd.get('delta'), dict) else {}
     if d.get('blocks'):
         parts.append(f'<p class="meta">{lab("結構變更區塊")} <span class="num">{len(d["blocks"])}</span> · <a class="code" data-jump="{attr(k + "--structure")}" tabindex="0">結構變化</a></p>')
-        agent.append(f'<h4>{html.escape("變更區塊")}</h4>' + yaml_table([[b.get('id'), b.get('op'), b.get('kind'), b.get('purpose')] for b in d['blocks'] if isinstance(b, dict)], ['id', '動作', '種類', '目的'], k))
+        brows = ''.join(f'<tr id="{attr(k + "--" + sval(b.get("id")))}"><td class="num">{html.escape(sval(b.get("id")))}</td><td>{zh(sval(b.get("op")))}</td><td>{html.escape(sval(b.get("kind")))}</td><td>{yv(b.get("purpose"), k)}</td></tr>' for b in d['blocks'] if isinstance(b, dict))
+        agent.append(f'<h4>{html.escape("變更區塊")}</h4><div class="tbl"><table><tr><th>id</th><th>{lab("動作")}</th><th>{lab("種類")}</th><th>{lab("目的")}</th></tr>{brows}</table></div>')
     if d.get('contracts'):
-        agent.append(f'<h4>{html.escape("契約介面")}</h4>' + yaml_table([[c.get('id'), c.get('schema')] for c in d['contracts'] if isinstance(c, dict)], ['id', 'schema'], k))
+        crows = ''.join(f'<tr id="{attr(k + "--" + sval(c.get("id")))}"><td class="num">{html.escape(sval(c.get("id")))}</td><td>{yv(c.get("schema"), k)}</td></tr>' for c in d['contracts'] if isinstance(c, dict))
+        agent.append(f'<h4>{html.escape("契約介面")}</h4><div class="tbl"><table><tr><th>id</th><th>schema</th></tr>{crows}</table></div>')
     if yd.get('non_goals'):
         parts.append(collapsed(f'<span class="lead">{lab("不做")}</span> <span class="num">{len(yd["non_goals"])}</span>', '<ul>' + ''.join(f'<li>{yv(n, k)}</li>' for n in yd['non_goals']) + '</ul>'))
     if yd.get('risks'):
@@ -1158,6 +1160,11 @@ def quiz_item_li(it, owner):
             if a0:
                 tgt = a0
                 break
+        if tgt is None:
+            # a slug selector (delta.blocks[x] / delta.contracts[x]) targets its table row
+            slugs = re.findall(r'\[([a-z][\w-]*)\]', ap)
+            if slugs:
+                tgt = f'{owner}--{slugs[-1]}'
         inner = f'<code>{html.escape(ap)}</code>'
         anchor = f' · {lab("錨點")} ' + (f'<a class="code" data-jump="{attr(tgt)}" tabindex="0">{inner}</a>' if tgt else inner)
     else:
