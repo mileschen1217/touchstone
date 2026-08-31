@@ -1,6 +1,6 @@
 ---
 injected-by: [design-review, deliverable-review]
-referenced-by: [design-spec, anvil, plugin-review.sh]
+referenced-by: [anvil, plugin-review.sh]
 kind: bridge
 ---
 
