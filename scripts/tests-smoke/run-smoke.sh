@@ -1504,6 +1504,7 @@ assert '共識' in h and 'zeta scope row' in h, 'assay card consensus not render
 assert '翻轉觸發' in h and 'zeta flip signal' in h, 'assay card flip_triggers not rendered'
 assert '擱置' in h and 'zeta deferred item' in h, 'assay card deferred not rendered'
 assert re.search(r'理解測驗.{0,300}?<span class="num">1/1</span>', h, re.S), 'front-page quiz ratio not phase-scoped (want 1/1)'
+assert re.search(r'--quiz"><p class="summary">[^<]*phase 3 landed the equals flag form', h), 'front-page quiz section must open with its phase summary (owner reads it there, not only in the records tab)'
 PY
 then
   echo "PASS: readiness-false no-blocker + assay card consensus/flip/deferred + phase-scoped quiz ratio"

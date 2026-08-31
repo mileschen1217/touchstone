@@ -1242,13 +1242,16 @@ def quiz_html(p):
     k = p['key']
     if yaml_quiz is None:
         return '<p class="placeholder">尚無 quiz.yaml</p>'
+    summ = next((sval(s.get('text')) for s in (yaml_quiz.get('phase_summaries') or [])
+                 if isinstance(s, dict) and sval(s.get('phase')) == p['num']), '')
+    pre = f'<p class="summary">{yv(summ, k)}</p>' if summ else ''
     entries = [e for e in ((yaml_dev or {}).get('entries') or []) if isinstance(e, dict) and sval(e.get('phase')) == p['num']]
     if not entries or yaml_quiz.get('waived') is True:
-        return f'<p class="waiver">{lab("理解測驗免作")} · {lab("零偏離：本 phase 沒有 D-n")}</p>'
+        return pre + f'<p class="waiver">{lab("理解測驗免作")} · {lab("零偏離：本 phase 沒有 D-n")}</p>'
     items = [i for i in (yaml_quiz.get('items') or []) if isinstance(i, dict) and sval(i.get('phase')) == p['num']]
     if not items:
-        return '<p class="placeholder">理解測驗尚未出題</p>'
-    return f'<div id="{attr(k + "--quiz")}">' + quiz_list_html(items, k) + '</div>'
+        return pre + '<p class="placeholder">理解測驗尚未出題</p>'
+    return f'<div id="{attr(k + "--quiz")}">' + pre + quiz_list_html(items, k) + '</div>'
 
 def waiting_item_html(rel, gate, w, owner):
     """A waiting item: {id, kind, owner, title, detail?, refs?} — one row per object, no
