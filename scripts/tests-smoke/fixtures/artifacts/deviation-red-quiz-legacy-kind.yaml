@@ -14,12 +14,10 @@ quiz:
   items:
     - id: QZ-1
       phase: 1
-      question: q1
+      kind: manual
+      question: q
       refs: [AC-1]
       anchor: requirements[REQ-1].acs[AC-1]
-    - id: QZ-1
-      phase: 1
-      question: q2
-      refs: [AC-1]
-      anchor: requirements[REQ-1].acs[AC-1]
+      expected_refs: [AC-1]
+      answer_refs: [AC-1]
 waiting_on_human: []

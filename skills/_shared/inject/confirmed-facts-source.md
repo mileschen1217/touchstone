@@ -1,12 +1,12 @@
 ---
 injected-by: [design-spec]
-referenced-by: [assay, crucible]
+referenced-by: [assay]
 ---
 
 # Confirmed-facts source (shared contract)
 
 The qualification contract for any source of human-confirmed facts that a
-contract author (a spec, a PRD+seams light contract) consumes. A consumer
+contract author (the spec) consumes. A consumer
 loads this file and follows it, carrying only its own delta — it never
 restates these rules.
 

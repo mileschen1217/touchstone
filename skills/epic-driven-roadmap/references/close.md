@@ -1,6 +1,6 @@
 # Close an epic
 
-**Failure semantics.** Blocking — step 0 (ship verification), step 4 (the
+**Failure semantics.** Blocking — step 0 (ship verification), step 3 (the
 close-readiness check), and Evidence Reckoning's blocking rules (§ below).
 The Disposition pass (step 5) is an action list, not a gate — skipping an item
 leaves a dual-home and is noted in the close report.
@@ -11,26 +11,29 @@ leaves a dual-home and is noted in the close report.
    shipped. Gather evidence (`gh pr list --state merged`, `git log
    origin/main`, or the project's own check), propose it to the user, get
    explicit ack.
-1. Edit `.touchstone/epics/<epic-dir>/index.md`: in `## Phases` set every row's
-   Status to `done` and fill Landed (YYYY-MM-DD); in frontmatter set
-   `status: done` and `landed: <YYYY-MM-DD>`; fill the Retrospective block
-   (bullets only — What worked / What pivoted / What to do differently, ≤5
-   lines total).
-2. **Comprehension cite.** Reference each phase's Post-build pair (the dossier's
-   首頁 + the quiz block of its `deviation.yaml`, produced at phase ship —
-   single home: `references/phase-ship.md`) in the close report; close never
-   re-runs the quiz. A phase that shipped without its pair → produce it now,
-   per phase-ship.md, before closing.
-3. Run Evidence Reckoning (§ below); append its section to the epic index.
+1. **Comprehension cite.** Reference each phase's two accepts — the contract
+   accept (its assay record's readiness ruling) and the ship informed-accept
+   (the Post-build pair: the dossier's 首頁 + the quiz block of its
+   `deviation.yaml`, produced at phase ship — single home:
+   `references/phase-ship.md`) — in the close report; close never re-runs the
+   quiz and asks for no accept of its own. A phase that shipped without its
+   pair → produce it now, per phase-ship.md, before closing.
+2. Run Evidence Reckoning (§ below); append its section to the epic index.
    Then ask the fixed recall question — "這個 epic 裡,你抓到哪些 gates 沒抓到的?" —
    and append every answer to `.touchstone/gate-miss.md` in the six-field
    primitive (`date | artifact | 事件 | 應然 locus | 實然 locus | severity`); an
    answer of "none" appends nothing — the close report records `recall: none`.
-4. Run (it requires the Evidence Reckoning section of step 3):
+3. Run (it requires the Evidence Reckoning section of step 2):
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/skills/epic-driven-roadmap/check-close-ready.sh" .touchstone/epics/<epic-dir>/index.md
    ```
-   Show the full output. Non-zero → fix and re-run.
+   Show the full output. Non-zero → fix and re-run; nothing below runs until it
+   exits zero.
+4. Edit `.touchstone/epics/<epic-dir>/index.md`: in `## Phases` set every row's
+   Status to `done` and fill Landed (YYYY-MM-DD); in frontmatter set
+   `status: done` and `landed: <YYYY-MM-DD>`; fill the Retrospective block
+   (bullets only — What worked / What pivoted / What to do differently, ≤5
+   lines total).
 5. Run the Disposition pass (§ below).
 5a. The shipped hook re-rendered the dossier at every write above; run
    `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>`

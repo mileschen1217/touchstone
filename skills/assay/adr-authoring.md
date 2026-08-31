@@ -40,5 +40,7 @@ recording:
    `Assumptions:` (uncomment the template block).
 
 3. Back-link:
-   - `/touchstone:design-spec` → add the new ADR to the spec's `Related` section
+   - `/touchstone:design-spec` → the requirement the ADR decides cites the ledger row
+     that produced it in `basis`; a bet still owed by the human is a `waiting_on_human`
+     item naming the ADR
    - `/touchstone:assay` → the assay record's flip-trigger registry references the ADR

@@ -55,13 +55,9 @@ timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check \
 $TASK_TEXT" </dev/null 2>&1 | tee "$TASK_DIR/raw_codex.jsonl"
 ```
 
-**`</dev/null` is mandatory.** The `tee` is the one permitted write besides `-o`: it produces the `raw_codex.jsonl` liveness artifact the caller checks.
+**`</dev/null` is mandatory.** The `tee` is the one permitted write besides `-o`: it produces the `raw_codex.jsonl` liveness artifact the caller checks. The first line is the only probe: a missing `codex` returns the failed envelope and exits 0 — never throw.
 
 Where `$ROLE_PROMPT` is the envelope `system_prompt` when present, else the built-in role prompt (last section), and `$TASK_TEXT` is the task from the envelope. The role is injected via prompt prefix only.
-
-## Probe
-
-The probe is the first line of the dispatch block above: `codex --version` failing returns `status: failed` / `fallback_reason: codex unavailable: command not found` in the envelope below and exits 0. Do NOT throw.
 
 ## Success path — the `-o` result file
 

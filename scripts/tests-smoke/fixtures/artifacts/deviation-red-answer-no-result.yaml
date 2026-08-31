@@ -14,14 +14,8 @@ quiz:
   items:
     - id: QZ-1
       phase: 1
-      kind: manual
       question: q
-      answer: requirements[REQ-1].acs[AC-1]
+      answer: it does this
+      refs: [AC-1]
       anchor: requirements[REQ-1].acs[AC-1]
-metrics:
-  phase: 1
-  stage1_tokens: "25000"
-  false_edges: 0
-  instrument_churn: {shape_driven_lines: 10, other_lines: 2}
-  measured_at: abc123
 waiting_on_human: []

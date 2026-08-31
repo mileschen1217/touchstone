@@ -1,0 +1,23 @@
+gate: design-review
+target: spec-green.yaml
+sha: abc123
+round: 1
+providers:
+  - {lens: coverage, arms: [cc]}
+challenger: cc
+degraded: false
+verdict: revise
+counts: {C: 0, H: 1, M: 0, L: 0}
+rulings: []
+findings:
+  - id: F-1
+    lens: coverage
+    type: coverage-gap
+    provenance: original
+    severity: H
+    field: requirements[REQ-1].acs[AC-2].then
+    summary: no arm credited
+    fix: credit an arm
+    status: open
+    found_by: []
+waiting_on_human: []

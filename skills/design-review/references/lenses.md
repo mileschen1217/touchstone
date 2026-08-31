@@ -1,4 +1,4 @@
-# design-review — the three document lenses (sole injector: design-review Phase 3)
+# design-review — the two document lenses (sole injector: design-review Phase 3)
 
 Each section below is one lens prompt. It is injected VERBATIM, as content, into the arm that runs it, together with the fragments the lens table in `SKILL.md` names for it; the arm never sees this file by path. Common preamble for every document lens:
 
@@ -12,7 +12,3 @@ Each section below is one lens prompt. It is injected VERBATIM, as content, into
 ## verification-honesty
 
 > **verification-honesty** — two principles: **falsifiable concreteness** (every `shall`, `then`, contract and invariant concrete enough to be shown false; numbers agree across fields; a coined term defined in the spec and used consistently) and **complete, honest verification story** (for EACH requirement enumerate the behaviours a user would recognize as "working" — happy, error, boundary — and flag every requirement whose ACs witness only the happy path; `live_bearing` per the injected predicate on every AC whose Then depends on a real dispatch or un-owned boundary; a standing-runtime feature carries an activation AC on the user-observable, never only a fixture proxy; `risks[]` and `waiting_on_human[]` surfaced, not hidden).
-
-## communication-auditability
-
-> **communication-auditability** — `phase_map` and `user_stories` must stand on their own for a reader with no context beyond the spec: no code or coined term without an in-spec definition; every judgment (a priority, a `check` choice, a non-goal) points at a `basis` / `why_ref` ledger id.

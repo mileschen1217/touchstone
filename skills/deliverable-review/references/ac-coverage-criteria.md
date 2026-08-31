@@ -5,8 +5,8 @@ kind: bridge
 
 # AC-coverage criteria (single home — gates that read test source)
 
-The evidence-honesty coverage core, injected at the gates where test source exists
-(`deliverable-review`, epic-close). A sibling of `ac-coverage-honesty-principle.md` —
+The evidence-honesty coverage core, injected where test source exists
+(`deliverable-review`). A sibling of `ac-coverage-honesty-principle.md` —
 NOT that fragment — because this core names an act (reading test source) that the
 design-review gate must not perform. A consumer loads this and carries only its own
 site delta.
@@ -20,5 +20,5 @@ site delta.
   constant, its own mock, or nothing), or one that pins incidental implementation
   behaviour rather than the AC's Then. The judging question: would this test go red
   if the Then behaviour broke? No → the AC is uncovered.
-- An AC claimed done with no test asserting its Then-clause and no `[unverified]` is a
-  **silent false-green** — it blocks the done claim.
+- An AC claimed done with no test asserting its Then-clause and no `[unverified]` blocks
+  the done claim (the silent false-green the sibling principle defines).

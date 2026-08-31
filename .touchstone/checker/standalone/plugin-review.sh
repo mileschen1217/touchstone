@@ -2,19 +2,29 @@
 # plugin-review.sh — touchstone-local, never shipped. Cross-vendor review of this
 # plugin's instruction prose against .touchstone/checker/standalone/plugin-review-rubric.md.
 #
-# Usage: plugin-review.sh <epic-dir> [--rounds N] [--cc-findings <file>] [--root <dir>]
+# Usage: plugin-review.sh <epic-dir> [--rounds N] [--cc-findings <file>] [--root <dir>] [--dry-run]
 #        plugin-review.sh --self-test
 #
-# Per round it writes <epic-dir>/plugin-review-<date>/round-<n>/ with prompt.txt,
-# raw_codex.jsonl, last-message.txt, review.yaml (gate plugin-review) and score.md.
-# The Codex arm runs here; the CC arm is dispatched by the calling session and
-# handed back through --cc-findings (challenger marker format, locator = file[:line]).
-# Loop: at most 3 rounds, stop at 90 % of the weighted maximum, at the round cap,
-# or on plateau (weighted total did not rise and no new C/H). The script fixes
-# nothing between rounds — the maintainer session does.
+# Per round it writes <epic-dir>/plugin-review-<date>/round-<n>/ with prompt.txt
+# (codex, four lenses) and cc-prompt.txt (the cc arm, two lenses — rule-without-
+# consumer and architecture-level declared-vs-actual; basis: the phase-4 spec's
+# REQ-1), plus raw_codex.jsonl, last-message.txt, review.yaml (gate plugin-review)
+# and score.md. The Codex arm runs here; the CC arm is dispatched by the calling
+# session against cc-prompt.txt and handed back through --cc-findings (challenger
+# marker format, locator = file[:line]).
+#
+# One round. The stopping rule is the injected fragment at
+# skills/_shared/inject/severity-tiered-stopping-rule.md (cited, not copied — that
+# file states the criterion that closes a gate round); this script always stops
+# after round 1. Anything still open when the round closes rides to the next
+# phase's backlog. The script fixes nothing — the maintainer session does.
+#
+# --dry-run writes prompt.txt and cc-prompt.txt into the round dir and exits 0
+# without calling codex — no review.yaml, no cross-vendor claim.
 #
 #   exit 0 → a round was written · 1 → codex unavailable (no artifact written)
-#   exit 2 → usage / missing python3 or PyYAML · 3 → codex produced no content
+#   exit 2 → usage / missing python3 or PyYAML / a --cc-findings finding tagged
+#            lens 1 or 4 · 3 → codex produced no content
 set -uo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rubric="$here/plugin-review-rubric.md"
@@ -44,19 +54,17 @@ def rubric_shape(path):
             errors.append('rubric: item %d has %d criteria (want 3-4)' % (n, len(crits)))
         if w <= 0:
             errors.append('rubric: item %d has no positive weight' % n)
-    if '90 %' not in text and '90%' not in text:
-        errors.append('rubric: no 90 % threshold stated')
+    if not re.search(r'\d+\s*%', text):
+        errors.append('rubric: no threshold percentage stated')
     return items, errors
 
 def decide(rnd, max_rounds, pct, total, prev_total, new_ch):
-    """threshold > round cap > plateau > continue."""
-    cap = min(max_rounds, 3)
-    if pct >= 90.0:
-        return 'stop=threshold'
+    """One round only. The gate's stopping criterion lives in the injected
+    fragment (skills/_shared/inject/severity-tiered-stopping-rule.md); this
+    script's own cap is fixed at 1 regardless of max_rounds."""
+    cap = 1
     if rnd >= cap:
         return 'stop=max-rounds'
-    if rnd >= 2 and prev_total is not None and total <= prev_total and not new_ch:
-        return 'stop=plateau'
     return 'continue'
 
 def waiting(findings):
@@ -72,11 +80,46 @@ def waiting(findings):
                         'title': title, 'refs': []})
     return out
 
+def parse_cc_lens(path):
+    """Read a --cc-findings file (challenger marker lines, locator = file[:line]).
+    Return [(lens, locator), ...] — the same line shape PARSE_PY's cc arm reads,
+    reduced to just the lens tag for ingestion filtering."""
+    out = []
+    for ln in open(path, encoding='utf-8'):
+        ln = ln.strip()
+        if not ln or ln.startswith('#'):
+            continue
+        m = re.match(r'^([\w./\-]+?)(?::(\d+))?:\s+(.*)$', ln)
+        if not m:
+            continue
+        lm = re.search(r'\blens=([^\s]+)', m.group(3))
+        lens = lm.group(1) if lm else '4'
+        loc = m.group(1) + (':' + m.group(2) if m.group(2) else '')
+        out.append((lens, loc))
+    return out
+
+def cc_ingest(path):
+    """('ok', n) when every finding is lens 2 or 3; else ('reject', message) for
+    the first lens 1 or 4 finding found — the cc arm carries lenses 2 and 3 only."""
+    found = parse_cc_lens(path)
+    for lens, loc in found:
+        if lens not in ('2', '3'):
+            msg = ('plugin-review: --cc-findings: finding at %s tagged lens %s — '
+                   'the cc arm carries lenses 2 and 3 only' % (loc, lens))
+            return 'reject', msg
+    return 'ok', len(found)
+
 mode = sys.argv[1]
 if mode == 'decide':
     rnd, cap, pct, total = int(sys.argv[2]), int(sys.argv[3]), float(sys.argv[4]), int(sys.argv[5])
     prev = None if sys.argv[6] == '' else int(sys.argv[6])
     print(decide(rnd, cap, pct, total, prev, sys.argv[7] == '1'))
+elif mode == 'cc_filter':
+    status, val = cc_ingest(sys.argv[2])
+    if status == 'reject':
+        sys.stderr.write(val + '\n')
+        sys.exit(2)
+    print(val)
 elif mode == 'finalize':
     p = sys.argv[2]
     doc = yaml.safe_load(open(p, encoding='utf-8'))
@@ -91,39 +134,51 @@ elif mode == 'selftest':
     mx = sum(w * 2 * len(c) for _, _, w, c in items)
     if errors:
         sys.exit(1)
-    print('PASS rubric shape: 4 items, 3-4 criteria each, weights %s, weighted max %d, 90 %% threshold'
+    print('PASS rubric shape: 4 items, 3-4 criteria each, weights %s, weighted max %d, threshold stated'
           % ([w for _, _, w, _ in items], mx))
     ok = True
-    # (a) round-2 at 85 %, no rise, no new C/H -> plateau, waiting_on_human carries the open C/H
-    r = decide(2, 3, 85.0, 61, 61, False)
-    ok &= r == 'stop=plateau'
-    print('%s plateau: round-2 85%% total 61 vs 61, no new C/H -> %s' % ('PASS' if r == 'stop=plateau' else 'FAIL', r))
+    # (a) round 1 always stops, regardless of a higher --rounds request
+    r = decide(1, 3, 50.0, 20, None, False)
+    ok &= r == 'stop=max-rounds'
+    print('%s one round: round-1, --rounds 3 requested -> %s' % ('PASS' if r == 'stop=max-rounds' else 'FAIL', r))
+    r = decide(1, 1, 95.0, 60, None, False)
+    ok &= r == 'stop=max-rounds'
+    print('%s one round: round-1, --rounds 1 -> %s' % ('PASS' if r == 'stop=max-rounds' else 'FAIL', r))
+    # (b) waiting_on_human lists only open C/H as W-n objects
     w = waiting([{'id': 'F-1', 'severity': 'H', 'status': 'open', 'file': 'skills/a/SKILL.md', 'line': 12, 'summary': 'rule without consumer'},
                  {'id': 'F-2', 'severity': 'M', 'status': 'open', 'file': 'skills/b/SKILL.md', 'line': 3, 'summary': 'noise'}])
     w_expect = [{'id': 'W-1', 'kind': 'fix', 'owner': 'maintainer',
                  'title': 'F-1 H skills/a/SKILL.md:12 — rule without consumer', 'refs': []}]
     ok &= w == w_expect
     print('%s waiting_on_human lists only open C/H as W-n objects: %s' % ('PASS' if w == w_expect else 'FAIL', w))
-    # (b) round-2 reaches the threshold
-    r = decide(2, 3, 91.7, 66, 61, False)
-    ok &= r == 'stop=threshold'
-    print('%s threshold: round-2 91.7%% -> %s' % ('PASS' if r == 'stop=threshold' else 'FAIL', r))
-    # (c) round-2 introduces a new H -> continue
-    r = decide(2, 3, 84.7, 61, 61, True)
-    ok &= r == 'continue'
-    print('%s new C/H: round-2 no rise but a new H -> %s' % ('PASS' if r == 'continue' else 'FAIL', r))
-    # (d) round 3 with an open H -> max-rounds, never a round-4
-    r = decide(3, 3, 88.9, 64, 61, True)
-    ok &= r == 'stop=max-rounds'
-    print('%s round cap: round-3 rising, new H -> %s (no round-4)' % ('PASS' if r == 'stop=max-rounds' else 'FAIL', r))
-    r = decide(4, 3, 50.0, 36, 30, True)
-    ok &= r == 'stop=max-rounds'
-    print('%s hard cap: --rounds beyond 3 -> %s' % ('PASS' if r == 'stop=max-rounds' else 'FAIL', r))
     w = waiting([{'id': 'F-3', 'severity': 'H', 'status': 'open', 'file': 'agents/x.md', 'line': 7, 'summary': 'declared-vs-actual'}])
     w3_expect = [{'id': 'W-1', 'kind': 'fix', 'owner': 'maintainer',
                   'title': 'F-3 H agents/x.md:7 — declared-vs-actual', 'refs': []}]
     ok &= w == w3_expect
-    print('%s round-3 open H carried to waiting_on_human as a W-n object: %s' % ('PASS' if w == w3_expect else 'FAIL', w))
+    print('%s single open H carried to waiting_on_human as a W-n object: %s' % ('PASS' if w == w3_expect else 'FAIL', w))
+    # (c) --cc-findings lens filter — driven directly, no subprocess, no codex
+    import tempfile as _tempfile, os as _os
+    def _mk(lines):
+        fd, p = _tempfile.mkstemp()
+        with _os.fdopen(fd, 'w', encoding='utf-8') as fh:
+            fh.write('\n'.join(lines) + '\n')
+        return p
+    p1 = _mk(['skills/a/SKILL.md:12: the rule has no consumer lens=1 type=real-defect severity=H'])
+    status, val = cc_ingest(p1)
+    ok &= status == 'reject' and 'skills/a/SKILL.md:12' in val and 'lens 1' in val
+    print('%s cc-findings ingestion rejects lens 1: %s %s' % ('PASS' if status == 'reject' else 'FAIL', status, val))
+    _os.remove(p1)
+    p2 = _mk(['agents/x.md:7: no downstream consumer lens=4 type=coverage-gap severity=L'])
+    status, val = cc_ingest(p2)
+    ok &= status == 'reject' and 'lens 4' in val
+    print('%s cc-findings ingestion rejects lens 4: %s %s' % ('PASS' if status == 'reject' else 'FAIL', status, val))
+    _os.remove(p2)
+    p3 = _mk(['skills/a/SKILL.md:12: rule without consumer lens=2 type=real-defect severity=H',
+              'agents/x.md:7: architecture-level declared-vs-actual lens=3 type=real-defect severity=H'])
+    status, n3 = cc_ingest(p3)
+    ok &= status == 'ok' and n3 == 2
+    print('%s cc-findings ingestion accepts lens 2 and 3, both parsed: status=%s n=%s' % ('PASS' if (status == 'ok' and n3 == 2) else 'FAIL', status, n3))
+    _os.remove(p3)
     sys.exit(0 if ok else 1)
 else:
     sys.exit('plugin-review.sh: unknown loop mode %s' % mode)
@@ -350,7 +405,7 @@ if cc_file and os.path.isfile(cc_file):
 collapsed = 0
 for c in cc:
     n = norm(c, 'cc')
-    hit = next((f for f in findings if f['file'] == n['file'] and f['type'] == n['type']), None)
+    hit = next((f for f in findings if f['file'] == n['file'] and f['type'] == n['type'] and f['lens'] == n['lens']), None)
     if hit:
         if 'cc' not in hit['found_by']:
             hit['found_by'] = hit['found_by'] + ['cc']
@@ -370,8 +425,8 @@ findings = [{k: f[k] for k in order} for f in findings]
 counts = {s: sum(1 for f in findings if f['severity'] == s) for s in ('C', 'H', 'M', 'L')}
 # the CC arm counts only when its file yielded parsable findings — a flag alone is not an arm
 cc_ran = providers_cc == '1' and len(cc) > 0
-arms = ['codex', 'cc'] if cc_ran else ['codex']
-providers = [{'lens': it['name'], 'arms': list(arms)} for it in items]
+# codex carries all four lenses; the cc arm carries items 2 and 3 only (cc-prompt.txt)
+providers = [{'lens': it['name'], 'arms': ['codex'] + (['cc'] if cc_ran and it['n'] in (2, 3) else [])} for it in items]
 degraded = bool(degraded_reason) or not cc_ran
 reason = degraded_reason
 if not cc_ran:
@@ -405,7 +460,6 @@ if prev_review:
         m = re.search(r'total=(\d+)', open(ps, encoding='utf-8').read())
         if m:
             prev_total = int(m.group(1))
-plateau = 'yes' if (prev_total is not None and total <= prev_total) else 'no'
 
 new_ch = 1
 if prev_review and os.path.isfile(prev_review):
@@ -426,8 +480,7 @@ with open(out_score, 'w', encoding='utf-8') as fh:
         cells = [str(scores.get(c, 0)) for c in it['crits']] + ['—'] * (4 - len(it['crits']))
         fh.write('| %d %s | %d | %s | %d | %d |\n' % (it['n'], it['name'], it['weight'],
                                                       ' | '.join(cells), got, sub))
-    fh.write('\nweighted total: **%d** / %d (**%.1f %%**) · threshold 90 %% · plateau vs previous round: %s\n'
-             % (total, weighted_max, pct, plateau))
+    fh.write('\nweighted total: **%d** / %d (**%.1f %%**)\n' % (total, weighted_max, pct))
     if prev_total is not None:
         fh.write('previous round weighted total: %d\n' % prev_total)
     if not scores:
@@ -609,7 +662,7 @@ MSG
   exit "$st_fail"
 fi
 
-epic=""; rounds=3; cc_findings=""; root=""
+epic=""; rounds=1; cc_findings=""; root=""; dry_run=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --rounds)      [ $# -ge 2 ] || { echo "plugin-review.sh: --rounds needs a number" >&2; exit 2; }
@@ -618,23 +671,32 @@ while [ $# -gt 0 ]; do
                    cc_findings="$2"; shift 2 ;;
     --root)        [ $# -ge 2 ] || { echo "plugin-review.sh: --root needs a directory" >&2; exit 2; }
                    root="$2"; shift 2 ;;
-    -h|--help)     sed -n '2,18p' "$0"; exit 0 ;;
+    --dry-run)     dry_run=1; shift ;;
+    -h|--help)     sed -n '2,27p' "$0"; exit 0 ;;
     -*)            echo "plugin-review.sh: unknown argument $1" >&2; exit 2 ;;
     *)             [ -z "$epic" ] || { echo "plugin-review.sh: one epic dir only" >&2; exit 2; }
                    epic="$1"; shift ;;
   esac
 done
-[ -n "$epic" ] || { echo "usage: plugin-review.sh <epic-dir> [--rounds N] [--cc-findings <file>] [--root <dir>]" >&2; exit 2; }
+[ -n "$epic" ] || { echo "usage: plugin-review.sh <epic-dir> [--rounds N] [--cc-findings <file>] [--root <dir>] [--dry-run]" >&2; exit 2; }
 [ -d "$epic" ] || { echo "plugin-review.sh: no such epic dir: $epic" >&2; exit 2; }
 epic="$(cd "$epic" && pwd)"
 case "$rounds" in ''|*[!0-9]*) echo "plugin-review.sh: --rounds must be a number" >&2; exit 2 ;; esac
 [ "$rounds" -ge 1 ] || rounds=1
-[ "$rounds" -le 3 ] || rounds=3          # hard cap, no round-4 ever
+if [ "$rounds" -gt 1 ]; then
+  echo "plugin-review.sh: --rounds $rounds requested — one round only; clamped to 1" >&2
+  rounds=1
+fi
 [ -z "$cc_findings" ] || [ -f "$cc_findings" ] || { echo "plugin-review.sh: no such --cc-findings file: $cc_findings" >&2; exit 2; }
 [ -f "$rubric" ] || { echo "plugin-review.sh: rubric missing: $rubric" >&2; exit 2; }
 
 command -v python3 >/dev/null 2>&1 || { echo "plugin-review.sh: python3 not found" >&2; exit 2; }
 python3 -c 'import yaml' 2>/dev/null || { echo "plugin-review.sh: PyYAML not installed — run: python3 -m pip install pyyaml" >&2; exit 2; }
+
+# Lens filter at ingestion (AC-2) — runs before any round directory exists.
+if [ -n "$cc_findings" ]; then
+  python3 -c "$LOOP_PY" cc_filter "$cc_findings" || exit 2
+fi
 
 if [ -z "$root" ]; then
   root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
@@ -644,8 +706,8 @@ fi
 root="$(cd "$root" && pwd)"
 
 # Liveness: no Codex, no artifact. A plugin-review round is never recorded
-# as cross-vendor without the Codex artifacts.
-if ! command -v codex >/dev/null 2>&1; then
+# as cross-vendor without the Codex artifacts. --dry-run never calls codex.
+if [ "$dry_run" -eq 0 ] && ! command -v codex >/dev/null 2>&1; then
   cat >&2 <<EOF
 plugin-review.sh: codex not on PATH — no round directory and no review.yaml written.
   Liveness rule (single home): skills/_shared/provenance.md —
@@ -663,34 +725,35 @@ day_dir="$epic/plugin-review-$(date +%Y-%m-%d)"
 sha="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo unknown)"
 providers_cc=0; [ -n "$cc_findings" ] && providers_cc=1
 
-map_json="$(mktemp)"; file_list="$(mktemp)"
-trap 'rm -f "$map_json" "$file_list"' EXIT
+map_json="$(mktemp)"; file_list="$(mktemp)"; cc_rubric="$(mktemp)"
+trap 'rm -f "$map_json" "$file_list" "$cc_rubric"' EXIT
 bash "$root/scripts/plugin-map.sh" --root "$root" > "$map_json" || {
   echo "plugin-review.sh: plugin-map.sh failed" >&2; exit 2; }
 python3 -c "$FILES_PY" "$map_json" "$root" > "$file_list"
 
-stop=""; rnd_done=0; pct_last="0.0"; c_last=0; h_last=0
-while : ; do
-  mkdir -p "$day_dir"
-  n=$(( $(find "$day_dir" -maxdepth 1 -type d -name 'round-*' 2>/dev/null | wc -l | tr -d ' ') + 1 ))
-  if [ "$n" -gt 3 ]; then                                       # never a round-4
-    stop="max-rounds"; rnd_done=$((n - 1))
-    lastdir="$day_dir/round-$rnd_done"
-    [ -f "$lastdir/score.md" ] && pct_last="$(sed -n 's/.*pct=\([0-9.]*\).*/\1/p' "$lastdir/score.md" | tail -1)"
-    if [ -f "$lastdir/review.yaml" ]; then
-      read -r c_last h_last <<<"$(python3 -c 'import sys,yaml; c=(yaml.safe_load(open(sys.argv[1]))or{}).get("counts") or {}; print(c.get("C",0), c.get("H",0))' "$lastdir/review.yaml")"
-    fi
-    break
-  fi
-  rd="$day_dir/round-$n"
-  mkdir -p "$rd"
-  prev_review=""; prev_sha=""
-  if [ "$n" -gt 1 ] && [ -f "$day_dir/round-$((n-1))/review.yaml" ]; then
-    prev_review="$day_dir/round-$((n-1))/review.yaml"
-    prev_sha="$(python3 -c 'import sys,yaml; print((yaml.safe_load(open(sys.argv[1]))or{}).get("sha",""))' "$prev_review")"
-  fi
+# cc-prompt.txt's rubric slice: items 2 and 3 only, verbatim — the cc arm's two
+# lenses (design decision, basis: the phase-4 spec's REQ-1). codex keeps all four
+# items via $rubric unchanged.
+awk '/^## Item 4 /{exit} /^## Item 2 /{f=1} f{print}' "$rubric" > "$cc_rubric"
 
-  # ---- prompt
+score_block_all=$(cat <<'EOF'
+C1.1: 2
+C1.2: 1
+... (through C4.3)
+EOF
+)
+score_block_cc=$(cat <<'EOF'
+C2.1: 2
+C2.2: 1
+... (through C3.3)
+EOF
+)
+
+# Shared prompt generation — one function, two prompt bodies (codex four lenses,
+# cc lenses 2 and 3 only); everything but the rubric slice and score block is
+# identical between prompt.txt and cc-prompt.txt.
+build_prompt() {  # <out-file> <rubric-slice> <score-block>
+  local out="$1" rubric_slice="$2" score_block="$3"
   {
     cat <<'EOF'
 You are reviewing a Claude Code plugin's instruction prose (skills, agents, hooks,
@@ -701,9 +764,9 @@ step nothing downstream handles.
 Score the plugin against the rubric below and report every finding you have.
 
 Every finding names `file:line` (the line numbers in the PLUGIN TEXT section are real
-file line numbers), one of the four rubric items as `lens` (give its number 1-4), a
-`type` from coverage-gap | real-defect | refinement | soundness, a `severity` from
-C | H | M | L, a one-line `summary`, and a one-line `fix`.
+file line numbers), a rubric item number as `lens`, a `type` from coverage-gap |
+real-defect | refinement | soundness, a `severity` from C | H | M | L, a one-line
+`summary`, and a one-line `fix`.
 
 OUTPUT FORMAT — strict. Emit exactly these three parts, nothing else after them:
 
@@ -722,9 +785,9 @@ findings:
 
 2. A score block, one line per rubric criterion, every criterion present:
 
-C1.1: 2
-C1.2: 1
-... (through C4.3)
+EOF
+    printf '%s\n' "$score_block"
+    cat <<'EOF'
 
 3. A final line:
 
@@ -732,7 +795,7 @@ VERDICT: approve|revise|block
 
 === RUBRIC (verbatim) ===
 EOF
-    cat "$rubric"
+    cat "$rubric_slice"
     echo
     echo "=== PLUGIN MAP (summary: per-stage load sets and lines, declared-but-absent edges, orphans, test-only nodes, waiver state, ratchet metrics; computed from the tree on this run) ==="
     python3 -c "$MAPSUM_PY" "$map_json"
@@ -746,7 +809,34 @@ EOF
     echo "=== END PLUGIN TEXT ==="
     echo
     echo "Now emit the three parts in the strict output format above."
-  } > "$rd/prompt.txt"
+  } > "$out"
+}
+
+stop=""; rnd_done=0; pct_last="0.0"; c_last=0; h_last=0
+while : ; do
+  mkdir -p "$day_dir"
+  n=$(( $(find "$day_dir" -maxdepth 1 -type d -name 'round-*' 2>/dev/null | wc -l | tr -d ' ') + 1 ))
+  if [ "$n" -gt 1 ]; then                                       # one round only, ever
+    stop="max-rounds"; rnd_done=$((n - 1))
+    lastdir="$day_dir/round-$rnd_done"
+    [ -f "$lastdir/score.md" ] && pct_last="$(sed -n 's/.*pct=\([0-9.]*\).*/\1/p' "$lastdir/score.md" | tail -1)"
+    if [ -f "$lastdir/review.yaml" ]; then
+      read -r c_last h_last <<<"$(python3 -c 'import sys,yaml; c=(yaml.safe_load(open(sys.argv[1]))or{}).get("counts") or {}; print(c.get("C",0), c.get("H",0))' "$lastdir/review.yaml")"
+    fi
+    break
+  fi
+  rd="$day_dir/round-$n"
+  mkdir -p "$rd"
+  prev_review=""; prev_sha=""
+
+  # ---- prompt (codex, four lenses) + cc-prompt (cc arm, lenses 2 and 3 only)
+  build_prompt "$rd/prompt.txt" "$rubric" "$score_block_all"
+  build_prompt "$rd/cc-prompt.txt" "$cc_rubric" "$score_block_cc"
+
+  if [ "$dry_run" -eq 1 ]; then
+    echo "plugin-review: dry-run — wrote $rd/prompt.txt ($(wc -c < "$rd/prompt.txt" | tr -d ' ') bytes) and $rd/cc-prompt.txt ($(wc -c < "$rd/cc-prompt.txt" | tr -d ' ') bytes); no codex call, no review.yaml" >&2
+    exit 0
+  fi
 
   # ---- Codex arm (never -s read-only; </dev/null mandatory)
   echo "plugin-review: round $n — codex exec over $(wc -c < "$rd/prompt.txt" | tr -d ' ') bytes of prompt" >&2

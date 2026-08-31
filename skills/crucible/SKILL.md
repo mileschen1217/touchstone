@@ -1,15 +1,17 @@
 ---
 name: crucible
-description: Front-end contract orchestrator — chains explore (ground the intent in the system) → assay (the pre-contract interview; its consensus section is what the contract author consumes) → design-spec into one invocation, so the AI forges the contract spine and the human accepts once. Use at the start of a feature that needs a design spec.
+description: Front-end contract orchestrator — chains explore (ground the intent in the system) → assay (the pre-contract interview; its consensus section is what the contract author consumes) → design-spec → design-review into one invocation, so the AI forges the contract spine and the human accepts once. Two forms, short by default. Use at the start of a feature that needs a contract.
+user-invocable: true
 ---
 
 # /touchstone:crucible — Front-End Contract Orchestrator
 
 Forges raw intent into an accepted contract in ONE invocation; the human
-accepts once at the end. Requires a live responsive user (assay interviews;
-the terminal step is a human accept). Skip when no full chain is needed — a
-spec revision goes straight to `/touchstone:design-spec` +
-`/touchstone:design-review`.
+accepts once at the end — the **contract accept**, the first of the two human
+accepts a unit of work passes (the second is the ship informed-accept at
+phase-ship). Requires a live responsive user (assay interviews; the terminal
+step is a human accept). Skip when no full chain is needed — a spec revision
+goes straight to `/touchstone:design-spec` + `/touchstone:design-review`.
 
 ## Exploration's role (decide first)
 
@@ -20,6 +22,34 @@ spec revision goes straight to `/touchstone:design-spec` +
   enter the chain with a light confirmatory explore. Never interview toward an
   intent that could not yet form.
 
+## Contract form — full or short (decide before assay; name it to the human)
+
+Default = **short**. Escalate to **full** iff any of the three triggers holds:
+
+1. the intent adds or changes a party-facing contract (API / CLI / schema /
+   skill interface);
+2. a structural fork (≥2 viable paths) is open;
+3. the intent is problem-finding (audit, heavy refactor).
+
+Otherwise short. Breadth alone never escalates: a fixed-invariant sweep is
+short however many files it touches. Worked examples — the branch a reader is
+in is decidable from these alone:
+
+| intent | trigger | form |
+|---|---|---|
+| add a field to a schema another skill reads | 1 — party-facing schema change | full |
+| two viable ways to route a gate's output, neither ruled out | 2 — open structural fork | full |
+| "audit the checker rail for false greens" | 3 — problem-finding | full |
+| tighten one skill's prose; no interface, no fork, intent stated | none | short |
+
+Both forms produce the same `spec.yaml` (one schema) and pass the same
+design-review gate; the form sets how much of assay and of the gate runs:
+
+| | full | short |
+|---|---|---|
+| assay | the whole instrument | its short form (assay § Short form) |
+| design-review | full mode (three lenses, the injected rule's budget) | short-chain mode (one round, two lenses) |
+
 ## The chain
 
 1. **explore** — read the code paths, patterns, and constraints the contract
@@ -29,33 +59,18 @@ spec revision goes straight to `/touchstone:design-spec` +
    `${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md` as the method to
    sweep the artifact's reach and produce a saturated seam-map here at explore,
    for the interview to confirm into Consensus Scope.
-2. **`touchstone:assay`** — the unconditional interview (proportionality lives
-   inside it, never as a chain skip-condition). **Progression gate: do not
-   advance until the assay record's readiness ruling — the explicit human
-   yes — exists.** A structural fork it surfaces produces an ADR; the
-   ledger row that produced it is what design-spec cites.
-3. **Contract form — an explicit two-way choice** (name it to the human;
-   default = full spec):
-   - **Full `/touchstone:design-spec`** — a new contract (API / CLI / IPC /
-     schema / skill / agent), or design decisions expensive to reverse across
-     modules. Breadth alone never forces this: a fixed-invariant mechanical
-     sweep belongs to the light form however many files it touches. Invoke
-     design-spec with the assay record path as its facts source; US-N ids and
-     story→requirement traces are design-spec's to author.
-   - **PRD+seams light contract** — batch-shaped work (sweeps, migrations):
-     problem + batches + acceptance seams (≥1 per load-bearing ruling) +
-     unbreakable invariants, the problem/invariant fields citing the facts
-     source's rows (a facts source qualifies per
-     `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/confirmed-facts-source.md`).
-     It skips step 4; before its terminal accept run the light check in
-     `references/light-check.md`; its build runs under
-     `${CLAUDE_PLUGIN_ROOT}/skills/_shared/light-loop.md`.
-4. **(Full form only.)** Set `status: accepted-candidate`, invoke
-   `/touchstone:design-review <spec>` — the gate runs pre-accept, here. The
-   gate governs its own convergence; crucible only surfaces its terminal
-   outcome — a clean close advances, a blocked line halts at
-   `accepted-candidate` for the human. Never fold findings into Open
-   Questions, never auto-advance.
+2. **`touchstone:assay`** — the unconditional interview, in the form chosen
+   above. **Progression gate: do not advance until the assay record's
+   readiness ruling — the explicit human yes — exists.** A structural fork it
+   surfaces produces an ADR (and is itself trigger 2); the ledger row that
+   produced it is what design-spec cites.
+3. **`/touchstone:design-spec`** with the assay record path as its facts
+   source; US-N ids and story→requirement traces are design-spec's to author.
+4. Set `status: accepted-candidate`, invoke `/touchstone:design-review <spec>`
+   — the gate runs pre-accept, here, in the mode the form selects. The gate
+   governs its own convergence; crucible only surfaces its terminal outcome —
+   a clean close advances, a blocked line halts at `accepted-candidate` for
+   the human. Never fold findings into Open Questions, never auto-advance.
 
 ## Standing-decision conflict
 
@@ -64,10 +79,9 @@ never silently overwrite. A true structural fork (≥2 viable paths remain)
 routes to assay's fork case; a decisively-resolved conflict proceeds with one
 inline line naming the standing decision and why it still holds.
 
-## Terminal — human accept
+## Terminal — the contract accept
 
-Present the contract (clean-gated spec, or light-checked PRD+seams) for the
-single terminal accept; for a full spec the accept promotes `accepted-candidate → accepted` (a light contract has no status field). Name
-the build phase (`/touchstone:anvil` for a full spec; the light loop for
-PRD+seams, `skills/_shared/light-loop.md`) as next. Crucible stops at the contract — it never invokes the
-build, never emits requirements, never assigns US-N ids.
+Present the clean-gated spec for the single terminal accept; the accept
+promotes `accepted-candidate → accepted` for both forms. Name
+`/touchstone:anvil` as next. Crucible stops at the contract — it never invokes
+the build, never emits requirements, never assigns US-N ids.

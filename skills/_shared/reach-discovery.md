@@ -52,16 +52,15 @@ Each row: the observable risk-signature in the artifact, and the channel it make
 | config / schema key consumed by string lookup (no import edge) | textual | no call-site edge exists for the structural channel to follow |
 | new consumer in a sibling module, no shared history yet | textual | historical is empty for a just-added party; naming-kin catches it |
 
-A sweep that runs only the structural channel is a **single-search first-hit** — the
-named failure mode `ground-and-sweep.md` forbids: one channel cannot observe a plateau
-(the ≥2 floor there), so a one-channel "done" is reach-under-determined, not saturated.
+A sweep that runs only the structural channel is the **single-search first-hit** that
+`ground-and-sweep.md` forbids; its "done" is reach-under-determined, not saturated.
 
 ## Availability degradation
 
 A channel can drop out (shallow clone / no history → historical empty). Record which
-channel is missing in the seam-map. As long as two or more channels remain usable,
-reach the plateau over those — the omission is stated, not skipped in silence. If fewer
-than two survive, no plateau can be observed at all: flag the seam-map
+channel is missing in the seam-map and reach the plateau over the channels that remain —
+the omission is stated, not skipped in silence. When too few survive for
+`ground-and-sweep.md`'s plateau to be observable, flag the seam-map
 **reach-under-determined** and hand it up with the gap named, rather than dressing an
 unfinished sweep as a settled result.
 

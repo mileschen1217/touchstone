@@ -71,16 +71,25 @@ expect_out "check-artifact review: unresolved refs id names findings[F-1].refs[0
 expect_exit "check-artifact review: no locator" nonzero bash "$ca" review "$ax/review-red-noloc.yaml" --root "$ax"
 expect_out "check-artifact review: no locator names the finding" "findings[F-1]: no locator (field, file or refs)" bash "$ca" review "$ax/review-red-noloc.yaml" --root "$ax"
 expect_exit "check-artifact review: empty providers" nonzero bash "$ca" review "$ax/review-red-providers-empty.yaml" --root "$ax"
-expect_out "check-artifact review: empty providers names minItems" "providers: expected at least 1 item(s)" bash "$ca" review "$ax/review-red-providers-empty.yaml" --root "$ax"
+expect_out "check-artifact review: empty providers names minItems" "providers: minItems 1" bash "$ca" review "$ax/review-red-providers-empty.yaml" --root "$ax"
 expect_exit "check-artifact review: found_by arm outside its lens providers" nonzero bash "$ca" review "$ax/review-red-foundby-arm.yaml" --root "$ax"
 expect_out "check-artifact review: found_by arm outside its lens providers is named" "found_by: 'cc' is not an arm of lens 'design-soundness' in providers" bash "$ca" review "$ax/review-red-foundby-arm.yaml" --root "$ax"
 
+# AC-29: found_by: [] fails the array's minItems 1
+expect_exit "check-artifact review: found_by empty" nonzero bash "$ca" review "$ax/review-red-foundby-empty.yaml" --root "$ax"
+expect_out "check-artifact review: found_by empty names minItems" "findings[F-1].found_by: minItems 1" bash "$ca" review "$ax/review-red-foundby-empty.yaml" --root "$ax"
+
+# AC-14: coverage[] rows validate against delta.contracts[coverage-row] (review-green.yaml
+# carries one); a conformance finding marked status: covered is rejected with the reason
+# "covered rows belong in coverage[]" — not the generic enum message
+expect_exit "check-artifact review: coverage row validates (green carries one)" zero bash "$ca" review "$ax/review-green.yaml" --root "$ax"
+expect_exit "check-artifact review: conformance finding marked covered" nonzero bash "$ca" review "$ax/review-red-covered-in-findings.yaml" --root "$ax"
+expect_out "check-artifact review: covered finding names the coverage[] reason" "findings[F-1].status: covered rows belong in coverage[]" bash "$ca" review "$ax/review-red-covered-in-findings.yaml" --root "$ax"
+
 expect_exit "check-artifact deviation green" zero bash "$ca" deviation "$ax/deviation-green.yaml" --root "$ax"
-expect_out "check-artifact deviation green: ref-set grading prints a miss line" "quiz QZ-1: miss — missing [AC-3] extra [AC-4]" bash "$ca" deviation "$ax/deviation-green.yaml" --root "$ax"
 expect_exit "check-artifact deviation red" nonzero bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
 expect_out "check-artifact deviation: missing which_stage_could_have_caught" "entries[D-1].which_stage_could_have_caught: required" bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
 expect_out "check-artifact deviation: invalid panel" "entries[D-1].panel: 'flow' not in" bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
-expect_out "check-artifact deviation: quiz answer names no field id" "quiz.items[QZ-1].answer: names no field id" bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
 
 # AC-5: duplicate QZ-n id
 expect_exit "check-artifact deviation: duplicate QZ id" nonzero bash "$ca" deviation "$ax/deviation-red-dup-qz.yaml" --root "$ax"
@@ -90,10 +99,30 @@ expect_out "check-artifact deviation: duplicate QZ id names QZ-1" "duplicate id 
 expect_exit "check-artifact deviation: empty refs without derived" nonzero bash "$ca" deviation "$ax/deviation-red-refs-empty.yaml" --root "$ax"
 expect_out "check-artifact deviation: empty refs without derived names entries[D-1].refs" "entries[D-1].refs: empty refs require derived: true" bash "$ca" deviation "$ax/deviation-red-refs-empty.yaml" --root "$ax"
 
-# AC-8: optional metrics block — a wrong inner type errors; a valid block and no block both exit 0
-expect_exit "check-artifact deviation: metrics.stage1_tokens wrong type" nonzero bash "$ca" deviation "$ax/deviation-red-metrics.yaml" --root "$ax"
-expect_out "check-artifact deviation: metrics.stage1_tokens wrong type names the path" "metrics.stage1_tokens: expected integer" bash "$ca" deviation "$ax/deviation-red-metrics.yaml" --root "$ax"
-expect_exit "check-artifact deviation: valid metrics block" zero bash "$ca" deviation "$ax/deviation-green-metrics.yaml" --root "$ax"
+# AC-16: kind / expected_refs / answer_refs are retired with the single quiz-item shape —
+# each is rejected as an unknown key at its path
+expect_exit "check-artifact deviation: legacy quiz kind/expected_refs/answer_refs" nonzero bash "$ca" deviation "$ax/deviation-red-quiz-legacy-kind.yaml" --root "$ax"
+expect_out "check-artifact deviation: legacy kind is an unknown key" "quiz.items[QZ-1].kind: unknown key" bash "$ca" deviation "$ax/deviation-red-quiz-legacy-kind.yaml" --root "$ax"
+expect_out "check-artifact deviation: legacy expected_refs is an unknown key" "quiz.items[QZ-1].expected_refs: unknown key" bash "$ca" deviation "$ax/deviation-red-quiz-legacy-kind.yaml" --root "$ax"
+expect_out "check-artifact deviation: legacy answer_refs is an unknown key" "quiz.items[QZ-1].answer_refs: unknown key" bash "$ca" deviation "$ax/deviation-red-quiz-legacy-kind.yaml" --root "$ax"
+
+# AC-17 / AC-29: an answered item with no result fails; a refs id that does not resolve in
+# the phase-matched spec fails and exits non-zero (an unanswered item with valid refs
+# passes — exercised by deviation-green.yaml's QZ-2 above)
+expect_exit "check-artifact deviation: answered item with no result" nonzero bash "$ca" deviation "$ax/deviation-red-answer-no-result.yaml" --root "$ax"
+expect_out "check-artifact deviation: answered item with no result names the rule" "quiz.items[QZ-1].result: required once answered" bash "$ca" deviation "$ax/deviation-red-answer-no-result.yaml" --root "$ax"
+expect_exit "check-artifact deviation: quiz refs does not resolve" nonzero bash "$ca" deviation "$ax/deviation-red-quiz-ref.yaml" --root "$ax"
+expect_out "check-artifact deviation: quiz refs does not resolve names the id" "quiz.items[QZ-1].refs: AC-99 does not resolve" bash "$ca" deviation "$ax/deviation-red-quiz-ref.yaml" --root "$ax"
+
+# AC-20: metrics is a per-phase list — a duplicate phase and a non-40-hex measured_at both
+# fail; a list with distinct phases (deviation-green-metrics.yaml) passes
+expect_exit "check-artifact deviation: metrics duplicate phase" nonzero bash "$ca" deviation "$ax/deviation-red-metrics-dup.yaml" --root "$ax"
+expect_out "check-artifact deviation: metrics duplicate phase names the phase" "metrics: duplicate phase 1" bash "$ca" deviation "$ax/deviation-red-metrics-dup.yaml" --root "$ax"
+expect_exit "check-artifact deviation: metrics measured_at not 40-hex" nonzero bash "$ca" deviation "$ax/deviation-red-metrics-sha.yaml" --root "$ax"
+expect_out "check-artifact deviation: metrics measured_at not 40-hex names the path" "metrics[0].measured_at" bash "$ca" deviation "$ax/deviation-red-metrics-sha.yaml" --root "$ax"
+expect_exit "check-artifact deviation: valid metrics list (two distinct phases)" zero bash "$ca" deviation "$ax/deviation-green-metrics.yaml" --root "$ax"
+expect_exit "check-artifact deviation: metrics stage_tokens missing stages" nonzero bash "$ca" deviation "$ax/deviation-red-metrics-stages.yaml" --root "$ax"
+expect_out "check-artifact deviation: metrics stage_tokens missing stages names the path" "metrics[0].stage_tokens: stages 0-5 each exactly once" bash "$ca" deviation "$ax/deviation-red-metrics-stages.yaml" --root "$ax"
 
 python3 - "$ca" "$ax" <<'PY3' || { echo "FAIL: check-artifact edge cases"; fail=1; }
 import subprocess, sys, os, tempfile, shutil
@@ -130,19 +159,68 @@ noloc_green = noloc_red.replace('refs: []', 'file: skills/design-review/SKILL.md
 rc, out = run('review', noloc_green, 'r4.yaml')
 assert rc == 0, out
 
-# AC-6 grading: order-independent set equality prints pass; an absent answer_refs prints unanswered (never pass)
-dev_green = open(os.path.join(ax, 'deviation-green.yaml')).read()
-rc, out = run('deviation', dev_green.replace('answer_refs: [AC-1, AC-4]', 'answer_refs: [AC-3, AC-1]'), 'd1.yaml')
-assert rc == 0 and 'quiz QZ-1: pass' in out, out
-rc, out = run('deviation', dev_green.replace('      answer_refs: [AC-1, AC-4]\n', ''), 'd2.yaml')
-assert rc == 0 and 'quiz QZ-1: unanswered' in out and 'quiz QZ-1: pass' not in out, out
-
-# no resolution spec for an item's phase → warn, exit unchanged (mirrors the ledger-not-found behaviour)
-rc, out = run('deviation', dev_green.replace('phase: 1\n      kind: ref-set', 'phase: 99\n      kind: ref-set'), 'd3.yaml')
+# AC-17: refs: [] is rejected by the schema's minItems 1; an unanswered item (no answer, no
+# result) with valid refs passes; a quiz item's refs must resolve in the phase-matched spec,
+# and a phase with no spec under --root warns (exit unchanged) rather than errors
+base_q = '''entries: []
+quiz:
+  waived: false
+  items:
+    - id: QZ-1
+      phase: {phase}
+      question: q
+      refs: {refs}
+      anchor: requirements[REQ-1].acs[AC-1]
+{extra}waiting_on_human: []
+'''
+rc, out = run('deviation', base_q.format(phase=1, refs='[]', extra=''), 'q1.yaml')
+assert rc == 1 and 'quiz.items[QZ-1].refs: minItems 1' in out, out
+rc, out = run('deviation', base_q.format(phase=1, refs='[AC-1]', extra=''), 'q2.yaml')
+assert rc == 0, out   # unanswered item, valid refs, passes
+rc, out = run('deviation', base_q.format(phase=99, refs='[AC-1]', extra=''), 'q3.yaml')
 assert rc == 0 and 'no spec for phase 99 found under --root' in out, out
 
+# AC-17: an answered item requires a result; once both are present it passes
+answered = base_q.format(phase=1, refs='[AC-1]', extra='      answer: a\n')
+rc, out = run('deviation', answered, 'q4.yaml')
+assert rc == 1 and 'quiz.items[QZ-1].result: required once answered' in out, out
+rc, out = run('deviation', answered.replace('anchor: requirements[REQ-1].acs[AC-1]\n', 'anchor: requirements[REQ-1].acs[AC-1]\n      result: pass\n'), 'q5.yaml')
+assert rc == 0, out
+
+# AC-20: one metrics entry passes; a 39-hex measured_at fails naming the path
+base_m = '''entries: []
+quiz: {{waived: false, items: []}}
+metrics:
+  - phase: 1
+    wall_clock_h: 1.0
+    human_turns: 1
+    dispatches: 1
+    lens_h: {{coverage: 1}}
+    stage_tokens: [{{stage: 0, tokens: 10}}, {{stage: 1, tokens: 1}}, {{stage: 2, tokens: 1}}, {{stage: 3, tokens: 1}}, {{stage: 4, tokens: 1}}, {{stage: 5, tokens: 1}}]
+    false_edges: 0
+    instrument_churn: {{shape_driven_lines: 1, other_lines: 0}}
+    measured_at: {sha}
+waiting_on_human: []
+'''
+sha40 = ('0123456789abcdef' * 3)[:40]
+rc, out = run('deviation', base_m.format(sha=sha40), 'm1.yaml')
+assert rc == 0, out
+rc, out = run('deviation', base_m.format(sha=sha40[:39]), 'm2.yaml')
+assert rc == 1 and 'metrics[0].measured_at' in out and 'does not match pattern' in out, out
+
+# AC-14: a coverage row whose ref does not resolve in the target spec fails; a finding whose
+# lens is NOT conformance carrying status: covered gets the plain enum rejection, never the
+# coverage[]-specific message
+rgreen = open(os.path.join(ax, 'review-green.yaml')).read()
+cov_bad = rgreen.replace('ref: AC-1', 'ref: AC-99')
+rc, out = run('review', cov_bad, 'cv1.yaml')
+assert rc == 1 and "'AC-99' resolves to no id in spec-green.yaml" in out, out
+noncon = rgreen.replace('status: open', 'status: covered')
+rc, out = run('review', noncon, 'cv2.yaml')
+assert rc == 1 and "not in ['open', 'fixed', 'waived', 'unverified']" in out and 'covered rows belong in coverage[]' not in out, out
+
 shutil.rmtree(t)
-print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type, refs resolution (AC-4), locator rule (AC-48), ref-set grading (AC-6), phase-not-found warn')
+print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type, refs resolution (AC-4), locator rule (AC-48), quiz refs/result rule (AC-17), metrics duplicate/sha (AC-20), coverage-row resolution + non-conformance covered stays a plain enum rejection (AC-14)')
 PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
 # the three schema files exist and every top-level field carries a reader tag
@@ -721,6 +799,9 @@ fixtures_root="$repo_root/.touchstone/checker/fixtures"
 # ---- plugin-map.sh's own self-test: it runs the map over the same fixture
 # trees the rail owns and asserts the graph / entries / metrics contract.
 expect_exit "plugin-map.sh --self-test" zero bash "$scripts_dir/plugin-map.sh" --self-test
+# ---- phase-metrics.sh's own self-test (the phase-4 instrument: turns / gap-excluded hours /
+# dispatches from a synthetic transcript; lens_h joined by the review's target-spec phase)
+expect_exit "phase-metrics.sh --self-test" zero bash "$scripts_dir/phase-metrics.sh" --self-test
 
 find_checker() {  # <name> -> absolute path on stdout, or nothing
   local name="$1" d p
@@ -918,17 +999,20 @@ assert 'of phase 2 subsume' in h, 'sanity: the legacy prose sentence with an AC-
 print('PASS: dossier AC-14 — exactly 3 waiting rows from fields only, each carrying title/owner/kind/source+gate; a legacy prose AC-n token produced no row')
 
 # AC-15: deviation entries + quiz items appear under per-phase headings (1, 2, 3); the
-# ref-set item (QZ-2, phase 1, expected [AC-1,AC-2] vs answered [AC-1]) shows the
-# checker-derived miss with the missing id; the manual items (QZ-1/QZ-3) show their
-# recorded result.
+# quiz's single item shape is result-only (design decision 1, AC-18) — an unanswered
+# item (QZ-2) renders its computed "unanswered" state, an answered item carrying a
+# recorded result (QZ-1, QZ-3) renders that result; the retired ref-set "miss" grading
+# never resurfaces.
 rec = t['3']
 for ph in ('Phase 1', 'Phase 2', 'Phase 3'):
     assert f'<h3 class="file-title">{ph}</h3>' in rec, 'missing per-phase heading %r' % ph
-assert 'title="miss">未過</abbr>' in rec, 'QZ-2 does not show its checker-derived miss result'
-i = rec.find('QZ-2')
-assert i != -1 and 'AC-2' in rec[i:i + 600], 'QZ-2 does not show the missing id'
-assert 'title="pass">通過</abbr>' in rec, 'no manual quiz item shows its recorded pass result'
-print('PASS: dossier AC-15 — deviation entries and quiz items grouped by phase; the ref-set item shows its checker-derived miss with the missing id; manual items show their result')
+for qid in ('QZ-1', 'QZ-3'):
+    i = rec.find(qid)
+    assert i != -1 and 'title="pass">通過</abbr>' in rec[i:i + 200], f'{qid} does not show its recorded pass result'
+i2 = rec.find('QZ-2')
+assert i2 != -1 and 'title="unanswered">未答</abbr>' in rec[i2:i2 + 200], 'QZ-2 (no answer) does not show unanswered'
+assert 'title="miss">未過</abbr>' not in rec, 'a miss pill appeared — the retired ref-set grading must not resurface'
+print('PASS: dossier AC-15 — deviation entries and quiz items grouped by phase; an unanswered item shows unanswered, an answered item shows its recorded result; no ref-set miss grading remains')
 PY
 # ---- panel overlay is phase-scoped: the fixture's gamma spec is phase 3; D-1 (phase 3, interface) belongs on
 # its panels, D-2 / D-3 (phase 1 / 2, panel none) do not (regression ratchet for the owner's 2026-08-30 dossier read)
@@ -1038,5 +1122,165 @@ chmod 755 "$eb_root/hooks/x.sh"
 expect_exit "check-exec-bits-all untracked 755 script passes" zero \
   env TOUCHSTONE_CHECK_ROOT="$eb_root" bash "$repo_root/.touchstone/checker/pre-commit/check-exec-bits-all.sh"
 rm -rf "$eb_root"
+
+# T2 additions — dossier-render.sh quiz/metrics/coverage render (REQ-6 AC-18, REQ-7 AC-22,
+# REQ-5 coverage render / design decision 3). Self-contained: uses only run-smoke's existing
+# helpers ($fx, $scripts_dir, expect_exit, fail) and $fx/dossier-epic's own phase specs
+# (index.md, alpha/beta/gamma) which T1's migration does not touch — only deviation.yaml
+# and review.yaml content is built here, deterministically, so these asserts do not depend
+# on the exact prose T1 chooses when it migrates the shared fixture's deviation.yaml.
+
+# ---- AC-18: quiz reads `result` only — pass / miss / unanswered, no kind branch ----
+t2q_root="$(mktemp -d)"
+mkdir -p "$t2q_root/epic"
+cp -R "$fx/dossier-epic"/. "$t2q_root/epic/"
+rm -f "$t2q_root/epic/dossier.html"
+cat > "$t2q_root/epic/deviation.yaml" <<'YAML'
+entries: []
+quiz:
+  waived: false
+  items:
+    - id: QZ-1
+      phase: 3
+      question: does a passed item show pass?
+      answer: "yes, via result: pass"
+      refs: [AC-1]
+      anchor: phase_map.interface_delta
+      result: pass
+    - id: QZ-2
+      phase: 3
+      question: does a missed item show miss?
+      answer: "an answer the AI judged incomplete"
+      refs: [AC-1]
+      anchor: phase_map.interface_delta
+      result: miss
+    - id: QZ-3
+      phase: 3
+      question: does an item with no answer show unanswered?
+      refs: [AC-1]
+      anchor: phase_map.interface_delta
+waiting_on_human: []
+YAML
+expect_exit "dossier T2 quiz fixture renders" zero bash "$scripts_dir/dossier-render.sh" "$t2q_root/epic"
+t2q_out="$t2q_root/epic/dossier.html"
+if grep -q 'QZ-1 <span class="pill ok"><abbr class="enum" title="pass">' "$t2q_out" \
+   && grep -q 'QZ-2 <span class="pill muted"><abbr class="enum" title="miss">' "$t2q_out" \
+   && grep -q 'QZ-3 <span class="pill muted"><abbr class="enum" title="unanswered">' "$t2q_out"; then
+  echo "PASS: dossier AC-18 — quiz pass/miss/unanswered read from result only"
+else
+  echo "FAIL: dossier AC-18 — quiz pass/miss/unanswered not rendered from result alone"; fail=1
+fi
+if grep -qE 'expected_refs|answer_refs|ref-set' "$scripts_dir/dossier-render.sh"; then
+  echo "FAIL: dossier AC-18 — dossier-render.sh still references the retired ref-set grading"; fail=1
+else
+  echo "PASS: dossier AC-18 — no expected_refs/answer_refs/ref-set left in dossier-render.sh"
+fi
+# a quiz item's refs render as jump links (the owner must be able to reach the fields the
+# answer resolves to from the page — gate-miss 2026-08-31: inert anchor, refs unrendered)
+if grep -qE '對回</span> <a class="code" data-jump="[^"]*AC-1"' "$t2q_out"; then
+  echo "PASS: dossier quiz — refs render as data-jump links"
+else
+  echo "FAIL: dossier quiz — refs not rendered as data-jump links"; fail=1
+fi
+rm -rf "$t2q_root"
+
+# ---- AC-22: metrics is a per-phase list — one row per phase, phases with no entry read
+# "no metrics recorded", phases with an entry carry data. The metrics panel only renders
+# under a plugin root (design decision 2 keeps AC-17's existing gating), so this root
+# carries .claude-plugin/plugin.json and a logging-stub scripts/plugin-map.sh, same as the
+# AC-17 positive fixture above. ----
+t2m_root="$(mktemp -d)"
+mkdir -p "$t2m_root/.claude-plugin" "$t2m_root/scripts" "$t2m_root/epic"
+printf '{"name":"scratch","version":"0.0.0"}\n' > "$t2m_root/.claude-plugin/plugin.json"
+printf '#!/usr/bin/env bash\necho "{}"\n' > "$t2m_root/scripts/plugin-map.sh"
+chmod +x "$t2m_root/scripts/plugin-map.sh"
+printf -- '---\nslug: metrics-demo\nstatus: active\nstarted: 2026-01-01\nlanded:\n---\n\n# Metrics demo\n\n**Aim:** exercise the per-phase metrics table.\n\n## Phases\n\n| # | Title | Spec | Plan | Status | Landed |\n|---|---|---|---|---|---|\n| 1 | One | [spec](2026-01-01-p1.spec.yaml) | — | active | |\n| 2 | Two | [spec](2026-01-02-p2.spec.yaml) | — | active | |\n| 3 | Three | [spec](2026-01-03-p3.spec.yaml) | — | active | |\n| 4 | Four | [spec](2026-01-04-p4.spec.yaml) | — | active | |\n' > "$t2m_root/epic/index.md"
+for n in 1 2 3 4; do
+  sed -e "s/^id: .*/id: SPEC-metrics-demo-p$n/" -e "s/^title: .*/title: Phase $n/" \
+      -e "s/^phase: .*/phase: $n/" -e "s/^date: .*/date: 2026-01-0$n/" \
+      "$fx/dossier-epic/2026-01-04-gamma.spec.yaml" > "$t2m_root/epic/2026-01-0$n-p$n.spec.yaml"
+done
+cat > "$t2m_root/epic/deviation.yaml" <<'YAML'
+entries: []
+quiz: {waived: true, items: []}
+metrics:
+  - phase: 3
+    wall_clock_h: 7.5
+    human_turns: 82
+    dispatches: 14
+    lens_h: {challenger: 2, coverage: 1}
+    stage_tokens: [{stage: 0, tokens: 100}, {stage: 1, tokens: 24701}]
+    false_edges: 0
+    instrument_churn: {shape_driven_lines: 20, other_lines: 0}
+    measured_at: "ca2036d1234567890abcdef1234567890abcdef"
+  - phase: 4
+    wall_clock_h: 3.2
+    human_turns: 12
+    dispatches: 6
+    lens_h: {verification-honesty: 1}
+    stage_tokens: [{stage: 0, tokens: 90}, {stage: 1, tokens: 21000}]
+    false_edges: 0
+    instrument_churn: {shape_driven_lines: 5, other_lines: 0}
+    measured_at: "af28d231234567890abcdef1234567890abcdef"
+waiting_on_human: []
+YAML
+expect_exit "dossier T2 metrics fixture renders" zero bash "$scripts_dir/dossier-render.sh" --root "$t2m_root" "$t2m_root/epic"
+t2m_out="$t2m_root/epic/dossier.html"
+python3 - "$t2m_out" <<'PY' || { echo "FAIL: dossier AC-22 — metrics table structural checks"; fail=1; }
+import re, sys
+h = open(sys.argv[1], encoding='utf-8').read()
+m = re.search(r'phase 量測.*?<table>(.*?)</table>', h, re.S)
+assert m, 'metrics table not found on the page'
+rows = re.findall(r'<tr>(.*?)</tr>', m.group(1), re.S)[1:]  # drop header row
+assert len(rows) == 4, 'want 4 rows (phase set 1-4), got %d' % len(rows)
+assert 'no metrics recorded' in rows[0] and 'no metrics recorded' in rows[1], 'phases 1-2 must read "no metrics recorded"'
+assert '82' in rows[2] and '7.5' in rows[2], 'phase 3 row must carry its recorded data'
+assert '12' in rows[3] and '3.2' in rows[3], 'phase 4 row must carry its recorded data'
+print('PASS: dossier AC-22 — one row per phase; phases 1-2 "no metrics recorded"; phases 3-4 carry data')
+PY
+rm -rf "$t2m_root"
+
+# ---- coverage (AC-15 render side, design decision 3): a review round carrying coverage[]
+# shows a compact covered count beside its C/H/M/L counts; a round with no coverage key
+# renders as today ----
+t2c_root="$(mktemp -d)"
+mkdir -p "$t2c_root/epic"
+cp -R "$fx/dossier-epic"/. "$t2c_root/epic/"
+rm -f "$t2c_root/epic/dossier.html"
+python3 - "$t2c_root/epic/design-review-gamma/review.yaml" <<'PY'
+import sys
+p = sys.argv[1]
+text = open(p, encoding='utf-8').read()
+if 'coverage:' not in text:
+    text = text.replace(
+        'findings:',
+        'coverage:\n  - {ref: AC-1, status: covered, evidence: "held"}\n  - {ref: AC-2, status: covered, evidence: "held"}\nfindings:',
+        1,
+    )
+    open(p, 'w', encoding='utf-8').write(text)
+PY
+mkdir -p "$t2c_root/epic/deliverable-review-gamma"
+cat > "$t2c_root/epic/deliverable-review-gamma/review.yaml" <<'YAML'
+gate: deliverable-review
+target: 2026-01-04-gamma.spec.yaml
+sha: fixture
+round: 1
+providers: [{lens: conformance, arms: [cc]}]
+challenger: cc
+degraded: false
+verdict: approve
+counts: {C: 0, H: 0, M: 0, L: 0}
+findings: []
+waiting_on_human: []
+YAML
+expect_exit "dossier T2 coverage fixture renders" zero bash "$scripts_dir/dossier-render.sh" "$t2c_root/epic"
+t2c_out="$t2c_root/epic/dossier.html"
+n_covered="$(grep -o 'class="label">covered</span> <span class="num">[0-9]*</span>' "$t2c_out" | wc -l | tr -d ' ')"
+if [ "$n_covered" = "1" ] && grep -q 'covered</span> <span class="num">2</span>' "$t2c_out"; then
+  echo "PASS: dossier coverage — covered count renders for the round carrying coverage[], absent for the round without"
+else
+  echo "FAIL: dossier coverage — covered count did not render exactly once (got $n_covered occurrences)"; fail=1
+fi
+rm -rf "$t2c_root"
 
 exit "$fail"

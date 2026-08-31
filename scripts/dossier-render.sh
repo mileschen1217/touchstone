@@ -610,7 +610,7 @@ def field(items, label):
 def pill(status):
     s = (status or '').lower()
     cls = {'accepted': 'ok', 'done': 'ok', 'active': 'accent', 'accepted-candidate': 'warn', 'proposed': 'muted',
-           'draft': 'muted', 'paused': 'warn', 'cancelled': 'crit', 'blocked': 'crit'}.get(s, 'muted')
+           'draft': 'muted', 'blocked': 'crit'}.get(s, 'muted')
     return f'<span class="pill {cls}">{html.escape(status or "—")}</span>'
 
 META_ZH = {'date': '日期', 'kind': '種類', 'type': '類型', 'started': '開始', 'landed': '落地'}
@@ -824,9 +824,11 @@ def yaml_contract_card(p, s):
     d = yd.get('delta') if isinstance(yd.get('delta'), dict) else {}
     if d.get('blocks'):
         parts.append(f'<p class="meta">{lab("結構變更區塊")} <span class="num">{len(d["blocks"])}</span> · <a class="code" data-jump="{attr(k + "--structure")}" tabindex="0">結構變化</a></p>')
-        agent.append(f'<h4>{html.escape("變更區塊")}</h4>' + yaml_table([[b.get('id'), b.get('op'), b.get('kind'), b.get('purpose')] for b in d['blocks'] if isinstance(b, dict)], ['id', '動作', '種類', '目的'], k))
+        brows = ''.join(f'<tr id="{attr(k + "--" + sval(b.get("id")))}"><td class="num">{html.escape(sval(b.get("id")))}</td><td>{zh(sval(b.get("op")))}</td><td>{html.escape(sval(b.get("kind")))}</td><td>{yv(b.get("purpose"), k)}</td></tr>' for b in d['blocks'] if isinstance(b, dict))
+        agent.append(f'<h4>{html.escape("變更區塊")}</h4><div class="tbl"><table><tr><th>id</th><th>{lab("動作")}</th><th>{lab("種類")}</th><th>{lab("目的")}</th></tr>{brows}</table></div>')
     if d.get('contracts'):
-        agent.append(f'<h4>{html.escape("契約介面")}</h4>' + yaml_table([[c.get('id'), c.get('schema')] for c in d['contracts'] if isinstance(c, dict)], ['id', 'schema'], k))
+        crows = ''.join(f'<tr id="{attr(k + "--" + sval(c.get("id")))}"><td class="num">{html.escape(sval(c.get("id")))}</td><td>{yv(c.get("schema"), k)}</td></tr>' for c in d['contracts'] if isinstance(c, dict))
+        agent.append(f'<h4>{html.escape("契約介面")}</h4><div class="tbl"><table><tr><th>id</th><th>schema</th></tr>{crows}</table></div>')
     if yd.get('non_goals'):
         parts.append(collapsed(f'<span class="lead">{lab("不做")}</span> <span class="num">{len(yd["non_goals"])}</span>', '<ul>' + ''.join(f'<li>{yv(n, k)}</li>' for n in yd['non_goals']) + '</ul>'))
     if yd.get('risks'):
@@ -1076,53 +1078,98 @@ def structure_map_html(root):
     ratchet_html = f'<div class="tbl"><table><tr><th>ratchet</th><th>值</th></tr>{ratchet_rows}</table></div>' if ratchet_rows else '<p class="placeholder">no ratchet baseline</p>'
     return f'<article id="structure-map"><h3 class="file-title">結構地圖</h3>{top_meta}{stage_html}{ratchet_html}</article>'
 
+def metrics_phase_set():
+    """The metrics table's own phase set — deliberately NOT the global `phases` list (which
+    walks the whole epic dir recursively via is_spec() and can pick up spec-shaped files
+    nested under a subdirectory, e.g. a test fixture's own index.md/specs living under a
+    build-*/ scratch dir). Primary source: index.md's own `## Phases` table (`phase_rows`,
+    parsed from the top-level index.md only — never recursive), each row resolved to its
+    linked spec's own top-level `phase:` field when that spec is a *.spec.yaml directly
+    under the epic dir (mirrors phase_num()'s existing YAML-phase precedent; a row with no
+    such spec — a legacy md-era phase, or no spec at all — contributes no metrics row, since
+    deviation.yaml's metrics are only ever keyed by a YAML spec's own phase field). Falls
+    back to the distinct `phase:` field of every top-level *.spec.yaml when index.md carries
+    no `## Phases` table at all. Never .md, never a recursive path (contains os.sep)."""
+    def top_level_spec_phase(sp):
+        if not sp or os.sep in sp or not sp.endswith('.spec.yaml'):
+            return None
+        yd = (specs.get(sp) or {}).get('yaml')
+        ph = yd.get('phase') if isinstance(yd, dict) else None
+        return ph if isinstance(ph, int) and not isinstance(ph, bool) else None
+    seen, out = set(), []
+    for row in phase_rows:
+        ph = top_level_spec_phase(row.get('spec'))
+        if ph is not None and ph not in seen:
+            seen.add(ph); out.append(ph)
+    if not out:
+        for sp in sorted(spec_files):
+            ph = top_level_spec_phase(sp)
+            if ph is not None and ph not in seen:
+                seen.add(ph); out.append(ph)
+    return [sval(ph) for ph in sorted(out)]
+
 def metrics_table_html():
-    """Every known phase's recorded deviation.yaml metrics, matched by metrics.phase;
-    absent → a placeholder row (design decision 5)."""
-    m = (yaml_dev or {}).get('metrics') if yaml_dev else None
-    m = m if isinstance(m, dict) else None
+    """One row per phase in metrics_phase_set(), from deviation.yaml's per-phase metrics
+    list (metrics-entry contract); a phase with no entry reads "no metrics recorded"
+."""
+    entries = (yaml_dev or {}).get('metrics') if yaml_dev else None
+    entries = entries if isinstance(entries, list) else []
+    by_phase = {sval(e.get('phase')): e for e in entries if isinstance(e, dict)}
     rows = ''
-    for p in phases:
-        pm = m if (m and sval(m.get('phase')) == p['num']) else None
-        if pm:
-            ic = pm.get('instrument_churn') if isinstance(pm.get('instrument_churn'), dict) else {}
-            rows += (f'<tr><td>{html.escape(p["num"])}</td><td class="num">{html.escape(sval(pm.get("stage1_tokens")))}</td>'
-                      f'<td class="num">{html.escape(sval(pm.get("false_edges")))}</td>'
-                      f'<td class="num">{html.escape(sval(ic.get("shape_driven_lines")))}</td>'
-                      f'<td class="num">{html.escape(sval(ic.get("other_lines")))}</td>'
-                      f'<td class="num">{html.escape(sval(pm.get("measured_at")))}</td></tr>')
+    for num in metrics_phase_set():
+        e = by_phase.get(num)
+        if e:
+            ic = e.get('instrument_churn') if isinstance(e.get('instrument_churn'), dict) else {}
+            st = sorted((s for s in (e.get('stage_tokens') or []) if isinstance(s, dict)), key=lambda s: sval(s.get('stage')))
+            stage_str = ' · '.join(f's{html.escape(sval(s.get("stage")))} {html.escape(sval(s.get("tokens")))}' for s in st)
+            lh = e.get('lens_h') if isinstance(e.get('lens_h'), dict) else {}
+            lens_str = ', '.join(f'{html.escape(sval(lk))}: {html.escape(sval(lv))}' for lk, lv in lh.items())
+            churn = f'{html.escape(sval(ic.get("shape_driven_lines")))}/{html.escape(sval(ic.get("other_lines")))}'
+            rows += (f'<tr><td>{html.escape(num)}</td>'
+                      f'<td class="num">{html.escape(sval(e.get("human_turns")))}</td>'
+                      f'<td class="num">{html.escape(sval(e.get("dispatches")))}</td>'
+                      f'<td class="num">{html.escape(sval(e.get("wall_clock_h")))}</td>'
+                      f'<td>{stage_str}</td>'
+                      f'<td>{lens_str}</td>'
+                      f'<td class="num">{html.escape(sval(e.get("false_edges")))}</td>'
+                      f'<td class="num">{churn}</td></tr>')
         else:
-            rows += f'<tr><td>{html.escape(p["num"])}</td><td colspan="5" class="placeholder">no metrics recorded</td></tr>'
+            rows += f'<tr><td>{html.escape(num)}</td><td colspan="7" class="placeholder">no metrics recorded</td></tr>'
     if not rows:
         return '<p class="placeholder">no phases</p>'
-    return f'<div class="tbl"><table><tr><th>phase</th><th>stage1_tokens</th><th>false_edges</th><th>shape_driven</th><th>other</th><th>measured_at</th></tr>{rows}</table></div>'
+    return (f'<div class="tbl"><table><tr><th>phase</th><th>human_turns</th><th>dispatches</th><th>wall_clock_h</th>'
+            f'<th>stage tokens</th><th>lens H</th><th>false_edges</th><th>churn</th></tr>{rows}</table></div>')
 
 def quiz_result(it):
-    """ref-set: checker-derived pass/miss by set equality (missing/extra listed);
-    manual: the recorded `result`. Mirrors check-artifact's grading (contract quiz-item)."""
-    if sval(it.get('kind')) == 'ref-set':
-        expected = {sval(x) for x in (it.get('expected_refs') or [])}
-        answered = it.get('answer_refs')
-        if answered is None:
-            return 'unanswered', [], []
-        answered = {sval(x) for x in answered}
-        missing, extra = sorted(expected - answered), sorted(answered - expected)
-        return ('pass' if not missing and not extra else 'miss'), missing, extra
-    return (sval(it.get('result')) or 'pending'), [], []
+    """Reads `result` only — an item with no answer is unanswered."""
+    if not it.get('answer'):
+        return 'unanswered'
+    return sval(it.get('result')) or 'pending'
 
 def quiz_item_li(it, owner):
-    res, missing, extra = quiz_result(it)
+    res = quiz_result(it)
     res_pill = f' {zpill(res)}' if res != 'pending' else ''
-    if sval(it.get('kind')) == 'ref-set':
-        exp = ' '.join(link_codes(sval(x), owner) for x in (it.get('expected_refs') or []))
-        ans = ' '.join(link_codes(sval(x), owner) for x in (it.get('answer_refs') or []))
-        body = f'{lab("應含")} {exp}' + (f' · {lab("已答")} {ans}' if ans else '')
-        if missing: body += f' · {lab("少")} ' + ' '.join(link_codes(m, owner) for m in missing)
-        if extra: body += f' · {lab("多")} ' + ' '.join(link_codes(m, owner) for m in extra)
+    body = yv(it.get('answer'), owner)
+    refs = ' '.join(link_codes(html.escape(sval(r)), owner) for r in (it.get('refs') or []) if sval(r))
+    refs = f' · {lab("對回")} {refs}' if refs else ''
+    ap = sval(it.get('anchor'))
+    if ap:
+        tgt = None
+        for c in reversed(re.findall(r'\[([A-Z]+-\d+)\]', ap)):
+            a0, _ = resolve(c, owner)
+            if a0:
+                tgt = a0
+                break
+        if tgt is None:
+            # a slug selector (delta.blocks[x] / delta.contracts[x]) targets its table row
+            slugs = re.findall(r'\[([a-z][\w-]*)\]', ap)
+            if slugs:
+                tgt = f'{owner}--{slugs[-1]}'
+        inner = f'<code>{html.escape(ap)}</code>'
+        anchor = f' · {lab("錨點")} ' + (f'<a class="code" data-jump="{attr(tgt)}" tabindex="0">{inner}</a>' if tgt else inner)
     else:
-        body = yv(it.get('answer'), owner)
-    anchor = f' · {lab("錨點")} <code>{html.escape(sval(it.get("anchor")))}</code>' if it.get('anchor') else ''
-    return f'<li>{yv(it.get("id"), owner)}{res_pill} · {yv(it.get("question"), owner)}<details class="fold"><summary><span class="lead">答案</span></summary><div class="fold-body">{body}{anchor}</div></details></li>'
+        anchor = ''
+    return f'<li>{yv(it.get("id"), owner)}{res_pill} · {yv(it.get("question"), owner)}<details class="fold"><summary><span class="lead">答案</span></summary><div class="fold-body">{body}{refs}{anchor}</div></details></li>'
 
 def quiz_list_html(items, owner):
     return collapsed(f'<span class="lead">{lab("題目")}</span> <span class="num">{len(items)}</span>',
@@ -1182,7 +1229,7 @@ ZH = {
     'position': '位置', 'structure': '結構前後', 'interface': '介面差異', 'scope': '範圍', 'none': '未歸面板',
     'design-review': '設計審查', 'deliverable-review': '交付審查', 'plugin-review': 'plugin 審查', 'tests': '測試', 'quiz': '理解測驗', 'ship-gate': '出貨門',
     'draft': '草稿', 'accepted-candidate': '待接受', 'accepted': '已接受', 'superseded': '已取代',
-    'active': '進行中', 'proposed': '提議', 'paused': '暫停', 'done': '完成', 'cancelled': '取消',
+    'active': '進行中', 'proposed': '提議', 'done': '完成',
     'approvable': '可核准', 'blocked': '被擋住', 'not-reviewed': '尚未審',
     'true': '是', 'false': '否',
     'degraded': '降級', 'as-planned': '如計畫', 'built-ne-planned': '實作≠計畫', 'live-bearing': '需實跑',
@@ -1199,8 +1246,8 @@ def zh(v):
 def zpill(v, cls=None):
     v = sval(v)
     c = cls or {'approve': 'ok', 'pass': 'ok', 'fixed': 'ok', 'accepted': 'ok', 'done': 'ok', 'approvable': 'ok',
-                'revise': 'warn', 'pending': 'warn', 'waived': 'warn', 'accepted-candidate': 'warn', 'paused': 'warn', 'not-reviewed': 'warn', 'unverified': 'warn',
-                'block': 'crit', 'fail': 'crit', 'open': 'crit', 'blocked': 'crit', 'cancelled': 'crit',
+                'revise': 'warn', 'pending': 'warn', 'waived': 'warn', 'accepted-candidate': 'warn', 'not-reviewed': 'warn', 'unverified': 'warn',
+                'block': 'crit', 'fail': 'crit', 'open': 'crit', 'blocked': 'crit',
                 'n/a': 'muted', 'draft': 'muted', 'proposed': 'muted'}.get(v, 'muted')
     return f'<span class="pill {c}">{zh(v)}</span>'
 ROW_CAP = 7
@@ -1234,7 +1281,7 @@ def quiz_state(phase_num=None):
     if not entries or q.get('waived') is True: return 'n/a'
     items = [i for i in (q.get('items') or []) if isinstance(i, dict) and (phase_num is None or sval(i.get('phase')) == phase_num)]
     if not items: return 'pending'
-    res = [quiz_result(i)[0] for i in items]
+    res = [quiz_result(i) for i in items]
     if any(r in ('miss', 'unanswered') for r in res): return 'fail'
     if all(r == 'pass' for r in res): return 'pass'
     return 'pending'
@@ -1281,7 +1328,11 @@ def next_action(d):
     return '→ 修後收斂'
 def counts_html(d, owner):
     c = d.get('counts') if isinstance(d.get('counts'), dict) else {}
-    return ' '.join(f'{lab(ZH[k])} {yv(c.get(k), owner)}' for k in ('C', 'H', 'M', 'L'))
+    out = ' '.join(f'{lab(ZH[k])} {yv(c.get(k), owner)}' for k in ('C', 'H', 'M', 'L'))
+    if isinstance(d, dict) and 'coverage' in d:
+        cov = d.get('coverage') if isinstance(d.get('coverage'), list) else []
+        out += f' · {lab("covered")} <span class="num">{len(cov)}</span>'
+    return out
 GATE_OWNER = {'design-review': 'author', 'deliverable-review': 'builder', 'plugin-review': 'builder', 'tests': 'builder', 'quiz': 'owner', 'ship-gate': 'owner'}
 def gate_strip_html(p, s):
     k = p['key']

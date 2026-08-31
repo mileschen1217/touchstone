@@ -1,7 +1,7 @@
 ---
 name: deliverable-review
 description: |
-  Use when a finished build (a branch or logical commit group) needs its one review before the human accept — three lenses each dispatched to its arms: spec conformance (AC evidence under the live-bearing predicate), the honor-check feedback arm (invariant checks executed), and code quality whose arm set always holds the vendor opposite the builder; one review.yaml, one human accept. Out of scope — single-commit ad-hoc review (Claude Code's built-in `/code-review`) and design-document review (`/touchstone:design-review`).
+  Use when a finished build (a branch or logical commit group) needs its one review before phase-ship — three lenses each dispatched to its arms: spec conformance (AC evidence under the live-bearing predicate), the honor-check feedback arm (invariant checks executed), and code quality whose arm set always holds the vendor opposite the builder; one review.yaml, fed to the ship informed-accept. Out of scope — single-commit ad-hoc review (Claude Code's built-in `/code-review`) and design-document review (`/touchstone:design-review`).
 allowed-tools:
   - Bash
   - Read
@@ -9,7 +9,7 @@ allowed-tools:
   - Grep
   - Glob
   - Agent
-user-invocable: true
+user-invocable: false
 kind: workflow
 ---
 
@@ -29,9 +29,11 @@ CLAUDE.md may override the base branch).
 Governing spec: the caller's `spec` argument, else the active epic's
 `status: accepted` `*.spec.yaml`; the epic dir is `bundle.epics` of
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md` (follow it).
-Unresolvable → the conformance and honor-check lenses are not dispatched; emit exactly one line,
-`no governing spec — conformance not audited`, run the quality lens alone, and report its
-findings in the run message — no review.yaml is written (the record needs a `target`).
+Unresolvable (a direct invocation only — anvil always passes the spec, so its hand-off
+to phase-ship always carries a review.yaml) → the conformance and honor-check lenses are
+not dispatched; emit exactly one line, `no governing spec — conformance not audited`, run
+the quality lens alone, and report its findings in the run message — no review.yaml is
+written (the record needs a `target`).
 
 Builder — always detect, even under a forced arm:
 `git log --format=%B <range> | grep -iE '^Co-Authored-By:.*(codex|gpt-?5|openai)'`.
@@ -54,7 +56,7 @@ lenses:
 
 Conformance lens:
 - the two evidence-honesty fragments under `skills/_shared/inject/` (`live-bearing-predicate.md`, `ac-coverage-honesty-principle.md`), also carried as `evidence_honesty_vocab`.
-- `skills/deliverable-review/references/ac-coverage-criteria.md` (sole injector), then this delta: for each AC with `live_bearing: true`, apply the predicate's evidence rules (static-proxy disqualification, two-part provenance, producer ≠ judge) — a static-proxy-only or artifact-less claim is recorded `unverified` naming the proxy; you authenticate the artifact, never re-run the producer.
+- `skills/deliverable-review/references/ac-coverage-criteria.md` (sole injector), then this delta: an AC with `live_bearing: true` is judged by the predicate's evidence rules; what they disqualify is recorded `unverified` naming the proxy, and the arm authenticates the artifact, never re-runs the producer.
 - `skills/deliverable-review/references/reviewer-prompts.md` (sole injector) — always; its rules state their own applicability.
 
 Honor-check lens:
@@ -67,7 +69,7 @@ Quality lens:
 
 One `Agent` call per arm, carrying every lens assigned to it (findings tagged `[lens: …]`), all calls in ONE assistant message:
 
-- **cc arm (conformance + honor-check)** — `Agent(subagent_type: "touchstone:code-reviewer", description: "conformance, honor-check", prompt: <both lenses' injections> + the spec text + the diff)`. Conformance output, one line per AC and per invariant: `<AC-n|INV-n> | covered <test/artifact ref> | unverified <reason or proxy> | violated <finding>`.
+- **cc arm (conformance + honor-check)** — `Agent(subagent_type: "touchstone:code-reviewer", description: "conformance, honor-check", prompt: <both lenses' injections> + the spec text + the diff)`. Conformance output, one line per AC and per invariant: `<AC-n|INV-n> | covered <test/artifact ref> | unverified <reason or proxy> | violated <finding>` — the covered lines become `coverage[]` rows at merge, only unverified / violated lines become findings.
 - **quality arm** — `touchstone:codex-reviewer` when the arm is `codex`, `touchstone:code-reviewer` (a fresh context, never the conformance one) when `cc`; `description: "quality"`, envelope `{task: <full diff>, task_dir: <round dir>, role: "batch-reviewer"}`.
 
 The quality arm returns without `raw_codex.jsonl` + `last-message.txt` in the round dir → it was not Codex: record it as a `cc` arm under the liveness rule in `provenance.md`, or re-dispatch once. A quality arm that fails (`status: failed` / a `fallback_reason`) → re-dispatch the lens to the builder's own vendor, record that arm in `providers`, and set `degraded: true`, `degraded_reason: "lens quality: independence lost — arm <vendor> = builder (<original arm> failed: <reason>)"`; that also fails → no review.yaml, surface the failure, stop.
@@ -76,6 +78,7 @@ The quality arm returns without `raw_codex.jsonl` + `last-message.txt` in the ro
 
 Write `<epic-dir>/deliverable-review-<date>/review.yaml` — `gate: deliverable-review`, `target` = the governing spec file, `range` = the reviewed range, `sha` = HEAD; the schema is `review.schema.yaml` under `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/`. You (the gate session) write:
 
+- `coverage[]`: one row `{ref, status: covered, evidence}` per AC and invariant the conformance arm reported `covered` — the covered rows never enter `findings[]` (the checker rejects a conformance finding with `status: covered`).
 - `findings[]`, merged by lens: every quality finding with `file` + `line` and `refs: []`; every uncovered AC or violated / undecidable invariant as a finding on its field path (`requirements[REQ-n].acs[AC-n]`, `invariants[INV-n]`) with `refs` = the ids that path resolves to, and `status: unverified` where the conformance arm could not decide. Same `field` + same `type` across arms → one finding with `found_by` listing both; otherwise `found_by` = the one arm.
 - `providers`: per declared lens, which arms produced content; `degraded` / `degraded_reason` per Phase 1 and Phase 3.
 - `waiting_on_human`: every `W-n` item (shape: the schema) still owed by the human after this round — a complete list, so presence means still waiting.
@@ -88,8 +91,8 @@ Report:
 ```markdown
 ## Deliverable review: {range}
 **Builder:** {cc|codex}  **Quality arms:** {codex|cc|codex, cc}  **Conformance / honor-check arm:** cc
-verdict: {approve|revise|block} · C={n} H={n} M={n} L={n} · unverified ACs: {list or none}
+verdict: {approve|revise|block} · C={n} H={n} M={n} L={n} · covered: {n} · unverified ACs: {list or none}
 review.yaml: {path}
 ```
 
-The human accept that follows this report is the deliverable's one accept.
+The report is an input to phase-ship's informed accept, never an accept of its own.
