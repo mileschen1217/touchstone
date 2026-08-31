@@ -157,4 +157,4 @@ properties:
     properties:
       yes: {type: boolean}
       date: {type: date}
-      round: {type: string}
+      round: {type: string, pattern: '^R-\d+$'}

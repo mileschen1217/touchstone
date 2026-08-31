@@ -12,7 +12,8 @@
 # ledger references (basis / why_ref / consensus / rulings — an id resolves iff the ledger
 # has a line starting `- <id>` or `| <id>`, or, for a `.yaml` ledger, a structured lookup
 # across its term_sheet/alignment/extraction ids), field-path grammar on review findings and
-# quiz anchors (resolved in the target spec when --root is given), path-free phase_map,
+# quiz anchors (field paths resolve into a target spec only where resolves is target — a
+# quiz anchor gets the grammar check only), path-free phase_map,
 # degraded_reason when degraded, `pattern` on a string value, `minItems` on an array,
 # `spec_ref` resolution (below), and per-kind rules: a review finding with no locator
 # (field/file/refs all absent or empty); a review finding whose lens is conformance and
@@ -162,6 +163,8 @@ def under_root(rel, label):
 # ---- resolution target, picked by the schema's own declared `resolves` value — no
 # kind-specific branch here: self|target|phase|none
 resolves = schema.get('resolves')
+if resolves not in ('self', 'target', 'phase', 'none'):
+    print(f"(schema): resolves declaration {resolves!r} must be one of self|target|phase|none", file=sys.stderr); sys.exit(2)
 
 target_doc = None
 target_path = None

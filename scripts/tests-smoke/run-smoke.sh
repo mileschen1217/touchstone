@@ -1449,4 +1449,67 @@ else
 fi
 rm -rf "$t2c_root"
 
+# ---- phase-5 fix pass regressions ----
+# the de-named path strings must stay out of design-spec's stage-loaded files
+if grep -rn "schemas/spec.schema.yaml\|severity-tiered-stopping-rule\|live-bearing-predicate" "$scripts_dir/../skills/design-spec/" >/dev/null 2>&1; then
+  echo "FAIL: de-named path string re-appeared under skills/design-spec/"; fail=1
+else
+  echo "PASS: design-spec names no spec-schema / stopping-rule / live-bearing path"
+fi
+
+# no stage context loads the three new schemas or the spec schema
+if bash "$scripts_dir/plugin-map.sh" --root "$scripts_dir/.." 2>/dev/null | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+bad = [f for st in d.get("stages", []) for c in st.get("contexts", []) for f in c.get("files", [])
+       if f.endswith(("quiz.schema.yaml", "assay.schema.yaml", "explore.schema.yaml", "spec.schema.yaml"))]
+sys.exit(1 if bad else 0)
+'; then
+  echo "PASS: no stage context loads quiz/assay/explore/spec schema files"
+else
+  echo "FAIL: a schema file appeared in a stage context list"; fail=1
+fi
+
+# a readiness-false assay record renders its card but never a waiting/blocker row;
+# the assay card renders consensus/flip_triggers/deferred; the front-page quiz ratio is phase-scoped
+t5a_root="$(mktemp -d)"
+mkdir -p "$t5a_root/epic"
+cp -R "$fx/dossier-epic"/. "$t5a_root/epic/"
+rm -f "$t5a_root/epic/dossier.html"
+cat > "$t5a_root/epic/assay-2026-01-07-zeta.yaml" <<'YAML'
+subject: zeta probe
+date: 2026-01-07
+epics: [demo]
+term_sheet: []
+alignment: []
+extraction: []
+consensus:
+  scope: [{text: zeta scope row, trace: [T-1]}]
+  invariants: []
+  contract_facts: []
+  out_of_scope: []
+flip_triggers: [{signal: zeta flip signal, revisit: ship}]
+deferred: [zeta deferred item]
+readiness: {yes: false, date: 2026-01-07, round: R-1}
+YAML
+expect_exit "assay zeta fixture checker-valid" zero bash "$scripts_dir/check-artifact.sh" assay "$t5a_root/epic/assay-2026-01-07-zeta.yaml"
+expect_exit "dossier renders with readiness-false assay" zero bash "$scripts_dir/dossier-render.sh" "$t5a_root/epic"
+if python3 - "$t5a_root/epic/dossier.html" <<'PY'
+import re, sys
+h = open(sys.argv[1], encoding='utf-8').read()
+assert 'zeta probe' in h, 'zeta assay card missing'
+todo = ' '.join(re.findall(r'<ul class="todo check">.*?</ul>', h, re.S))
+assert 'zeta' not in todo, 'readiness-false assay leaked into a blocker/waiting row'
+assert '共識' in h and 'zeta scope row' in h, 'assay card consensus not rendered'
+assert '翻轉觸發' in h and 'zeta flip signal' in h, 'assay card flip_triggers not rendered'
+assert '擱置' in h and 'zeta deferred item' in h, 'assay card deferred not rendered'
+assert re.search(r'理解測驗.{0,300}?<span class="num">1/1</span>', h, re.S), 'front-page quiz ratio not phase-scoped (want 1/1)'
+PY
+then
+  echo "PASS: readiness-false no-blocker + assay card consensus/flip/deferred + phase-scoped quiz ratio"
+else
+  echo "FAIL: phase-5 fix-pass render assertions"; fail=1
+fi
+rm -rf "$t5a_root"
+
 exit "$fail"

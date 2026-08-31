@@ -685,6 +685,18 @@ def assay_yaml_card(rel, yd, owner):
     parts.append(id_list('term_sheet', '詞彙', 'definition'))
     parts.append(id_list('alignment', '對齊', 'leaning'))
     parts.append(id_list('extraction', '萃取', 'text'))
+    cons = yd.get('consensus') if isinstance(yd.get('consensus'), dict) else {}
+    c_rows = ''.join(
+        f'<li>{html.escape(zl)} · ' + ' ; '.join(yv(e.get('text'), owner) for e in (cons.get(k) or []) if isinstance(e, dict)) + '</li>'
+        for k, zl in (('scope', '範圍'), ('invariants', '不變式'), ('contract_facts', '契約事實'), ('out_of_scope', '範圍外')) if cons.get(k))
+    if c_rows:
+        parts.append(f'<h4>共識</h4><ul>{c_rows}</ul>')
+    ft = [f for f in (yd.get('flip_triggers') or []) if isinstance(f, dict)]
+    if ft:
+        parts.append('<h4>翻轉觸發</h4><ul>' + ''.join(f'<li>{yv(f.get("signal"), owner)} · {yv(f.get("revisit"), owner)}</li>' for f in ft) + '</ul>')
+    df = [sval(x) for x in (yd.get('deferred') or []) if sval(x)]
+    if df:
+        parts.append('<h4>擱置</h4><ul>' + ''.join(f'<li>{html.escape(x)}</li>' for x in df) + '</ul>')
     ready = yd.get('readiness') if isinstance(yd.get('readiness'), dict) else {}
     if ready:
         parts.append(f'<p class="meta">{lab("就緒")} {zpill("done" if ready.get("yes") else "pending")} {yv(ready.get("date"), owner)}</p>')
@@ -1429,7 +1441,7 @@ def front_sections(p, s):
     acs = [a for r in yd.get('requirements') or [] if isinstance(r, dict) for a in (r.get('acs') or []) if isinstance(a, dict)]
     unv = [f for f in (d.get('findings') or [] if d else []) if isinstance(f, dict) and sval(f.get('status')) == 'unverified']
     qs = quiz_state(p['num'])
-    qitems = [i for i in ((yaml_quiz or {}).get('items') or []) if isinstance(i, dict)]
+    qitems = [i for i in ((yaml_quiz or {}).get('items') or []) if isinstance(i, dict) and sval(i.get('phase')) == sval(p['num'])]
     qpass = sum(1 for i in qitems if sval(i.get('result')) == 'pass')
     v_html = (f'<p>{lab("驗收條件")} <span class="num">{len(acs)}</span> · {lab("未驗證")} <span class="num">{len(unv)}</span>'
               + (f' · {lab("最新交付審查")} {zh(d.get("verdict"))} <a href="{attr(rel)}" title="{attr(rel)}">{lab("紀錄")}</a>' if d else f' · {zpill("pending")}')
