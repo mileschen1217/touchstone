@@ -1175,6 +1175,13 @@ if grep -qE 'expected_refs|answer_refs|ref-set' "$scripts_dir/dossier-render.sh"
 else
   echo "PASS: dossier AC-18 — no expected_refs/answer_refs/ref-set left in dossier-render.sh"
 fi
+# a quiz item's refs render as jump links (the owner must be able to reach the fields the
+# answer resolves to from the page — gate-miss 2026-08-31: inert anchor, refs unrendered)
+if grep -qE '對回</span> <a class="code" data-jump="[^"]*AC-1"' "$t2q_out"; then
+  echo "PASS: dossier quiz — refs render as data-jump links"
+else
+  echo "FAIL: dossier quiz — refs not rendered as data-jump links"; fail=1
+fi
 rm -rf "$t2q_root"
 
 # ---- AC-22: metrics is a per-phase list — one row per phase, phases with no entry read

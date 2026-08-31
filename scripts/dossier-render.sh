@@ -1148,8 +1148,21 @@ def quiz_item_li(it, owner):
     res = quiz_result(it)
     res_pill = f' {zpill(res)}' if res != 'pending' else ''
     body = yv(it.get('answer'), owner)
-    anchor = f' · {lab("錨點")} <code>{html.escape(sval(it.get("anchor")))}</code>' if it.get('anchor') else ''
-    return f'<li>{yv(it.get("id"), owner)}{res_pill} · {yv(it.get("question"), owner)}<details class="fold"><summary><span class="lead">答案</span></summary><div class="fold-body">{body}{anchor}</div></details></li>'
+    refs = ' '.join(link_codes(html.escape(sval(r)), owner) for r in (it.get('refs') or []) if sval(r))
+    refs = f' · {lab("對回")} {refs}' if refs else ''
+    ap = sval(it.get('anchor'))
+    if ap:
+        tgt = None
+        for c in reversed(re.findall(r'\[([A-Z]+-\d+)\]', ap)):
+            a0, _ = resolve(c, owner)
+            if a0:
+                tgt = a0
+                break
+        inner = f'<code>{html.escape(ap)}</code>'
+        anchor = f' · {lab("錨點")} ' + (f'<a class="code" data-jump="{attr(tgt)}" tabindex="0">{inner}</a>' if tgt else inner)
+    else:
+        anchor = ''
+    return f'<li>{yv(it.get("id"), owner)}{res_pill} · {yv(it.get("question"), owner)}<details class="fold"><summary><span class="lead">答案</span></summary><div class="fold-body">{body}{refs}{anchor}</div></details></li>'
 
 def quiz_list_html(items, owner):
     return collapsed(f'<span class="lead">{lab("題目")}</span> <span class="num">{len(items)}</span>',
