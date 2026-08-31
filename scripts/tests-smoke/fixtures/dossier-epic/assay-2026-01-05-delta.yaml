@@ -1,0 +1,26 @@
+subject: delta
+date: 2026-01-05
+epics: [fixture]
+term_sheet:
+  - {id: T-1, term: flag, definition: the short form, source: doc-grounded}
+alignment:
+  - id: A-2
+    tags: [scope]
+    leaning: agree
+    planned_handling: adopt
+    rulings:
+      - {date: 2026-01-05, stage: build, text: "confirmed during build"}
+extraction:
+  - id: Q-2
+    text: "does delta reuse the flag parser?"
+    rulings:
+      - {date: 2026-01-05, stage: deliverable-review, text: "yes, reuse confirmed"}
+consensus:
+  scope:
+    - {text: "delta reuses the flag parser", trace: [Q-2]}
+  invariants: []
+  contract_facts: []
+  out_of_scope: []
+flip_triggers: []
+deferred: []
+readiness: {yes: true, date: 2026-01-05, round: R-1}

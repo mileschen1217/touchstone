@@ -3,8 +3,8 @@ name: design-spec
 kind: workflow
 description: |
   Generate the contract (spec.yaml) — the one contract shape both of crucible's forms,
-  full and short, produce. Writes fields per skills/_shared/schemas/spec.schema.yaml
-  into the epic's directory from an assay record's consensus. Invoked by crucible after
+  full and short, produce. Writes fields per the spec schema (validated by
+  check-artifact.sh) into the epic's directory from an assay record's consensus. Invoked by crucible after
   assay, or directly for a spec revision. Skip when no assay record exists yet
   (crucible first) or the work is a one-shot edit outside the workflow. Paths come
   from the config-resolver (`/touchstone:init` writes them once per project).
@@ -31,8 +31,8 @@ forms produce this same `spec.yaml`, so this skill runs for every contract.
 **Load vocabulary** — follow
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`, then load
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/bridge-content-gate.md`. The field set
-and every enum: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/spec.schema.yaml`; the
-skeleton to fill: `template.yaml` beside this file.
+and every enum live in the spec schema — `check-artifact.sh` is the validation
+authority; the skeleton to fill: `template.yaml` beside this file.
 
 ## Draft Mode
 
@@ -103,9 +103,11 @@ saturation). Absent or stale → discover at full width (the sweep-to-saturation
 stays). Under-determined → discover AND record the under-determination in
 `waiting_on_human[]`.
 
-- **Reach axis** — baseline = the Consensus Scope seam-map (*seam-map* /
-  *reach-under-determined*: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md`);
-  what is verified = the party set.
+- **Reach axis** — baseline = the Consensus Scope seam-map, carried on disk by the
+  epic's `explore-<date>-<subject>.yaml` where crucible's explore wrote one
+  (*seam-map* / *reach-under-determined*:
+  `${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md`); what is verified = the
+  party set.
 - **Breadth axis** — baseline = the Consensus case-partition (*case-partition* /
   *partition-under-determined* / the staleness test:
   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/breadth-discovery.md`); the claim binds only when
@@ -137,9 +139,8 @@ audit: no demote-to-invariant candidates."
   `user_stories` are the only human-read prose — prose beyond them is cut.
 - Terminal summary: spec path, `status: draft`
 - Next: crucible writes `accepted-candidate`, then `/touchstone:design-review`
-  runs the lens × arm gate before human accept; its rounds converge under
-  `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
-  — a meaning-changing edit re-enters that gate
+  runs the lens × arm gate before human accept; its rounds converge under the
+  gate's own stopping rule — a meaning-changing edit re-enters that gate
 - Usage: `/touchstone:design-spec` (interactive) or
   `/touchstone:design-spec <feature-name>` (skip name prompt)
 

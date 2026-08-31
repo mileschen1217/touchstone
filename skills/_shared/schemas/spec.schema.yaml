@@ -19,6 +19,7 @@
 # — required [id, kind, owner, title]. `refs` (here and everywhere else it appears) is a
 # refs-list: an array of strings, each matching the id grammar and resolved per spec_ref.
 kind: spec
+resolves: self
 type: object
 additionalProperties: false
 required: [id, title, epic, phase, status, date, facts_source, foundation, phase_map, touch_set, delta, user_stories, requirements, invariants, non_goals, risks, waiting_on_human]

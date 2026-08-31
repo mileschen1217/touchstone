@@ -1,0 +1,10 @@
+waived: false
+items:
+  - id: QZ-1
+    phase: 1
+    kind: manual
+    question: q
+    refs: [AC-1]
+    anchor: requirements[REQ-1].acs[AC-1]
+    expected_refs: [AC-1]
+    answer_refs: [AC-1]

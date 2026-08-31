@@ -9,6 +9,7 @@
 # unverified or violated rows for that lens — a conformance finding carrying status:
 # covered is rejected (check-artifact.sh).
 kind: review
+resolves: target
 type: object
 additionalProperties: false
 required: [gate, target, sha, round, providers, degraded, verdict, counts, findings, rulings, waiting_on_human]

@@ -32,14 +32,12 @@ Default = **short**. Escalate to **full** iff any of the three triggers holds:
 3. the intent is problem-finding (audit, heavy refactor).
 
 Otherwise short. Breadth alone never escalates: a fixed-invariant sweep is
-short however many files it touches. Worked examples — the branch a reader is
-in is decidable from these alone:
+short however many files it touches. Anchor examples — the branch a reader is
+in is decidable from the triggers alone:
 
 | intent | trigger | form |
 |---|---|---|
 | add a field to a schema another skill reads | 1 — party-facing schema change | full |
-| two viable ways to route a gate's output, neither ruled out | 2 — open structural fork | full |
-| "audit the checker rail for false greens" | 3 — problem-finding | full |
 | tighten one skill's prose; no interface, no fork, intent stated | none | short |
 
 Both forms produce the same `spec.yaml` (one schema) and pass the same
@@ -57,8 +55,9 @@ design-review gate; the form sets how much of assay and of the gate runs:
    contract; they never author it. When the intent changes a cross-boundary
    artifact (>1 party must agree on it), apply
    `${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md` as the method to
-   sweep the artifact's reach and produce a saturated seam-map here at explore,
-   for the interview to confirm into Consensus Scope.
+   sweep the artifact's reach and write the saturated seam-map here at explore
+   into the epic dir as `explore-<date>-<subject>.yaml`, for the interview to
+   confirm into Consensus Scope.
 2. **`touchstone:assay`** — the unconditional interview, in the form chosen
    above. **Progression gate: do not advance until the assay record's
    readiness ruling — the explicit human yes — exists.** A structural fork it

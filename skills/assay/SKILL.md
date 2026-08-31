@@ -16,7 +16,7 @@ user-invocable: true
 
 # /touchstone:assay — Pre-Contract Interview Instrument
 
-One fused interview session aligning human and AI across three arms — vocabulary, map, territory (each below). Terminal deliverable: the durable record's `## Consensus` section, every entry traced to a row the human confirmed in-session.
+One fused interview session aligning human and AI across three arms — vocabulary, map, territory (each below). Terminal deliverable: the durable record's `consensus` key, every entry traced to a row the human confirmed in-session.
 
 **Live user required.** In a non-interactive context (CI, a loop, a scheduled run), do NOT guess-fill an answer: flag a blocker naming assay, and stop.
 
@@ -38,12 +38,8 @@ A compact form for the **Index + top stratum** rule — the per-arm axis labels 
 ```
 Map [load-bearing? | probe-cost] —
 - A-1 [yes|cheap]  auth tokens verified server-side, never trusted from client ★
-- A-2 [yes|med]    the new endpoint reuses the existing pagination contract
-- A-3 [no|cheap]   error-copy wording
 Bold [disposition | blast] —
 - B-1 [reject|high]  replace the ORM with raw SQL across the module
-- B-2 [open|low]     extract the shared validator into its own unit ★
-- B-3 no suppressed structural moves
 ```
 
 `★` marks an AI-recommended discussion entry point (per the Index rule above). The `Bold` block carries its own header key — its axes are disposition + blast radius, not the map's.
@@ -92,7 +88,9 @@ term is homed in `reach-discovery.md`) — one that crosses an actor/module boun
 that **>1 party** must agree on it, decided by party-count rather than by file type —
 the AI SHALL produce a **saturated seam-map** via
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md` and carry it into Consensus
-Scope. When the intent changes only single-party artifacts (an
+Scope — when crucible's explore phase already wrote the epic's
+`explore-<date>-<subject>.yaml`, confirm its seam-map instead of re-sweeping; absent
+one, produce it here. When the intent changes only single-party artifacts (an
 ordinary one-consumer file edit), no seam-map is required — the negative branch is
 reachable and stays cheap.
 
@@ -118,11 +116,11 @@ A known unknown enters from three sources — laydown residuals (rows neither co
 
 After the table converges (no open contradiction, every unknown dispositioned) and BEFORE the consequence probes, render the `## Consensus` section as a pre-yes end-turn message: four subsections — Scope / Invariants / Contract facts / Out-of-scope — every entry traced to its stable ids (`[trace: <ids>]`).
 
-- Reuse the Presentation rules above; the depth-tier axis here is the entry's load-bearing STATUS — Scope / Invariants / Contract-facts entries get full text, Out-of-scope entries get one line. The render covers exactly the four subsections, never the record's `## Deferred log`.
+- Reuse the Presentation rules above; the depth-tier axis here is the entry's load-bearing STATUS — Scope / Invariants / Contract-facts entries get full text, Out-of-scope entries get one line. The render covers exactly the four subsections, never the record's `deferred[]` key.
 - **Seam-map in Scope (triggered intent).** When the intent changed a cross-boundary artifact, the Scope carries its saturated seam-map as `artifact → {party: file:line}` entries, each ending with a `[trace:]` to its confirmed row. A **zero-party** result — the sweep found no other party — is NOT dropped: it lands as an explicit `no other parties (swept via <channels>)` Scope entry (a valid zero-party plateau), so a mis-fired trigger (an artifact that was not actually cross-boundary) stays visible for review.
 - **Case-partition in Scope (opportunistic).** Scope MAY carry, for a rule whose case list the interview confirmed, one entry of the fixed shape `rule <content-phrase> → cases [...] (technique) [trace: ids]` — shape and terms homed in `${CLAUDE_PLUGIN_ROOT}/skills/_shared/breadth-discovery.md`. A list confirmed with no technique named still lands, marked `(partition-under-determined)`: the human's ruling is preserved instead of discarded, and no consumer may treat the marked entry as a valid baseline. Where the interview confirmed no such list there is no entry and no placeholder — that absence is the ordinary case rather than a gap, and nothing further is asked of the human on account of it.
 - **A carried baseline is human-confirmed.** The plateau-declared seam-map, and any case-partition entry beside it, becomes a verify-against baseline for any downstream stage ONLY after the human confirms it at the readiness yes (the standard Consensus yes covers both). That human yes — not the sweep or the enumeration on its own — is the ratchet.
-- **Render before persist.** The record's `## Consensus` section is written only at or after the yes; while not yet persisted, keep the render's digest tier inline rather than collapsing to a record-file pointer.
+- **Render before persist.** The record's `consensus` key is written only at or after the yes; while not yet persisted, keep the render's digest tier inline rather than collapsing to a record-file pointer.
 - **Re-render on a correction** (a falsified probe, or a correction at the readiness ask): re-converge and re-render on the corrected state — the eventual yes never lands on a stale render.
 
 ## Consequence probes — alignment made falsifiable
@@ -137,16 +135,31 @@ Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all
 
 ## Durable record — the terminal deliverable
 
-Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.md` — frontmatter `subject:` (one line; the contract author maps intention from it), `date:`, `epics:`. One record per subject; a re-run APPENDs a new dated section, never overwrites. Sections stay at digest density: one line per resolved row, full text only for rows still open and load-bearing — the record is a handoff surface, not a transcript. Sections, order fixed — consumers key on these names:
+Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.yaml` — top-level `subject:`
+(one line; the contract author maps intention from it), `date:`, `epics:`. One record
+per subject; a re-run APPENDs new dated entries, never overwrites. Entries stay at
+digest density: one line per resolved row, full text only for rows still open and
+load-bearing — the record is a handoff surface, not a transcript. Structured keys,
+id families and order fixed — consumers key on these names:
 
-- `## Term sheet` — rows `T-n`
-- `## Alignment table` — rows `A-n`: dual tags + leaning + planned handling; bold-pass rows marked
-- `## Extraction Q&A` — rulings `Q-n`; predict / probe rounds `R-n` (dated)
-- `## Consensus` — four subsections: Scope / Invariants / Contract facts / Out-of-scope; every entry ends with `[trace: <stable-ids>]` (comma-separated) — stable ids only. A triggered cross-boundary-artifact intent's Scope carries the seam-map as `artifact → {party: file:line}` entries (a zero-party plateau rendered explicitly); a confirmed case-partition rides that same Scope in its own fixed shape (`breadth-discovery.md`)
-- `## Flip-trigger registry` — observable signal + revisit point per row
-- `## Deferred log` — the non-load-bearing unknown stubs
-- `## Readiness ruling` — explicit yes + date + the clean round's `R-n`
-- (deviations found downstream are `D-n` entries in the epic's `deviation.yaml`, never a section here)
+- `term_sheet[]` — rows `T-n`
+- `alignment[]` — rows `A-n`/`B-n`: dual tags + leaning + planned handling; bold-pass rows marked
+- `extraction[]` — rulings `Q-n`; predict / probe rounds `R-n` (dated)
+- both `alignment[]` and `extraction[]` items carry `rulings: [{date, stage, text}]` —
+  the design-review write-back target
+- `consensus` — four subsections `scope[] / invariants[] / contract_facts[] /
+  out_of_scope[]`; every entry carries `trace: [<stable-ids>]` — stable ids only. A
+  triggered cross-boundary-artifact intent's `scope[]` carries the seam-map as
+  `artifact → {party: file:line}` entries (a zero-party plateau rendered explicitly);
+  a confirmed case-partition rides that same `scope[]` in its own fixed shape
+  (`breadth-discovery.md`)
+- `flip_triggers[]` — observable signal + revisit point per row
+- `deferred[]` — the non-load-bearing unknown stubs
+- `readiness` — explicit yes + date + the clean round's `R-n`
+- (deviations found downstream are `D-n` entries in the epic's `deviation.yaml`, never a key here)
+
+**Existing `.md` records stay frozen read-only until epic archive** — every record
+authored from this change forward is `.yaml`; no new `.md` record is written.
 
 **The consensus section IS the handoff** — an implementation of the confirmed-facts source contract (`skills/_shared/inject/confirmed-facts-source.md`). The contract author derives Scope and Invariants facts from Consensus rows and itself authors the seam / AC layer — assay emits no contract-material packaging beyond the consensus section. Every disposition names its file (and line or anchor where applicable) so a later session executes it without re-derivation.
 
@@ -161,6 +174,6 @@ Crucible selects the form (its three escalation triggers); when the form is shor
 3. **Extraction** — at most three questions, each load-bearing and not answerable from the repo; for every other row write your leaning and let the human flip it in the same turn. No predict round, no separate probe round.
 4. **Consensus entries** carry the shape `decision · evidence (ledger row) · wrong-if (the observable that says the decision was wrong)` — the wrong-if is the probe, folded into the entry instead of a round of its own.
 5. **One explicit yes** on the consensus render is the readiness ruling; the record cites it with the date and a single `R-n`.
-6. **Record** — the same seven sections in the same order; a section the short form did not run reads `short form: not run`.
+6. **Record** — the same seven keys in the same order; a key the short form did not run reads `short form: not run`.
 
 The wrong-if signals are what phase-ship's deviation count later tests: a short-form phase logging more deviations than the flip-trigger registry tolerates is the sign the form cut too deep.

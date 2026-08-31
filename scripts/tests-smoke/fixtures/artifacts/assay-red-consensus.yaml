@@ -1,0 +1,13 @@
+subject: fixture assay session
+date: 2026-01-01
+epics: [fixture]
+term_sheet: []
+alignment: []
+extraction: []
+consensus:
+  scope: []
+  invariants: []
+  contract_facts: []
+flip_triggers: []
+deferred: []
+readiness: {yes: true, date: 2026-01-01, round: R-1}

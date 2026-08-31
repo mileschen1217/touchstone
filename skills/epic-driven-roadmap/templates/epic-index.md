@@ -1,6 +1,6 @@
 ---
 slug: <slug>
-status: proposed            # proposed | active | done
+status: proposed            # proposed | active | paused | done | cancelled
 started:                    # YYYY-MM-DD when work begins
 landed:                     # set on close
 ---

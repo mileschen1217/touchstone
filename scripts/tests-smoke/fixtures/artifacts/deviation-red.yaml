@@ -8,12 +8,4 @@ entries:
     catcher: builder
     disposition: {title: added short flag, detail: "added -f"}
     refs: [AC-1]
-quiz:
-  waived: false
-  items:
-    - id: QZ-1
-      phase: 1
-      question: what changed?
-      refs: [AC-1]
-      anchor: requirements[REQ-1].acs[AC-1]
 waiting_on_human: []

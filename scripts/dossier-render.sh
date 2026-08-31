@@ -241,8 +241,16 @@ def sanitize_html(fragment):
     return ''.join(s.out)
 
 # ---------- inventory ----------
+def excluded_dir(name):
+    """Build scratch / discovery / archived-live directories are process scaffolding, not
+    reader content — excluded from the walk itself so every consumer of `files` (phases,
+    spec_files, defs, ...) inherits the exclusion, not just the metrics phase set."""
+    n = name.lower()
+    return n == 'live' or n.startswith('build-') or n.startswith('discovery-')
+
 files = []
 for dp, dns, fns in os.walk(epic_dir):
+    dns[:] = [d for d in dns if not excluded_dir(d)]
     dns.sort()
     for fn in sorted(fns):
         rel = os.path.relpath(os.path.join(dp, fn), epic_dir)
@@ -285,7 +293,8 @@ for title, text in sections(index_body):
             m = re.search(r'\]\(([^)]+)\)', cells[2])
             phase_rows.append({'num': cells[0], 'title': cells[1], 'spec': m.group(1) if m else ''})
 
-spec_files = [f for f in files if is_spec(f) and (f.endswith('.md') or f.endswith('.spec.yaml'))]
+spec_files = [f for f in files if is_spec(f) and (f.endswith('.md') or f.endswith('.spec.yaml')
+              or (os.path.basename(f).startswith('assay-') and f.endswith('.yaml')))]
 def is_yaml_spec(rel): return rel.endswith('.spec.yaml')
 phases = []  # [{'key','title','spec','slug','date'}]
 seen = set()
@@ -335,6 +344,9 @@ def stage_of(rel):
         return '契約'
     if base == 'structure-overlay.html':
         return 'overlay'  # linked from the Ship tab's structure overlay section
+    if base == 'quiz.yaml' and not in_record_dir(rel):
+        return 'Build'  # exact basename first — read structurally, never as a generic file card,
+                         # so the substring heuristic below never claims it
     if 'explainer' in base or 'quiz' in base or 'buyin' in base:
         return 'Ship'
     if base == 'review.yaml' and in_record_dir(rel):
@@ -360,6 +372,12 @@ for rel in files:
             m = LEDGER_RE.match(line)
             if m and m.group(1) not in defs:
                 add_def(m.group(1), 'ledger', f'ledger--{m.group(1)}')
+    elif os.path.basename(rel).startswith('assay-') and rel.endswith('.yaml'):
+        ayd = load_yaml(os.path.join(epic_dir, rel)) or {}
+        for coll in ('term_sheet', 'alignment', 'extraction'):
+            for it in ayd.get(coll) or []:
+                if isinstance(it, dict) and isinstance(it.get('id'), str) and it['id'] not in defs:
+                    add_def(it['id'], 'ledger', f"ledger--{it['id']}")
 for sp in spec_files:
     stem = stem_of(sp)
     if is_yaml_spec(sp):
@@ -573,24 +591,6 @@ def article(title, rel, inner, anchor=''):
 # ---------- extraction (every visible sentence is taken from a source file) ----------
 LONG_FILE = 60  # lines; longer files collapse behind a summary line
 
-def first_para(body):
-    """First non-heading, non-list, non-fence paragraph (≤ 220 chars)."""
-    fence = False; buf = []
-    for line in body.splitlines():
-        if line.startswith('```'):
-            fence = not fence; continue
-        if fence: continue
-        s = line.strip()
-        if not s:
-            if buf: break
-            continue
-        if s.startswith(('#', '|', '- ', '* ', '>', '---')):
-            if buf: break
-            continue
-        buf.append(s)
-    t = ' '.join(buf)
-    return t if len(t) <= 220 else t[:217].rsplit(' ', 1)[0] + '…'
-
 def bullets(text):
     """Top-level `- ` items of a markdown fragment (fence-aware), raw text."""
     out, fence = [], False
@@ -667,9 +667,50 @@ def file_card(rel, title, fm, body, owner, define=False, force_open=False, ledge
     file_span = f'{fspan(rel)} · {n} lines'
     head = f'<h3 class="file-title">{html.escape(title)}</h3>{meta_line(fm, file_span)}'
     if n > LONG_FILE and not force_open:
-        summ = '<span class="lead">' + inline(first_para(body), owner) + '</span> <span class="muted">(full text)</span>'
+        summ = f'<span class="lead">{lab("全文")}</span> <span class="num">{n}</span> <span class="muted">{lab("行")}</span>'
         return f'<article>{head}{collapsed(summ, rendered)}</article>'
     return f'<article>{head}{rendered}</article>'
+
+def assay_yaml_card(rel, yd, owner):
+    """The structured assay record — per-ledger-id anchors equivalent to the legacy
+    .md card's (`ledger--<id>`); the 建置帳 stage fold reads ledger_stage_lines, which
+    already carries this record's rulings[] (collected above alongside the legacy form)."""
+    parts = [f'<h3 class="file-title">{html.escape(sval(yd.get("subject")) or rel)}</h3>',
+             meta_line({'date': sval(yd.get('date'))}, fspan(rel))]
+    def id_list(coll_key, label, text_key):
+        items = [it for it in (yd.get(coll_key) or []) if isinstance(it, dict)]
+        if not items: return ''
+        rows = ''.join(f'<li id="{attr("ledger--" + sval(it.get("id")))}">{inline(sval(it.get("id")), owner, sval(it.get("id")))} · {yv(it.get(text_key), owner)}</li>' for it in items)
+        return f'<h4>{html.escape(label)}</h4><ul>{rows}</ul>'
+    parts.append(id_list('term_sheet', '詞彙', 'definition'))
+    parts.append(id_list('alignment', '對齊', 'leaning'))
+    parts.append(id_list('extraction', '萃取', 'text'))
+    ready = yd.get('readiness') if isinstance(yd.get('readiness'), dict) else {}
+    if ready:
+        parts.append(f'<p class="meta">{lab("就緒")} {zpill("done" if ready.get("yes") else "pending")} {yv(ready.get("date"), owner)}</p>')
+    return f'<article>{"".join(parts)}</article>'
+
+def explore_yaml_card(rel, yd, owner):
+    """The exploration deliverable card — seam-map + channels + plateau, rendered into
+    the 契約 group; every field here has a named consumer in explore.schema.yaml's header."""
+    parts = [f'<h3 class="file-title">{html.escape(sval(yd.get("subject")) or rel)}</h3>',
+             meta_line({'date': sval(yd.get('date'))}, fspan(rel))]
+    if yd.get('intent'):
+        parts.append(f'<p>{yv(yd.get("intent"), owner)}</p>')
+    sm = [s for s in (yd.get('seam_maps') or []) if isinstance(s, dict)]
+    if sm:
+        rows = ''
+        for s in sm:
+            parties = ' · '.join(f'{html.escape(sval(pt.get("party")))} <span class="file">{html.escape(sval(pt.get("ref")))}</span>' for pt in s.get('parties') or [] if isinstance(pt, dict))
+            rows += f'<tr><td>{yv(s.get("artifact"), owner)}</td><td>{parties}</td></tr>'
+        parts.append(f'<h4>seam-map</h4><div class="tbl"><table><tr><th>artifact</th><th>parties</th></tr>{rows}</table></div>')
+    ch = [c for c in (yd.get('channels') or []) if isinstance(c, dict)]
+    if ch:
+        parts.append(f'<p class="meta">{lab("channels")} ' + ' · '.join(f'{html.escape(sval(c.get("name")))} +{sval(c.get("new_parties"))}' for c in ch) + '</p>')
+    pl = yd.get('plateau')
+    tail = f' · {yv(yd.get("reach_under_determined"), owner)}' if yd.get('reach_under_determined') else ''
+    parts.append(f'<p>{lab("plateau")} {zpill("true" if pl else "false")}{tail}</p>')
+    return f'<article>{"".join(parts)}</article>'
 
 # ---------- per-source parsing ----------
 index_sections = {h: t for h, t in sections(index_body)}
@@ -722,9 +763,15 @@ for rel in files:
 yaml_dev = None   # deviation.yaml of the epic dir (phase-1 form: one per epic dir)
 for rel in files:
     if os.path.basename(rel) == 'deviation.yaml' and not in_record_dir(rel):
-        yaml_dev = load_yaml(os.path.join(epic_dir, rel)) or {'entries': [], 'quiz': {}, 'waiting_on_human': []}
+        yaml_dev = load_yaml(os.path.join(epic_dir, rel)) or {'entries': [], 'waiting_on_human': []}
         for e in yaml_dev.get('entries') or []:
             if isinstance(e, dict) and e.get('id'): yaml_dev_defs[str(e['id'])] = f"deviation--{e['id']}"
+        break
+
+yaml_quiz = None  # quiz.yaml of the epic dir — the quiz reader's only source (INV-2: no dual reader)
+for rel in files:
+    if os.path.basename(rel) == 'quiz.yaml' and not in_record_dir(rel):
+        yaml_quiz = load_yaml(os.path.join(epic_dir, rel)) or {'waived': False, 'items': []}
         break
 reviews = []   # [(rel, dict)] every review.yaml, sorted by path
 for rel in files:
@@ -817,7 +864,8 @@ def yaml_contract_card(p, s):
                 fcell = (f'<span class="num">{len(fnd)}</span> ' + ' '.join(
                     f'<a class="code" data-jump="{attr("finding--" + sval(f.get("id")))}" tabindex="0">{html.escape(sval(f.get("id")))}</a>'
                     for _, f in fnd)) if fnd else ''
-                rows += f'<tr id="{attr(k + "--" + aid)}" class="ac"><td class="num">{html.escape(aid)} {lb}</td><td>{lab("給定")} {yv(a.get("given"), k)} · {lab("當")} {yv(a.get("when"), k)} · {lab("則")} {yv(a.get("then"), k)}</td><td>{fcell}</td><td class="num">{ab}</td></tr>'
+                gwt = f'<ul class="gwt"><li>{lab("給定")} {yv(a.get("given"), k)}</li><li>{lab("當")} {yv(a.get("when"), k)}</li><li>{lab("則")} {yv(a.get("then"), k)}</li></ul>'
+                rows += f'<tr id="{attr(k + "--" + aid)}" class="ac"><td class="num">{html.escape(aid)} {lb}</td><td>{gwt}</td><td>{fcell}</td><td class="num">{ab}</td></tr>'
         agent.append(f'<h4>{html.escape("需求")}</h4><div class="tbl"><table><tr><th>id</th><th>應 / 給定 · 當 · 則</th><th>驗收條件</th><th>依據</th></tr>{rows}</table></div>')
     if yd.get('invariants'):
         agent.append(f'<h4>{html.escape("不變式")}</h4>' + yaml_table([[i.get('id'), i.get('rule'), i.get('check'), i.get('why_ref')] for i in yd['invariants'] if isinstance(i, dict)], ['id', '規則', '檢查', '依據'], k, 0, k))
@@ -1177,15 +1225,15 @@ def quiz_list_html(items, owner):
 
 def quiz_html(p):
     """The current phase's own quiz (front page): items/entries filtered to p['num'] —
-    an item's `phase` field decides, never which file it lives in."""
+    an item's `phase` field decides, never which file it lives in. Items come from
+    quiz.yaml only (INV-2); the zero-delta waiver still reads deviation.yaml's entries."""
     k = p['key']
-    if yaml_dev is None:
-        return '<p class="placeholder">尚無 deviation.yaml</p>'
-    q = yaml_dev.get('quiz') if isinstance(yaml_dev.get('quiz'), dict) else {}
-    entries = [e for e in (yaml_dev.get('entries') or []) if isinstance(e, dict) and sval(e.get('phase')) == p['num']]
-    if not entries or q.get('waived') is True:
+    if yaml_quiz is None:
+        return '<p class="placeholder">尚無 quiz.yaml</p>'
+    entries = [e for e in ((yaml_dev or {}).get('entries') or []) if isinstance(e, dict) and sval(e.get('phase')) == p['num']]
+    if not entries or yaml_quiz.get('waived') is True:
         return f'<p class="waiver">{lab("理解測驗免作")} · {lab("零偏離：本 phase 沒有 D-n")}</p>'
-    items = [i for i in (q.get('items') or []) if isinstance(i, dict) and sval(i.get('phase')) == p['num']]
+    items = [i for i in (yaml_quiz.get('items') or []) if isinstance(i, dict) and sval(i.get('phase')) == p['num']]
     if not items:
         return '<p class="placeholder">理解測驗尚未出題</p>'
     return f'<div id="{attr(k + "--quiz")}">' + quiz_list_html(items, k) + '</div>'
@@ -1274,12 +1322,12 @@ def open_blockers(p):
     return sorted(out, key=lambda x: (SEV_ORDER.get(sval(x[1].get('severity')), 9), sval(x[1].get('id'))))
 def quiz_state(phase_num=None):
     """Overall pass/fail/pending for one phase's quiz — items are scoped by their own
-    `phase` field (phase_num=None = every item, for callers with no single phase in view)."""
-    if not yaml_dev: return 'pending'
-    q = yaml_dev.get('quiz') if isinstance(yaml_dev.get('quiz'), dict) else {}
-    entries = [e for e in (yaml_dev.get('entries') or []) if isinstance(e, dict) and (phase_num is None or sval(e.get('phase')) == phase_num)]
-    if not entries or q.get('waived') is True: return 'n/a'
-    items = [i for i in (q.get('items') or []) if isinstance(i, dict) and (phase_num is None or sval(i.get('phase')) == phase_num)]
+    `phase` field (phase_num=None = every item, for callers with no single phase in view).
+    Items come from quiz.yaml only (INV-2); the zero-delta waiver still reads deviation.yaml."""
+    if yaml_quiz is None: return 'pending'
+    entries = [e for e in ((yaml_dev or {}).get('entries') or []) if isinstance(e, dict) and (phase_num is None or sval(e.get('phase')) == phase_num)]
+    if not entries or yaml_quiz.get('waived') is True: return 'n/a'
+    items = [i for i in (yaml_quiz.get('items') or []) if isinstance(i, dict) and (phase_num is None or sval(i.get('phase')) == phase_num)]
     if not items: return 'pending'
     res = [quiz_result(i) for i in items]
     if any(r in ('miss', 'unanswered') for r in res): return 'fail'
@@ -1305,7 +1353,7 @@ def gate_rows(p):
         st = 'pass' if v == 'approve' else gate_state_after_rulings(d)
         rows.append((gate, st, d, rel, ''))
     rows.append(('tests', 'n/a', None, None, ''))
-    rows.append(('quiz', quiz_state(p['num']), None, 'deviation.yaml' if yaml_dev else None, ''))
+    rows.append(('quiz', quiz_state(p['num']), None, 'quiz.yaml' if yaml_quiz else None, ''))
     rows.append(('ship-gate', 'n/a', None, None, ''))
     rows = sorted(rows, key=lambda r: {'fail': 0, 'pending': 1, 'pass': 2, 'n/a': 3}[r[1]])
     for gate in extra_gates(p):
@@ -1381,8 +1429,7 @@ def front_sections(p, s):
     acs = [a for r in yd.get('requirements') or [] if isinstance(r, dict) for a in (r.get('acs') or []) if isinstance(a, dict)]
     unv = [f for f in (d.get('findings') or [] if d else []) if isinstance(f, dict) and sval(f.get('status')) == 'unverified']
     qs = quiz_state(p['num'])
-    q = (yaml_dev or {}).get('quiz') if yaml_dev else {}
-    qitems = [i for i in ((q.get('items') or []) if isinstance(q, dict) else []) if isinstance(i, dict)]
+    qitems = [i for i in ((yaml_quiz or {}).get('items') or []) if isinstance(i, dict)]
     qpass = sum(1 for i in qitems if sval(i.get('result')) == 'pass')
     v_html = (f'<p>{lab("驗收條件")} <span class="num">{len(acs)}</span> · {lab("未驗證")} <span class="num">{len(unv)}</span>'
               + (f' · {lab("最新交付審查")} {zh(d.get("verdict"))} <a href="{attr(rel)}" title="{attr(rel)}">{lab("紀錄")}</a>' if d else f' · {zpill("pending")}')
@@ -1433,6 +1480,19 @@ for rel in files:
         for line in read(os.path.join(epic_dir, rel)).splitlines():
             m = LEDGER_STAGE_RE.match(line)
             if m: ledger_stage_lines.append((m.group(1), m.group(3).strip(), line[2:].strip()))
+    elif os.path.basename(rel).startswith('assay-') and rel.endswith('.yaml'):
+        # 建置帳 fold: a structured assay record's rulings[] — same (id, stage, line)
+        # shape as the legacy .md ledger-stage lines, so every existing consumer of
+        # ledger_stage_lines groups both forms together without further change.
+        ayd = load_yaml(os.path.join(epic_dir, rel)) or {}
+        for coll in ('alignment', 'extraction'):
+            for it in ayd.get(coll) or []:
+                if not isinstance(it, dict): continue
+                for rul in it.get('rulings') or []:
+                    if not isinstance(rul, dict): continue
+                    st = sval(rul.get('stage'))
+                    ledger_stage_lines.append((sval(it.get('id')), st,
+                        f"{sval(it.get('id'))} ({sval(rul.get('date'))}, stage: {st}) · {sval(rul.get('text'))}"))
 
 # 首頁
 front = []
@@ -1602,22 +1662,34 @@ for p in phases:
 # deviation entries + quiz items group by their own `phase` field, never by which file/
 # YAML-phase holds deviation.yaml — placed into the matching phase's 紀錄 group
 # (legacy markdown phases included), else the epic group.
+def phase_summary_text(phnum):
+    """A quiz.yaml phase_summaries entry for phnum — additive only; the item refs/anchors
+    it sits beside are unchanged raw-material audit anchors."""
+    if not yaml_quiz: return ''
+    for e in yaml_quiz.get('phase_summaries') or []:
+        if isinstance(e, dict) and sval(e.get('phase')) == phnum:
+            return sval(e.get('text'))
+    return ''
+
 PHASE_BY_NUM = {pp['num']: pp for pp in phases}
 dev_by_phase, quiz_by_phase = {}, {}
 if yaml_dev:
     for e in yaml_dev.get('entries') or []:
         if isinstance(e, dict): dev_by_phase.setdefault(sval(e.get('phase')), []).append(e)
-    _q = yaml_dev.get('quiz') if isinstance(yaml_dev.get('quiz'), dict) else {}
-    for it in (_q.get('items') or []):
+if yaml_quiz:
+    for it in (yaml_quiz.get('items') or []):
         if isinstance(it, dict): quiz_by_phase.setdefault(sval(it.get('phase')), []).append(it)
 for phnum in sorted(set(dev_by_phase) | set(quiz_by_phase)):
     target = PHASE_BY_NUM.get(phnum)
     key = target['key'] if target else 'epic'
     ents, qitems_p = dev_by_phase.get(phnum, []), quiz_by_phase.get(phnum, [])
-    body = ''
+    summ = phase_summary_text(phnum)
+    body = f'<p class="summary">{yv(summ, key)}</p>' if summ else ''  # site 1: top of the phase panel
     if ents:
         body += collapsed(f'<span class="lead">{lab("偏離紀錄")}</span> <span class="num">{len(ents)}</span>', '<ul>' + ''.join(dev_entry_html(e, key, anchor=False) for e in ents) + '</ul>')
     if qitems_p:
+        if summ:
+            body += f'<p class="summary">{yv(summ, key)}</p>'  # site 2: top of the phase's quiz section
         body += quiz_list_html(qitems_p, key)
     if body:
         tab['紀錄'][key].append(f'<article><h3 class="file-title">Phase {html.escape(phnum)}</h3>{body}</article>')
@@ -1626,14 +1698,23 @@ for rel in files:
     p = phase_of(rel); st = stage_of(rel); path = os.path.join(epic_dir, rel)
     if st == 'record':
         records.setdefault((p['key'], os.path.dirname(rel).split('/')[0]), []).append(rel); continue
-    if st == 'overlay' or os.path.basename(rel) == 'review.yaml' or os.path.basename(rel) == 'deviation.yaml': continue
+    if st == 'overlay' or os.path.basename(rel) == 'review.yaml' or os.path.basename(rel) == 'deviation.yaml' or os.path.basename(rel) == 'quiz.yaml': continue
+    if os.path.basename(rel).startswith('explore-') and rel.endswith('.yaml') and not in_record_dir(rel):
+        yd = load_yaml(path) or {}
+        tab['契約']['epic' if p is EPIC else p['key']].append(explore_yaml_card(rel, yd, p['key']))
+        continue
     if st == '契約' and rel not in spec_files:
         fm, body = frontmatter(read(path))
         tab['契約']['epic' if p is EPIC else p['key']].append(file_card(rel, first_h1(body) or rel, fm, body, p['key']))
         continue
     if rel in spec_files and os.path.basename(rel).startswith('assay-'):
-        fm, body = frontmatter(read(path))
-        tab['契約'][p['key'] if p is not EPIC else 'epic'].append(file_card(rel, first_h1(body) or rel, fm, body, p['key'], ledger=True))
+        owner_k = p['key'] if p is not EPIC else 'epic'
+        if rel.endswith('.yaml'):
+            yd = load_yaml(path) or {}
+            tab['契約'][owner_k].append(assay_yaml_card(rel, yd, owner_k))
+        else:
+            fm, body = frontmatter(read(path))
+            tab['契約'][owner_k].append(file_card(rel, first_h1(body) or rel, fm, body, owner_k, ledger=True))
         continue
     if rel in spec_files: continue
     if st == 'Ship':
@@ -1706,7 +1787,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Avenir Next","S
 .tabs button:hover{color:var(--ink)}.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
 .tabs button:focus-visible,.theme:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .theme{margin-left:auto;font:inherit;font-size:var(--fs-label);background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:.2rem .7rem;cursor:pointer}
-main{max-width:76ch;margin:0 auto;padding:1.25rem 1.25rem 4rem}.tab{display:none}.tab.active{display:block}
+main{max-width:min(1200px,94vw);margin:0 auto;padding:1.25rem 1.25rem 4rem}.tab{display:none}.tab.active{display:block}
 .phase{margin:1.5rem 0 2.5rem}.phase>h2{font-weight:700;font-size:var(--fs-display);margin:0 0 .25rem;display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;text-wrap:balance}
 .phase>.meta{margin:0 0 1rem}
 article{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1rem 1.25rem;margin:0 0 1rem}
@@ -1728,7 +1809,9 @@ a{color:var(--accent)}a.code,[data-jump]{color:var(--accent);cursor:pointer;text
 details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5rem}details.fold>summary{cursor:pointer;color:var(--ink);list-style:none}details.fold>summary .lead{font-weight:700;font-size:var(--fs-section)}details.fold>summary .label{font-size:inherit;color:inherit;font-weight:inherit}li>details.fold>summary,td>details.fold>summary{font-size:var(--fs-body);font-weight:700}li>details.fold>summary .lead{font-size:var(--fs-body)}details.fold>summary::before{content:"▸ ";color:var(--accent)}details.fold[open]>summary::before{content:"▾ "}.fold-body{margin-top:.75rem;font-size:var(--fs-body);line-height:1.55}.fold-body p,.fold-body li{font-size:inherit}
 .panels{display:grid;gap:.75rem}.panel{background:var(--fold);border-radius:4px;padding:.75rem 1rem}.panel h4{margin:0 0 .4rem;display:flex;gap:.5rem;align-items:baseline}.panel h4,.panel h4 abbr.enum{font-size:var(--fs-title);color:var(--ink);font-weight:700}.panel{padding:1rem 1.1rem}.panels{gap:1rem}.panel p{font-size:var(--fs-secondary)}dl.dev{margin:.35rem 0 .6rem;padding:.5rem .75rem;border-left:3px solid var(--line);display:grid;gap:.3rem}dl.dev .head{font-weight:600}dl.dev div{display:grid;grid-template-columns:8.5rem 1fr;gap:.6rem}dl.dev dt .label{font-size:var(--fs-label);color:var(--ink);text-transform:none;letter-spacing:0}dl.dev dd{margin:0;font-size:var(--fs-secondary);color:var(--muted)}ul:has(>li>dl.dev){list-style:none;padding-left:0}.delta{margin-top:.6rem}
 .notes{color:var(--muted);font-size:var(--fs-mono);border:1px dashed var(--line);padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem}
-.strip{position:sticky;top:3.1rem;z-index:1;background:var(--panel);border-bottom:1px solid var(--line);padding:.4rem 1.25rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center;font-size:var(--fs-secondary)}.strip .decision{font-weight:600}.strip .g{white-space:nowrap}.decision{font-size:var(--fs-headline);margin:.2rem 0}section.fs{margin:1.5rem 0 0;padding-top:1rem;border-top:1px solid var(--line)}section.fs:first-of-type{margin-top:0;padding-top:0;border-top:0}dl.dec{display:flex;gap:1.5rem;flex-wrap:wrap;margin:0 0 .9rem;padding-bottom:.75rem;border-bottom:1px solid var(--line)}dl.dec div{display:flex;flex-direction:column}dl.dec dt{font-size:var(--fs-label);color:var(--muted)}dl.dec dd{margin:0;font-size:var(--fs-body);font-weight:600}section.fs>h3{font-size:var(--fs-section);font-weight:700;color:var(--ink);margin:0 0 .6rem}ul.check{list-style:none;padding:0}ul.check li{margin:.4rem 0}ul.check input{margin-right:.4rem}ol.checklist{padding-left:1.3rem}.footer{font-size:var(--fs-body);font-weight:600;margin-top:.6rem}abbr.enum{text-decoration:none;border-bottom:1px dotted var(--muted)}table.gates td{vertical-align:middle}ul.findings li{margin:.5rem 0}details.inl{display:inline}details.inl>summary{display:inline;cursor:pointer;color:var(--muted);font-size:var(--fs-label)}.figure{margin:.5rem 0;overflow-x:auto}.figure svg{width:100%;height:auto;display:block;margin:0 auto}.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:var(--fs-label);color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:var(--fs-mono);color:var(--muted)}ol.quiz li{margin:0;padding:.6rem 0;border-bottom:1px solid var(--line)}ol.quiz li:last-child{border-bottom:0}ol.quiz .fold-body{font-size:var(--fs-secondary)}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
+.strip{position:sticky;top:3.1rem;z-index:1;background:var(--panel);border-bottom:1px solid var(--line);padding:.4rem 1.25rem;font-size:var(--fs-secondary)}.strip .decision{font-weight:600}.strip .g{white-space:nowrap}.decision{font-size:var(--fs-headline);margin:.2rem 0}.decision-row,.gates-row{display:flex;gap:1rem;flex-wrap:wrap;align-items:center}.gates-row{margin-top:.3rem}section.fs{margin:1.5rem 0 0;padding-top:1rem;border-top:1px solid var(--line)}section.fs:first-of-type{margin-top:0;padding-top:0;border-top:0}dl.dec{display:flex;gap:1.5rem;flex-wrap:wrap;margin:0 0 .9rem;padding-bottom:.75rem;border-bottom:1px solid var(--line)}dl.dec div{display:flex;flex-direction:column}dl.dec dt{font-size:var(--fs-label);color:var(--muted)}dl.dec dd{margin:0;font-size:var(--fs-body);font-weight:600}section.fs>h3{font-size:var(--fs-section);font-weight:700;color:var(--ink);margin:0 0 .6rem}ul.check{list-style:none;padding:0}ul.check li{margin:.4rem 0}ul.check input{margin-right:.4rem}ol.checklist{padding-left:1.3rem}.footer{font-size:var(--fs-body);font-weight:600;margin-top:.6rem}abbr.enum{text-decoration:none;border-bottom:1px dotted var(--muted)}table.gates td{vertical-align:middle}ul.findings li{margin:.5rem 0}details.inl{display:inline}details.inl>summary{display:inline;cursor:pointer;color:var(--muted);font-size:var(--fs-label)}.figure{margin:.5rem 0;overflow-x:auto}.figure svg{width:100%;height:auto;display:block;margin:0 auto}.embedded{border-left:3px solid var(--line);padding-left:1rem}.label{font-size:var(--fs-label);color:var(--muted);font-weight:600}.waiver{color:var(--warn);background:var(--warn-bg);padding:.4rem .7rem;border-radius:4px}
+.gwt{list-style:none;padding:0;margin:0}.gwt li{margin:.15rem 0}
+.summary{background:var(--fold);border-radius:4px;padding:.5rem .75rem;margin:.35rem 0 .75rem}section.ship{margin:0 0 1.25rem}tr.ac td{font-size:var(--fs-mono);color:var(--muted)}ol.quiz li{margin:0;padding:.6rem 0;border-bottom:1px solid var(--line)}ol.quiz li:last-child{border-bottom:0}ol.quiz .fold-body{font-size:var(--fs-secondary)}blockquote{margin:.5rem 0;padding-left:.9rem;border-left:3px solid var(--line);color:var(--muted)}
 [id]{scroll-margin-top:4.5rem}:target,.flash{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
 @media (prefers-reduced-motion: no-preference){details.fold>summary{transition:color .15s}}
 body{overflow-wrap:anywhere}.top>*,.strip>*,.tabs{min-width:0}.tabs{flex:1 1 auto}.top h1{flex:1 1 100%}.file,code,a.code,[data-jump]{overflow-wrap:anywhere;word-break:break-word}
@@ -1789,7 +1872,9 @@ def strip_gate(g, st, d, rel):
     return '<span class="g"><span class="gl">' + zh(g) + '</span>' + pill + tail + '</span>'
 if current:
     st, n = decision(current, specs[current['spec']])
-    strip_html = f'<div class="strip"><span class="decision"><span class="gl">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))}</span> · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段</span><span class="g"><span class="gl">狀態</span>{zpill(st)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</span>' + ''.join(strip_gate(g, s_, d_, rel_) for g, s_, d_, rel_, _ in gate_rows(current)) + '</div>'
+    decision_row = f'<div class="decision-row"><span class="decision"><span class="gl">{html.escape(sval(specs[current["spec"]]["yaml"].get("epic")))}</span> · 第 {html.escape(sval(specs[current["spec"]]["yaml"].get("phase")))}/{len(phase_table_rows) or len(phases)} 階段</span><span class="g"><span class="gl">狀態</span>{zpill(st)}{f" <span class=\"num\">{n} 項</span>" if n else ""}</span></div>'
+    gates_row = '<div class="gates-row">' + ''.join(strip_gate(g, s_, d_, rel_) for g, s_, d_, rel_, _ in gate_rows(current)) + '</div>'
+    strip_html = f'<div class="strip">{decision_row}{gates_row}</div>'
 else:
     strip_html = '<div class="strip"><span class="placeholder">尚無 YAML phase</span></div>'
 page = f"""<!doctype html>

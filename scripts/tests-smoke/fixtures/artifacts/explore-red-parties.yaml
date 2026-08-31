@@ -1,0 +1,8 @@
+subject: fixture exploration
+date: 2026-01-01
+intent: add a short flag to the parser
+seam_maps:
+  - artifact: scripts/parse.sh
+channels:
+  - {name: name-grep, new_parties: 1}
+plateau: true

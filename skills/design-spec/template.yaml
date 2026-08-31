@@ -1,5 +1,5 @@
 # spec.yaml skeleton — fill every field; the rule for each lives in
-# skills/_shared/schemas/spec.schema.yaml (check-artifact.sh validates). Keep the comments
+# the spec schema (check-artifact.sh validates). Keep the comments
 # out of the written spec. `reader: human` blocks are projected to the dossier for the owner.
 id: SPEC-<epic-slug>-p<N>
 title: <one line>
@@ -56,7 +56,7 @@ requirements:
         given: <context>
         when: <action>
         then: <observable outcome>
-        live_bearing: false  # predicate: skills/_shared/inject/live-bearing-predicate.md
+        live_bearing: false  # predicate: the live-bearing predicate (design-review's verification-honesty lens)
         # basis: [<ledger id>] when the Then carries a value the consensus does not give
 
 invariants:                  # cross-cutting rules and structural commitments no test discharges

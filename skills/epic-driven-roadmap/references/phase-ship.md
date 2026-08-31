@@ -24,8 +24,10 @@ shipping session) do the following in order:
       shape_driven = a hunk that writes or reads a field a schema of this phase changed, a
       ratchet key/unit hunk, a removed waiver; everything else = other. A consumer project
       writes no metrics entry.
-- [ ] **Comprehension quiz** — authored AFTER the structure and metrics exist, as
-      `quiz.items[]` in `deviation.yaml`: questions the owner should be able to
+- [ ] **Comprehension quiz** — authored AFTER the structure and metrics exist, into
+      the epic's `quiz.yaml`. First author `phase_summaries[]`: one entry per shipped
+      phase, in the owner's frame — a prose summary of what changed, why, and what it
+      lets the owner skip re-deriving. Then `items[]`: questions the owner should be able to
       answer from the dossier's 首頁 and 結構變化 alone (what breaks if X, why was Y
       retired, where does Z live now). One item shape: `question`, the owner's prose
       `answer` (absent until answered), `refs` — the spec ids you resolve the right answer
@@ -46,7 +48,8 @@ shipping session) do the following in order:
       no basis beside it. Either is a miss handled exactly like a quiz miss below — one
       `gate-miss.md` line, the source field fixed upstream, re-project, then hand over.
 - [ ] **Validate the phase's artifacts** — `check-artifact.sh spec` on the spec,
-      `review` on every review.yaml, `deviation` on `deviation.yaml` (all exit 0):
+      `review` on every review.yaml, `deviation` on `deviation.yaml`, `quiz` on
+      `quiz.yaml` (all exit 0):
       `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" <kind> <file> --root <epic-dir>`.
 - [ ] **Project** — the shipped hook re-rendered `dossier.html` at every artifact
       write; run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" <epic-dir>`

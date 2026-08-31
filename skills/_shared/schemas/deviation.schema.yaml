@@ -1,10 +1,8 @@
-# deviation.schema.yaml — build-time deviations (D-n), the phase quiz block, and the
-# per-phase metrics list. Keywords as in spec.schema.yaml. Waiting item shape is homed
-# in spec.schema.yaml's header.
-# A quiz item's `refs` must resolve in the phase-matched spec; `result` is required once
-# `answer` is present (checked by check-artifact.sh). `anchor` is the field path per the
-# field-path grammar. `refs` (on entries and quiz items) resolves against the `*.spec.yaml`
-# under --root whose top-level `phase` equals that entry's/item's own `phase` — see
+# deviation.schema.yaml — build-time deviations (D-n) and the per-phase metrics list. The
+# quiz block moved out to its own quiz.yaml / quiz.schema.yaml (phase 5) — this file no
+# longer accepts a `quiz` key. Keywords as in spec.schema.yaml. Waiting item shape is homed
+# in spec.schema.yaml's header. `resolves: phase` — an entry's `refs` resolves against the
+# `*.spec.yaml` under --root whose top-level `phase` equals that entry's own `phase` — see
 # spec.schema.yaml's header for the spec_ref keyword.
 # Entry fields the builder fills by judgment beside gap/disposition: `panel` = the
 # phase_map panel the gap belongs to (none when it belongs to no human panel);
@@ -15,9 +13,10 @@
 # phase-ship; check-artifact.sh rejects a duplicate phase and a measured_at that is not a
 # 40-hex sha.
 kind: deviation
+resolves: phase
 type: object
 additionalProperties: false
-required: [entries, quiz, waiting_on_human]
+required: [entries, waiting_on_human]
 properties:
   entries:
     type: array
@@ -55,32 +54,6 @@ properties:
             pattern: '^(US|REQ|AC|INV)-\d+$'
             spec_ref: true
         derived: {type: boolean}
-  quiz:
-    type: object
-    reader: human
-    required: [waived, items]
-    additionalProperties: false
-    properties:
-      waived: {type: boolean}
-      items:
-        type: array
-        items:
-          type: object
-          required: [id, phase, question, refs, anchor]
-          additionalProperties: false
-          properties:
-            id: {type: string, id: QZ}
-            phase: {type: integer}
-            question: {type: string}
-            answer: {type: string}
-            refs:
-              type: array
-              minItems: 1
-              items:
-                type: string
-                pattern: '^(US|REQ|AC|INV)-\d+$'
-            anchor: {type: string, field_path: true}
-            result: {type: string, enum: [pass, miss]}
   metrics:
     type: array
     reader: human
