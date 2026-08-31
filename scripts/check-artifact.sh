@@ -77,7 +77,7 @@ def walk(v, s, p, phase=None, parent=None):
         errors.append(f"{p}: expected {t}"); return
     if 'enum' in s and v not in s['enum']:
         # a review finding's lens=conformance + status=covered names a distinct rule (coverage
-        # rows belong in coverage[]), not the generic "not in enum" message (AC-14)
+        # rows belong in coverage[]), not the generic "not in enum" message
         if kind == 'review' and v == 'covered' and re.fullmatch(r'findings\[[^\]]+\]\.status', p) and isinstance(parent, dict) and parent.get('lens') == 'conformance':
             errors.append(f"{p}: covered rows belong in coverage[]")
         else:

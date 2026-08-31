@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# scripts/phase-metrics.sh — print one phase's metrics entry (delta.contracts[metrics-entry],
-# 2026-08-31-phase4-workflow-diet.spec.yaml REQ-7 / AC-21) on stdout as a single, two-space-
+# scripts/phase-metrics.sh — print one phase's metrics entry (the metrics-entry shape in
+# skills/_shared/schemas/deviation.schema.yaml) on stdout as a single, two-space-
 # indented YAML list item, ready to paste under deviation.yaml's `metrics:` list.
 #
 # Usage: phase-metrics.sh <epic-dir> <transcript.jsonl>... --phase N
@@ -10,10 +10,10 @@
 #             reads is bounded to (base_ts, head_ts] — a session that runs past a phase's ship
 #             commit into the next phase's work (no idle gap at the seam to detect it by) is
 #             excluded past that seam. This bound is applied generally, not just for phase 3.
-#   --churn   the one manual input (hand-classified at phase-ship, AC-23); default 0,0.
+#   --churn   the one manual input (hand-classified at phase-ship); default 0,0.
 #   exit 0 → entry printed · 1 → git/parse error (message on stderr) · 2 → usage error
 #
-# Field derivation (task-contract build-p4/T3, quoting spec AC-21's `then`):
+# Field derivation:
 #   human_turns  — main-thread (`type: user`, not isSidechain) transcript lines whose content is
 #                  not a tool_result block and is not a local-command / system-reminder-only echo
 #                  (`<local-command-caveat>`, `<command-name>`, `<command-message>`,

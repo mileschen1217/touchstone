@@ -1109,7 +1109,7 @@ def metrics_phase_set():
 def metrics_table_html():
     """One row per phase in metrics_phase_set(), from deviation.yaml's per-phase metrics
     list (metrics-entry contract); a phase with no entry reads "no metrics recorded"
-    (design decision 2, AC-22)."""
+."""
     entries = (yaml_dev or {}).get('metrics') if yaml_dev else None
     entries = entries if isinstance(entries, list) else []
     by_phase = {sval(e.get('phase')): e for e in entries if isinstance(e, dict)}
@@ -1139,7 +1139,7 @@ def metrics_table_html():
             f'<th>stage tokens</th><th>lens H</th><th>false_edges</th><th>churn</th></tr>{rows}</table></div>')
 
 def quiz_result(it):
-    """Reads `result` only (design decision 1, AC-18) — an item with no answer is unanswered."""
+    """Reads `result` only — an item with no answer is unanswered."""
     if not it.get('answer'):
         return 'unanswered'
     return sval(it.get('result')) or 'pending'
