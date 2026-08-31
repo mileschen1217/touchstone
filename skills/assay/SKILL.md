@@ -11,7 +11,7 @@ description: |
   non-interactive/CI (no live user) or unformed intent (→ superpowers:brainstorming).
   A short-form contract runs the § Short form subset.
 kind: workflow
-user-invocable: false
+user-invocable: true
 ---
 
 # /touchstone:assay — Pre-Contract Interview Instrument

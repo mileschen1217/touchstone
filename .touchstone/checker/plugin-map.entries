@@ -4,18 +4,20 @@
 # scripts/tests-smoke/run-smoke.sh is missing here, or when a listed path is not
 # on disk. A node reachable from none of these is an orphan (unless waived in
 # waivers.yaml); a node reachable only through run-smoke.sh is test-only.
-# "human slash entry" marks the four skills with user-invocable: true; every
-# other SKILL.md is reached only through a Skill call from one of those four.
+# "human slash entry" marks the six skills with user-invocable: true (four
+# orchestrator/tracker entries + assay and grounded-claims, kept invocable by
+# owner ruling 2026-08-31, deviation D-30); every other SKILL.md is reached
+# only through a Skill call from one of those.
 
 skills/anvil/SKILL.md                 # human slash entry
-skills/assay/SKILL.md
+skills/assay/SKILL.md                 # human slash entry (D-30)
 skills/code-review/SKILL.md
 skills/crucible/SKILL.md              # human slash entry
 skills/deliverable-review/SKILL.md
 skills/design-review/SKILL.md
 skills/design-spec/SKILL.md
 skills/epic-driven-roadmap/SKILL.md   # human slash entry
-skills/grounded-claims/SKILL.md
+skills/grounded-claims/SKILL.md       # human slash entry (D-30)
 skills/init/SKILL.md                  # human slash entry
 
 hooks/hooks.json
