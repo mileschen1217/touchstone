@@ -25,7 +25,7 @@ leaves a dual-home and is noted in the close report.
    answer of "none" appends nothing — the close report records `recall: none`.
 3. Run (it requires the Evidence Reckoning section of step 2):
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/skills/epic-driven-roadmap/check-close-ready.sh" .touchstone/epics/<epic-dir>/index.md
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" epic .touchstone/epics/<epic-dir>/epic.yaml --root .touchstone/epics/<epic-dir>
    ```
    Show the full output. Non-zero → fix and re-run; nothing below runs until it
    exits zero.

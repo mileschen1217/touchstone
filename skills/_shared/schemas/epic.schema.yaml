@@ -1,0 +1,79 @@
+# epic.schema.yaml — the field set of an epic's birth form (epic.yaml). Single home of the
+# epic status enum (also reused for each phase row's own status) and the shape of
+# close-time evidence. Keywords as in spec.schema.yaml.
+# `foundation.rulings` — owner-verbatim ruling sentences (e.g. a scope-fork ruling); quote
+# the owner, one sentence per entry, never paraphrase.
+# `phases[].spec` / `phases[].plan` — filenames relative to the epic's own directory; omit
+# either while that phase has no doc yet.
+# `reckoning[]` — one row per Acceptance Criterion, authored once at close by reading the
+# committed artifact the AC asserts about, never the plan or test assertion pointing at it;
+# cite fresh, specific evidence in `covered_by` (a file-and-line quote, or a live artifact's
+# provenance). Set `unverified` or `waiver` only on a row that is not `live_bearing`; a
+# live_bearing row closes on a live-artifact citation instead. `issue` names the filed debt
+# issue for an unverified or waived row.
+# `disposition` — the close-time Disposition pass: `promoted` / `retired` / `kill_on` /
+# `standing_docs` are one line each; set `none: true` when the pass found nothing to record.
+# `retrospective` and `deviation_log` are free-form display prose, not structured data.
+kind: epic
+resolves: none
+type: object
+additionalProperties: false
+required: [slug, status, aim, foundation, phases]
+properties:
+  slug: {type: string, reader: agent}
+  status: {type: string, reader: human, enum: [proposed, active, paused, done, cancelled]}
+  started: {type: date, reader: agent}
+  landed: {type: date, reader: agent}
+  aim: {type: string, reader: human}
+  foundation:
+    type: object
+    reader: human
+    required: [intention, out_of_scope]
+    additionalProperties: false
+    properties:
+      intention: {type: string}
+      out_of_scope: {type: array, items: {type: string}}
+      rulings: {type: array, items: {type: string}}
+  phases:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [n, title, status]
+      additionalProperties: false
+      properties:
+        n: {type: integer}
+        title: {type: string}
+        spec: {type: string}
+        plan: {type: string}
+        status: {type: string, enum: [proposed, active, paused, done, cancelled]}
+        landed: {type: date}
+  pivots: {type: array, reader: human, items: {type: string}}
+  open_questions: {type: array, reader: human, items: {type: string}}
+  docs: {type: array, reader: agent, items: {type: string}}
+  deviation_log: {type: array, reader: human, items: {type: string}}
+  retrospective: {type: string, reader: human}
+  reckoning:
+    type: array
+    reader: agent
+    items:
+      type: object
+      required: [ac, live_bearing]
+      additionalProperties: false
+      properties:
+        ac: {type: string, pattern: '^AC-\d+$'}
+        covered_by: {type: string}
+        unverified: {type: boolean}
+        live_bearing: {type: boolean}
+        waiver: {type: string}
+        issue: {type: string}
+  disposition:
+    type: object
+    reader: agent
+    additionalProperties: false
+    properties:
+      promoted: {type: array, items: {type: string}}
+      retired: {type: array, items: {type: string}}
+      kill_on: {type: array, items: {type: string}}
+      standing_docs: {type: array, items: {type: string}}
+      none: {type: boolean}

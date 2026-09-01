@@ -1,0 +1,21 @@
+slug: fixture-epic
+status: active
+started: 2026-01-01
+aim: Ship the fixture feature end to end.
+foundation:
+  intention: Prove the epic schema validates a realistic in-flight epic.
+  out_of_scope:
+    - A second unrelated feature.
+  rulings:
+    - "Owner: ship the flag form, not the config-file form."
+phases:
+  - {n: 1, title: Fixture phase one, spec: phase1.spec.yaml, status: done, landed: 2026-01-15}
+  - {n: 2, title: Fixture phase two, status: active}
+pivots:
+  - Switched from a config file to a CLI flag after phase 1 review.
+open_questions:
+  - Should phase 2 also cover the legacy path?
+docs:
+  - research-2026-01-01-fixture.md
+deviation_log:
+  - "2026-01-10 | phase1.spec.yaml | missed edge case | design-review | code-review | medium"

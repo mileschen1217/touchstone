@@ -1,0 +1,12 @@
+slug: fixture-epic-close
+status: active
+started: 2026-01-01
+aim: Ship the fixture feature end to end.
+foundation:
+  intention: Prove a reckoning row with no evidence, no unverified mark, and no waiver blocks.
+  out_of_scope:
+    - A second unrelated feature.
+phases:
+  - {n: 1, title: Only phase, status: active}
+reckoning:
+  - {ac: AC-1, live_bearing: false}

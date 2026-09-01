@@ -1,0 +1,12 @@
+slug: fixture-epic-close
+status: active
+started: 2026-01-01
+aim: Ship the fixture feature end to end.
+foundation:
+  intention: Prove a live-bearing row closes only via covered_by with provenance, not a proxy note.
+  out_of_scope:
+    - A second unrelated feature.
+phases:
+  - {n: 1, title: Only phase, status: active}
+reckoning:
+  - {ac: AC-1, covered_by: "see the integration test suite", live_bearing: true}

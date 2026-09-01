@@ -1,0 +1,10 @@
+slug: fixture-epic-close
+status: active
+started: 2026-01-01
+aim: Ship the fixture feature end to end.
+foundation:
+  intention: Prove phases[].n must match its linked spec's top-level phase.
+  out_of_scope:
+    - A second unrelated feature.
+phases:
+  - {n: 6, title: Mismatched phase, spec: sample.spec.yaml, status: active}

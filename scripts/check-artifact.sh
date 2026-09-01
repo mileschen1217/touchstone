@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/check-artifact.sh — validate a YAML stage artifact against its schema.
 #
-# Usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore> <file> [--root <dir>]
+# Usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic> <file> [--root <dir>]
 #   exit 0 → valid (warnings, prefixed `warn:`, never change the exit code)
 #   exit 1 → one line per violation: `<field-path>: <rule>`
 #   exit 2 → usage / missing dependency (PyYAML: `pip install pyyaml`)
@@ -20,7 +20,15 @@
 # status is covered (coverage rows belong in coverage[], not findings[]); a deviation
 # entry whose refs is empty without `derived: true`; a deviation metrics list with a
 # duplicate phase; a quiz item whose answer is present without a result; an explore
-# document whose plateau is false without a reach_under_determined reason.
+# document whose plateau is false without a reach_under_determined reason; kind epic's
+# cross-file close gate (run with --root <epic-dir>): a done epic with an AC of an
+# accepted *.spec.yaml under --root carrying no reckoning[] row; a reckoning row with
+# none of covered_by/unverified/waiver set; a live_bearing reckoning row whose
+# covered_by carries no live-artifact provenance, or that sets unverified/waiver; an
+# unverified/waived reckoning row with no issue; a done epic with an empty
+# retrospective; a phases[].n that does not match its linked spec's top-level phase;
+# an epic dir carrying both epic.yaml and a hand-written index.md with no
+# generated-projection marker.
 #
 # spec_ref resolution — the value of a `refs`-shaped field must name a US/REQ/AC/INV id
 # defined in a *resolution target*, picked by the schema's own top-level `resolves`
@@ -37,7 +45,7 @@ set -uo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 kind="${1:-}"; file="${2:-}"; root=""
 [ "${3:-}" = "--root" ] && root="${4:-}"
-case "$kind" in spec|review|deviation|quiz|assay|explore) ;; *) echo "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore> <file> [--root <dir>]" >&2; exit 2 ;; esac
+case "$kind" in spec|review|deviation|quiz|assay|explore|epic) ;; *) echo "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic> <file> [--root <dir>]" >&2; exit 2 ;; esac
 [ -f "$file" ] || { echo "check-artifact.sh: no such file: $file" >&2; exit 2; }
 schema="$here/../skills/_shared/schemas/$kind.schema.yaml"
 [ -f "$schema" ] || { echo "check-artifact.sh: schema missing: $schema" >&2; exit 2; }
@@ -339,6 +347,71 @@ elif kind == 'quiz':
 elif kind == 'explore':
     if doc.get('plateau') is False and not doc.get('reach_under_determined'):
         errors.append("reach_under_determined: required when plateau is false")
+elif kind == 'epic':
+    # dual hand-written form: an index.md beside epic.yaml with no generated-projection
+    # marker is an error naming the dual form (epic.yaml is the single authored source)
+    GEN_MARKER = '<!-- generated: projection of epic.yaml -->'
+    idx_path = os.path.join(root, 'index.md')
+    if os.path.isfile(idx_path):
+        idx_text = open(idx_path, encoding='utf-8').read()
+        if GEN_MARKER not in idx_text:
+            errors.append(f"(root): index.md present beside epic.yaml with no generated-projection marker ({GEN_MARKER!r}) — dual hand-written form")
+
+    # phases[].n <-> its linked spec's top-level phase — cross-file consistency
+    for ph in doc.get('phases') or []:
+        if not isinstance(ph, dict): continue
+        sp = ph.get('spec')
+        if not sp: continue
+        sp_path = os.path.join(root, sp)
+        if not os.path.isfile(sp_path):
+            warns.append(f"phases[{ph.get('n')}].spec: '{sp}' not found under --root; phase consistency unresolved")
+            continue
+        try: sd = yaml.safe_load(open(sp_path, encoding='utf-8'))
+        except yaml.YAMLError: sd = None
+        if isinstance(sd, dict) and sd.get('phase') != ph.get('n'):
+            errors.append(f"phases[{ph.get('n')}].n: {ph.get('n')} does not match {sp}'s top-level phase ({sd.get('phase')!r})")
+
+    # close-time evidence honesty floor — checked on every reckoning row present, not
+    # only at status: done, so an epic.yaml can be validated at any point in its life
+    reckoning_acs = {}
+    for r in doc.get('reckoning') or []:
+        if isinstance(r, dict) and isinstance(r.get('ac'), str):
+            reckoning_acs[r['ac']] = r
+    for ac, row in reckoning_acs.items():
+        live = row.get('live_bearing') is True
+        covered = str(row.get('covered_by') or '').strip()
+        unverified = bool(row.get('unverified'))
+        waiver = str(row.get('waiver') or '').strip()
+        issue = str(row.get('issue') or '').strip()
+        if live:
+            if unverified:
+                errors.append(f"reckoning[{ac}].unverified: illegal on a live-bearing row")
+            if waiver:
+                errors.append(f"reckoning[{ac}].waiver: illegal on a live-bearing row")
+            if not covered or not re.search(r'\(via:|\b[0-9a-fA-F]{7,40}\b', covered):
+                errors.append(f"reckoning[{ac}].covered_by: live-bearing row requires live-artifact provenance (a '(via:' citation or a commit token) — proxy-only coverage is rejected")
+        else:
+            if (unverified or waiver) and not issue:
+                errors.append(f"reckoning[{ac}].issue: required when unverified or waiver is set")
+            if not covered and not unverified and not waiver:
+                errors.append(f"reckoning[{ac}]: no covered_by, no unverified mark, and no waiver — blocks close")
+
+    # status: done ⇒ every AC of every accepted *.spec.yaml under --root is reckoned, and
+    # the retrospective is non-empty
+    if doc.get('status') == 'done':
+        if not str(doc.get('retrospective') or '').strip():
+            errors.append("retrospective: required (non-empty) when status is done")
+        for f in sorted(glob.glob(os.path.join(root, '*.spec.yaml'))):
+            try: sd = yaml.safe_load(open(f, encoding='utf-8'))
+            except yaml.YAMLError: continue
+            if not isinstance(sd, dict) or sd.get('status') != 'accepted': continue
+            for r in sd.get('requirements') or []:
+                if not isinstance(r, dict): continue
+                for a in r.get('acs') or []:
+                    if not isinstance(a, dict): continue
+                    aid = a.get('id')
+                    if aid and aid not in reckoning_acs:
+                        errors.append(f"reckoning: {aid} in {os.path.basename(f)} has no reckoning[] row")
 
 for w in warns: print(f"warn: {w}")
 for e in errors: print(e)

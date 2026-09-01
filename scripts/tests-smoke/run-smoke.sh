@@ -155,8 +155,42 @@ expect_out "check-artifact explore: plateau false without reach_under_determined
 expect_exit "check-artifact explore: seam_maps entry without parties" nonzero bash "$ca" explore "$ax/explore-red-parties.yaml" --root "$ax"
 expect_out "check-artifact explore: seam_maps entry without parties names it" "seam_maps[0].parties: required" bash "$ca" explore "$ax/explore-red-parties.yaml" --root "$ax"
 
-# AC-14: the usage line lists exactly the six kinds
-expect_out "check-artifact usage lists exactly six kinds" "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore> <file> [--root <dir>]" bash "$ca" bogus "$ax/spec-green.yaml"
+# ---- check-artifact.sh epic kind (phase 6, epic-yaml): green (rich + minimal) and one
+# red fixture per blocking close-gate rule; AC-1..AC-4, AC-35
+expect_exit "check-artifact epic green" zero bash "$ca" epic "$ax/epic-green.yaml" --root "$ax"
+expect_exit "check-artifact epic minimal green (required fields only)" zero bash "$ca" epic "$ax/epic-minimal-green.yaml" --root "$ax"
+expect_exit "check-artifact epic close-green: fully-reckoned done epic (AC-35)" zero bash "$ca" epic "$ax/epic-close-green/epic.yaml" --root "$ax/epic-close-green"
+
+expect_exit "check-artifact epic: dual hand-written form (AC-2)" nonzero bash "$ca" epic "$ax/epic-close-red-dual-form/epic.yaml" --root "$ax/epic-close-red-dual-form"
+expect_out "check-artifact epic: dual hand-written form names the dual form" "index.md present beside epic.yaml with no generated-projection marker" bash "$ca" epic "$ax/epic-close-red-dual-form/epic.yaml" --root "$ax/epic-close-red-dual-form"
+
+expect_exit "check-artifact epic: unreckoned AC on a done epic (AC-3)" nonzero bash "$ca" epic "$ax/epic-close-red-unreckoned-ac/epic.yaml" --root "$ax/epic-close-red-unreckoned-ac"
+expect_out "check-artifact epic: unreckoned AC names the AC" "reckoning: AC-2 in sample.spec.yaml has no reckoning[] row" bash "$ca" epic "$ax/epic-close-red-unreckoned-ac/epic.yaml" --root "$ax/epic-close-red-unreckoned-ac"
+
+expect_exit "check-artifact epic: empty reckoning row (no covered_by/unverified/waiver)" nonzero bash "$ca" epic "$ax/epic-close-red-empty-row/epic.yaml" --root "$ax/epic-close-red-empty-row"
+expect_out "check-artifact epic: empty reckoning row names the row" "reckoning[AC-1]: no covered_by, no unverified mark, and no waiver" bash "$ca" epic "$ax/epic-close-red-empty-row/epic.yaml" --root "$ax/epic-close-red-empty-row"
+
+expect_exit "check-artifact epic: live-bearing row with proxy-only covered_by (INV-5)" nonzero bash "$ca" epic "$ax/epic-close-red-live-bearing-proxy/epic.yaml" --root "$ax/epic-close-red-live-bearing-proxy"
+expect_out "check-artifact epic: live-bearing proxy-only coverage is rejected, not 'field non-empty'" "live-bearing row requires live-artifact provenance" bash "$ca" epic "$ax/epic-close-red-live-bearing-proxy/epic.yaml" --root "$ax/epic-close-red-live-bearing-proxy"
+
+expect_exit "check-artifact epic: unverified row with no issue" nonzero bash "$ca" epic "$ax/epic-close-red-unverified-no-issue/epic.yaml" --root "$ax/epic-close-red-unverified-no-issue"
+expect_out "check-artifact epic: unverified row with no issue names the rule" "reckoning[AC-1].issue: required when unverified or waiver is set" bash "$ca" epic "$ax/epic-close-red-unverified-no-issue/epic.yaml" --root "$ax/epic-close-red-unverified-no-issue"
+
+expect_exit "check-artifact epic: done epic with empty retrospective" nonzero bash "$ca" epic "$ax/epic-close-red-no-retrospective/epic.yaml" --root "$ax/epic-close-red-no-retrospective"
+expect_out "check-artifact epic: empty retrospective names the rule" "retrospective: required (non-empty) when status is done" bash "$ca" epic "$ax/epic-close-red-no-retrospective/epic.yaml" --root "$ax/epic-close-red-no-retrospective"
+
+expect_exit "check-artifact epic: phases[].n does not match its linked spec's phase (AC-4)" nonzero bash "$ca" epic "$ax/epic-close-red-phase-mismatch/epic.yaml" --root "$ax/epic-close-red-phase-mismatch"
+expect_out "check-artifact epic: phase mismatch names both numbers" "phases[6].n: 6 does not match sample.spec.yaml's top-level phase (5)" bash "$ca" epic "$ax/epic-close-red-phase-mismatch/epic.yaml" --root "$ax/epic-close-red-phase-mismatch"
+
+# AC-2 green half: an index.md carrying the generated-projection marker beside epic.yaml is legal
+epic_marker_root="$(mktemp -d)"
+cp "$ax/epic-close-red-dual-form/epic.yaml" "$epic_marker_root/epic.yaml"
+printf '%s\n' '<!-- generated: projection of epic.yaml -->' > "$epic_marker_root/index.md"
+expect_exit "check-artifact epic: generated-marker index.md beside epic.yaml is legal" zero bash "$ca" epic "$epic_marker_root/epic.yaml" --root "$epic_marker_root"
+rm -rf "$epic_marker_root"
+
+# AC-14: the usage line lists exactly the seven kinds
+expect_out "check-artifact usage lists exactly seven kinds" "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic> <file> [--root <dir>]" bash "$ca" bogus "$ax/spec-green.yaml"
 
 # AC-15: the three hard-coded resolution branches (spec/review/deviation dispatched by
 # `kind ==`) are gone — resolution reads each schema's declared `resolves` value instead.
@@ -268,16 +302,16 @@ shutil.rmtree(t)
 print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type, refs resolution (AC-4), locator rule (AC-48), quiz kind refs/result rule, metrics duplicate/sha (AC-20), coverage-row resolution + non-conformance covered stays a plain enum rejection (AC-14)')
 PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
-# the six schema files exist and every top-level field carries a reader tag
+# the seven schema files exist and every top-level field carries a reader tag
 python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
 import sys, os, yaml
 d = sys.argv[1]
-assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'explore.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
+assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'epic.schema.yaml', 'explore.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
 for f in os.listdir(d):
     s = yaml.safe_load(open(os.path.join(d, f)))
     for k, v in s['properties'].items():
         assert v.get('reader') in ('human', 'agent'), f'{f}: {k} has no reader tag'
-print('PASS: six schemas, every top-level field reader-tagged')
+print('PASS: seven schemas, every top-level field reader-tagged')
 PY2
 
 # AC-10 / INV-4: every field in the three new schemas names its consumer file in the
@@ -954,7 +988,7 @@ fi
 
 # ---- generic checker rail loop (REQ-6/AC-26/AC-27): every
 # .touchstone/checker/fixtures/<name>/ tree gets a green PASS (must not trip)
-# and a red PASS (must trip); a single-file fixture (close-ready) runs the
+# and a red PASS (must trip); a single-file fixture (no green*/red* subdirs) runs the
 # checker's own --self-test instead. "Trip" = nonzero exit, or — for a
 # WARN-ONLY checker (header carries the literal WARN-ONLY, always exit 0) —
 # stdout/stderr contains WARN. A fixture with no matching checker, or a
@@ -1003,7 +1037,7 @@ for fxd in "$fixtures_root"/*/; do
 
   subdirs=("$fxd"*/)
   if [ "${#subdirs[@]}" -eq 0 ]; then
-    # single-file fixture (e.g. close-ready/green.md, close-ready/red.md)
+    # single-file fixture (a fixtures/<name>/ dir with no green*/red* subdirs)
     if grep -q -- '--self-test' "$checker"; then
       rail_out="$(bash "$checker" --self-test 2>&1)"; rail_rc=$?
       if [ "$rail_rc" -eq 0 ]; then
