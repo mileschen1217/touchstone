@@ -82,6 +82,10 @@ lenses:
     arms: [codex]
     subject: true
     sections:
+      # the reviewer role text stays homed in the wrapper's own body; the lens file
+      # carries it because system_prompt_file REPLACES the built-in prompt, so a
+      # quality lens without it would strip the arm of its reviewing instructions
+      - {ref: 'agents/codex-reviewer.md#Built-in role prompt (default when the envelope carries neither `system_prompt_file` nor `system_prompt`)', id: reviewer-role, destination: arm}
       - {ref: skills/_shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
 
   # ------------------------------------------------ assay — structural fork case
