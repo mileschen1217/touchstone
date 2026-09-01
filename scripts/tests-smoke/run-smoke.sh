@@ -64,6 +64,9 @@ expect_exit "check-artifact review: independence-lost degraded_reason admitted" 
 # kind epic: the spec is the authority on live_bearing — a demoted row is rejected
 expect_exit "check-artifact epic: spec-live AC demoted in reckoning" nonzero bash "$ca" epic "$ax/epic-close-red-live-demoted/epic.yaml" --root "$ax/epic-close-red-live-demoted"
 expect_out "check-artifact epic: demotion names the spec authority" "contradicts the accepted spec's AC" bash "$ca" epic "$ax/epic-close-red-live-demoted/epic.yaml" --root "$ax/epic-close-red-live-demoted"
+# kind epic: a phases[].spec path escaping the epic root is rejected (path guard)
+expect_exit "check-artifact epic: phases[].spec escaping --root" nonzero bash "$ca" epic "$ax/epic-close-red-spec-escape/epic.yaml" --root "$ax/epic-close-red-spec-escape"
+expect_out "check-artifact epic: escape names the guard" "escapes the --root directory" bash "$ca" epic "$ax/epic-close-red-spec-escape/epic.yaml" --root "$ax/epic-close-red-spec-escape"
 # kind epic: duplicate reckoning rows for one AC are rejected
 expect_exit "check-artifact epic: duplicate reckoning row" nonzero bash "$ca" epic "$ax/epic-close-red-dup-reckoning/epic.yaml" --root "$ax/epic-close-red-dup-reckoning"
 expect_out "check-artifact epic: duplicate row named" "duplicate row for the same AC" bash "$ca" epic "$ax/epic-close-red-dup-reckoning/epic.yaml" --root "$ax/epic-close-red-dup-reckoning"

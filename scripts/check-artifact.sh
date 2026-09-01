@@ -376,7 +376,8 @@ elif kind == 'epic':
         if not isinstance(ph, dict): continue
         sp = ph.get('spec')
         if not sp: continue
-        sp_path = os.path.join(root, sp)
+        sp_path = under_root(sp, f"phases[{ph.get('n')}].spec")
+        if sp_path is None: continue
         if not os.path.isfile(sp_path):
             warns.append(f"phases[{ph.get('n')}].spec: '{sp}' not found under --root; phase consistency unresolved")
             continue

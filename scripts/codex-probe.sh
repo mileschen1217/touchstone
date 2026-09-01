@@ -108,14 +108,16 @@ run_cell() {
   size_bytes="$1"; rep="$2"; timeout_s="$3"
 
   cell_dir="$(mktemp -d)"
-  target="$(gen_target "$size_bytes")"
-  prompt="$(printf 'You are being probed for dispatch latency. Reply with exactly one line: OK\n\n---\n\n%s' "$target")"
+  # production dispatch shape (agents/codex-reviewer.md, redesigned): the target
+  # rides as a task FILE streamed via stdin; the prompt carries only the role line.
+  gen_target "$size_bytes" > "$cell_dir/task.md"
+  prompt='You are being probed for dispatch latency. The stdin block is the probe target. Reply with exactly one line: OK'
 
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   start_epoch=$(date +%s)
   timeout "$timeout_s" codex exec --json --skip-git-repo-check \
     -o "$cell_dir/last-message.txt" \
-    "$prompt" </dev/null >"$cell_dir/raw_codex.jsonl" 2>&1
+    "$prompt" < "$cell_dir/task.md" >"$cell_dir/raw_codex.jsonl" 2>&1
   exit_code=$?
   end_epoch=$(date +%s)
   latency_s=$((end_epoch - start_epoch))

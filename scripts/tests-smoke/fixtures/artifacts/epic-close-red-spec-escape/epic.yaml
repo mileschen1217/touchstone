@@ -1,0 +1,9 @@
+slug: fixture-spec-escape
+status: active
+started: 2026-01-01
+aim: red — a phases[].spec path escaping the epic root
+foundation:
+  intention: fixture
+  out_of_scope: []
+phases:
+  - {n: 1, title: one, spec: ../epic-green.yaml, status: active}
