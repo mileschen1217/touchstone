@@ -1547,4 +1547,12 @@ else
 fi
 rm -rf "$t5a_root"
 
+# ---- codex-probe.sh: envelope-shape smoke — SKIPs cleanly (exit 0) when codex
+# CLI is absent, never fake-green; PASS-asserts the envelope (record line
+# written, outcome field present) when codex is present.
+cpd="$(mktemp -d)"
+expect_exit "codex-probe smoke: exits 0 (PASS when codex present, SKIP when absent)" zero \
+  bash "$scripts_dir/codex-probe.sh" --smoke --out "$cpd/probe-smoke.jsonl"
+rm -rf "$cpd"
+
 exit "$fail"
