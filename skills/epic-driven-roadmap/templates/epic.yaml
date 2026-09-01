@@ -37,6 +37,6 @@ phases:
 #   What pivoted: …
 #   What to do differently: …
 # reckoning:
-#   - {ac: AC-1, covered_by: "<fresh, specific evidence>", live_bearing: false}
+#   - {ac: <the acceptance criterion's id>, covered_by: "<fresh, specific evidence>", live_bearing: false}
 # disposition:
 #   none: true

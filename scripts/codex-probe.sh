@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# codex-probe.sh — codex dispatch stability probe (spec REQ-5, AC-17/AC-20).
+# codex-probe.sh — codex dispatch stability probe: does a dispatch of a given
+# size come back, how fast, and in what failure shape when it does not.
 #
 # Reproduces the production dispatch shape from agents/codex-reviewer.md
 # (Path C):
