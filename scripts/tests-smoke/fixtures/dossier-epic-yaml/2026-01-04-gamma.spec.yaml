@@ -1,0 +1,43 @@
+id: SPEC-fixture-yaml-p3
+title: Gamma — YAML phase
+epic: fixture-yaml
+phase: 3
+status: accepted
+date: 2026-01-04
+facts_source:
+  record: assay-notes.md
+  consensus: [Q-1, A-1]
+foundation: inherit
+phase_map:
+  reader: human
+  position: Third of six phases; the first written straight to epic.yaml.
+  structure_before_after: Before the parser is one function; after it is a module.
+  interface_delta: The flag gains a short form.
+  scope: Touched is the parser; untouched is the writer.
+touch_set:
+  reader: agent
+  touched: [scripts/parse.sh]
+  untouched: [scripts/write.sh]
+delta:
+  blocks:
+    - {id: parser, op: change, kind: component, purpose: parse the short form}
+    - {id: writer, op: add, kind: component, purpose: emit the result}
+  edges:
+    - {from: parser, to: writer, op: add, label: hands the parsed value}
+  contracts:
+    - {id: flag-cli, schema: "--flag <value> | -f <value>"}
+user_stories:
+  - {id: US-1, as: a user, want: a short flag, so_that: I type less}
+requirements:
+  - id: REQ-1
+    shall: the parser SHALL accept -f as --flag.
+    traces_to: [US-1]
+    basis: [Q-1]
+    acs:
+      - {id: AC-1, given: a call with -f x, when: parsed, then: value is x, live_bearing: false}
+invariants:
+  - {id: INV-1, rule: the writer never reads stdin, why_ref: Q-1, check: grep}
+non_goals: [a third form]
+risks:
+  - {problem: short form collides, measure: rename, priority: low, why_ref: A-1}
+waiting_on_human: []

@@ -310,7 +310,7 @@ expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-gree
 python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
 import sys, os, yaml
 d = sys.argv[1]
-assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'epic.schema.yaml', 'explore.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
+assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'epic.schema.yaml', 'explore.schema.yaml', 'metrics.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
 for f in os.listdir(d):
     s = yaml.safe_load(open(os.path.join(d, f)))
     for k, v in s['properties'].items():
@@ -472,6 +472,49 @@ expect_grep "hostile: tab-split scheme neutralised" -eq 0 'java	script:'
 expect_grep "hostile: nav link kept" -ge 1 'href="https://example.com/doc"'
 expect_grep "hostile: markdown link attr-escaped" -eq 0 'href=""onmouseover'
 expect_grep "hostile: AC-1 linked inside sanitized html" -ge 1 'data-jump="2026-01-03-beta-design--AC-1" tabindex="0">AC-1</a>'
+
+# ---- yaml-born epic (ADR-0043 REQ-2, AC-6/AC-7): epic.yaml deterministic precedence —
+# a dir with epic.yaml and NO index.md renders green, header denominator = len(phases[]),
+# owner-readable surface shows only phases[].n (no index-table row count). AC-8 (legacy
+# regression) is the dossier-epic block above staying green in this same suite run.
+tmp_root2="$(mktemp -d)"
+mkdir -p "$tmp_root2/.touchstone/epics"
+cp -R "$here/fixtures/dossier-epic-yaml" "$tmp_root2/.touchstone/epics/2026-01-10-fixture-yaml"
+eyd="$tmp_root2/.touchstone/epics/2026-01-10-fixture-yaml"
+[ -f "$eyd/index.md" ] && { echo "FAIL: index.md present in yaml-born fixture (regression witness invalid)"; fail=1; }
+expect_exit "dossier-render.sh yaml-born green (AC-6: epic.yaml, no index.md)" zero bash "$scripts_dir/dossier-render.sh" "$eyd"
+eydout="$eyd/dossier.html"
+[ -f "$eydout" ] || { echo "FAIL: yaml-born dossier.html not produced (AC-6)"; fail=1; }
+distinct_hdr="$(grep -oE '第 [0-9]+/[0-9]+ 階段' "$eydout" | sort -u | tr '\n' ';')"
+if [ "$distinct_hdr" = "第 3/6 階段;" ]; then
+  echo "PASS: dossier yaml-born header denominator = phases[] count, no row-index leak (AC-7)"
+else
+  echo "FAIL: dossier yaml-born header mismatch (want 第 3/6 階段;, got '$distinct_hdr')"; fail=1
+fi
+if grep -q -F 'epic 歷史</span></span> <span class="num">6</span>' "$eydout"; then
+  echo "PASS: dossier yaml-born epic-history table has 6 rows (phases[] count)"
+else
+  echo "FAIL: dossier yaml-born epic-history row count wrong"; fail=1
+fi
+if grep -q -F '>epic.yaml</span>' "$eydout"; then
+  echo "FAIL: epic.yaml rendered as a stray file card (should be excluded from the file walk)"; fail=1
+else
+  echo "PASS: dossier yaml-born excludes epic.yaml itself from file cards"
+fi
+expect_grep_e() {
+  label="$1"; op="$2"; n="$3"; pat="$4"
+  c="$(grep -o -F -- "$pat" "$eydout" | wc -l | tr -d ' ')"
+  ok=0
+  case "$op" in
+    -eq) [ "$c" -eq "$n" ] && ok=1 ;;
+    -ge) [ "$c" -ge "$n" ] && ok=1 ;;
+  esac
+  if [ "$ok" = 1 ]; then echo "PASS: dossier yaml-born $label"; else echo "FAIL: dossier yaml-born $label (count=$c, want $op $n): $pat"; fail=1; fi
+}
+expect_grep_e "foundation.rulings rendered" -ge 1 'hand-written home; index.md is never authored again.'
+expect_grep_e "deviation_log rendered" -ge 1 'which-stage-could-have-caught: assay'
+expect_grep_e "reckoning rendered as table" -ge 1 '<th>AC</th><th>Covered by</th><th>live-bearing?</th>'
+expect_grep_e "disposition none rendered minimally" -ge 1 '<p>none</p>'
 
 # ---- YAML phase (gamma): projection, overlays, ledger anchors, Ship order, pr-body, INV-1
 expect_grep "yaml: gamma phase group" -ge 1 'data-phase="2026-01-04-gamma.spec"'
