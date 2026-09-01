@@ -19,7 +19,7 @@ Sole home of review-round provenance.
 | `findings[].found_by` | the arms whose output carried this finding (same field + same type across arms → one finding, both arms listed) |
 | `findings[].refs` | the spec ids the finding's `field` path resolves to; `[]` only when `file`/`line` locate it outside the spec |
 | `degraded` | true iff any lens ran fewer arms than the gate declared for it, OR the vendor rule was waived (deliverable-review: the quality lens's arm set holds only the builder's vendor) |
-| `degraded_reason` | required when degraded; names the lens: `lens <name>: codex unavailable` · `lens <name>: codex timeout (<n>s)` · `lens <name>: codex error: <detail>` · `lens <name>: partial` (an arm ran but its output carried no parsable finding or verdict) · `lens <name>: all arms failed` · `vendor rule waived by \`with <vendor>\`` |
+| `degraded_reason` | required when degraded; the six admitted literal shapes are the schema pattern on this field (review.schema.yaml — single home); `partial` = an arm ran but its output carried no parsable finding or verdict |
 | `challenger` | design-review: the arm that ran the challenger lens |
 | `waiting_on_human` | the complete current list of `W-n` items for this gate — presence = still waiting; a resolved item is removed |
 
