@@ -1650,6 +1650,24 @@ expect_exit "init-checker-scaffold: missing state writes yaml (exit 0)" zero \
 expect_exit "init-checker-scaffold: yaml written" zero test -f "$icd/.claude/touchstone.yaml"
 rm -rf "$icd"
 
+# ---- the redesigned codex dispatch shape (agents/codex-reviewer.md): the task rides a
+# FILE streamed to codex by the shell; both liveness artifacts (raw_codex.jsonl +
+# last-message.txt) must be produced by that exact form. Honest SKIP when codex is absent.
+if command -v codex >/dev/null 2>&1; then
+  dsd="$(mktemp -d)"
+  printf 'probe material line\n' > "$dsd/task.md"
+  timeout 120 codex exec --json --skip-git-repo-check -o "$dsd/last-message.txt" \
+    "Reply with exactly one line: OK" < "$dsd/task.md" > "$dsd/raw_codex.jsonl" 2>&1
+  if [ -s "$dsd/last-message.txt" ] && [ -s "$dsd/raw_codex.jsonl" ]; then
+    echo "PASS: task_file-streamed codex dispatch produces both liveness artifacts"
+  else
+    echo "FAIL: task_file-streamed codex dispatch (missing/empty liveness artifact)"; fail=1
+  fi
+  rm -rf "$dsd"
+else
+  echo "SKIP: codex CLI not installed — task_file dispatch shape not exercised (not fake-green)"
+fi
+
 # ---- codex-probe.sh: envelope-shape smoke — SKIPs cleanly (exit 0) when codex
 # CLI is absent, never fake-green; PASS-asserts the envelope (record line
 # written, outcome field present) when codex is present.
