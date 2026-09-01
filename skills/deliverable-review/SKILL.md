@@ -63,7 +63,7 @@ Honor-check lens:
 - `skills/_shared/inject/design-soundness-honor-check.md` with `skills/assay/references/arch-rubric.md` injected as content — **feedback arm**: execute every `invariants[].check` against the delivered tree.
 
 Quality lens:
-- `skills/_shared/inject/severity-tiered-stopping-rule.md`; the arm agent's default lens governs.
+- `skills/_shared/inject/severity-qualification.md`; the arm agent's default lens governs. (The round budget stays host-side — see Phase 4.)
 
 ## Phase 3 — Dispatch: one call per arm, all in one message
 
@@ -84,7 +84,7 @@ Write `<epic-dir>/deliverable-review-<date>/review.yaml` — `gate: deliverable-
 - `waiting_on_human`: every `W-n` item (shape: the schema) still owed by the human after this round — a complete list, so presence means still waiting.
 - Validate with `check-artifact.sh review` (`--root <epic-dir>`; exit 0 required). The raw arm outputs sit in the round dir (`raw_cc.md`; a Codex arm's `raw_codex.jsonl` + `last-message.txt`); no other review file.
 
-Critical/High block. Convergence: the injected stopping rule. `degraded: true` → the presentation duty in `provenance.md`, before reporting ready.
+Critical/High block. Convergence: read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md` yourself — that budget stays with this merging session; arms saw only the severity segment. `degraded: true` → the presentation duty in `provenance.md`, before reporting ready.
 
 Report:
 

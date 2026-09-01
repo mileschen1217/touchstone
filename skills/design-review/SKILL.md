@@ -12,7 +12,7 @@ user-invocable: false
 
 In scope: `*.spec.yaml`, plan, ADR (`**/plans/**`, `**/adr/**`); else reply "not in scope — specs / plans / ADRs only" and exit. Subject status: `accepted-candidate` is the normal subject; `accepted` → treat as re-review; `draft` → reply "draft — not gated" and exit.
 
-**Mode.** A spec whose `facts_source` record's readiness ruling says "short form" selects the **short-chain mode**: one round, the challenger and verification-honesty lenses only, the stopping rule's re-verify dispatch unused — the round closes on its own outcome. Every other subject runs the full mode: three lenses, the injected rule's full budget.
+**Mode.** A spec whose `facts_source` record's readiness ruling says "short form" selects the **short-chain mode**: one round, the challenger and verification-honesty lenses only, the stopping rule's re-verify dispatch unused — the round closes on its own outcome. Every other subject runs the full mode: three lenses, the stopping rule's full budget.
 
 ## Phase 1 — Inject
 
@@ -21,7 +21,9 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md` and follow it. **
 **Once, verbatim:** read each fragment below in FULL from `${CLAUDE_PLUGIN_ROOT}` and place it in the named context.
 
 Every arm:
-1. `skills/_shared/inject/severity-tiered-stopping-rule.md` — the removal test and the round budget.
+1. `skills/_shared/inject/severity-qualification.md` — the removal test and C/H qualification. The round budget is NOT injected: the host segment (`skills/_shared/inject/severity-tiered-stopping-rule.md`) is yours to read at Phase 4, never an arm's.
+
+The two sweep-executing lenses only (challenger, design-soundness — the verification-honesty arm does not receive it):
 2. `skills/_shared/ground-and-sweep.md` — unit = each *emitted finding* (field path); stop only at saturation on both axes (breadth of cases, reach of parties/sites).
    - **Reach axis is baseline-conditional — three cases** (the terms *seam-map* / *reach-under-determined* are homed in `${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md`). Treat a Consensus Scope seam-map — its verify-against home is the epic's `explore-<date>-<subject>.yaml` when crucible's explore phase produced one — as a **valid baseline** only when it was confirmed for this same artifact and intent and is not flagged reach-under-determined. With one in hand, check the delivered party set against it (confirm saturation). With none — or a stale one, a direct invocation carrying no Consensus included — keep the sweep-to-saturation discovery role intact. With a baseline that IS flagged under-determined, rediscover and surface the shortfall.
    - **The breadth axis is baseline-conditional on the same three cases** (*case-partition* and *partition-under-determined* are homed in `${CLAUDE_PLUGIN_ROOT}/skills/_shared/breadth-discovery.md`). Rule on the baseline's validity with your own eyes: an entry qualifies only where the interview confirmed it for that same rule under the intent now in force, the requirement cites its ledger id in `basis`, and no under-determined mark rides it — then test each requirement's ACs against its case list. Lacking one, or holding a stale entry (staleness per `breadth-discovery.md`), partition at full width. Against a marked entry, partition afresh and report the shortfall.
@@ -70,7 +72,7 @@ One file per round: round 1 at `<epic-dir>/design-review-<date>/review.yaml`, th
 - `rulings[]`: every ledger id this round appended (routing of a marker to the human vs the authoring session: the injected stopping rule); a ruling is appended into the matching extraction/alignment item's `rulings[]` list in the assay record — `{date, stage: design-review, text}` — and its id listed here; a marker resolved by the authoring session records its `fix`.
 - Validate before reporting: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" review <file> --root <epic-dir>` — exit 0.
 
-Convergence: the injected stopping rule — this round's C/H feeds its initial round (short-chain mode: that round is the whole run). Build waits until the rule closes; `degraded: true` → the presentation duty in `provenance.md`, before Build.
+Convergence: the host segment `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md` — read it in full here; this round's C/H feeds its initial round (short-chain mode: that round is the whole run). Build waits until the rule closes; `degraded: true` → the presentation duty in `provenance.md`, before Build.
 
 **Post-review re-distill (once C+H = 0).** Re-distill every `shall` to one sentence and every AC to its Then (rule home: design-spec § 4); a meaning-changing edit re-enters review, never rides the verdict.
 

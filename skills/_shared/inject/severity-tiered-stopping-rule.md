@@ -1,25 +1,20 @@
 ---
-injected-by: [design-review, deliverable-review]
-referenced-by: [anvil, plugin-review.sh]
+referenced-by: [design-review, deliverable-review, anvil, plugin-review.sh]
 kind: bridge
 ---
 
-# Severity-tiered stopping rule (single home)
+# Severity-tiered stopping rule (single home — host segment)
 
 The one stopping rule of every review gate — design-review, deliverable-review, and the
 touchstone-local plugin-review alike; no gate carries a second budget, threshold, or
-plateau rule of its own.
+plateau rule of its own. Read by each gate's merging host session, never injected into an
+arm; the severity standard the arms apply is the sibling segment
+`severity-qualification.md` (arm-injected, single home of the removal test).
 
 **Budget = initial review + at most ONE re-verify dispatch.** T = 3 (adjustable by a
 human ruling recorded in the epic's calibration ledger). **Terminator: a round that
-reports zero new Critical and zero new High closes the gate.**
-
-**Severity qualification (gate on coverage, not polish).** A finding earns Critical or
-High ONLY by exposing an uncovered behaviour (a requirement / party / path carrying no
-AC) or a real defect. A pure refinement — one whose fix changes no behaviour boundary,
-tested by removal (delete the finding's target: does any pass/fail behaviour change? no →
-refinement) — is Low by construction: its marker rides to the human, it never blocks, and
-it never enters the re-verify budget below.
+reports zero new Critical and zero new High closes the gate.** A refinement-class
+finding (per the sibling segment) never enters the re-verify budget below.
 
 **Initial round:**
 - zero new Critical and zero new High → close (the terminator; nothing to fix, no diff).
