@@ -38,6 +38,12 @@
 # once per file. Scripts, checkers, hooks and agents are in `load_set` (they are
 # reached) but are not counted in `lines` — a script is run, not loaded into a
 # context, and an agent runs in a context of its own.
+#
+# `stages[].contexts[]` also carries `kind: in-session|dispatched`, `bytes`, and (for a
+# dispatched context) `arm`, `lens`, `sections`, `dispatched_by` — the in-session file(s)
+# whose lens-manifest declaration/dispatch pattern attached it (see `lens_decl_rx` below;
+# this scopes AC-25's dual-use-fragment reading to the DISPATCHING session, not to every
+# session that happens to load the same file in-session).
 set -uo pipefail
 
 # --------------------------------------------------------------- self-test
@@ -49,7 +55,7 @@ if [ "${1:-}" = "--self-test" ]; then
   _self="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
   _repo="$(cd "$(dirname "$_self")/.." && pwd)"
   python3 - "$_self" "$_repo" <<'SELFTEST_EOF'
-import json, os, shutil, subprocess, sys, tempfile
+import json, os, re, shutil, subprocess, sys, tempfile
 
 self_path, repo = sys.argv[1], sys.argv[2]
 FX = os.path.join(repo, '.touchstone/checker/fixtures')
@@ -141,6 +147,119 @@ if d is not None:
                                                     and not p.startswith(('agents/', 'hooks/'))))
            for s in (d.get('stages') or [])]
     report(all(u == t for _, u, t in bad), lbl, repr(bad))
+
+# ---- dispatched-context attachment / conditional pricing (AC-21/AC-23/AC-26/AC-27/AC-32)
+lbl = ('real repo: stage 1 carries AT LEAST challenger@cc/design-soundness@cc/verification-honesty@codex, stage 3 carries AT LEAST conformance@cc/honor-check@cc/quality@codex, each with its arm agent file '
+       '(declaration/dispatch-only attachment — a bare prose mention of a lens name elsewhere, e.g. in a shared schema comment, attaches nothing). '
+       'Not an exact-set check: other sibling tasks legitimately land more --lens <name> dispatch sites over this epic (e.g. arch-validation/arch-pressure-test once fork-case.md dispatch lands, '
+       'exactly as the commander plan anticipates) — the EXACT-set, no-over-attachment proof lives on the green-dispatch fixture below, which this task fully controls')
+d = mapped(repo, lbl)
+if d is not None:
+    AGENT = {'cc': 'agents/code-reviewer.md', 'codex': 'agents/codex-reviewer.md'}
+    def dispatched_of(stage_num):
+        s = next((s for s in d['stages'] if s['stage'] == stage_num), None)
+        return {c['context']: c for c in (s or {}).get('contexts', []) if c.get('kind') == 'dispatched'}
+    st1, st3 = dispatched_of(1), dispatched_of(3)
+    want = [(st1, 'challenger@cc', 'cc'), (st1, 'design-soundness@cc', 'cc'), (st1, 'verification-honesty@codex', 'codex'),
+            (st3, 'conformance@cc', 'cc'), (st3, 'honor-check@cc', 'cc'), (st3, 'quality@codex', 'codex')]
+    ok = all(m.get(name) is not None and AGENT[arm] in (m[name].get('files') or []) for m, name, arm in want)
+    report(ok, lbl, repr({'stage1': sorted(st1), 'stage3': sorted(st3)}))
+
+    lbl = "real repo: every dispatched context carries dispatched_by naming its declaring gate body (design-review/SKILL.md for stage 1's three, deliverable-review/SKILL.md for stage 3's three) — the commander's harvest-ruling addition, and AC-25's dual-use-fragment disambiguator"
+    ok = (all(st1.get(name, {}).get('dispatched_by') == ['skills/design-review/SKILL.md'] for name in ('challenger@cc', 'design-soundness@cc', 'verification-honesty@codex'))
+          and all(st3.get(name, {}).get('dispatched_by') == ['skills/deliverable-review/SKILL.md'] for name in ('conformance@cc', 'honor-check@cc', 'quality@codex')))
+    report(ok, lbl, repr({name: c.get('dispatched_by') for name, c in {**st1, **st3}.items()}))
+
+    # Not a pinned byte count: this repo's own prose keeps growing (a shared worktree with
+    # other in-flight tasks landing content), so a hardcoded number here would go stale for
+    # reasons that have nothing to do with this script's correctness. Instead recompute
+    # max_stage_load_tokens independently from the emitted in-session contexts (excluding
+    # any load-when file, same as the real definition) and assert self-consistency — this
+    # is the structural AC-23 proof ("defined over in-session contexts only, arm bytes
+    # cannot fold into it"); the one-time absolute-number check against a specific commit
+    # belongs in observations/Commands-to-Run, not in a permanent regression self-test.
+    def _is_cond(path):
+        if not path.endswith('.md'):
+            return False
+        try:
+            t = open(os.path.join(repo, path), encoding='utf-8', errors='replace').read()
+        except OSError:
+            return False
+        if not t.startswith('---'):
+            return False
+        end = t.find('\n---', 3)
+        if end == -1:
+            return False
+        for line in t[3:end].splitlines():
+            mm = re.match(r'^\s*load-when\s*:\s*(.*)$', line)
+            if mm:
+                return bool(mm.group(1).split('#', 1)[0].strip())
+        return False
+    recomputed = []
+    for s in d['stages']:
+        fs = {f for c in s.get('contexts', []) if c.get('kind') == 'in-session'
+              for f in (c.get('files') or []) if not _is_cond(f)}
+        total = 0
+        for f in fs:
+            try:
+                total += os.path.getsize(os.path.join(repo, f))
+            except OSError:
+                pass
+        recomputed.append(total // 4)
+    lbl = 'real repo: metrics.max_stage_load_tokens == independently-recomputed max over stages of (bytes of the union of that stage\'s in-session, non-conditional context files) // 4 — proves the key never folds in dispatched-context bytes, without pinning to a point-in-time absolute number'
+    got = d.get('metrics', {}).get('max_stage_load_tokens')
+    report(got == max(recomputed, default=0) and got > 0, lbl, repr((got, recomputed)))
+
+    lbl = 'real repo: metrics carries all five new keys as integers, plus stage_tokens covering stages 0-5'
+    m = d.get('metrics') or {}
+    ok = (all(isinstance(m.get(k), int) for k in
+              ('max_stage_load_tokens', 'arm_load_tokens', 'max_arm_load_tokens', 'conditional_load_tokens'))
+          and sorted(x.get('stage') for x in (m.get('stage_tokens') or [])) == [0, 1, 2, 3, 4, 5])
+    report(ok, lbl, repr({k: m.get(k) for k in
+                          ('max_stage_load_tokens', 'arm_load_tokens', 'max_arm_load_tokens', 'conditional_load_tokens', 'stage_tokens')}))
+
+    # AC-44 fold-back guard: design-review/SKILL.md's own body names
+    # skills/_shared/lens-manifest.yaml (Phase 1's "declared once in ... lens-manifest.yaml"
+    # line) — a skill body naming the manifest must never pull the manifest itself, nor any
+    # fragment the manifest in turn names (e.g. its challenger-catalogue section), into that
+    # skill's in-session closure. kind_of() special-cases the manifest to 'data' (never a
+    # LOADED_KINDS member) precisely so the context-file walk terminates AT the manifest,
+    # regardless of what prose does or doesn't name it.
+    lbl = "real repo: AC-44 fold-back guard — skills/_shared/lens-manifest.yaml (named by design-review/SKILL.md's own body) appears in NO in-session context's files, and neither does any fragment the manifest names on its own (e.g. design-review/references/challenger.md, which no gate body mentions directly)"
+    all_insession_files = {f for s in d['stages'] for c in s.get('contexts', [])
+                           if c.get('kind') == 'in-session' for f in (c.get('files') or [])}
+    ok = ('skills/_shared/lens-manifest.yaml' not in all_insession_files
+          and 'skills/design-review/references/challenger.md' not in all_insession_files)
+    report(ok, lbl, repr(sorted(f for f in all_insession_files if 'lens-manifest' in f or f == 'skills/design-review/references/challenger.md')))
+
+lbl = 'plugin-ratchets green-dispatch: a lens split across two arms bills each arm its agent file + the shared destination:arm sections, never the destination:host one'
+d = mapped(os.path.join(FX, 'plugin-ratchets/green-dispatch'), lbl)
+if d is not None:
+    st1 = next((s for s in d['stages'] if s['stage'] == 1), {})
+    disp = {c['context']: c for c in st1.get('contexts', []) if c.get('kind') == 'dispatched'}
+    ok = (set(disp) == {'splitlens@cc', 'splitlens@codex'}
+          and all(sorted(s.get('id') for s in c.get('sections', [])) == ['sec-a'] for c in disp.values())
+          and all('skills/_shared/inject/armsec.md' in c.get('files', []) for c in disp.values()))
+    report(ok, lbl, repr(disp))
+
+    lbl = "plugin-ratchets green-dispatch: dispatched_by names the CONTEXT that declares the lens (skills/crucible/SKILL.md), never a raw file path, and never a second in-session context (skills/other/SKILL.md) that shares the same dual-use fragment (skills/_shared/inject/frag.md) without declaring the lens itself — the addendum to the commander's harvest ruling (the destination-contradiction check this feeds must fail only the dispatching session, not a third skill reading the same shared file for its own unrelated purpose)"
+    ok = all(c.get('dispatched_by') == ['skills/crucible/SKILL.md'] for c in disp.values())
+    report(ok, lbl, repr({k: v.get('dispatched_by') for k, v in disp.items()}))
+
+    lbl = 'plugin-ratchets green-dispatch: AC-26 arm_load_tokens is the sum over dispatched contexts, max_arm_load_tokens the larger single arm — 262/4 + 545/4 summed vs maxed'
+    m = d.get('metrics') or {}
+    cc_b = disp.get('splitlens@cc', {}).get('bytes')
+    codex_b = disp.get('splitlens@codex', {}).get('bytes')
+    ok = (cc_b == 262 and codex_b == 545
+          and m.get('arm_load_tokens') == (cc_b + codex_b) // 4 == 201
+          and m.get('max_arm_load_tokens') == max(cc_b, codex_b) // 4 == 136
+          and m.get('arm_load_tokens') > m.get('max_arm_load_tokens'))
+    report(ok, lbl, repr((cc_b, codex_b, m.get('arm_load_tokens'), m.get('max_arm_load_tokens'))))
+
+    lbl = "plugin-ratchets green-dispatch: AC-27/INV-3 — skills/_shared/inject/cond.md's load-when bytes leave max_stage_load_tokens/stage_tokens and land in conditional_load_tokens instead (moved, not shrunk)"
+    ok = (m.get('max_stage_load_tokens') == 89 and m.get('conditional_load_tokens') == 47
+          and m.get('stage_tokens') == [{'stage': 1, 'tokens': 89}])
+    report(ok, lbl, repr((m.get('max_stage_load_tokens'), m.get('conditional_load_tokens'), m.get('stage_tokens'))))
 
 # ---- entries-file contract: violations exit 1 and name the offending path
 scratch = tempfile.mkdtemp(prefix='plugin-map-selftest.')
@@ -245,6 +364,11 @@ for f in CHECKER_FILES:
 def kind_of(p):
     b = os.path.basename(p)
     if p.startswith('skills/') and b == 'SKILL.md':                     return 'skill'
+    # lens-manifest.yaml is data, never a loadable kind — a skill body naming it (its own
+    # header: "never by a gate session, so its own bytes are charged to no context") must
+    # not pull it, and everything it in turn names, into that skill's in-session closure
+    # (AC-44's fold-back guard). Checked before the generic skills/_shared/ fragment rule.
+    if p == 'skills/_shared/lens-manifest.yaml':                        return 'data'
     if p.startswith('skills/_shared/schemas/'):                         return 'schema'
     if p.startswith('agents/'):                                         return 'agent'
     if p.startswith('hooks/'):                                          return 'hook'
@@ -630,6 +754,170 @@ def closure(seed, blocked=frozenset(), adjacency=None):
         stack.extend(a.get(n, ()))
     return seen
 
+# ------------------------------------------- lens manifest / dispatched contexts
+# skills/_shared/lens-manifest.yaml declares which prose sections compose each
+# review lens and which side of a dispatch (arm vs host) each section lands on.
+# A lens attaches to a stage when some file in that stage's in-session load closure
+# DECLARES or DISPATCHES it — a gate body's `lenses:` routing-block line or an
+# assembler `--lens <name>` invocation — never a bare prose mention (see
+# lens_decl_rx's docstring); one dispatched context is then emitted per arm in the
+# lens's `arms` list, billed per the header contract's rules.
+ARM_AGENT = {'cc': 'agents/code-reviewer.md', 'codex': 'agents/codex-reviewer.md'}
+
+def load_lens_manifest():
+    p = os.path.join(root, 'skills/_shared/lens-manifest.yaml')
+    if not os.path.isfile(p):
+        return []
+    try:
+        import yaml
+    except ImportError:
+        notes.append('PyYAML absent — lens-manifest.yaml not read, no dispatched contexts computed')
+        return []
+    try:
+        with open(p, encoding='utf-8') as f:
+            doc = yaml.safe_load(f) or {}
+    except Exception as e:
+        notes.append('lens-manifest.yaml unparsable: %s' % e)
+        return []
+    return [l for l in (doc.get('lenses') or []) if isinstance(l, dict) and l.get('name')]
+
+LENS_MANIFEST = load_lens_manifest()
+_lens_decl_rx_cache = {}
+
+def lens_decl_rx(name):
+    """A lens L attaches only on a DECLARATION or DISPATCH of L, never a bare prose
+    mention: a gate body's `lenses:` routing-block line (`{name: L` or `- name: L`,
+    whole-word L) or an assembler invocation (`--lens L`, whole-word L bounded by
+    whitespace/quote). A schema comment or provenance.md prose that merely says the
+    word "conformance" no longer attaches the conformance lens to a stage it never
+    dispatches (commander harvest ruling on the ~58% arm_load_tokens over-attachment
+    this caused under the plain whole-word rule)."""
+    if name not in _lens_decl_rx_cache:
+        esc = re.escape(name)
+        _lens_decl_rx_cache[name] = re.compile(
+            r'\{\s*name\s*:\s*%s\b' % esc
+            + r'|-\s*name\s*:\s*%s\b' % esc
+            + r'|--lens[ \t]+["\']?%s["\']?(?=[\s"\']|$)' % esc)
+    return _lens_decl_rx_cache[name]
+
+LENS_MANIFEST_PATH = 'skills/_shared/lens-manifest.yaml'
+
+def lens_declared_by_contexts(per_ctx, lens_name):
+    """The stage's in-session CONTEXT names (skill entries, e.g. 'skills/design-review/
+    SKILL.md') whose OWN closure contains a file matching lens_name's declaration/dispatch
+    pattern — empty ⇒ no attachment. This names the CONTEXT, never the matching file itself
+    (addendum to the commander's harvest ruling): the lens-manifest checker (sibling task)
+    needs to know WHICH in-session context is the dispatching session holding arm bytes, so
+    its destination-contradiction check fails only that session — never a third skill that
+    legitimately reads the same shared file in its own closure for an unrelated purpose
+    (e.g. design-spec reading ground-and-sweep.md as its own authoring method must never be
+    flagged as dispatching a lens it does not declare). The manifest file ITSELF is excluded
+    from this scan: its own `- name: <lens>` catalogue entries would otherwise make every
+    context whose closure merely reaches lens-manifest.yaml (a naive path+verb graph edge —
+    a gate body's prose sentence naming the file, e.g. "the assembler reads it in a
+    subprocess", is enough to create one) falsely appear to declare EVERY lens in the file;
+    the manifest's own header already states its bytes are charged to no session — the same
+    exclusion extends to declaration matching."""
+    rx = lens_decl_rx(lens_name)
+    return sorted(ctx['context'] for ctx in per_ctx
+                  if any(f != LENS_MANIFEST_PATH and read(f) and rx.search(read(f))
+                         for f in ctx.get('files', [])))
+
+HEADING_RE = re.compile(r'^(#{1,6})\s+(.*?)\s*$')
+
+def raw_text(path):
+    try:
+        with open(os.path.join(root, path), 'rb') as f:
+            return f.read().decode('utf-8', errors='surrogateescape')
+    except OSError:
+        return None
+
+def encode_len(s):
+    return len(s.encode('utf-8', errors='surrogateescape'))
+
+def heading_section_bytes(path, heading_text):
+    """Bytes from a `#<heading>` ref's heading line through the line before the next
+    heading at the same or a shallower level (end of file otherwise). A ref with no
+    heading is priced as the whole file by the caller — this is the sub-file case."""
+    t = raw_text(path)
+    if t is None:
+        return 0
+    ls = t.splitlines(keepends=True)
+    start_idx = start_level = None
+    want = heading_text.strip()
+    for i, ln in enumerate(ls):
+        m = HEADING_RE.match(ln.rstrip('\r\n'))
+        if m and m.group(2).strip() == want:
+            start_idx, start_level = i, len(m.group(1))
+            break
+    if start_idx is None:
+        notes.append('lens-manifest.yaml: heading not found: %s#%s' % (path, heading_text))
+        return 0
+    end_idx = len(ls)
+    for j in range(start_idx + 1, len(ls)):
+        m = HEADING_RE.match(ls[j].rstrip('\r\n'))
+        if m and len(m.group(1)) <= start_level:
+            end_idx = j
+            break
+    return encode_len(''.join(ls[start_idx:end_idx]))
+
+def section_bytes_and_path(ref):
+    if '#' in ref:
+        path, heading = ref.split('#', 1)
+        return heading_section_bytes(path, heading), path
+    return byte_count(ref), ref
+
+_cond_cache = {}
+
+def is_conditional(path):
+    """A markdown file whose YAML frontmatter carries a non-empty `load-when:` key."""
+    if path not in _cond_cache:
+        val = False
+        if path.endswith('.md'):
+            for _, line in frontmatter_lines(path):
+                m = re.match(r'^\s*load-when\s*:\s*(.*)$', line)
+                if m:
+                    val = bool(m.group(1).split('#', 1)[0].strip())
+                    break
+        _cond_cache[path] = val
+    return _cond_cache[path]
+
+def dispatched_contexts_for_stage(per_ctx):
+    """[{context, kind, arm, lens, bytes, files, sections, dispatched_by}] — one entry per
+    arm of every lens the stage's in-session contexts declare or dispatch. `destination:
+    host` sections are excluded from the bill and from `files` entirely; a `destination:
+    arm` section's bytes are shared by every arm the lens dispatches to (a lens split
+    across two arms sends the same sections to both, so arm_load_tokens sums them).
+    `dispatched_by` = the in-session CONTEXT name(s) (not raw file paths) whose declaration/
+    dispatch pattern attached the lens — same list for every arm of one lens (attachment is
+    a per-lens fact)."""
+    out = []
+    for lens in LENS_MANIFEST:
+        name = lens.get('name')
+        if not name:
+            continue
+        declared_by = lens_declared_by_contexts(per_ctx, name)
+        if not declared_by:
+            continue
+        arm_secs = [s for s in (lens.get('sections') or [])
+                    if isinstance(s, dict) and s.get('destination') == 'arm' and s.get('ref')]
+        sec_out, sec_total, sec_paths = [], 0, set()
+        for s in arm_secs:
+            b, p = section_bytes_and_path(s['ref'])
+            sec_out.append({'ref': s['ref'], 'id': s.get('id', ''), 'bytes': b})
+            sec_total += b
+            sec_paths.add(p)
+        for arm in lens.get('arms') or []:
+            agent_path = ARM_AGENT.get(arm)
+            agent_bytes = byte_count(agent_path) if agent_path else 0
+            ctx_files = sorted(sec_paths | ({agent_path} if agent_path else set()))
+            out.append({
+                'context': '%s@%s' % (name, arm), 'kind': 'dispatched', 'arm': arm, 'lens': name,
+                'bytes': agent_bytes + sec_total, 'files': ctx_files, 'sections': sec_out,
+                'dispatched_by': declared_by,
+            })
+    return sorted(out, key=lambda d: (d['lens'], d['arm']))
+
 STAGES = [
     (0, 'skills/epic-driven-roadmap/SKILL.md'),
     (1, 'skills/crucible/SKILL.md'),
@@ -642,6 +930,7 @@ stage_entries = [e for _, e in STAGES if e in nodeset]
 skill_stage_entries = {e for e in stage_entries if kinds.get(e) == 'skill'}
 
 stages = []
+stage_tokens_list, arm_tokens_running, max_arm_ctx_bytes_running, cond_tokens_running = [], [], [], []
 for num, entry in STAGES:
     if entry not in nodeset:
         continue
@@ -664,14 +953,29 @@ for num, entry in STAGES:
         n_lines = sum(lines[p] for p in files)
         loaded_total += n_lines
         uniq.update(files)
-        per_ctx.append({'context': c, 'lines': n_lines, 'files': files})
+        per_ctx.append({'context': c, 'kind': 'in-session', 'lines': n_lines,
+                        'bytes': sum(bytes_[p] for p in files), 'files': files})
+
+    # unconditional in-session union → max_stage_load_tokens / stage_tokens; a load-when
+    # file's bytes move out of these and into conditional_load_tokens instead (never
+    # vanish — INV-3).
+    uncond = {p for p in uniq if not is_conditional(p)}
+    stage_tokens_val = sum(bytes_[p] for p in uncond) // 4
+    stage_tokens_list.append({'stage': num, 'tokens': stage_tokens_val})
+    cond_bytes_stage = sum(bytes_[p] for ctx in per_ctx for p in ctx['files'] if is_conditional(p))
+    cond_tokens_running.append(cond_bytes_stage // 4)
+
+    dispatched = dispatched_contexts_for_stage(per_ctx)
+    arm_tokens_running.append(sum(d['bytes'] for d in dispatched) // 4)
+    max_arm_ctx_bytes_running.append(max((d['bytes'] for d in dispatched), default=0))
+
     stages.append({
         'stage': num,
         'entry': entry,
         'load_set': sorted(lset),
         'lines': loaded_total,
         'unique_lines': sum(lines[p] for p in uniq),
-        'contexts': per_ctx,
+        'contexts': per_ctx + dispatched,
     })
 
 # --------------------------------------------------------- per-skill totals
@@ -718,6 +1022,11 @@ metrics = {
     'max_stage_load_lines': max((s['lines'] for s in stages), default=0),
     'untested_reachable_shell_lines': sum(lines[p] for p in untested),
     'untested_reachable_shell_files': untested,
+    'max_stage_load_tokens': max((s['tokens'] for s in stage_tokens_list), default=0),
+    'arm_load_tokens': max(arm_tokens_running, default=0),
+    'max_arm_load_tokens': max(max_arm_ctx_bytes_running, default=0) // 4,
+    'conditional_load_tokens': max(cond_tokens_running, default=0),
+    'stage_tokens': stage_tokens_list,
 }
 
 # ---------------------------------------------------------------- output

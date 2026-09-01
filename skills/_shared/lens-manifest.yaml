@@ -1,0 +1,94 @@
+# lens-manifest.yaml — the single declaration of which prose sections compose each
+# review lens and which side of a dispatch each section lands on.
+#
+# Read by `scripts/assemble-arm-task.sh` in a subprocess and by `scripts/plugin-map.sh`
+# at measurement time — never by a gate session, so its own bytes are charged to no
+# context. A gate body declares WHICH lenses go to WHICH arms; this file declares what
+# text each lens carries.
+#
+# name        — the lens name, unique across the file; the same name a gate body's
+#               `lenses:` block uses.
+# arms        — the default arm set; a caller may add an arm, never remove the last one.
+# subject     — always true: every lens takes a subject, so the assembler's output shape
+#               is unconditional.
+# sections[].ref
+#             — repo-relative path, optionally `#<heading>` (the heading's text without
+#               its leading `#`s). No heading means the whole file.
+# sections[].id
+#             — the fragment id; the arm opens its report with `fragments_read: <ids>`.
+# sections[].destination
+#             — `arm`: assembled into the dispatched arm's lens file and charged to that
+#               arm's context, never to a session's.
+#               `host`: the dispatching session reads it itself; it is excluded from every
+#               assembled lens file and stays charged to that session.
+
+lenses:
+  # ---------------------------------------------------------------- design-review
+  - name: challenger
+    arms: [cc]
+    subject: true
+    sections:
+      - {ref: skills/_shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
+      - {ref: skills/_shared/ground-and-sweep.md, id: sweep, destination: arm}
+      - {ref: skills/design-review/references/challenger.md, id: challenger-catalogue, destination: arm}
+      - {ref: skills/design-review/references/standing-vs-transient-bridge.md, id: bridge-standing, destination: arm}
+      - {ref: skills/_shared/inject/bridge-content-gate.md, id: bridge-gate, destination: arm}
+
+  - name: design-soundness
+    arms: [cc]
+    subject: true
+    sections:
+      - {ref: skills/_shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
+      - {ref: skills/_shared/ground-and-sweep.md, id: sweep, destination: arm}
+      - {ref: skills/design-review/references/lenses.md, id: doc-lens-soundness, destination: arm}
+      - {ref: skills/_shared/inject/design-soundness-honor-check.md, id: honor-check, destination: arm}
+      - {ref: skills/assay/references/arch-rubric.md, id: arch-rubric, destination: arm}
+      - {ref: skills/design-review/references/standing-vs-transient-bridge.md, id: bridge-standing, destination: arm}
+      - {ref: skills/_shared/inject/bridge-content-gate.md, id: bridge-gate, destination: arm}
+
+  - name: verification-honesty
+    arms: [codex]
+    subject: true
+    sections:
+      - {ref: skills/_shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
+      - {ref: skills/design-review/references/lenses.md, id: doc-lens-honesty, destination: arm}
+      - {ref: skills/_shared/inject/live-bearing-predicate.md, id: live-bearing, destination: arm}
+      - {ref: skills/_shared/inject/ac-coverage-honesty-principle.md, id: ac-honesty, destination: arm}
+      - {ref: skills/design-review/references/standing-vs-transient-bridge.md, id: bridge-standing, destination: arm}
+      - {ref: skills/_shared/inject/bridge-content-gate.md, id: bridge-gate, destination: arm}
+
+  # ----------------------------------------------------------- deliverable-review
+  - name: conformance
+    arms: [cc]
+    subject: true
+    sections:
+      - {ref: skills/_shared/inject/live-bearing-predicate.md, id: live-bearing, destination: arm}
+      - {ref: skills/_shared/inject/ac-coverage-honesty-principle.md, id: ac-honesty, destination: arm}
+      - {ref: skills/deliverable-review/references/ac-coverage-criteria.md, id: ac-coverage, destination: arm}
+      - {ref: skills/deliverable-review/references/reviewer-prompts.md, id: batch-prompts, destination: arm}
+
+  - name: honor-check
+    arms: [cc]
+    subject: true
+    sections:
+      - {ref: skills/_shared/inject/design-soundness-honor-check.md, id: honor-check, destination: arm}
+      - {ref: skills/assay/references/arch-rubric.md, id: arch-rubric, destination: arm}
+
+  - name: quality
+    arms: [codex]
+    subject: true
+    sections:
+      - {ref: skills/_shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
+
+  # ------------------------------------------------ assay — structural fork case
+  - name: arch-validation
+    arms: [cc]
+    subject: true
+    sections:
+      - {ref: 'skills/assay/references/critique-lens.md#cc arm — validation rubric', id: critique-validate, destination: arm}
+
+  - name: arch-pressure-test
+    arms: [codex]
+    subject: true
+    sections:
+      - {ref: 'skills/assay/references/critique-lens.md#codex arm — adversarial pressure-test', id: critique-pressure, destination: arm}

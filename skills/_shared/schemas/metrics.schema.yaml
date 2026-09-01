@@ -3,6 +3,9 @@
 # instrument-churn line counts, and the commit sha the phase was measured at. Keywords as in
 # spec.schema.yaml. An entry's `phase` must be unique across the list; `stage_tokens` must
 # cover every stage 0-5 exactly once; `measured_at` is a full 40-hex commit sha.
+# arm_load_tokens / conditional_load_tokens (plugin-map.sh's own `metrics` object) and
+# host_subject_bytes (a gate session's measured review-subject bytes for one run) are
+# optional — a phase that did not measure them omits the key rather than recording a zero.
 kind: metrics
 resolves: none
 type: object
@@ -42,3 +45,6 @@ properties:
             shape_driven_lines: {type: integer}
             other_lines: {type: integer}
         measured_at: {type: string, pattern: '^[0-9a-f]{40}$'}
+        arm_load_tokens: {type: integer}
+        conditional_load_tokens: {type: integer}
+        host_subject_bytes: {type: integer}
