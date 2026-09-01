@@ -28,13 +28,19 @@ The caller passes a JSON envelope:
 
 ```json
 {
-  "task": "<the diff, doc, or proposal to review>",
-  "task_dir": "<optional: absolute path for artifact write>",
+  "task_file": "<absolute path to the file holding the diff, doc, or proposal to review — the caller wrote it (conventionally <task_dir>/task.md) BEFORE dispatching>",
+  "task_dir": "<absolute path for artifact write; required alongside task_file>",
   "system_prompt": "<optional: role lens — replaces the built-in role prompt below>",
   "role": "reviewer",
   "timeout_seconds": 600
 }
 ```
+
+`task_file` is the one carrier of the review target: the shell streams it to codex
+(stdin redirect below) so the target never enters your context and is never
+reproduced in your output. A legacy envelope carrying inline `task` text instead is
+still legal ONLY for a short payload (≲2 KB): append it to the prompt after `---`
+as before, with stdin `</dev/null`.
 
 Timeout chain, explicit and single: envelope `timeout_seconds` > this file's `${TIMEOUT:-600}` default > the frontmatter `timeout_seconds` (trailing metadata — never overrides the first two).
 
@@ -48,16 +54,12 @@ codex --version >/dev/null 2>&1 || { echo "status: failed"; echo "fallback_reaso
 TASK_DIR="${TASK_DIR:-$(mktemp -d)}"   # envelope task_dir when given, else scratch
 timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check \
   -o "$TASK_DIR/last-message.txt" \
-  "$ROLE_PROMPT
-
----
-
-$TASK_TEXT" </dev/null 2>&1 | tee "$TASK_DIR/raw_codex.jsonl"
+  "$ROLE_PROMPT" < "$TASK_FILE" 2>&1 | tee "$TASK_DIR/raw_codex.jsonl"
 ```
 
-**`</dev/null` is mandatory.** The `tee` is the one permitted write besides `-o`: it produces the `raw_codex.jsonl` liveness artifact the caller checks. The first line is the only probe: a missing `codex` returns the failed envelope and exits 0 — never throw.
+Where `$ROLE_PROMPT` is the envelope `system_prompt` when present, else the built-in role prompt (last section) — prompt prefix only — and `$TASK_FILE` is the envelope `task_file`. codex appends piped stdin to the prompt as a `<stdin>` block, so the target reaches codex by OS file stream: the redirect is not a file read by you, and the target text appears nowhere in your tool call. (Legacy inline-`task` envelope: prompt is `"$ROLE_PROMPT\n\n---\n\n$TASK_TEXT"` with `</dev/null`, exactly the old form.)
 
-Where `$ROLE_PROMPT` is the envelope `system_prompt` when present, else the built-in role prompt (last section), and `$TASK_TEXT` is the task from the envelope. The role is injected via prompt prefix only.
+The `tee` is the one permitted write besides `-o`: it produces the `raw_codex.jsonl` liveness artifact the caller checks. The first line is the only probe: a missing `codex` returns the failed envelope and exits 0 — never throw.
 
 ## Success path — the `-o` result file
 
@@ -75,9 +77,17 @@ The `--json` event stream is retained for failure detection and the `raw_codex.j
 - Event with `type: error` OR `type: turn.failed` → `fallback_reason: "codex error: <event detail>"`, exit 0
 - Event with `type` containing `sandbox` and `violation` → `fallback_reason: "codex permission denied: <details>"`, exit 0
 
-## Timeout enforcement
+## Timeout enforcement — one resume before giving up
 
-`timeout 600 codex exec ...` (Bash `timeout` command) — if exceeded: `fallback_reason: codex timeout (${TIMEOUT:-600}s)`, exit 0.
+`timeout 600 codex exec ...` (Bash `timeout` command). If it fires (exit 124), or the `-o` file is missing/empty with no terminal failure event in the stream, make ONE continuation attempt — codex kept the session, so resume it instead of losing the work:
+
+```bash
+timeout "${TIMEOUT:-600}" codex exec resume --last --json \
+  -o "$TASK_DIR/last-message.txt" \
+  "Continue: finish the requested review and emit the final answer now." </dev/null 2>&1 | tee -a "$TASK_DIR/raw_codex.jsonl"
+```
+
+(`tee -a` — the resume segment appends to the same liveness artifact.) Then re-apply the § Success path boundary. Still no non-empty `-o` file: `fallback_reason: codex timeout (${TIMEOUT:-600}s)` — exit 0, never a second resume.
 
 ## Output — the stdout envelope
 

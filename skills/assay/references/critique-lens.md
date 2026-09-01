@@ -1,6 +1,6 @@
 # Architecture-critique lenses (sole injector: assay's structural-fork case)
 
-Two arms, two lenses — the validation rubric goes to the `cc` arm (`touchstone:code-reviewer`), the adversarial pressure-test to the `codex` arm (`touchstone:codex-reviewer`), never the reverse. Each lens travels as the envelope `system_prompt`, verbatim.
+Two arms, two lenses — the validation rubric goes to the `cc` arm (`touchstone:code-reviewer`), the adversarial pressure-test to the `codex` arm (`touchstone:codex-reviewer`), never the reverse. Each lens travels as the envelope `system_prompt`, verbatim. The codex arm's proposal text travels as `task_file` (write it into the round's artifact dir first, conventionally `task.md`); the cc arm receives the proposal as prompt content.
 
 ## cc arm — validation rubric
 
