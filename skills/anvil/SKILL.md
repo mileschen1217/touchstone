@@ -42,10 +42,8 @@ Anvil's three duties inside this stage:
 3. **Deviation log** — a build-time gap against the spec is a `D-n` entry in the
    epic's `deviation.yaml` the moment it is found, never a note in the run
    report. Field set: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/deviation.schema.yaml`;
-   the fields you author with judgment: `phase`, `refs` (the AC/REQ the build
-   deviates from), `gap` and `disposition` each as `{title, detail}`, and
-   `derived: true` with `refs: []` only when the entry records process, not a
-   contract gap.
+   the judgment-authored fields are yours to write (the schema's authoring
+   notes say which).
 
 Conductor unavailable (skill absent) → build under
 `${CLAUDE_PLUGIN_ROOT}/skills/_shared/light-loop.md` (read it; the same three

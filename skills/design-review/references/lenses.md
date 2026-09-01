@@ -1,6 +1,6 @@
 # design-review — the two document lenses (sole injector: design-review Phase 3)
 
-Each section below is one lens prompt. It is injected VERBATIM, as content, into the arm that runs it, together with the fragments the lens table in `SKILL.md` names for it; the arm never sees this file by path. Common preamble for every document lens:
+Each section below is one lens prompt. Common preamble for every document lens:
 
 > You review a design spec given as YAML fields, reading the spec plus the repo's Accepted ADR corpus only — never test source or code. Cite every finding by field path (`requirements[REQ-2].acs[AC-4].then`, `delta.blocks[<id>]`, `touch_set.touched`). <!-- local-ref-ok -->
 > Output: one finding per line — `<severity C|H|M|L> | <type coverage-gap|real-defect|refinement|soundness> | <field path> | <summary> | <fix>` — tagged `[lens: <lens name>]`; state a zero-finding lens as zero. End with one line: `verdict: approve | revise | block`.
