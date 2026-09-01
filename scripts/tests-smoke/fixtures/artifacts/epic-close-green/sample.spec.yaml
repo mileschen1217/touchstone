@@ -1,0 +1,10 @@
+id: SPEC-fixture-epic-p1
+title: Fixture spec for epic close-gate testing
+epic: fixture-epic-close
+phase: 1
+status: accepted
+requirements:
+  - id: REQ-1
+    acs:
+      - {id: AC-1, live_bearing: true}
+      - {id: AC-2}

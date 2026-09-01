@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Read-only reviewer — reviews a diff, document, or artifact and returns severity-sorted findings with a one-line verdict. The `cc` arm of every touchstone review lens — dispatched by `/touchstone:design-review` (the challenger lens; a document lens on fallback), `/touchstone:deliverable-review` (conformance + honor-check; quality when Codex built), and `/touchstone:assay`'s structural-fork critique (the validation rubric). The lens arrives via the envelope `system_prompt`. Do NOT call directly for routine review; use the gate skills.
+description: Read-only reviewer — reviews a diff, document, or artifact and returns severity-sorted findings with a one-line verdict. The `cc` arm of the touchstone review gates — never called directly for routine review; the gate skills wrap me.
 model: sonnet
 tools: Read, Grep, Glob, Bash
 ---

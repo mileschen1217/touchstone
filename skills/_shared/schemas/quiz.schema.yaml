@@ -1,25 +1,10 @@
-# quiz.schema.yaml — per-epic understanding quiz (quiz.yaml), the Post-build pair's quiz
-# half (the explainer is the other half; quiz.yaml is the durable home phase_summaries did
-# not have before). Keywords as in spec.schema.yaml's header. `resolves: phase` — an item's
-# `refs` resolve against the `*.spec.yaml` under --root whose top-level `phase` equals that
-# item's own `phase` (see spec.schema.yaml's header for the spec_ref keyword and the
-# resolution rule). `result` is required once `answer` is present (checked by
-# check-artifact.sh). `anchor` is a field path per the field-path grammar. Retired legacy
-# keys (asserted dead by a red fixture): `kind`, `expected_refs`, `answer_refs`.
-#
-# Consumers, per top-level field:
-#   waived          — scripts/dossier-render.sh (waiver panel, zero-delta phases);
-#                      skills/epic-driven-roadmap/references/phase-ship.md (zero D-n in a
-#                      shipped phase ⇒ waived: true)
-#   phase_summaries — scripts/dossier-render.sh (renders at the top of that phase's panel
-#                      and at the top of that phase's quiz section); phase-ship.md (one
-#                      owner-frame entry authored per shipped phase — the summary
-#                      supplements the item refs/anchors, never replaces them as audit
-#                      anchors)
-#   items           — scripts/dossier-render.sh (per-item render, per-phase grouping, gate
-#                      strip); phase-ship.md (authoring rule: drop test, ≤8 items, ids stay
-#                      in refs/anchor and never in question text); scripts/check-artifact.sh
-#                      (validation)
+# This schema defines the per-epic understanding quiz, the Post-build pair's quiz half (the
+# explainer is the other half). Keywords as in the keyword legend (spec schema header).
+# `resolves: phase` — an item's `refs` resolve against the phase-matched design spec under
+# --root whose top-level `phase` equals that item's own `phase` (see the keyword legend
+# (spec schema header) for the spec_ref keyword and the resolution rule). `anchor` is a
+# field path per the field-path grammar. Retired legacy keys (asserted dead by a red
+# fixture): `kind`, `expected_refs`, `answer_refs`.
 kind: quiz
 resolves: phase
 type: object

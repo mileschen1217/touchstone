@@ -1,0 +1,44 @@
+# metrics.schema.yaml — one entry per phase: wall-clock hours, human turns, dispatch count,
+# high-severity finding counts per review lens, per-stage token loads, false-edge count,
+# instrument-churn line counts, and the commit sha the phase was measured at. Keywords as in
+# spec.schema.yaml. An entry's `phase` must be unique across the list; `stage_tokens` must
+# cover every stage 0-5 exactly once; `measured_at` is a full 40-hex commit sha.
+kind: metrics
+resolves: none
+type: object
+additionalProperties: false
+required: [metrics]
+properties:
+  metrics:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [phase, wall_clock_h, human_turns, dispatches, lens_h, stage_tokens, false_edges, instrument_churn, measured_at]
+      additionalProperties: false
+      properties:
+        phase: {type: integer}
+        wall_clock_h: {type: number}
+        human_turns: {type: integer}
+        dispatches: {type: integer}
+        lens_h:
+          type: object
+          additionalProperties: {type: integer}
+        stage_tokens:
+          type: array
+          items:
+            type: object
+            required: [stage, tokens]
+            additionalProperties: false
+            properties:
+              stage: {type: integer, enum: [0, 1, 2, 3, 4, 5]}
+              tokens: {type: integer}
+        false_edges: {type: integer}
+        instrument_churn:
+          type: object
+          required: [shape_driven_lines, other_lines]
+          additionalProperties: false
+          properties:
+            shape_driven_lines: {type: integer}
+            other_lines: {type: integer}
+        measured_at: {type: string, pattern: '^[0-9a-f]{40}$'}

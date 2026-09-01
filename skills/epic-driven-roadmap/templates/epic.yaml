@@ -1,0 +1,42 @@
+# epic.yaml skeleton — copy to the new epic's directory and fill every field; the rule for
+# each lives in the epic schema (check-artifact.sh validates: check-artifact.sh epic
+# <path> --root <epic-dir>). Keep the comments out of the written epic.yaml.
+slug: <slug>
+status: proposed              # proposed | active | paused | done | cancelled
+started: YYYY-MM-DD            # today, when work begins
+# landed: YYYY-MM-DD           # set on close
+aim: <one-sentence observable deliverable>
+
+foundation:
+  intention: <the motivation — why this epic exists>
+  out_of_scope:
+    - <a route this epic will NOT take, even if related>
+  # rulings:
+  #   - "<an owner-verbatim ruling sentence, quoted, not paraphrased>"
+
+phases:
+  - n: 1
+    title: <phase title>
+    # spec: YYYY-MM-DD-<slug>.md   # filename, relative to this epic's own directory
+    # plan: YYYY-MM-DD-<slug>.md
+    status: proposed
+    # landed: YYYY-MM-DD
+
+# pivots:
+#   - <one line, added as it happens>
+# open_questions:
+#   - <one line each>
+# docs:
+#   - <filename of a research / spec / plan / ADR doc for this epic>
+# deviation_log:
+#   - <one carried-over event line>
+
+# Filled at close only.
+# retrospective: |
+#   What worked: …
+#   What pivoted: …
+#   What to do differently: …
+# reckoning:
+#   - {ac: <criterion id>, covered_by: "<fresh, specific evidence>", live_bearing: false}
+# disposition:
+#   none: true

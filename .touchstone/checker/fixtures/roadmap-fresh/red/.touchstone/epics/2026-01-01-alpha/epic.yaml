@@ -1,0 +1,17 @@
+slug: alpha
+status: active
+started: 2026-01-01
+aim: A synthetic epic for the roadmap-fresh checker fixture.
+
+foundation:
+  intention: exercise the freshness checker's green path.
+  out_of_scope: []
+
+phases:
+  - n: 1
+    title: One
+    status: done
+    landed: 2026-01-02
+  - n: 2
+    title: Two
+    status: proposed

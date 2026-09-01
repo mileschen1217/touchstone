@@ -1,0 +1,49 @@
+slug: fixture-yaml
+status: active
+started: 2026-01-01
+aim: A synthetic yaml-born epic for the dossier renderer smoke test.
+
+foundation:
+  intention: exercise the yaml-born read path end to end.
+  out_of_scope:
+    - anything real
+  rulings:
+    - "epic.yaml is the single hand-written home; index.md is never authored again."
+
+phases:
+  - n: 1
+    title: Alpha
+    status: done
+    landed: 2026-01-02
+  - n: 2
+    title: Beta
+    status: done
+    landed: 2026-01-03
+  - n: 3
+    title: Gamma
+    spec: 2026-01-04-gamma.spec.yaml
+    status: active
+  - n: 4
+    title: Delta
+    status: proposed
+  - n: 5
+    title: Epsilon
+    status: proposed
+  - n: 6
+    title: Zeta
+    status: proposed
+
+pivots:
+  - dropped the sidecar form in favor of full migration
+
+open_questions:
+  - does REQ-1 of phase 3 subsume AC-2?
+
+deviation_log:
+  - "phase 2 · interface delta: AC-1 built with a flag instead of a header / which-stage-could-have-caught: assay"
+
+reckoning:
+  - {ac: AC-1, covered_by: "review.md", live_bearing: false}
+
+disposition:
+  none: true

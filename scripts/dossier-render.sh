@@ -10,7 +10,7 @@
 # Usage: dossier-render.sh [--root <dir>] [--pr-body] <epic-dir>
 #   exit 0 → <epic-dir>/dossier.html written (+ <epic-dir>/pr-body.md with --pr-body:
 #            the newest YAML phase's Ship tab as text, sections in the tab's order)
-#   exit 1 → path missing / not a dir / no index.md / dir not writable / PyYAML absent
+#   exit 1 → path missing / not a dir / no epic.yaml or index.md / dir not writable / PyYAML absent
 #            while a .yaml artifact is present / a .yaml artifact that does not parse to a
 #            mapping / --pr-body with no YAML phase (nothing written) — cause on stderr
 #
@@ -70,7 +70,7 @@ done
 epic_dir="$1"
 [ -e "$epic_dir" ] || { printf 'dossier-render.sh: path does not exist: %s\n' "$epic_dir" >&2; exit 1; }
 [ -d "$epic_dir" ] || { printf 'dossier-render.sh: not a directory: %s\n' "$epic_dir" >&2; exit 1; }
-[ -f "$epic_dir/index.md" ] || { printf 'dossier-render.sh: no index.md in %s\n' "$epic_dir" >&2; exit 1; }
+[ -f "$epic_dir/epic.yaml" ] || [ -f "$epic_dir/index.md" ] || { printf 'dossier-render.sh: no epic.yaml or index.md in %s\n' "$epic_dir" >&2; exit 1; }
 [ -w "$epic_dir" ] || { printf 'dossier-render.sh: directory not writable: %s\n' "$epic_dir" >&2; exit 1; }
 command -v python3 >/dev/null 2>&1 || { printf 'dossier-render.sh: python3 not found\n' >&2; exit 1; }
 if find "$epic_dir" -name '*.yaml' | grep -q . && ! python3 -c 'import yaml' 2>/dev/null; then
@@ -155,6 +155,61 @@ def load_yaml(p):
 def sval(v):
     """A YAML scalar as display text."""
     return '' if v is None else str(v).strip()
+
+def synth_index_from_epic(yd):
+    """A legacy-shaped index.md body, built purely from epic.yaml field values — the
+    yaml-born path's ONLY document; index.md is never read when epic.yaml exists
+    (ADR-0043 deterministic precedence). Every downstream consumer of index_text /
+    index_fm / index_body (frontmatter parsing, sections(), the Aim regex, Foundation /
+    Pivots / Open Questions / Deviation log / close-section rendering) stays unchanged:
+    it runs on this projection exactly as it would on a hand-written index.md. Phase
+    identity (the Phases table) is deliberately NOT projected here — phases[] renders
+    straight from Python data (phase_rows / phase_table_rows below), never through a
+    markdown-table re-parse (ADR-0043 "never from markdown rows")."""
+    slug = sval(yd.get('slug'))
+    lines = ['---', f'slug: {slug}', f'status: {sval(yd.get("status"))}']
+    if yd.get('started'): lines.append(f'started: {sval(yd.get("started"))}')
+    if yd.get('landed'): lines.append(f'landed: {sval(yd.get("landed"))}')
+    lines += ['---', '', f'# {slug}', '', f'**Aim:** {sval(yd.get("aim"))}', '']
+    f = yd.get('foundation') if isinstance(yd.get('foundation'), dict) else {}
+    lines += ['## Foundation', '']
+    if sval(f.get('intention')): lines.append(f'- **Intention:** {sval(f.get("intention"))}')
+    for item in f.get('out_of_scope') or []:
+        lines.append(f'- **Out of scope:** {sval(item)}')
+    for r in f.get('rulings') or []:
+        lines.append(f'- **Ruling:** {sval(r)}')
+    lines.append('')
+    for h, key in (('Pivots', 'pivots'), ('Open Questions', 'open_questions'), ('Deviation log', 'deviation_log')):
+        items = [sval(x) for x in (yd.get(key) or []) if sval(x)]
+        lines += [f'## {h}', '']
+        lines += [f'- {x}' for x in items] if items else ['*(none)*']
+        lines.append('')
+    lines += ['## Retrospective', '', sval(yd.get('retrospective')) or '*(none)*', '']
+    lines += ['## Evidence Reckoning', '']
+    reck = [r for r in (yd.get('reckoning') or []) if isinstance(r, dict)]
+    if reck:
+        lines.append('| AC | Covered by | live-bearing? | unverified | waiver | Issue |')
+        lines.append('|----|----|----|----|----|----|')
+        for r in reck:
+            lines.append(f'| {sval(r.get("ac"))} | {sval(r.get("covered_by"))} | '
+                          f'{"yes" if r.get("live_bearing") else "no"} | '
+                          f'{"yes" if r.get("unverified") else ""} | {sval(r.get("waiver"))} | {sval(r.get("issue"))} |')
+    else:
+        lines.append('*(none)*')
+    lines += ['', '## Disposition', '']
+    disp = yd.get('disposition') if isinstance(yd.get('disposition'), dict) else {}
+    if disp.get('none'):
+        lines.append('none')
+    else:
+        any_row = False
+        for key, dlabel in (('promoted', 'Promoted'), ('retired', 'Retired'), ('kill_on', 'Kill-on'), ('standing_docs', 'Standing docs')):
+            vals = [sval(v) for v in (disp.get(key) or []) if sval(v)]
+            if vals:
+                any_row = True
+                lines.append(f'- **{dlabel}:** ' + '; '.join(vals))
+        if not any_row: lines.append('*(none)*')
+    lines.append('')
+    return '\n'.join(lines)
 
 def spec_date(stem):
     m = re.match(r'^(\d{4}-\d{2}-\d{2})-', stem)
@@ -258,7 +313,15 @@ for dp, dns, fns in os.walk(epic_dir):
             continue
         files.append(rel)
 
-index_text = read(os.path.join(epic_dir, 'index.md'))
+epic_yaml_path = os.path.join(epic_dir, 'epic.yaml')
+has_epic_yaml = os.path.isfile(epic_yaml_path)
+epic_yaml_data = load_yaml(epic_yaml_path) if has_epic_yaml else None
+# Deterministic precedence (ADR-0043): epic.yaml present → read it, index.md ignored
+# entirely; else the legacy index.md path exactly as before (archived epics).
+if has_epic_yaml:
+    index_text = synth_index_from_epic(epic_yaml_data)
+else:
+    index_text = read(os.path.join(epic_dir, 'index.md'))
 index_fm, index_body = frontmatter(index_text)
 slug = index_fm.get('slug') or os.path.basename(epic_dir)
 epic_title = first_h1(index_body) or slug
@@ -280,18 +343,24 @@ def is_spec(rel):
         return fm.get('type') in ('spec', 'adr')
     return False
 
-# phases: from the index Phases table (order), each row's spec link defines a phase
+# phases: from the index Phases table (order), each row's spec link defines a phase —
+# or, on the yaml path, straight from epic.yaml's phases[] (never a markdown re-parse).
 phase_rows = []
-for title, text in sections(index_body):
-    if title == 'Phases':
-        for line in text.splitlines():
-            if not line.startswith('|'):
-                continue
-            cells = [c.strip() for c in line.strip().strip('|').split('|')]
-            if len(cells) < 3 or not cells[0].isdigit():
-                continue
-            m = re.search(r'\]\(([^)]+)\)', cells[2])
-            phase_rows.append({'num': cells[0], 'title': cells[1], 'spec': m.group(1) if m else ''})
+if has_epic_yaml:
+    for ph in epic_yaml_data.get('phases') or []:
+        if isinstance(ph, dict):
+            phase_rows.append({'num': sval(ph.get('n')), 'title': sval(ph.get('title')), 'spec': sval(ph.get('spec'))})
+else:
+    for title, text in sections(index_body):
+        if title == 'Phases':
+            for line in text.splitlines():
+                if not line.startswith('|'):
+                    continue
+                cells = [c.strip() for c in line.strip().strip('|').split('|')]
+                if len(cells) < 3 or not cells[0].isdigit():
+                    continue
+                m = re.search(r'\]\(([^)]+)\)', cells[2])
+                phase_rows.append({'num': cells[0], 'title': cells[1], 'spec': m.group(1) if m else ''})
 
 spec_files = [f for f in files if is_spec(f) and (f.endswith('.md') or f.endswith('.spec.yaml')
               or (os.path.basename(f).startswith('assay-') and f.endswith('.yaml')))]
@@ -729,11 +798,19 @@ index_sections = {h: t for h, t in sections(index_body)}
 aim_m = re.search(r'^\*\*Aim:\*\*\s*(.+)$', index_body, re.M)
 aim = aim_m.group(1).strip() if aim_m else ''
 phase_table_rows = []
-for line in index_sections.get('Phases', '').splitlines():
-    if line.startswith('|'):
-        cells = [c.strip() for c in line.strip().strip('|').split('|')]
-        if len(cells) >= 5 and cells[0].isdigit():
-            phase_table_rows.append(cells)
+if has_epic_yaml:
+    # header denominator = len(phases[]); numerator (elsewhere) also traces to n — never
+    # an index-table row count. Cells line up with the legacy [num,title,spec,plan,status,landed].
+    for ph in epic_yaml_data.get('phases') or []:
+        if isinstance(ph, dict):
+            phase_table_rows.append([sval(ph.get('n')), sval(ph.get('title')), sval(ph.get('spec')),
+                                      sval(ph.get('plan')), sval(ph.get('status')), sval(ph.get('landed'))])
+else:
+    for line in index_sections.get('Phases', '').splitlines():
+        if line.startswith('|'):
+            cells = [c.strip() for c in line.strip().strip('|').split('|')]
+            if len(cells) >= 5 and cells[0].isdigit():
+                phase_table_rows.append(cells)
 
 specs = {}  # rel -> dict
 YAML_PANELS = [('Position', 'position'), ('Structure before → after', 'structure_before_after'),
@@ -1425,6 +1502,17 @@ if not root:
     notes.append('No project root (`.touchstone/` ancestor) found — gate-miss and ADR lookups skipped.')
 yaml_phases = [p for p in phases if 'yaml' in specs[p['spec']]]
 current = yaml_phases[-1] if yaml_phases else None   # newest YAML phase = the one under decision
+if has_epic_yaml and yaml_phases:
+    # ADR-0043: on the yaml path the numerator is deterministic — the lowest phases[].n
+    # with status active, else the highest non-proposed phase, else 1 (not "last spec
+    # file found on disk").
+    yn = [ph for ph in epic_yaml_data.get('phases') or [] if isinstance(ph, dict) and isinstance(ph.get('n'), int)]
+    actives = sorted(ph['n'] for ph in yn if sval(ph.get('status')) == 'active')
+    non_proposed = sorted((ph['n'] for ph in yn if sval(ph.get('status')) not in ('proposed', '')), reverse=True)
+    want = actives[0] if actives else (non_proposed[0] if non_proposed else 1)
+    match = next((p for p in yaml_phases if p['num'] == str(want)), None)
+    if match:
+        current = match
 for i, p in enumerate(phases):
     p['num'] = phase_num(p, i)
 
@@ -1717,7 +1805,7 @@ for phnum in sorted(set(dev_by_phase) | set(quiz_by_phase)):
     if body:
         tab['紀錄'][key].append(f'<article><h3 class="file-title">Phase {html.escape(phnum)}</h3>{body}</article>')
 for rel in files:
-    if rel == 'index.md': continue
+    if rel in ('index.md', 'epic.yaml'): continue
     p = phase_of(rel); st = stage_of(rel); path = os.path.join(epic_dir, rel)
     if st == 'record':
         records.setdefault((p['key'], os.path.dirname(rel).split('/')[0]), []).append(rel); continue

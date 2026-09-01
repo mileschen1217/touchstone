@@ -1,0 +1,20 @@
+slug: fixture-epic-close
+status: done
+started: 2026-01-01
+landed: 2026-02-01
+aim: Ship the fixture feature end to end.
+foundation:
+  intention: Prove the close gate accepts a fully-reckoned done epic.
+  out_of_scope:
+    - A second unrelated feature.
+phases:
+  - {n: 1, title: Only phase, spec: sample.spec.yaml, status: done, landed: 2026-02-01}
+retrospective: |
+  What worked: the reckoning table was straightforward to fill.
+  What pivoted: nothing.
+  What to do differently: nothing.
+reckoning:
+  - {ac: AC-1, covered_by: "(via: read -> scripts/check-artifact.sh:40: kind epic accepted)", live_bearing: true}
+  - {ac: AC-2, covered_by: "tests/fixture_test.py:12", live_bearing: false}
+disposition:
+  none: true

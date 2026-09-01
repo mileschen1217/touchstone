@@ -1,23 +1,22 @@
-# spec.schema.yaml — the field set of a design spec (spec.yaml). Single home of the shape;
-# scripts/check-artifact.sh validates an instance against it. Keywords: JSON-Schema subset
+# This schema defines the field set of a design spec. Keywords: JSON-Schema subset
 # (type / required / properties / items / enum / oneOf / additionalProperties; type `date` =
-# a YAML date or a string) plus
-#   reader: human|agent   — on every top-level field; the dossier projects human fields
-#   id: <family>          — a stable id `<family>-<n>` (or a slug for block/contract/flow), unique within the file
+# a calendar date or a string) plus
+#   reader: human|agent   — on every top-level field; marks which fields a human-facing summary projects
+#   id: <family>          — a stable id `<family>-<n>` (or a slug for block / contract / flow), unique within the file
 #   ref: <family>         — value(s) must name an id of that family defined in this file
 #   ledger_ref: true      — value(s) must resolve in the ledger (a line starting `- <id>` or `| <id>`)
 #   path_free: true       — human panel text: no slash-separated names or file extensions
 #   pattern <regex>       — keyword `pattern`; a string value must fullmatch <regex>
 #   minItems: <n>         — array must carry at least n items
-#   spec_ref: true         — value must name a US/REQ/AC/INV id defined in a *resolution
-#                            spec*: this kind's file itself (spec), the review's `target`
-#                            (review), or the `*.spec.yaml` under --root whose top-level
-#                            `phase` equals the enclosing item's `phase` (deviation)
+#   spec_ref: true         — value must name a US / REQ / AC / INV id defined in a
+#                            *resolution spec*: this kind's own contents (spec), the
+#                            review's `target` (review), or the enclosing item's
+#                            phase-matched design spec (deviation)
 #
-# Waiting item (shared shape, home = here; review.yaml and deviation.yaml point back at
-# this comment): {id: W-<n>, kind: ruling|answer|accept|fix, owner, title, detail?, refs?}
-# — required [id, kind, owner, title]. `refs` (here and everywhere else it appears) is a
-# refs-list: an array of strings, each matching the id grammar and resolved per spec_ref.
+# Waiting item (shared shape used by every kind that carries a waiting_on_human list):
+# {id: W-<n>, kind: ruling|answer|accept|fix, owner, title, detail?, refs?} — required
+# [id, kind, owner, title]. `refs` (here and everywhere else it appears) is a refs-list: an
+# array of strings, each matching the id grammar and resolved per spec_ref.
 kind: spec
 resolves: self
 type: object

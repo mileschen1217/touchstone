@@ -55,6 +55,29 @@ expect_out "check-artifact review: field path unresolvable in target" "'requirem
 expect_out "check-artifact review: [*] on an empty list resolves to nothing" "'waiting_on_human[*]' resolves to nothing" bash "$ca" review "$ax/review-red-star.yaml" --root "$ax"
 expect_out "check-artifact review: degraded without reason" "degraded_reason: required when degraded is true" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
 
+# degraded_reason carries a closed literal set (six shapes) — free-form prose is rejected
+expect_exit "check-artifact review: degraded_reason free-form prose" nonzero bash "$ca" review "$ax/review-red-degraded-enum.yaml" --root "$ax"
+expect_out "check-artifact review: degraded_reason outside the six literal shapes" "degraded_reason: 'codex was flaky today' does not match pattern" bash "$ca" review "$ax/review-red-degraded-enum.yaml" --root "$ax"
+# the independence-lost fallback shape (a real gate producer) is admitted
+expect_exit "check-artifact review: independence-lost degraded_reason admitted" zero bash "$ca" review "$ax/review-degraded-independence-green.yaml" --root "$ax"
+
+# kind epic: the spec is the authority on live_bearing — a demoted row is rejected
+expect_exit "check-artifact epic: spec-live AC demoted in reckoning" nonzero bash "$ca" epic "$ax/epic-close-red-live-demoted/epic.yaml" --root "$ax/epic-close-red-live-demoted"
+expect_out "check-artifact epic: demotion names the spec authority" "contradicts the accepted spec's AC" bash "$ca" epic "$ax/epic-close-red-live-demoted/epic.yaml" --root "$ax/epic-close-red-live-demoted"
+# kind epic: a phases[].spec path escaping the epic root is rejected (path guard)
+expect_exit "check-artifact epic: phases[].spec escaping --root" nonzero bash "$ca" epic "$ax/epic-close-red-spec-escape/epic.yaml" --root "$ax/epic-close-red-spec-escape"
+expect_out "check-artifact epic: escape names the guard" "escapes the --root directory" bash "$ca" epic "$ax/epic-close-red-spec-escape/epic.yaml" --root "$ax/epic-close-red-spec-escape"
+# kind epic: duplicate reckoning rows for one AC are rejected
+expect_exit "check-artifact epic: duplicate reckoning row" nonzero bash "$ca" epic "$ax/epic-close-red-dup-reckoning/epic.yaml" --root "$ax/epic-close-red-dup-reckoning"
+expect_out "check-artifact epic: duplicate row named" "duplicate row for the same AC" bash "$ca" epic "$ax/epic-close-red-dup-reckoning/epic.yaml" --root "$ax/epic-close-red-dup-reckoning"
+
+# roadmap-render: a normal render fails loudly on an invalid epic dir (never a silent omission)
+rrbad="$(mktemp -d)"; mkdir -p "$rrbad/.touchstone/epics/2026-01-01-broken"
+printf 'not: [valid\n' > "$rrbad/.touchstone/epics/2026-01-01-broken/epic.yaml"
+expect_exit "roadmap-render: invalid epic dir fails the render" nonzero bash "$scripts_dir/roadmap-render.sh" --root "$rrbad"
+expect_out "roadmap-render: invalid dir named on stderr" "INVALID epic dir" bash "$scripts_dir/roadmap-render.sh" --root "$rrbad"
+rm -rf "$rrbad"
+
 # AC-3: waiting_on_human is a list of W-n objects — the legacy list-of-strings shape is rejected
 expect_exit "check-artifact review: legacy waiting_on_human strings" nonzero bash "$ca" review "$ax/review-red-legacy-w.yaml" --root "$ax"
 expect_out "check-artifact review: legacy waiting_on_human[0] not an object" "waiting_on_human[0]: expected object" bash "$ca" review "$ax/review-red-legacy-w.yaml" --root "$ax"
@@ -155,8 +178,42 @@ expect_out "check-artifact explore: plateau false without reach_under_determined
 expect_exit "check-artifact explore: seam_maps entry without parties" nonzero bash "$ca" explore "$ax/explore-red-parties.yaml" --root "$ax"
 expect_out "check-artifact explore: seam_maps entry without parties names it" "seam_maps[0].parties: required" bash "$ca" explore "$ax/explore-red-parties.yaml" --root "$ax"
 
-# AC-14: the usage line lists exactly the six kinds
-expect_out "check-artifact usage lists exactly six kinds" "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore> <file> [--root <dir>]" bash "$ca" bogus "$ax/spec-green.yaml"
+# ---- check-artifact.sh epic kind (phase 6, epic-yaml): green (rich + minimal) and one
+# red fixture per blocking close-gate rule; AC-1..AC-4, AC-35
+expect_exit "check-artifact epic green" zero bash "$ca" epic "$ax/epic-green.yaml" --root "$ax"
+expect_exit "check-artifact epic minimal green (required fields only)" zero bash "$ca" epic "$ax/epic-minimal-green.yaml" --root "$ax"
+expect_exit "check-artifact epic close-green: fully-reckoned done epic (AC-35)" zero bash "$ca" epic "$ax/epic-close-green/epic.yaml" --root "$ax/epic-close-green"
+
+expect_exit "check-artifact epic: dual hand-written form (AC-2)" nonzero bash "$ca" epic "$ax/epic-close-red-dual-form/epic.yaml" --root "$ax/epic-close-red-dual-form"
+expect_out "check-artifact epic: dual hand-written form names the dual form" "index.md present beside epic.yaml with no generated-projection marker" bash "$ca" epic "$ax/epic-close-red-dual-form/epic.yaml" --root "$ax/epic-close-red-dual-form"
+
+expect_exit "check-artifact epic: unreckoned AC on a done epic (AC-3)" nonzero bash "$ca" epic "$ax/epic-close-red-unreckoned-ac/epic.yaml" --root "$ax/epic-close-red-unreckoned-ac"
+expect_out "check-artifact epic: unreckoned AC names the AC" "reckoning: AC-2 in sample.spec.yaml has no reckoning[] row" bash "$ca" epic "$ax/epic-close-red-unreckoned-ac/epic.yaml" --root "$ax/epic-close-red-unreckoned-ac"
+
+expect_exit "check-artifact epic: empty reckoning row (no covered_by/unverified/waiver)" nonzero bash "$ca" epic "$ax/epic-close-red-empty-row/epic.yaml" --root "$ax/epic-close-red-empty-row"
+expect_out "check-artifact epic: empty reckoning row names the row" "reckoning[AC-1]: no covered_by, no unverified mark, and no waiver" bash "$ca" epic "$ax/epic-close-red-empty-row/epic.yaml" --root "$ax/epic-close-red-empty-row"
+
+expect_exit "check-artifact epic: live-bearing row with proxy-only covered_by (INV-5)" nonzero bash "$ca" epic "$ax/epic-close-red-live-bearing-proxy/epic.yaml" --root "$ax/epic-close-red-live-bearing-proxy"
+expect_out "check-artifact epic: live-bearing proxy-only coverage is rejected, not 'field non-empty'" "live-bearing row requires live-artifact provenance" bash "$ca" epic "$ax/epic-close-red-live-bearing-proxy/epic.yaml" --root "$ax/epic-close-red-live-bearing-proxy"
+
+expect_exit "check-artifact epic: unverified row with no issue" nonzero bash "$ca" epic "$ax/epic-close-red-unverified-no-issue/epic.yaml" --root "$ax/epic-close-red-unverified-no-issue"
+expect_out "check-artifact epic: unverified row with no issue names the rule" "reckoning[AC-1].issue: required when unverified or waiver is set" bash "$ca" epic "$ax/epic-close-red-unverified-no-issue/epic.yaml" --root "$ax/epic-close-red-unverified-no-issue"
+
+expect_exit "check-artifact epic: done epic with empty retrospective" nonzero bash "$ca" epic "$ax/epic-close-red-no-retrospective/epic.yaml" --root "$ax/epic-close-red-no-retrospective"
+expect_out "check-artifact epic: empty retrospective names the rule" "retrospective: required (non-empty) when status is done" bash "$ca" epic "$ax/epic-close-red-no-retrospective/epic.yaml" --root "$ax/epic-close-red-no-retrospective"
+
+expect_exit "check-artifact epic: phases[].n does not match its linked spec's phase (AC-4)" nonzero bash "$ca" epic "$ax/epic-close-red-phase-mismatch/epic.yaml" --root "$ax/epic-close-red-phase-mismatch"
+expect_out "check-artifact epic: phase mismatch names both numbers" "phases[6].n: 6 does not match sample.spec.yaml's top-level phase (5)" bash "$ca" epic "$ax/epic-close-red-phase-mismatch/epic.yaml" --root "$ax/epic-close-red-phase-mismatch"
+
+# AC-2 green half: an index.md carrying the generated-projection marker beside epic.yaml is legal
+epic_marker_root="$(mktemp -d)"
+cp "$ax/epic-close-red-dual-form/epic.yaml" "$epic_marker_root/epic.yaml"
+printf '%s\n' '<!-- generated: projection of epic.yaml -->' > "$epic_marker_root/index.md"
+expect_exit "check-artifact epic: generated-marker index.md beside epic.yaml is legal" zero bash "$ca" epic "$epic_marker_root/epic.yaml" --root "$epic_marker_root"
+rm -rf "$epic_marker_root"
+
+# AC-14: the usage line lists exactly the seven kinds
+expect_out "check-artifact usage lists exactly seven kinds" "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic> <file> [--root <dir>]" bash "$ca" bogus "$ax/spec-green.yaml"
 
 # AC-15: the three hard-coded resolution branches (spec/review/deviation dispatched by
 # `kind ==`) are gone — resolution reads each schema's declared `resolves` value instead.
@@ -268,30 +325,32 @@ shutil.rmtree(t)
 print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type, refs resolution (AC-4), locator rule (AC-48), quiz kind refs/result rule, metrics duplicate/sha (AC-20), coverage-row resolution + non-conformance covered stays a plain enum rejection (AC-14)')
 PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
-# the six schema files exist and every top-level field carries a reader tag
+# the eight schema files exist and every top-level field carries a reader tag
 python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
 import sys, os, yaml
 d = sys.argv[1]
-assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'explore.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
+assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'epic.schema.yaml', 'explore.schema.yaml', 'metrics.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
 for f in os.listdir(d):
     s = yaml.safe_load(open(os.path.join(d, f)))
     for k, v in s['properties'].items():
         assert v.get('reader') in ('human', 'agent'), f'{f}: {k} has no reader tag'
-print('PASS: six schemas, every top-level field reader-tagged')
+print('PASS: eight schemas, every top-level field reader-tagged')
 PY2
 
 # AC-10 / INV-4: every field in the three new schemas names its consumer file in the
 # schema header comment (no field lacks one)
-python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY4' || { echo "FAIL: new-schema field consumers"; fail=1; }
+python3 - "$scripts_dir/../skills/_shared/schemas" "$scripts_dir/dossier-render.sh" "$scripts_dir/check-artifact.sh" <<'PY4' || { echo "FAIL: new-schema field consumers"; fail=1; }
 import sys, os, yaml
+# No field exists without a consumer — asserted against the consumer CODE
+# (renderer + checker), never a header comment (comments carry no consumer
+# maps under the three-class policy).
 d = sys.argv[1]
+consumers = open(sys.argv[2], encoding='utf-8').read() + open(sys.argv[3], encoding='utf-8').read()
 for f in ('quiz.schema.yaml', 'assay.schema.yaml', 'explore.schema.yaml'):
-    text = open(os.path.join(d, f), encoding='utf-8').read()
-    header, _, _ = text.partition('\nkind:')
-    s = yaml.safe_load(text)
+    s = yaml.safe_load(open(os.path.join(d, f), encoding='utf-8').read())
     for k in s['properties']:
-        assert k in header, f'{f}: field {k} has no consumer named in the header comment'
-print('PASS: quiz/assay/explore schemas name a consumer file per top-level field (AC-10 / INV-4)')
+        assert k in consumers, f'{f}: field {k} appears in no consumer source (renderer/checker)'
+print('PASS: quiz/assay/explore schemas — every top-level field has a code consumer (AC-10 / INV-4)')
 PY4
 
 # AC-26: the resolves declaration is live, not decorative — flip spec.schema.yaml's
@@ -434,6 +493,49 @@ expect_grep "hostile: tab-split scheme neutralised" -eq 0 'java	script:'
 expect_grep "hostile: nav link kept" -ge 1 'href="https://example.com/doc"'
 expect_grep "hostile: markdown link attr-escaped" -eq 0 'href=""onmouseover'
 expect_grep "hostile: AC-1 linked inside sanitized html" -ge 1 'data-jump="2026-01-03-beta-design--AC-1" tabindex="0">AC-1</a>'
+
+# ---- yaml-born epic (ADR-0043 REQ-2, AC-6/AC-7): epic.yaml deterministic precedence —
+# a dir with epic.yaml and NO index.md renders green, header denominator = len(phases[]),
+# owner-readable surface shows only phases[].n (no index-table row count). AC-8 (legacy
+# regression) is the dossier-epic block above staying green in this same suite run.
+tmp_root2="$(mktemp -d)"
+mkdir -p "$tmp_root2/.touchstone/epics"
+cp -R "$here/fixtures/dossier-epic-yaml" "$tmp_root2/.touchstone/epics/2026-01-10-fixture-yaml"
+eyd="$tmp_root2/.touchstone/epics/2026-01-10-fixture-yaml"
+[ -f "$eyd/index.md" ] && { echo "FAIL: index.md present in yaml-born fixture (regression witness invalid)"; fail=1; }
+expect_exit "dossier-render.sh yaml-born green (AC-6: epic.yaml, no index.md)" zero bash "$scripts_dir/dossier-render.sh" "$eyd"
+eydout="$eyd/dossier.html"
+[ -f "$eydout" ] || { echo "FAIL: yaml-born dossier.html not produced (AC-6)"; fail=1; }
+distinct_hdr="$(grep -oE '第 [0-9]+/[0-9]+ 階段' "$eydout" | sort -u | tr '\n' ';')"
+if [ "$distinct_hdr" = "第 3/6 階段;" ]; then
+  echo "PASS: dossier yaml-born header denominator = phases[] count, no row-index leak (AC-7)"
+else
+  echo "FAIL: dossier yaml-born header mismatch (want 第 3/6 階段;, got '$distinct_hdr')"; fail=1
+fi
+if grep -q -F 'epic 歷史</span></span> <span class="num">6</span>' "$eydout"; then
+  echo "PASS: dossier yaml-born epic-history table has 6 rows (phases[] count)"
+else
+  echo "FAIL: dossier yaml-born epic-history row count wrong"; fail=1
+fi
+if grep -q -F '>epic.yaml</span>' "$eydout"; then
+  echo "FAIL: epic.yaml rendered as a stray file card (should be excluded from the file walk)"; fail=1
+else
+  echo "PASS: dossier yaml-born excludes epic.yaml itself from file cards"
+fi
+expect_grep_e() {
+  label="$1"; op="$2"; n="$3"; pat="$4"
+  c="$(grep -o -F -- "$pat" "$eydout" | wc -l | tr -d ' ')"
+  ok=0
+  case "$op" in
+    -eq) [ "$c" -eq "$n" ] && ok=1 ;;
+    -ge) [ "$c" -ge "$n" ] && ok=1 ;;
+  esac
+  if [ "$ok" = 1 ]; then echo "PASS: dossier yaml-born $label"; else echo "FAIL: dossier yaml-born $label (count=$c, want $op $n): $pat"; fail=1; fi
+}
+expect_grep_e "foundation.rulings rendered" -ge 1 'hand-written home; index.md is never authored again.'
+expect_grep_e "deviation_log rendered" -ge 1 'which-stage-could-have-caught: assay'
+expect_grep_e "reckoning rendered as table" -ge 1 '<th>AC</th><th>Covered by</th><th>live-bearing?</th>'
+expect_grep_e "disposition none rendered minimally" -ge 1 '<p>none</p>'
 
 # ---- YAML phase (gamma): projection, overlays, ledger anchors, Ship order, pr-body, INV-1
 expect_grep "yaml: gamma phase group" -ge 1 'data-phase="2026-01-04-gamma.spec"'
@@ -954,7 +1056,7 @@ fi
 
 # ---- generic checker rail loop (REQ-6/AC-26/AC-27): every
 # .touchstone/checker/fixtures/<name>/ tree gets a green PASS (must not trip)
-# and a red PASS (must trip); a single-file fixture (close-ready) runs the
+# and a red PASS (must trip); a single-file fixture (no green*/red* subdirs) runs the
 # checker's own --self-test instead. "Trip" = nonzero exit, or — for a
 # WARN-ONLY checker (header carries the literal WARN-ONLY, always exit 0) —
 # stdout/stderr contains WARN. A fixture with no matching checker, or a
@@ -1003,7 +1105,7 @@ for fxd in "$fixtures_root"/*/; do
 
   subdirs=("$fxd"*/)
   if [ "${#subdirs[@]}" -eq 0 ]; then
-    # single-file fixture (e.g. close-ready/green.md, close-ready/red.md)
+    # single-file fixture (a fixtures/<name>/ dir with no green*/red* subdirs)
     if grep -q -- '--self-test' "$checker"; then
       rail_out="$(bash "$checker" --self-test 2>&1)"; rail_rc=$?
       if [ "$rail_rc" -eq 0 ]; then
@@ -1512,5 +1614,150 @@ else
   echo "FAIL: phase-5 fix-pass render assertions"; fail=1
 fi
 rm -rf "$t5a_root"
+
+# ---- foundation:inherit resolves against epic.yaml (yaml-born epic): the fixture pair
+# carries both ends — the spec declares inherit, the epic.yaml carries the foundation block.
+if grep -q '^foundation: inherit' "$here/fixtures/dossier-epic-yaml/2026-01-04-gamma.spec.yaml" \
+   && grep -q '^foundation:' "$here/fixtures/dossier-epic-yaml/epic.yaml" \
+   && grep -q 'intention:' "$here/fixtures/dossier-epic-yaml/epic.yaml"; then
+  echo "PASS: foundation:inherit two-end pair present on the yaml-born fixture"
+else
+  echo "FAIL: foundation:inherit pair broken on the yaml-born fixture"; fail=1
+fi
+
+# ---- assay fork-case split: the fork chain (ADR authoring / rubric / critique lens)
+# loads only on the fork trigger — the pointer file exists, SKILL.md points at it,
+# and the non-fork SKILL body no longer names the chain files.
+if [ -f "$scripts_dir/../skills/assay/references/fork-case.md" ] \
+   && grep -q 'references/fork-case.md' "$scripts_dir/../skills/assay/SKILL.md" \
+   && ! grep -qE 'adr-authoring\.md|arch-rubric\.md|critique-lens\.md' "$scripts_dir/../skills/assay/SKILL.md"; then
+  echo "PASS: assay fork chain split behind references/fork-case.md (trigger-only load)"
+else
+  echo "FAIL: assay fork-case split (missing file, dangling pointer, or chain still named in SKILL.md)"; fail=1
+fi
+
+# ---- resolve-config.sh: six-field bundle green + malformed red (direct invocation;
+# the checker-rail pair exercises it again through check-resolve-config.sh)
+expect_exit "resolve-config: green fixture prints the bundle" zero \
+  bash "$scripts_dir/resolve-config.sh" --root "$here/../../.touchstone/checker/fixtures/resolve-config/green"
+expect_out "resolve-config: six key=value lines" "research=" \
+  bash "$scripts_dir/resolve-config.sh" --root "$here/../../.touchstone/checker/fixtures/resolve-config/green"
+expect_exit "resolve-config: malformed yaml is fatal" nonzero \
+  bash "$scripts_dir/resolve-config.sh" --root "$here/../../.touchstone/checker/fixtures/resolve-config/red"
+
+# ---- init-checker-scaffold.sh: help exits 0; a scratch missing-state run writes the yaml
+icd="$(mktemp -d)"
+expect_exit "init-checker-scaffold: --help exits 0" zero bash "$scripts_dir/init-checker-scaffold.sh" --help
+expect_exit "init-checker-scaffold: missing state writes yaml (exit 0)" zero \
+  bash "$scripts_dir/init-checker-scaffold.sh" --project-root "$icd" --workspace-root .touchstone
+expect_exit "init-checker-scaffold: yaml written" zero test -f "$icd/.claude/touchstone.yaml"
+rm -rf "$icd"
+
+# ---- the redesigned codex dispatch shape (agents/codex-reviewer.md): the task rides a
+# FILE streamed to codex by the shell; both liveness artifacts (raw_codex.jsonl +
+# last-message.txt) must be produced by that exact form. Honest SKIP when codex is absent.
+if command -v codex >/dev/null 2>&1; then
+  dsd="$(mktemp -d)"
+  printf 'probe material line\n' > "$dsd/task.md"
+  timeout 120 codex exec --json --skip-git-repo-check -o "$dsd/last-message.txt" \
+    "Reply with exactly one line: OK" < "$dsd/task.md" > "$dsd/raw_codex.jsonl" 2>&1
+  if [ -s "$dsd/last-message.txt" ] && [ -s "$dsd/raw_codex.jsonl" ]; then
+    echo "PASS: task_file-streamed codex dispatch produces both liveness artifacts"
+  else
+    echo "FAIL: task_file-streamed codex dispatch (missing/empty liveness artifact)"; fail=1
+  fi
+  rm -rf "$dsd"
+else
+  echo "SKIP: codex CLI not installed — task_file dispatch shape not exercised (not fake-green)"
+fi
+
+# ---- codex-probe.sh: envelope-shape smoke — SKIPs cleanly (exit 0) when codex
+# CLI is absent, never fake-green; PASS-asserts the envelope (record line
+# written, outcome field present) when codex is present.
+cpd="$(mktemp -d)"
+expect_exit "codex-probe smoke: exits 0 (PASS when codex present, SKIP when absent)" zero \
+  bash "$scripts_dir/codex-probe.sh" --smoke --out "$cpd/probe-smoke.jsonl"
+rm -rf "$cpd"
+
+# ---- roadmap-render.sh (REQ-3 / AC-10, AC-25): fixture epics set (active yaml +
+# completed yaml + active legacy index.md) renders both tables, the generated
+# header (source + hash), and writes atomically (no leftover temp file).
+rr_root="$(mktemp -d)"
+mkdir -p "$rr_root/.touchstone"
+cp -R "$here/fixtures/roadmap-epics" "$rr_root/.touchstone/epics"
+expect_exit "roadmap-render.sh renders the fixture epics set" zero \
+  bash "$scripts_dir/roadmap-render.sh" --root "$rr_root"
+rr_out="$rr_root/ROADMAP.md"
+if [ -f "$rr_out" ] \
+   && grep -q 'GENERATED by scripts/roadmap-render.sh' "$rr_out" \
+   && grep -q 'source: .touchstone/epics' "$rr_out" \
+   && grep -q 'sha256:' "$rr_out" \
+   && grep -qE '^\| alpha \|.*\| active \| 1/2 \|' "$rr_out" \
+   && grep -qE '^\| gamma \|.*\| active \| 1/2 \|' "$rr_out" \
+   && grep -qE '^\| beta \| 2026-01-15 \|' "$rr_out" \
+   && ! find "$rr_root" -maxdepth 1 -name '.roadmap-render.tmp-*' | grep -q .; then
+  echo "PASS: roadmap-render.sh output has Active/Completed tables + generated header (source+hash), no leftover temp file"
+else
+  echo "FAIL: roadmap-render.sh output shape"; cat "$rr_out" 2>&1; fail=1
+fi
+if grep -q 'mkstemp' "$scripts_dir/roadmap-render.sh" && grep -q 'os.replace' "$scripts_dir/roadmap-render.sh"; then
+  echo "PASS: roadmap-render.sh writes via temp-file + rename (atomic write)"
+else
+  echo "FAIL: roadmap-render.sh has no temp-file+rename atomic-write mechanism"; fail=1
+fi
+rm -rf "$rr_root"
+
+# ---- roadmap-render.sh --audit (AC-25 script half): a stale active epic (dir
+# untouched >30 days, no git history so the checker falls back to file mtime)
+# prints a staleness finding and exits non-zero; a clean (fresh) set prints
+# nothing and exits 0.
+rr_audit_root="$(mktemp -d)"
+mkdir -p "$rr_audit_root/.touchstone/epics/2026-01-01-stale"
+cat > "$rr_audit_root/.touchstone/epics/2026-01-01-stale/epic.yaml" <<'YAML'
+slug: stale-epic
+status: active
+started: 2020-01-01
+aim: audit staleness fixture.
+foundation: {intention: audit fixture, out_of_scope: []}
+phases:
+  - {n: 1, title: One, status: proposed}
+YAML
+find "$rr_audit_root/.touchstone/epics/2026-01-01-stale" -exec touch -t 202001010000 {} \;
+expect_exit "roadmap-render.sh --audit on a stale set exits non-zero" nonzero \
+  bash "$scripts_dir/roadmap-render.sh" --root "$rr_audit_root" --audit
+expect_out "roadmap-render.sh --audit reports the staleness finding" "STALE: stale-epic" \
+  bash "$scripts_dir/roadmap-render.sh" --root "$rr_audit_root" --audit
+rm -rf "$rr_audit_root"
+
+rr_clean_root="$(mktemp -d)"
+mkdir -p "$rr_clean_root/.touchstone/epics/2026-01-01-fresh"
+cat > "$rr_clean_root/.touchstone/epics/2026-01-01-fresh/epic.yaml" <<'YAML'
+slug: fresh-epic
+status: active
+started: 2026-01-01
+aim: audit clean fixture.
+foundation: {intention: audit fixture, out_of_scope: []}
+phases:
+  - {n: 1, title: One, status: proposed}
+YAML
+rr_clean_out="$(bash "$scripts_dir/roadmap-render.sh" --root "$rr_clean_root" --audit 2>&1)"; rr_clean_rc=$?
+if [ "$rr_clean_rc" -eq 0 ] && [ -z "$rr_clean_out" ]; then
+  echo "PASS: roadmap-render.sh --audit on a clean set prints nothing and exits 0"
+else
+  echo "FAIL: roadmap-render.sh --audit clean set (rc=$rr_clean_rc): $rr_clean_out"; fail=1
+fi
+rm -rf "$rr_clean_root"
+
+# ---- check-roadmap-fresh.sh (AC-11): direct assertion beyond the generic
+# checker-rail loop (which also auto-discovers .touchstone/checker/fixtures/roadmap-fresh/{green,red}/)
+# -- the red fixture (a generated-but-hand-edited ROADMAP.md) trips non-zero naming stale.
+rf_checker="$scripts_dir/../.touchstone/checker/pre-commit/check-roadmap-fresh.sh"
+rf_red="$scripts_dir/../.touchstone/checker/fixtures/roadmap-fresh/red"
+rf_out="$(TOUCHSTONE_CHECK_ROOT="$rf_red" bash "$rf_checker" 2>&1)"; rf_rc=$?
+if [ "$rf_rc" -ne 0 ] && printf '%s' "$rf_out" | grep -q 'stale'; then
+  echo "PASS: check-roadmap-fresh.sh red fixture exits non-zero naming stale"
+else
+  echo "FAIL: check-roadmap-fresh.sh red fixture (rc=$rf_rc): $rf_out"; fail=1
+fi
 
 exit "$fail"

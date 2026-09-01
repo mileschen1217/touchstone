@@ -1,7 +1,8 @@
 ---
 name: code-review
 description: |
-  Alias — `/touchstone:code-review batch [<range>]` routes to `/touchstone:deliverable-review`, the one review gate after a build (spec conformance + cross-vendor code quality, one review.yaml).
+  Alias — `/touchstone:code-review batch [<range>]` routes to `/touchstone:deliverable-review`,
+  the one review gate after a build.
 allowed-tools:
   - Skill
 user-invocable: false

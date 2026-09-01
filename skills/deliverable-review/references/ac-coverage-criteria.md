@@ -5,11 +5,8 @@ kind: bridge
 
 # AC-coverage criteria (single home — gates that read test source)
 
-The evidence-honesty coverage core, injected where test source exists
-(`deliverable-review`). A sibling of `ac-coverage-honesty-principle.md` —
-NOT that fragment — because this core names an act (reading test source) that the
-design-review gate must not perform. A consumer loads this and carries only its own
-site delta.
+The evidence-honesty coverage core, injected where test source exists. A
+consumer loads this and carries only its own site delta.
 
 - Read the governing spec's ACs and the test source. For each AC, judge whether a test
   asserts that AC's Then-clause (AC coverage, semantic — not code-coverage %, not

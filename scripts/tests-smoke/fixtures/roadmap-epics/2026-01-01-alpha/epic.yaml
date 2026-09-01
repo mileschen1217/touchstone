@@ -1,0 +1,17 @@
+slug: alpha
+status: active
+started: 2026-01-01
+aim: A synthetic yaml-born active epic for the roadmap-render smoke test.
+
+foundation:
+  intention: exercise the yaml-born active row.
+  out_of_scope: []
+
+phases:
+  - n: 1
+    title: One
+    status: done
+    landed: 2026-01-02
+  - n: 2
+    title: Two
+    status: proposed

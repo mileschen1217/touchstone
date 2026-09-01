@@ -1,0 +1,10 @@
+slug: fixture-epic-close
+status: active
+started: 2026-01-01
+aim: Ship the fixture feature end to end.
+foundation:
+  intention: Prove a hand-written index.md beside epic.yaml with no generated marker is an error.
+  out_of_scope:
+    - A second unrelated feature.
+phases:
+  - {n: 1, title: Only phase, status: active}

@@ -1,17 +1,13 @@
-# deviation.schema.yaml — build-time deviations (D-n) and the per-phase metrics list. The
-# quiz block moved out to its own quiz.yaml / quiz.schema.yaml (phase 5) — this file no
-# longer accepts a `quiz` key. Keywords as in spec.schema.yaml. Waiting item shape is homed
-# in spec.schema.yaml's header. `resolves: phase` — an entry's `refs` resolves against the
-# `*.spec.yaml` under --root whose top-level `phase` equals that entry's own `phase` — see
-# spec.schema.yaml's header for the spec_ref keyword.
-# Entry fields the builder fills by judgment beside gap/disposition: `panel` = the
+# This schema defines build-time deviations (D-n).
+# Keywords as in the keyword legend (spec schema header). Waiting item shape is homed there
+# too.
+# `resolves: phase` — an entry's `refs` resolves against the phase-matched design spec under
+# --root whose top-level `phase` equals that entry's own `phase` — see the keyword legend
+# (spec schema header) for the spec_ref keyword.
+# Entry fields the builder fills by judgment beside gap / disposition: `panel` = the
 # phase_map panel the gap belongs to (none when it belongs to no human panel);
 # `which_stage_could_have_caught` = the earliest stage whose gate should have caught it;
 # `catcher` = who actually found it (builder / reviewer / owner, with the instrument).
-# An entry's `refs` may be empty only beside `derived: true`.
-# `metrics` is a list with one entry per phase, appended by scripts/phase-metrics.sh at
-# phase-ship; check-artifact.sh rejects a duplicate phase and a measured_at that is not a
-# 40-hex sha.
 kind: deviation
 resolves: phase
 type: object
@@ -54,39 +50,6 @@ properties:
             pattern: '^(US|REQ|AC|INV)-\d+$'
             spec_ref: true
         derived: {type: boolean}
-  metrics:
-    type: array
-    reader: human
-    items:
-      type: object
-      required: [phase, wall_clock_h, human_turns, dispatches, lens_h, stage_tokens, false_edges, instrument_churn, measured_at]
-      additionalProperties: false
-      properties:
-        phase: {type: integer}
-        wall_clock_h: {type: number}
-        human_turns: {type: integer}
-        dispatches: {type: integer}
-        lens_h:
-          type: object
-          additionalProperties: {type: integer}
-        stage_tokens:
-          type: array
-          items:
-            type: object
-            required: [stage, tokens]
-            additionalProperties: false
-            properties:
-              stage: {type: integer, enum: [0, 1, 2, 3, 4, 5]}
-              tokens: {type: integer}
-        false_edges: {type: integer}
-        instrument_churn:
-          type: object
-          required: [shape_driven_lines, other_lines]
-          additionalProperties: false
-          properties:
-            shape_driven_lines: {type: integer}
-            other_lines: {type: integer}
-        measured_at: {type: string, pattern: '^[0-9a-f]{40}$'}
   waiting_on_human:
     type: array
     reader: human

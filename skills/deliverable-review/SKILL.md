@@ -1,7 +1,10 @@
 ---
 name: deliverable-review
 description: |
-  Use when a finished build (a branch or logical commit group) needs its one review before phase-ship — three lenses each dispatched to its arms: spec conformance (AC evidence under the live-bearing predicate), the honor-check feedback arm (invariant checks executed), and code quality whose arm set always holds the vendor opposite the builder; one review.yaml, fed to the ship informed-accept. Out of scope — single-commit ad-hoc review (Claude Code's built-in `/code-review`) and design-document review (`/touchstone:design-review`).
+  Use when a finished build (a branch or logical commit group) needs its one review before
+  phase-ship; the result feeds the ship informed-accept. Out of scope — single-commit ad-hoc
+  review (Claude Code's built-in `/code-review`) and design-document review
+  (`/touchstone:design-review`).
 allowed-tools:
   - Bash
   - Read
@@ -63,28 +66,24 @@ Honor-check lens:
 - `skills/_shared/inject/design-soundness-honor-check.md` with `skills/assay/references/arch-rubric.md` injected as content — **feedback arm**: execute every `invariants[].check` against the delivered tree.
 
 Quality lens:
-- `skills/_shared/inject/severity-tiered-stopping-rule.md`; the arm agent's default lens governs.
+- `skills/_shared/inject/severity-qualification.md`; the arm agent's default lens governs. (The round budget stays host-side — see Phase 4.)
 
 ## Phase 3 — Dispatch: one call per arm, all in one message
 
 One `Agent` call per arm, carrying every lens assigned to it (findings tagged `[lens: …]`), all calls in ONE assistant message:
 
 - **cc arm (conformance + honor-check)** — `Agent(subagent_type: "touchstone:code-reviewer", description: "conformance, honor-check", prompt: <both lenses' injections> + the spec text + the diff)`. Conformance output, one line per AC and per invariant: `<AC-n|INV-n> | covered <test/artifact ref> | unverified <reason or proxy> | violated <finding>` — the covered lines become `coverage[]` rows at merge, only unverified / violated lines become findings.
-- **quality arm** — `touchstone:codex-reviewer` when the arm is `codex`, `touchstone:code-reviewer` (a fresh context, never the conformance one) when `cc`; `description: "quality"`, envelope `{task: <full diff>, task_dir: <round dir>, role: "batch-reviewer"}`.
+- **quality arm** — `touchstone:codex-reviewer` when the arm is `codex`, `touchstone:code-reviewer` (a fresh context, never the conformance one) when `cc`; `description: "quality"`; for the codex arm write the full diff to `<round dir>/task.md` FIRST and pass envelope `{task_file: <round dir>/task.md, task_dir: <round dir>, role: "batch-reviewer"}` (the diff rides by file, never through the wrapper's context); a cc arm receives the diff as prompt content.
 
 The quality arm returns without `raw_codex.jsonl` + `last-message.txt` in the round dir → it was not Codex: record it as a `cc` arm under the liveness rule in `provenance.md`, or re-dispatch once. A quality arm that fails (`status: failed` / a `fallback_reason`) → re-dispatch the lens to the builder's own vendor, record that arm in `providers`, and set `degraded: true`, `degraded_reason: "lens quality: independence lost — arm <vendor> = builder (<original arm> failed: <reason>)"`; that also fails → no review.yaml, surface the failure, stop.
 
 ## Phase 4 — Merge into review.yaml, converge, report
 
-Write `<epic-dir>/deliverable-review-<date>/review.yaml` — `gate: deliverable-review`, `target` = the governing spec file, `range` = the reviewed range, `sha` = HEAD; the schema is `review.schema.yaml` under `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/`. You (the gate session) write:
+Write `<epic-dir>/deliverable-review-<date>/review.yaml` — `gate: deliverable-review`, `target` = the governing spec file, `range` = the reviewed range, `sha` = HEAD. Field set: `review.schema.yaml` under `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/`; field meanings AND the shared merge rules: `provenance.md` (Phase 1). This gate's one merge delta: a conformance line reported `covered` becomes a `coverage[]` row, never a finding; every uncovered AC and every violated / undecidable invariant is a finding on its field path, `status: unverified` where the arm could not decide (naming the proxy).
 
-- `coverage[]`: one row `{ref, status: covered, evidence}` per AC and invariant the conformance arm reported `covered` — the covered rows never enter `findings[]` (the checker rejects a conformance finding with `status: covered`).
-- `findings[]`, merged by lens: every quality finding with `file` + `line` and `refs: []`; every uncovered AC or violated / undecidable invariant as a finding on its field path (`requirements[REQ-n].acs[AC-n]`, `invariants[INV-n]`) with `refs` = the ids that path resolves to, and `status: unverified` where the conformance arm could not decide. Same `field` + same `type` across arms → one finding with `found_by` listing both; otherwise `found_by` = the one arm.
-- `providers`: per declared lens, which arms produced content; `degraded` / `degraded_reason` per Phase 1 and Phase 3.
-- `waiting_on_human`: every `W-n` item (shape: the schema) still owed by the human after this round — a complete list, so presence means still waiting.
-- Validate with `check-artifact.sh review` (`--root <epic-dir>`; exit 0 required). The raw arm outputs sit in the round dir (`raw_cc.md`; a Codex arm's `raw_codex.jsonl` + `last-message.txt`); no other review file.
+Validate with `check-artifact.sh review` (`--root <epic-dir>`; exit 0 required). The raw arm outputs sit in the round dir (`raw_cc.md`; a Codex arm's `raw_codex.jsonl` + `last-message.txt`); no other review file.
 
-Critical/High block. Convergence: the injected stopping rule. `degraded: true` → the presentation duty in `provenance.md`, before reporting ready.
+Critical/High block. Convergence: read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md` yourself — that budget stays with this merging session; arms saw only the severity segment. `degraded: true` → the presentation duty in `provenance.md`, before reporting ready.
 
 Report:
 

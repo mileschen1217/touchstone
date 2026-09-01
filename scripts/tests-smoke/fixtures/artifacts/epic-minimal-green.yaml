@@ -1,0 +1,8 @@
+slug: fixture-epic-minimal
+status: proposed
+aim: A one-sentence deliverable.
+foundation:
+  intention: Prove the minimal shape (required fields only) validates.
+  out_of_scope: []
+phases:
+  - {n: 1, title: Only phase, status: proposed}

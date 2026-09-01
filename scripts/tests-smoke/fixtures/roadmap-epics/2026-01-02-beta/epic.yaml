@@ -1,0 +1,18 @@
+slug: beta
+status: done
+started: 2025-12-01
+landed: 2026-01-15
+aim: A synthetic yaml-born completed epic for the roadmap-render smoke test.
+
+foundation:
+  intention: exercise the yaml-born completed row.
+  out_of_scope: []
+
+phases:
+  - n: 1
+    title: One
+    status: done
+    landed: 2026-01-15
+
+disposition:
+  none: true
