@@ -32,12 +32,24 @@ properties:
           type: array
           minItems: 1
           items: {type: string, enum: [cc, codex]}
+        # fragments_read — the fragment ids the arm reported reading (its report's
+        # opening `fragments_read: <ids>` line); absent only on a degraded round
+        # (check-artifact.sh cross-field rule, not pure schema — a review.yaml carries no
+        # manifest to check the ids against). An empty list is rejected by the same rule:
+        # an arm that read nothing is the degraded case, not an empty list.
+        fragments_read:
+          type: array
+          items: {type: string}
   challenger: {type: string, reader: agent, enum: [cc, codex]}
   degraded: {type: boolean, reader: human}
   # degraded_reason — one or more `; `-joined segments, each a literal shape the pattern
   # admits (fill <name> / <n> / <detail> / <vendor> per the matched alternative; the lens
-  # prefix is optional for a standalone producer); free-form prose is rejected.
-  degraded_reason: {type: string, reader: human, pattern: '((lens [A-Za-z0-9_-]+: )?(codex unavailable|codex timeout \(\d+s\)|codex error: .+|partial(: .+)?|all arms failed|independence lost — .+)|vendor rule waived by `with (cc|codex)`)(; ((lens [A-Za-z0-9_-]+: )?(codex unavailable|codex timeout \(\d+s\)|codex error: .+|partial(: .+)?|all arms failed|independence lost — .+)|vendor rule waived by `with (cc|codex)`))*'}
+  # prefix is optional for a standalone producer, except the read-back class below, whose
+  # whole point is naming the lens); free-form prose is rejected. The read-back class:
+  # `lens <name>: read-back missing` (no fragment ids reported) and
+  # `lens <name>: read-back incomplete — missing <space-separated ids>` (a proper subset
+  # reported) — the class where an arm ran but could not prove it read its lens.
+  degraded_reason: {type: string, reader: human, pattern: '((lens [A-Za-z0-9_-]+: )?(codex unavailable|codex timeout \(\d+s\)|codex error: .+|partial(: .+)?|all arms failed|independence lost — .+)|vendor rule waived by `with (cc|codex)`|lens [A-Za-z0-9_-]+: read-back (missing|incomplete — missing [A-Za-z0-9_-]+(?: [A-Za-z0-9_-]+)*))(; ((lens [A-Za-z0-9_-]+: )?(codex unavailable|codex timeout \(\d+s\)|codex error: .+|partial(: .+)?|all arms failed|independence lost — .+)|vendor rule waived by `with (cc|codex)`|lens [A-Za-z0-9_-]+: read-back (missing|incomplete — missing [A-Za-z0-9_-]+(?: [A-Za-z0-9_-]+)*)))*'}
   verdict: {type: string, reader: human, enum: [approve, revise, block]}
   counts:
     type: object

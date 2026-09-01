@@ -1,3 +1,9 @@
+---
+injected-by: [design-spec]
+referenced-by: [lens-manifest.yaml]
+kind: bridge
+---
+
 # arch-evaluation rubric — substrate-neutral, three layers
 
 This instrument is substrate-neutral: domain-agnostic — NOT filtered to one substrate

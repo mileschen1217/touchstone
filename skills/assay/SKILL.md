@@ -107,16 +107,7 @@ A known unknown enters from three sources — laydown residuals (rows neither co
 
 **Structural fork case** → read `references/fork-case.md` and follow it (trigger: two-plus viable approaches carrying durability stakes; the ADR authoring chain, rubric grading, and critique arms load there, on this trigger only).
 
-## Consensus render — the object of the yes
-
-After the table converges (no open contradiction, every unknown dispositioned) and BEFORE the consequence probes, render the `## Consensus` section as a pre-yes end-turn message: four subsections — Scope / Invariants / Contract facts / Out-of-scope — every entry traced to its stable ids (`[trace: <ids>]`).
-
-- Reuse the Presentation rules above; the depth-tier axis here is the entry's load-bearing STATUS — Scope / Invariants / Contract-facts entries get full text, Out-of-scope entries get one line. The render covers exactly the four subsections, never the record's `deferred[]` key.
-- **Seam-map in Scope (triggered intent).** When the intent changed a cross-boundary artifact, the Scope carries its saturated seam-map as `artifact → {party: file:line}` entries, each ending with a `[trace:]` to its confirmed row. A **zero-party** result — the sweep found no other party — is NOT dropped: it lands as an explicit `no other parties (swept via <channels>)` Scope entry (a valid zero-party plateau), so a mis-fired trigger (an artifact that was not actually cross-boundary) stays visible for review.
-- **Case-partition in Scope (opportunistic).** Scope MAY carry, for a rule whose case list the interview confirmed, one entry of the fixed shape `rule <content-phrase> → cases [...] (technique) [trace: ids]` — shape and terms homed in `${CLAUDE_PLUGIN_ROOT}/skills/_shared/breadth-discovery.md`. A list confirmed with no technique named still lands, marked `(partition-under-determined)`: the human's ruling is preserved instead of discarded, and no consumer may treat the marked entry as a valid baseline. Where the interview confirmed no such list there is no entry and no placeholder — that absence is the ordinary case rather than a gap, and nothing further is asked of the human on account of it.
-- **A carried baseline is human-confirmed.** The plateau-declared seam-map, and any case-partition entry beside it, becomes a verify-against baseline for any downstream stage ONLY after the human confirms it at the readiness yes (the standard Consensus yes covers both). That human yes — not the sweep or the enumeration on its own — is the ratchet.
-- **Render before persist.** The record's `consensus` key is written only at or after the yes; while not yet persisted, keep the render's digest tier inline rather than collapsing to a record-file pointer.
-- **Re-render on a correction** (a falsified probe, or a correction at the readiness ask): re-converge and re-render on the corrected state — the eventual yes never lands on a stale render.
+Only when the table has converged (no open contradiction, every unknown dispositioned) and the render is due, read `${CLAUDE_PLUGIN_ROOT}/skills/assay/references/consensus-render.md`.
 
 ## Consequence probes — alignment made falsifiable
 
@@ -128,47 +119,6 @@ Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all
 
 **The human rules readiness once.** Anything short of an explicit yes is not-ready — name the specific gap the non-answer signals and return to it, never round a soft or delegated reply up to consent. A delegation ("whatever you think") gets re-asked with two concrete options; an explicit correction folds into the table, re-renders the consensus, restates, loops. Only an explicit yes advances.
 
-## Durable record — the terminal deliverable
+Only when the readiness yes has landed and you are writing the terminal record, read `${CLAUDE_PLUGIN_ROOT}/skills/assay/references/durable-record.md` for the record contract.
 
-Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.yaml` — top-level `subject:`
-(one line; the contract author maps intention from it), `date:`, `epics:`. One record
-per subject; a re-run APPENDs new dated entries, never overwrites. Entries stay at
-digest density: one line per resolved row, full text only for rows still open and
-load-bearing — the record is a handoff surface, not a transcript. Structured keys,
-id families and order fixed — consumers key on these names:
-
-- `term_sheet[]` — rows `T-n`
-- `alignment[]` — rows `A-n`/`B-n`: dual tags + leaning + planned handling; bold-pass rows marked
-- `extraction[]` — rulings `Q-n`; predict / probe rounds `R-n` (dated)
-- both `alignment[]` and `extraction[]` items carry `rulings: [{date, stage, text}]` —
-  the design-review write-back target
-- `consensus` — four subsections `scope[] / invariants[] / contract_facts[] /
-  out_of_scope[]`; every entry carries `trace: [<stable-ids>]` — stable ids only. A
-  triggered cross-boundary-artifact intent's `scope[]` carries the seam-map as
-  `artifact → {party: file:line}` entries (a zero-party plateau rendered explicitly);
-  a confirmed case-partition rides that same `scope[]` in its own fixed shape
-  (`breadth-discovery.md`)
-- `flip_triggers[]` — observable signal + revisit point per row
-- `deferred[]` — the non-load-bearing unknown stubs
-- `readiness` — explicit yes + date + the clean round's `R-n`
-- (deviations found downstream are `D-n` entries in the epic's `deviation.yaml`, never a key here)
-
-**Existing `.md` records stay frozen read-only until epic archive** — every record
-authored from this change forward is `.yaml`; no new `.md` record is written.
-
-**The consensus section IS the handoff** — an implementation of the confirmed-facts source contract (`skills/_shared/inject/confirmed-facts-source.md`). The contract author derives Scope and Invariants facts from Consensus rows and itself authors the seam / AC layer — assay emits no contract-material packaging beyond the consensus section. Every disposition names its file (and line or anchor where applicable) so a later session executes it without re-derivation.
-
-**Honest ceiling.** The interview narrows unknown-unknowns; it never proves them zero. Gap size is measured downstream by the deviation log — never claimed at interview end.
-
-## Short form — the subset a short contract runs
-
-Crucible selects the form (its three escalation triggers); when the form is short, run the arms above with these substitutions, in this order:
-
-1. **Term sheet** — session-new terms only; a pre-existing term keeps its home and gets no row.
-2. **Laydown + bold pass** — unchanged (every rule of the map arm, the explicit empty-bold line included).
-3. **Extraction** — at most three questions, each load-bearing and not answerable from the repo; for every other row write your leaning and let the human flip it in the same turn. No predict round, no separate probe round.
-4. **Consensus entries** carry the shape `decision · evidence (ledger row) · wrong-if (the observable that says the decision was wrong)` — the wrong-if is the probe, folded into the entry instead of a round of its own.
-5. **One explicit yes** on the consensus render is the readiness ruling; the record cites it with the date and a single `R-n`.
-6. **Record** — the same seven keys in the same order; a key the short form did not run reads `short form: not run`.
-
-The wrong-if signals are what phase-ship's deviation count later tests: a short-form phase logging more deviations than the flip-trigger registry tolerates is the sign the form cut too deep.
+Only when crucible selected the short form, read `${CLAUDE_PLUGIN_ROOT}/skills/assay/references/short-form.md` and run its substitutions.

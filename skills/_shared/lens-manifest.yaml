@@ -30,6 +30,7 @@ lenses:
     sections:
       - {ref: skills/_shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
       - {ref: skills/_shared/ground-and-sweep.md, id: sweep, destination: arm}
+      - {ref: 'skills/design-review/references/sweep-baselines.md#Sweep-axis baselines', id: sweep-baselines, destination: arm}
       - {ref: skills/design-review/references/challenger.md, id: challenger-catalogue, destination: arm}
       - {ref: skills/design-review/references/standing-vs-transient-bridge.md, id: bridge-standing, destination: arm}
       - {ref: skills/_shared/inject/bridge-content-gate.md, id: bridge-gate, destination: arm}
@@ -40,6 +41,7 @@ lenses:
     sections:
       - {ref: skills/_shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
       - {ref: skills/_shared/ground-and-sweep.md, id: sweep, destination: arm}
+      - {ref: 'skills/design-review/references/sweep-baselines.md#Sweep-axis baselines', id: sweep-baselines, destination: arm}
       - {ref: skills/design-review/references/lenses.md, id: doc-lens-soundness, destination: arm}
       - {ref: skills/_shared/inject/design-soundness-honor-check.md, id: honor-check, destination: arm}
       - {ref: skills/assay/references/arch-rubric.md, id: arch-rubric, destination: arm}
@@ -64,7 +66,9 @@ lenses:
     sections:
       - {ref: skills/_shared/inject/live-bearing-predicate.md, id: live-bearing, destination: arm}
       - {ref: skills/_shared/inject/ac-coverage-honesty-principle.md, id: ac-honesty, destination: arm}
-      - {ref: skills/deliverable-review/references/ac-coverage-criteria.md, id: ac-coverage, destination: arm}
+      - {ref: 'skills/deliverable-review/references/ac-coverage-criteria.md#AC-coverage evidence rules', id: ac-coverage, destination: arm}
+      - {ref: 'skills/deliverable-review/references/ac-coverage-criteria.md#Conformance output format', id: conformance-output-format, destination: arm}
+      - {ref: 'skills/deliverable-review/references/ac-coverage-criteria.md#Live-bearing evidence delta', id: live-bearing-delta, destination: arm}
       - {ref: skills/deliverable-review/references/reviewer-prompts.md, id: batch-prompts, destination: arm}
 
   - name: honor-check

@@ -1,5 +1,6 @@
 ---
-injected-by: [design-spec, design-review]
+injected-by: [design-spec]
+referenced-by: [lens-manifest.yaml]
 kind: bridge
 kill-on: lever-discipline-mechanisation
 ---

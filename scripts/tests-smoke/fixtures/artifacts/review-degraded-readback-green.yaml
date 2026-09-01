@@ -1,0 +1,13 @@
+gate: deliverable-review
+target: sample.spec.yaml
+sha: "0000000000000000000000000000000000000000"
+round: 1
+providers:
+  - {lens: conformance, arms: [cc]}
+degraded: true
+degraded_reason: "lens conformance: read-back incomplete — missing ac-honesty"
+verdict: approve
+counts: {C: 0, H: 0, M: 0, L: 0}
+findings: []
+rulings: []
+waiting_on_human: []

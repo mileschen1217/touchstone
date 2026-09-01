@@ -109,6 +109,13 @@ expect_exit "check-artifact review: coverage row validates (green carries one)" 
 expect_exit "check-artifact review: conformance finding marked covered" nonzero bash "$ca" review "$ax/review-red-covered-in-findings.yaml" --root "$ax"
 expect_out "check-artifact review: covered finding names the coverage[] reason" "findings[F-1].status: covered rows belong in coverage[]" bash "$ca" review "$ax/review-red-covered-in-findings.yaml" --root "$ax"
 
+expect_exit "check-artifact review: read-back-incomplete degraded round admitted (AC-17)" zero bash "$ca" review "$ax/review-degraded-readback-green.yaml" --root "$ax"
+expect_exit "check-artifact review: fragments_read missing on non-degraded round" nonzero bash "$ca" review "$ax/review-red-missing-fragments.yaml" --root "$ax"
+expect_out "check-artifact review: fragments_read missing names the entry and the rule" "providers[conformance].fragments_read: required unless the round is degraded" bash "$ca" review "$ax/review-red-missing-fragments.yaml" --root "$ax"
+expect_exit "check-artifact review: every providers entry carries fragments_read, degraded false" zero bash "$ca" review "$ax/review-green-fragments.yaml" --root "$ax"
+expect_exit "check-artifact review: empty fragments_read list rejected" nonzero bash "$ca" review "$ax/review-red-fragments-empty.yaml" --root "$ax"
+expect_out "check-artifact review: empty fragments_read names the entry" "providers[conformance].fragments_read: must not be empty" bash "$ca" review "$ax/review-red-fragments-empty.yaml" --root "$ax"
+
 expect_exit "check-artifact deviation green" zero bash "$ca" deviation "$ax/deviation-green.yaml" --root "$ax"
 expect_exit "check-artifact deviation red" nonzero bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
 expect_out "check-artifact deviation: missing which_stage_could_have_caught" "entries[D-1].which_stage_could_have_caught: required" bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
@@ -1070,6 +1077,10 @@ expect_exit "plugin-map.sh --self-test" zero bash "$scripts_dir/plugin-map.sh" -
 # ---- phase-metrics.sh's own self-test (the phase-4 instrument: turns / gap-excluded hours /
 # dispatches from a synthetic transcript; lens_h joined by the review's target-spec phase)
 expect_exit "phase-metrics.sh --self-test" zero bash "$scripts_dir/phase-metrics.sh" --self-test
+# ---- assemble-arm-task.sh's own self-test (the lens-file > inline > built-in
+# role-prompt precedence assertion; the script lives outside the checker stage
+# dirs so the rail loop never reaches it)
+expect_exit "assemble-arm-task.sh --self-test" zero bash "$scripts_dir/assemble-arm-task.sh" --self-test
 
 find_checker() {  # <name> -> absolute path on stdout, or nothing
   local name="$1" d p

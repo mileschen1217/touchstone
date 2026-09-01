@@ -17,7 +17,9 @@
 # degraded_reason when degraded, `pattern` on a string value, `minItems` on an array,
 # `spec_ref` resolution (below), and per-kind rules: a review finding with no locator
 # (field/file/refs all absent or empty); a review finding whose lens is conformance and
-# status is covered (coverage rows belong in coverage[], not findings[]); a deviation
+# status is covered (coverage rows belong in coverage[], not findings[]); a review
+# providers entry missing fragments_read on a non-degraded round, or carrying an empty
+# fragments_read list; a deviation
 # entry whose refs is empty without `derived: true`; a deviation metrics list with a
 # duplicate phase; a quiz item whose answer is present without a result; an explore
 # document whose plateau is false without a reach_under_determined reason; kind epic's
@@ -323,6 +325,19 @@ elif kind == 'review':
     for pv in doc.get('providers') or []:
         if isinstance(pv, dict) and isinstance(pv.get('lens'), str):
             lens_arms.setdefault(pv['lens'], set()).update(a for a in (pv.get('arms') or []) if isinstance(a, str))
+    # fragments_read — read-back evidence (AC-18): a providers entry missing it is
+    # admitted only alongside a degraded round; a present-but-empty list is always wrong
+    # (an arm that read nothing is the degraded case, not an empty list). The id-outside-
+    # the-manifest failure (AC-15) is gate-side — a review.yaml carries no manifest to
+    # check the ids against, so it is not checked here.
+    for pv in doc.get('providers') or []:
+        if not isinstance(pv, dict): continue
+        lens_name = pv.get('lens') if isinstance(pv.get('lens'), str) else '?'
+        if 'fragments_read' not in pv:
+            if doc.get('degraded') is not True:
+                errors.append(f"providers[{lens_name}].fragments_read: required unless the round is degraded")
+        elif isinstance(pv.get('fragments_read'), list) and len(pv['fragments_read']) == 0:
+            errors.append(f"providers[{lens_name}].fragments_read: must not be empty — an arm that read nothing is the degraded case, omit the key instead")
     for f in doc.get('findings') or []:
         if not isinstance(f, dict): continue
         if not f.get('field') and not f.get('file') and not f.get('refs'):

@@ -1,6 +1,11 @@
-# Architecture-critique lenses (sole injector: assay's structural-fork case)
+---
+referenced-by: [lens-manifest.yaml]
+kind: bridge
+---
 
-Two arms, two lenses — the validation rubric goes to the `cc` arm (`touchstone:code-reviewer`), the adversarial pressure-test to the `codex` arm (`touchstone:codex-reviewer`), never the reverse. Each lens travels as the envelope `system_prompt`, verbatim. The codex arm's proposal text travels as `task_file` (write it into the round's artifact dir first, conventionally `task.md`); the cc arm receives the proposal as prompt content.
+# Architecture-critique lenses (composition: the lens manifest)
+
+Two arms, two lenses — the validation rubric goes to the `cc` arm (`touchstone:code-reviewer`), the adversarial pressure-test to the `codex` arm (`touchstone:codex-reviewer`), never the reverse. Each lens travels in its arm's assembled lens file (`lens_file` / `system_prompt_file`), verbatim. The proposal travels as each arm's `subject_file` — the codex arm's envelope names it `task_file`; the cc arm receives it as `subject_file:` alongside `lens_file:`, never as prompt content.
 
 ## cc arm — validation rubric
 
@@ -17,7 +22,3 @@ Two arms, two lenses — the validation rubric goes to the `cc` arm (`touchstone
 ## codex arm — adversarial pressure-test
 
 > You are an adversarial architecture / design reviewer. Your job is to pressure-test the proposal: surface failure modes, edge cases, hidden assumptions, scaling cliffs, security exposure, operational risks, and concrete scenarios where the design breaks. Do NOT validate the design — that's the other reviewer's job. Be skeptical, specific, and constructive. Return findings sorted by severity (Critical, High, Medium, Low). For each: scenario, why the design fails, suggested mitigation. Do not suppress a scenario because it looks minor — a small break is still a break, and the caller decides what blocks. End with a one-line verdict: approve | revise | block.
-
-## Synthesis (the dispatching session)
-
-Validated design (cc) first, then the pressure-test results (codex); flag every adversarial finding that contradicts a validated decision; one verdict, the more conservative of the two. Codex arm absent or failed → validation only, recorded `degraded` per `skills/_shared/provenance.md`; cc never stands in for the adversarial half.

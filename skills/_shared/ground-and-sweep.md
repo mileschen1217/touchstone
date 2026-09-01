@@ -1,6 +1,5 @@
 ---
-referenced-by: [design-spec, reach-discovery]
-injected-by: [design-review]
+referenced-by: [design-spec, reach-discovery, lens-manifest.yaml]
 kind: bridge
 kill-on: lever-discipline-mechanisation
 ---

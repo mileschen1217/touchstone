@@ -5,13 +5,16 @@
 # Usage: plugin-review.sh <epic-dir> [--rounds N] [--cc-findings <file>] [--root <dir>] [--dry-run]
 #        plugin-review.sh --self-test
 #
-# Per round it writes <epic-dir>/plugin-review-<date>/round-<n>/ with prompt.txt
-# (codex, four lenses) and cc-prompt.txt (the cc arm, two lenses — rule-without-
-# consumer and architecture-level declared-vs-actual; basis: the phase-4 spec's
-# REQ-1), plus raw_codex.jsonl, last-message.txt, review.yaml (gate plugin-review)
-# and score.md. The Codex arm runs here; the CC arm is dispatched by the calling
-# session against cc-prompt.txt and handed back through --cc-findings (challenger
-# marker format, locator = file[:line]).
+# Per round it writes <epic-dir>/plugin-review-<date>/round-<n>/ with a lens file +
+# a subject file per arm — lens-codex.md + subject-codex.md (codex, four lenses)
+# and lens-cc.md + subject-cc.md (the cc arm, two lenses — rule-without-consumer
+# and architecture-level declared-vs-actual; basis: the phase-4 spec's REQ-1) —
+# built by scripts/assemble-arm-task.sh (--lens-file mode; this rubric slicer is
+# single-homed here, so no lens-manifest entry), plus raw_codex.jsonl,
+# last-message.txt, review.yaml (gate plugin-review) and score.md. The Codex arm
+# runs here; the CC arm is dispatched by the calling session against lens-cc.md +
+# subject-cc.md and handed back through --cc-findings (challenger marker format,
+# locator = file[:line]).
 #
 # One round. The stopping rule is the injected fragment at
 # skills/_shared/inject/severity-tiered-stopping-rule.md (cited, not copied — that
@@ -19,7 +22,7 @@
 # after round 1. Anything still open when the round closes rides to the next
 # phase's backlog. The script fixes nothing — the maintainer session does.
 #
-# --dry-run writes prompt.txt and cc-prompt.txt into the round dir and exits 0
+# --dry-run writes the four lens/subject files into the round dir and exits 0
 # without calling codex — no review.yaml, no cross-vendor claim.
 #
 #   exit 0 → a round was written · 1 → codex unavailable (no artifact written)
@@ -425,7 +428,7 @@ findings = [{k: f[k] for k in order} for f in findings]
 counts = {s: sum(1 for f in findings if f['severity'] == s) for s in ('C', 'H', 'M', 'L')}
 # the CC arm counts only when its file yielded parsable findings — a flag alone is not an arm
 cc_ran = providers_cc == '1' and len(cc) > 0
-# codex carries all four lenses; the cc arm carries items 2 and 3 only (cc-prompt.txt)
+# codex carries all four lenses; the cc arm carries items 2 and 3 only (lens-cc.md)
 providers = [{'lens': it['name'], 'arms': ['codex'] + (['cc'] if cc_ran and it['n'] in (2, 3) else [])} for it in items]
 degraded = bool(degraded_reason) or not cc_ran
 reason = degraded_reason
@@ -538,6 +541,94 @@ if errs:
     sys.exit(1)
 PY
 )
+
+# ------------------------------------------------------------------- lens/subject
+# The two-file split (AC-47): a LENS body per arm (strict-output-format
+# instructions, score block, rubric slice) handed to scripts/assemble-arm-task.sh
+# as --lens-file, and a SUBJECT (plugin map summary + numbered plugin text) shared
+# by both arms and produced by --subject-cmd — the subject bytes are never held in
+# this script's own variables, only redirected by assemble-arm-task.sh itself.
+score_block_all=$(cat <<'EOF'
+C1.1: 2
+C1.2: 1
+... (through C4.3)
+EOF
+)
+score_block_cc=$(cat <<'EOF'
+C2.1: 2
+C2.2: 1
+... (through C3.3)
+EOF
+)
+
+build_lens() {  # <out-file> <rubric-slice> <score-block>
+  local out="$1" rubric_slice="$2" score_block="$3"
+  {
+    cat <<'EOF'
+You are reviewing a Claude Code plugin's instruction prose (skills, agents, hooks,
+checkers). This is prose review, not code review: the defects are semantic — a rule
+stated twice, a rule nobody obeys, a claim the dependency map contradicts, a workflow
+step nothing downstream handles.
+
+Score the plugin against the rubric below and report every finding you have.
+
+Every finding names `file:line` (the line numbers in the PLUGIN TEXT section are real
+file line numbers), a rubric item number as `lens`, a `type` from coverage-gap |
+real-defect | refinement | soundness, a `severity` from C | H | M | L, a one-line
+`summary`, and a one-line `fix`.
+
+OUTPUT FORMAT — strict. Emit exactly these three parts, nothing else after them:
+
+1. One fenced yaml block:
+
+```yaml
+findings:
+  - file: skills/example/SKILL.md
+    line: 42
+    lens: 2
+    type: real-defect
+    severity: H
+    summary: one line, no newline
+    fix: one line, no newline
+```
+
+2. A score block, one line per rubric criterion, every criterion present:
+
+EOF
+    printf '%s\n' "$score_block"
+    cat <<'EOF'
+
+3. A final line:
+
+VERDICT: approve|revise|block
+
+=== RUBRIC (verbatim) ===
+EOF
+    cat "$rubric_slice"
+    echo
+    echo "Now emit the three parts in the strict output format above, reviewing the subject provided separately."
+  } > "$out"
+}
+
+# subject_cmd_script <out-script> <mapsum-pyfile> <map-json> <file-list> <root>
+# Writes a POSIX shell script whose stdout is the SUBJECT: the plugin map summary
+# (MAPSUM_PY) followed by the numbered plugin text (the file-loop part) — nothing
+# else. Same subject for every arm.
+subject_cmd_script() {
+  local out="$1" mapsum_pyfile="$2" map_json="$3" file_list="$4" root="$5"
+  cat > "$out" <<CMD
+echo "=== PLUGIN MAP (summary: per-stage load sets and lines, declared-but-absent edges, orphans, test-only nodes, waiver state, ratchet metrics; computed from the tree on this run) ==="
+python3 "$mapsum_pyfile" "$map_json"
+echo
+echo "=== PLUGIN TEXT (every prose file in stages[*].load_set, agents/, hooks/; each line prefixed <n>:) ==="
+while IFS= read -r f; do
+  echo "=== \$f"
+  awk '{ printf "%d:%s\n", NR, \$0 }' "$root/\$f"
+  echo
+done < "$file_list"
+echo "=== END PLUGIN TEXT ==="
+CMD
+}
 
 # --------------------------------------------------------------------- arguments
 if [ "${1:-}" = "--self-test" ]; then
@@ -658,6 +749,37 @@ MSG
   parser_case "message with no score lines — score reported absent, never a silent 0" \
     "$st_dir/m-noscore.txt" 1 noscore
 
+  # (d) the lens/subject split (design item 5) — run the real file-building path
+  # through the actual assembler, no codex: build lens-cc.md + subject-cc.md and
+  # assert the split landed where it should.
+  st_map="$(mktemp)"; st_files="$(mktemp)"; st_ccrubric="$(mktemp)"
+  st_mapsum_py="$(mktemp)"; st_subject_script="$(mktemp)"; st_lens_cc="$(mktemp)"
+  bash "$st_root/scripts/plugin-map.sh" --root "$st_root" > "$st_map" 2>/dev/null
+  python3 -c "$FILES_PY" "$st_map" "$st_root" > "$st_files"
+  awk '/^## Item 4 /{exit} /^## Item 2 /{f=1} f{print}' "$rubric" > "$st_ccrubric"
+  printf '%s' "$MAPSUM_PY" > "$st_mapsum_py"
+  subject_cmd_script "$st_subject_script" "$st_mapsum_py" "$st_map" "$st_files" "$st_root"
+  build_lens "$st_lens_cc" "$st_ccrubric" "$score_block_cc"
+  st_round="$st_dir/split-round"
+  if bash "$st_root/scripts/assemble-arm-task.sh" --arm cc --round-dir "$st_round" \
+      --lens-file "$st_lens_cc" --subject-cmd "bash '$st_subject_script'" --root "$st_root" \
+      >/dev/null 2>&1 \
+      && grep -q '^## Item 2 ' "$st_round/lens-cc.md" 2>/dev/null \
+      && ! grep -q '=== PLUGIN TEXT' "$st_round/lens-cc.md" 2>/dev/null; then
+    echo "PASS lens-cc.md split: has rubric item 2 heading, no PLUGIN TEXT marker"
+  else
+    echo "FAIL lens-cc.md split"; st_fail=1
+  fi
+  if [ -f "$st_round/subject-cc.md" ] \
+      && grep -q '=== PLUGIN TEXT' "$st_round/subject-cc.md" 2>/dev/null \
+      && ! grep -q 'C2.1:' "$st_round/subject-cc.md" 2>/dev/null; then
+    echo "PASS subject-cc.md split: has PLUGIN TEXT marker, no score block"
+  else
+    echo "FAIL subject-cc.md split"; st_fail=1
+  fi
+  rm -f "$st_map" "$st_files" "$st_ccrubric" "$st_mapsum_py" "$st_subject_script" "$st_lens_cc"
+  rm -rf "$st_round"
+
   rm -rf "$st_dir"
   exit "$st_fail"
 fi
@@ -672,7 +794,7 @@ while [ $# -gt 0 ]; do
     --root)        [ $# -ge 2 ] || { echo "plugin-review.sh: --root needs a directory" >&2; exit 2; }
                    root="$2"; shift 2 ;;
     --dry-run)     dry_run=1; shift ;;
-    -h|--help)     sed -n '2,27p' "$0"; exit 0 ;;
+    -h|--help)     sed -n '2,30p' "$0"; exit 0 ;;
     -*)            echo "plugin-review.sh: unknown argument $1" >&2; exit 2 ;;
     *)             [ -z "$epic" ] || { echo "plugin-review.sh: one epic dir only" >&2; exit 2; }
                    epic="$1"; shift ;;
@@ -725,92 +847,24 @@ day_dir="$epic/plugin-review-$(date +%Y-%m-%d)"
 sha="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo unknown)"
 providers_cc=0; [ -n "$cc_findings" ] && providers_cc=1
 
-map_json="$(mktemp)"; file_list="$(mktemp)"; cc_rubric="$(mktemp)"
-trap 'rm -f "$map_json" "$file_list" "$cc_rubric"' EXIT
+map_json="$(mktemp)"; file_list="$(mktemp)"; cc_rubric="$(mktemp)"; mapsum_pyfile="$(mktemp)"
+subject_script="$(mktemp)"
+trap 'rm -f "$map_json" "$file_list" "$cc_rubric" "$mapsum_pyfile" "$subject_script"' EXIT
 bash "$root/scripts/plugin-map.sh" --root "$root" > "$map_json" || {
   echo "plugin-review.sh: plugin-map.sh failed" >&2; exit 2; }
 python3 -c "$FILES_PY" "$map_json" "$root" > "$file_list"
 
-# cc-prompt.txt's rubric slice: items 2 and 3 only, verbatim — the cc arm's two
-# lenses (design decision, basis: the phase-4 spec's REQ-1). codex keeps all four
-# items via $rubric unchanged.
+# cc arm's rubric slice: items 2 and 3 only, verbatim — the cc arm's two lenses
+# (design decision, basis: the phase-4 spec's REQ-1). codex keeps all four items
+# via $rubric unchanged.
 awk '/^## Item 4 /{exit} /^## Item 2 /{f=1} f{print}' "$rubric" > "$cc_rubric"
 
-score_block_all=$(cat <<'EOF'
-C1.1: 2
-C1.2: 1
-... (through C4.3)
-EOF
-)
-score_block_cc=$(cat <<'EOF'
-C2.1: 2
-C2.2: 1
-... (through C3.3)
-EOF
-)
-
-# Shared prompt generation — one function, two prompt bodies (codex four lenses,
-# cc lenses 2 and 3 only); everything but the rubric slice and score block is
-# identical between prompt.txt and cc-prompt.txt.
-build_prompt() {  # <out-file> <rubric-slice> <score-block>
-  local out="$1" rubric_slice="$2" score_block="$3"
-  {
-    cat <<'EOF'
-You are reviewing a Claude Code plugin's instruction prose (skills, agents, hooks,
-checkers). This is prose review, not code review: the defects are semantic — a rule
-stated twice, a rule nobody obeys, a claim the dependency map contradicts, a workflow
-step nothing downstream handles.
-
-Score the plugin against the rubric below and report every finding you have.
-
-Every finding names `file:line` (the line numbers in the PLUGIN TEXT section are real
-file line numbers), a rubric item number as `lens`, a `type` from coverage-gap |
-real-defect | refinement | soundness, a `severity` from C | H | M | L, a one-line
-`summary`, and a one-line `fix`.
-
-OUTPUT FORMAT — strict. Emit exactly these three parts, nothing else after them:
-
-1. One fenced yaml block:
-
-```yaml
-findings:
-  - file: skills/example/SKILL.md
-    line: 42
-    lens: 2
-    type: real-defect
-    severity: H
-    summary: one line, no newline
-    fix: one line, no newline
-```
-
-2. A score block, one line per rubric criterion, every criterion present:
-
-EOF
-    printf '%s\n' "$score_block"
-    cat <<'EOF'
-
-3. A final line:
-
-VERDICT: approve|revise|block
-
-=== RUBRIC (verbatim) ===
-EOF
-    cat "$rubric_slice"
-    echo
-    echo "=== PLUGIN MAP (summary: per-stage load sets and lines, declared-but-absent edges, orphans, test-only nodes, waiver state, ratchet metrics; computed from the tree on this run) ==="
-    python3 -c "$MAPSUM_PY" "$map_json"
-    echo
-    echo "=== PLUGIN TEXT (every prose file in stages[*].load_set, agents/, hooks/; each line prefixed <n>:) ==="
-    while IFS= read -r f; do
-      echo "=== $f"
-      awk '{ printf "%d:%s\n", NR, $0 }' "$root/$f"
-      echo
-    done < "$file_list"
-    echo "=== END PLUGIN TEXT ==="
-    echo
-    echo "Now emit the three parts in the strict output format above."
-  } > "$out"
-}
+# The SUBJECT (plugin map summary + numbered plugin text) is identical for every
+# arm — one script, run once per arm by assemble-arm-task.sh via --subject-cmd, its
+# stdout redirected straight into that arm's subject file (never held here).
+printf '%s' "$MAPSUM_PY" > "$mapsum_pyfile"
+subject_cmd_script "$subject_script" "$mapsum_pyfile" "$map_json" "$file_list" "$root"
+subject_cmd="bash '$subject_script'"
 
 stop=""; rnd_done=0; pct_last="0.0"; c_last=0; h_last=0
 while : ; do
@@ -829,22 +883,33 @@ while : ; do
   mkdir -p "$rd"
   prev_review=""; prev_sha=""
 
-  # ---- prompt (codex, four lenses) + cc-prompt (cc arm, lenses 2 and 3 only)
-  build_prompt "$rd/prompt.txt" "$rubric" "$score_block_all"
-  build_prompt "$rd/cc-prompt.txt" "$cc_rubric" "$score_block_cc"
+  # ---- lens per arm (codex: all four items; cc: items 2 and 3), one shared
+  # subject — dispatched through the assembler in its two-file shape (AC-47).
+  # --lens-file: this rubric slicer is single-homed here, so no lens-manifest
+  # entry (deviation D-43).
+  lens_codex_tmp="$(mktemp)"; lens_cc_tmp="$(mktemp)"
+  build_lens "$lens_codex_tmp" "$rubric" "$score_block_all"
+  build_lens "$lens_cc_tmp" "$cc_rubric" "$score_block_cc"
+  bash "$root/scripts/assemble-arm-task.sh" --arm codex --round-dir "$rd" \
+    --lens-file "$lens_codex_tmp" --subject-cmd "$subject_cmd" --root "$root" >/dev/null \
+    || { echo "plugin-review.sh: assemble-arm-task.sh failed for the codex arm" >&2; rm -f "$lens_codex_tmp" "$lens_cc_tmp"; exit 2; }
+  bash "$root/scripts/assemble-arm-task.sh" --arm cc --round-dir "$rd" \
+    --lens-file "$lens_cc_tmp" --subject-cmd "$subject_cmd" --root "$root" >/dev/null \
+    || { echo "plugin-review.sh: assemble-arm-task.sh failed for the cc arm" >&2; rm -f "$lens_codex_tmp" "$lens_cc_tmp"; exit 2; }
+  rm -f "$lens_codex_tmp" "$lens_cc_tmp"
 
   if [ "$dry_run" -eq 1 ]; then
-    echo "plugin-review: dry-run — wrote $rd/prompt.txt ($(wc -c < "$rd/prompt.txt" | tr -d ' ') bytes) and $rd/cc-prompt.txt ($(wc -c < "$rd/cc-prompt.txt" | tr -d ' ') bytes); no codex call, no review.yaml" >&2
+    echo "plugin-review: dry-run — wrote $rd/lens-codex.md ($(wc -c < "$rd/lens-codex.md" | tr -d ' ') bytes), $rd/subject-codex.md ($(wc -c < "$rd/subject-codex.md" | tr -d ' ') bytes), $rd/lens-cc.md ($(wc -c < "$rd/lens-cc.md" | tr -d ' ') bytes), $rd/subject-cc.md ($(wc -c < "$rd/subject-cc.md" | tr -d ' ') bytes); no codex call, no review.yaml" >&2
     exit 0
   fi
 
-  # ---- Codex arm (never -s read-only; </dev/null mandatory)
-  echo "plugin-review: round $n — codex exec over $(wc -c < "$rd/prompt.txt" | tr -d ' ') bytes of prompt" >&2
+  # ---- Codex arm (never -s read-only; role prompt = lens-codex.md, stdin = subject-codex.md)
+  echo "plugin-review: round $n — codex exec over $(wc -c < "$rd/lens-codex.md" | tr -d ' ') bytes of lens + $(wc -c < "$rd/subject-codex.md" | tr -d ' ') bytes of subject" >&2
   # `timeout` is GNU coreutils; stock macOS has none (Homebrew ships `gtimeout`). Absent
   # both → run unbounded rather than false-block with rc 127.
   tmo="$(command -v timeout || command -v gtimeout || true)"
   ${tmo:+"$tmo" 900} codex exec --json --skip-git-repo-check \
-    -o "$rd/last-message.txt" "$(cat "$rd/prompt.txt")" </dev/null \
+    -o "$rd/last-message.txt" "$(cat "$rd/lens-codex.md")" < "$rd/subject-codex.md" \
     > "$rd/raw_codex.jsonl" 2> "$rd/codex_stderr.log"
   crc=$?
   if [ ! -s "$rd/last-message.txt" ]; then

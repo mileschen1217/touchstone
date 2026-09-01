@@ -1,0 +1,17 @@
+{
+  "stages": [
+    {
+      "name": "design-review",
+      "contexts": [
+        {"context": "lens-a@cc", "kind": "dispatched", "arm": "cc", "lens": "lens-a", "bytes": 100,
+         "files": ["skills/_shared/inject/frag-a.md"], "dispatched_by": ["design-review-skill"]},
+        {"context": "lens-b@codex", "kind": "dispatched", "arm": "codex", "lens": "lens-b", "bytes": 80,
+         "files": ["skills/_shared/inject/frag-b.md"], "dispatched_by": ["deliverable-review-skill"]},
+        {"context": "design-review-skill", "kind": "in-session", "lines": 10,
+         "files": ["skills/design-review/SKILL.md"]},
+        {"context": "design-spec-skill", "kind": "in-session", "lines": 12,
+         "files": ["skills/_shared/inject/frag-b.md"]}
+      ]
+    }
+  ]
+}
