@@ -32,36 +32,8 @@ status drift. Skip this skill entirely if the project has neither a
 
 ## Scaffold a new epic
 
-Requires a live, responsive user — step 0 pauses for an answer before
-anything is written.
-
-0. **Foundation elicitation.** Open with: "Please describe the intended work
-   in your own words." Sharpen the answer into three fields through a short
-   back-and-forth — never ask a design question (architecture, files, APIs,
-   effort; deflect those with "that's a design decision for a later stage"):
-   **Intention (why)** — the motivation; **Aim** — the one-sentence
-   observable outcome (reject vague tokens like "better"/"elegant" — ask
-   what the user would observe when the work is done); **Out of scope** —
-   up to three routes this epic will NOT take, even if related. Present the
-   draft under those three exact labels and ask "Please confirm or edit this
-   foundation." Do not proceed until confirmed.
-1. Pick a slug — lowercase, hyphen-separated, names the deliverable surface
-   (e.g. `port-statistics-stacking`), not a phase number. The epic DIR is
-   `YYYY-MM-DD-<slug>` (today's date prefix); frontmatter `slug:` stays the
-   pure slug — renderers key on frontmatter, dir name is only a fallback.
-   Pre-existing undated epic dirs are grandfathered (rename optional at close).
-2. Read the project's CLAUDE.md § Doc Routing for the concrete
-   `.touchstone/epics/` path.
-3. Read `templates/epic-index.md` and write `<epics-dir>/YYYY-MM-DD-<slug>/index.md`
-   verbatim from it, filling in: frontmatter `slug`, `started` (today,
-   YYYY-MM-DD), `status: proposed`; the `**Aim:**` headline; `## Foundation`
-   (intention + out-of-scope from step 0); the Phase 1 row.
-4. Add a row to `ROADMAP.md` § Active Epics (create the file from
-   `templates/ROADMAP.md` first if it doesn't exist yet):
-   `| <slug> | <aim> | proposed | [index](<epics-dir>/YYYY-MM-DD-<slug>/index.md) |`
-5. New content docs for this epic (research, specs, plans, ADRs) get
-   frontmatter `epics: [<slug>]` — see `templates/content-doc.md`.
-6. Commit.
+Procedure (foundation elicitation first — requires a live, responsive user) →
+[`references/scaffold.md`](references/scaffold.md).
 
 ## Close an epic
 
