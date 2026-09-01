@@ -16,19 +16,17 @@ user-invocable: true
 
 # epic-driven-roadmap
 
-One pure-tracker `ROADMAP.md` at the project root; one tracker per epic at
-`.touchstone/epics/YYYY-MM-DD-<slug>/index.md` (dir = start date + slug). Trackers are
-shallow pointers — title, one-sentence aim, status, a phases table, links to
-content docs (specs, plans, research). Design prose, rationale, and research
-findings belong in a content doc, never in a tracker; any paragraph longer
-than one sentence here is a rule violation — move it to a content doc and
-link.
-
-**Status vocabulary:** `proposed | active | done`.
+One generated `ROADMAP.md` at the project root — a projection, never
+hand-edited; one tracker per epic at
+`.touchstone/epics/YYYY-MM-DD-<slug>/epic.yaml` (dir = start date + slug), the
+schema-validated birth form and the status enum's single home. Trackers are
+shallow: facts plus pointers to content docs (specs, plans, research). Design
+prose, rationale, and research findings belong in a content doc, never in the
+tracker.
 
 Three procedures: **Scaffold** a new epic, **Close** an epic, **Audit**
-status drift. Skip this skill entirely if the project has neither a
-`ROADMAP.md` nor a `.touchstone/epics/` dir — nothing to maintain yet.
+tracker health. Skip this skill entirely if the project has no
+`.touchstone/epics/` dir — nothing to maintain yet.
 
 ## Scaffold a new epic
 
@@ -42,17 +40,8 @@ Procedure plus Evidence Reckoning and the Disposition pass →
 
 ## Audit
 
-Status drift and doc-graph health — run on demand or weekly:
-
-- **Status drift** — every `ROADMAP.md` row's status must match its epic
-  index frontmatter `status:`. Mismatch → finding.
-- **Staleness** — any `active` epic whose index is untouched
-  (`git log -1 --format=%cs`) for >30 days → flag for push / close.
-- **Orphans** — an epic dir with no `ROADMAP.md` row, or a row pointing at a
-  missing index → finding.
-- **Broken links** — every `[text](path)` in an epic index must resolve;
-  dangling → finding naming the source file and the missing target.
-
-Report one line per finding, grouped by check. If a check passes clean, say
-so in one sentence; skip sections with no findings.
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh" --root <project-root> --audit`
+— staleness and invalid-dir findings; a stale generated `ROADMAP.md` is caught
+on the commit rail's freshness check. The status-drift and broken-link classes
+dissolved with the hand-written tracker (generated output cannot drift).
 
