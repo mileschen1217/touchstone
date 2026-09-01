@@ -1,7 +1,7 @@
 ---
 name: design-review
 kind: workflow
-description: Pre-Build review gate for design documents (spec.yaml, plan, ADR) — one gate, three lenses each dispatched to its arms, one review.yaml per round; a short-chain spec gets one round of two lenses. Out of scope — anything not a contract-bearing design document.
+description: Pre-Build review gate for design documents (spec.yaml, plan, ADR). Out of scope — anything not a contract-bearing design document.
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent]
 user-invocable: false
 ---

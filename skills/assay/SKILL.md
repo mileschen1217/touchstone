@@ -1,15 +1,10 @@
 ---
 name: assay
 description: |
-  Pre-contract interview instrument — the fused single-session interview between explore and
-  the contract author: aligns human and AI across three arms (vocabulary term sheet /
-  falsifiable map laydown + extraction / territory), routes every known unknown through
-  disposition (a structural fork produces an ADR), evidences alignment with human-falsifiable
-  consequence probes, and terminates at the durable record's consensus section, which the
-  contract author consumes. Readiness = explicit yes + a zero-correction probe round. Requires
+  Pre-contract interview instrument — the single-session interview between explore and the
+  contract author, producing the consensus record the contract author consumes next. Requires
   a live responsive user; invoke inside crucible or directly before a contract. Out of scope —
   non-interactive/CI (no live user) or unformed intent (→ superpowers:brainstorming).
-  A short-form contract runs the § Short form subset.
 kind: workflow
 user-invocable: true
 ---

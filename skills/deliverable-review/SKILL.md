@@ -1,7 +1,10 @@
 ---
 name: deliverable-review
 description: |
-  Use when a finished build (a branch or logical commit group) needs its one review before phase-ship — three lenses each dispatched to its arms: spec conformance (AC evidence under the live-bearing predicate), the honor-check feedback arm (invariant checks executed), and code quality whose arm set always holds the vendor opposite the builder; one review.yaml, fed to the ship informed-accept. Out of scope — single-commit ad-hoc review (Claude Code's built-in `/code-review`) and design-document review (`/touchstone:design-review`).
+  Use when a finished build (a branch or logical commit group) needs its one review before
+  phase-ship; the result feeds the ship informed-accept. Out of scope — single-commit ad-hoc
+  review (Claude Code's built-in `/code-review`) and design-document review
+  (`/touchstone:design-review`).
 allowed-tools:
   - Bash
   - Read

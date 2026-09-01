@@ -2,13 +2,8 @@
 name: epic-driven-roadmap
 kind: workflow
 description: |
-  Scaffold, maintain, and audit a project's epic-driven roadmap. Every project
-  using this convention keeps a pure-tracker ROADMAP.md plus one tracker per
-  epic under .touchstone/epics/YYYY-MM-DD-<slug>/index.md. Invoke when: starting a new
-  epic, closing an epic (retrospective + evidence reckoning + move to
-  Completed), or auditing status drift. Concrete paths come from the
-  project's CLAUDE.md § Doc Routing; this skill owns the shape, templates,
-  and procedures.
+  Scaffold, maintain, and audit a project's epic-driven roadmap. Invoke when: starting a
+  new epic, closing an epic, or auditing status drift.
 allowed-tools:
   - Bash
   - Read

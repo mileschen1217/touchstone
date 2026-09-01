@@ -1,6 +1,6 @@
 ---
 name: anvil
-description: Use when an accepted contract (spec.yaml with status accepted) needs to be built — entry check → conductor orchestration-mode (commander decomposes under the AC-coverage floor) → deliverable-review → hand-off to phase-ship. Stops before ship. Out of scope — a spec not yet `status: accepted`.
+description: Use when an accepted contract (spec.yaml with status accepted) needs to be built; stops before ship and hands off to phase-ship. Out of scope — a spec not yet `status: accepted`.
 allowed-tools: [Bash, Read, Skill, Agent, Edit, Write]
 user-invocable: true
 kind: workflow

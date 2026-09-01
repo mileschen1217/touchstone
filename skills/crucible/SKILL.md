@@ -1,6 +1,6 @@
 ---
 name: crucible
-description: Front-end contract orchestrator — chains explore (ground the intent in the system) → assay (the pre-contract interview; its consensus section is what the contract author consumes) → design-spec → design-review into one invocation, so the AI forges the contract spine and the human accepts once. Two forms, short by default. Use at the start of a feature that needs a contract.
+description: Front-end contract orchestrator — chains explore → assay → design-spec → design-review into one invocation; the human accepts once at the end. Use at the start of a feature that needs a contract.
 user-invocable: true
 ---
 

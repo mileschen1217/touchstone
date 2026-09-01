@@ -2,12 +2,10 @@
 name: design-spec
 kind: workflow
 description: |
-  Generate the contract (spec.yaml) — the one contract shape both of crucible's forms,
-  full and short, produce. Writes fields per the spec schema (validated by
-  check-artifact.sh) into the epic's directory from an assay record's consensus. Invoked by crucible after
-  assay, or directly for a spec revision. Skip when no assay record exists yet
-  (crucible first) or the work is a one-shot edit outside the workflow. Paths come
-  from the config-resolver (`/touchstone:init` writes them once per project).
+  Generate the contract (spec.yaml) — the one contract shape crucible's full and short
+  forms both produce. Invoked by crucible after assay, or directly for a spec revision.
+  Skip when no assay record exists yet (crucible first) or the work is a one-shot edit
+  outside the workflow.
 allowed-tools:
   - Bash
   - Read
