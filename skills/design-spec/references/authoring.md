@@ -22,18 +22,6 @@ Every requirement `traces_to` ≥1 US-N. US-N ids are stable for the spec's
 lifecycle. A requirement that only rewords its story collapses into it — it
 must add a partitionable rule-domain the story lacks.
 
-## Inputs to collect
-
-If not already provided: the **feature name** (kebab-case, used in the filename).
-Every other input is a confirmed fact from the ledger or the epic index
-(SKILL.md § 1).
-
-## Drafting workflow
-
-1. Copy `template.yaml` (or the template the project config names).
-2. Read the facts sources supplied.
-3. Fill every field.
-
 ## When drafting `requirements[].acs`
 
 Treat the inherited aim as a provisional direction, not a settled target.
