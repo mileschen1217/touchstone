@@ -14,7 +14,9 @@ kill-on: a-real-bidirectional-tracker-consumer-appears
 Accepted. Decided during Stage 1.5 grill-with-docs for Phase 2.11 of the
 `skill-ceiling` epic. **Supersedes ADR-0012** (canonical-form storage adapter
 contract), whose adapter was implemented but never gained a second backend or an
-external consumer.
+external consumer. **Superseded in form by ADR-0043 (essence upheld):** the
+one-way-projection / no-storage-adapter essence is untouched; only the clause
+naming index.md as the tracker's single source transfers to epic.yaml.
 
 ## Triggered by
 
