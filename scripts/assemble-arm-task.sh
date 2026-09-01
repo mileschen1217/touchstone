@@ -256,20 +256,31 @@ PY
   rm -f "$pyfile" "$errfile" "$bodyfile"
 fi
 
-mv "$tmp_lens" "$lens_out"
-
 # ---- subject file: copy (--subject-file) or shell redirect (--subject-cmd).
 # The subject bytes are never captured into a shell variable and never echoed
 # -- `cat` streams a copy, `sh -c` streams a redirect, both straight into the
-# one output redirection below (AC-8).
+# one output redirection below (AC-8). The copy/command's own exit status is
+# checked: a failing producer must NOT leave a well-formed empty subject behind
+# (the silent-empty-review fail-open), so both outputs are built in temp files
+# and moved into place only after both succeed.
+tmp_subject="$(mktemp)"
+subject_rc=0
+if [ -n "$subject_file" ]; then
+  cat -- "$subject_file" > "$tmp_subject" || subject_rc=$?
+else
+  sh -c "$subject_cmd" > "$tmp_subject" || subject_rc=$?
+fi
+if [ "$subject_rc" -ne 0 ]; then
+  echo "assemble-arm-task.sh: subject production failed (rc=$subject_rc): ${subject_file:-$subject_cmd}" >&2
+  rm -f "$tmp_lens" "$tmp_subject"
+  exit 1
+fi
 {
   printf '<<< UNTRUSTED DATA >>>\n'
-  if [ -n "$subject_file" ]; then
-    cat -- "$subject_file"
-  else
-    sh -c "$subject_cmd"
-  fi
+  cat -- "$tmp_subject"
   printf '\n<<< END UNTRUSTED DATA >>>\n'
 } > "$subject_out"
+rm -f "$tmp_subject"
+mv "$tmp_lens" "$lens_out"
 
 printf '%s\n%s\n%s\n' "$lens_out" "$subject_out" "$ids"

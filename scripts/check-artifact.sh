@@ -329,12 +329,14 @@ elif kind == 'review':
     # admitted only alongside a degraded round; a present-but-empty list is always wrong
     # (an arm that read nothing is the degraded case, not an empty list). The id-outside-
     # the-manifest failure (AC-15) is gate-side — a review.yaml carries no manifest to
-    # check the ids against, so it is not checked here.
+    # check the ids against, so it is not checked here. The plugin-review gate is exempt:
+    # its lens composition is rubric-sliced (assembler --lens-file mode), so its arms have
+    # no manifest fragment ids to report — the same class its recorded deviation covers.
     for pv in doc.get('providers') or []:
         if not isinstance(pv, dict): continue
         lens_name = pv.get('lens') if isinstance(pv.get('lens'), str) else '?'
         if 'fragments_read' not in pv:
-            if doc.get('degraded') is not True:
+            if doc.get('degraded') is not True and doc.get('gate') != 'plugin-review':
                 errors.append(f"providers[{lens_name}].fragments_read: required unless the round is degraded")
         elif isinstance(pv.get('fragments_read'), list) and len(pv['fragments_read']) == 0:
             errors.append(f"providers[{lens_name}].fragments_read: must not be empty — an arm that read nothing is the degraded case, omit the key instead")

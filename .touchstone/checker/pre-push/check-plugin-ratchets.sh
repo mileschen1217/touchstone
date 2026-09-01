@@ -79,6 +79,9 @@ for key in arm_load_tokens conditional_load_tokens; do
   esac
 done
 [ "$malformed" -eq 0 ] || exit 1
+baselined_new_keys=""
+[ "$have_arm" -eq 1 ] && baselined_new_keys="$baselined_new_keys arm_load_tokens"
+[ "$have_cond" -eq 1 ] && baselined_new_keys="$baselined_new_keys conditional_load_tokens"
 
 command -v python3 >/dev/null 2>&1 || { echo "[check-plugin-ratchets] WARNING: python3 not found — skipping (infra-safe)"; exit 0; }
 
@@ -88,15 +91,25 @@ if [ "$map_rc" -ne 0 ]; then
   exit 1
 fi
 
+# A key the baseline carries MUST be present as an integer in the map's metrics —
+# a missing key is a map regression and blocks; it never silently reads as 0
+# (which would turn the regression into a spurious "ratchet may fall").
+# shellcheck disable=SC2086  # $baselined_new_keys word-splits into argv on purpose
 if ! metrics="$(printf '%s' "$map_json" | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 m = d.get("metrics", {})
-print(m.get("max_stage_load_tokens", 0))
-print(m.get("untested_reachable_shell_lines", 0))
-print(m.get("arm_load_tokens", 0))
-print(m.get("conditional_load_tokens", 0))
-' 2>&1)"; then
+required = ["max_stage_load_tokens", "untested_reachable_shell_lines"]
+optional_when_unbaselined = ["arm_load_tokens", "conditional_load_tokens"]
+have = [k for k in optional_when_unbaselined if len(sys.argv) > 1 and k in sys.argv[1:]]
+for k in required + have:
+    v = m.get(k)
+    if not isinstance(v, int):
+        sys.stderr.write("metrics key missing or not an integer: %s=%r\n" % (k, v))
+        sys.exit(1)
+for k in required + optional_when_unbaselined:
+    print(m.get(k, 0))
+' $baselined_new_keys 2>&1)"; then
   printf '[check-plugin-ratchets] BLOCK: could not parse plugin-map.sh metrics:\n%s\n' "$metrics"
   exit 1
 fi

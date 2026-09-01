@@ -115,6 +115,7 @@ expect_out "check-artifact review: fragments_read missing names the entry and th
 expect_exit "check-artifact review: every providers entry carries fragments_read, degraded false" zero bash "$ca" review "$ax/review-green-fragments.yaml" --root "$ax"
 expect_exit "check-artifact review: empty fragments_read list rejected" nonzero bash "$ca" review "$ax/review-red-fragments-empty.yaml" --root "$ax"
 expect_out "check-artifact review: empty fragments_read names the entry" "providers[conformance].fragments_read: must not be empty" bash "$ca" review "$ax/review-red-fragments-empty.yaml" --root "$ax"
+expect_exit "check-artifact review: plugin-review producer exempt from fragments_read (rubric-sliced lens, no manifest ids)" zero bash "$ca" review "$ax/review-green-plugin-review.yaml" --root "$ax"
 
 expect_exit "check-artifact deviation green" zero bash "$ca" deviation "$ax/deviation-green.yaml" --root "$ax"
 expect_exit "check-artifact deviation red" nonzero bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
@@ -1081,6 +1082,16 @@ expect_exit "phase-metrics.sh --self-test" zero bash "$scripts_dir/phase-metrics
 # role-prompt precedence assertion; the script lives outside the checker stage
 # dirs so the rail loop never reaches it)
 expect_exit "assemble-arm-task.sh --self-test" zero bash "$scripts_dir/assemble-arm-task.sh" --self-test
+# a failing subject producer must exit non-zero and leave no files behind — the
+# silent-empty-subject fail-open the phase-7 review caught live
+asm_dir="$(mktemp -d)"
+expect_exit "assembler: failing --subject-cmd exits non-zero (no silent empty subject)" nonzero bash "$scripts_dir/assemble-arm-task.sh" --arm t --round-dir "$asm_dir" --lens quality --subject-cmd "exit 7"
+expect_exit "assembler: failing subject leaves no partial files" nonzero ls "$asm_dir/lens-t.md"
+# the assembled quality lens must actually carry the reviewer-role content — a
+# well-formed but semantically hollow lens is the recorded regression shape
+expect_exit "assembler: quality lens assembles" zero bash "$scripts_dir/assemble-arm-task.sh" --arm t --round-dir "$asm_dir" --lens quality --subject-cmd "echo x"
+expect_exit "assembler: quality lens carries the reviewer role (not hollow)" zero grep -q "independent code reviewer" "$asm_dir/lens-t.md"
+rm -rf "$asm_dir"
 
 find_checker() {  # <name> -> absolute path on stdout, or nothing
   local name="$1" d p
