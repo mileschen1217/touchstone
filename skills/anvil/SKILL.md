@@ -36,7 +36,9 @@ Anvil's three duties inside this stage:
    dispatch around it, never patch it in silently.
 2. **Contract steering** — a bug-fix-shaped task's implementer contract names
    the failing test to write first; a parser/guard-shaped task's contract asks
-   which admitted input shapes the suite feeds.
+   which admitted input shapes the suite feeds. Every task contract points
+   worker scratch output at the session scratchpad, never inside the epic
+   directory.
 3. **Deviation log** — a build-time gap against the spec is a `D-n` entry in the
    epic's `deviation.yaml` the moment it is found, never a note in the run
    report. Field set: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/deviation.schema.yaml`;

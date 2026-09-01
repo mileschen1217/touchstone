@@ -91,28 +91,21 @@ expect_exit "check-artifact deviation red" nonzero bash "$ca" deviation "$ax/dev
 expect_out "check-artifact deviation: missing which_stage_could_have_caught" "entries[D-1].which_stage_could_have_caught: required" bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
 expect_out "check-artifact deviation: invalid panel" "entries[D-1].panel: 'flow' not in" bash "$ca" deviation "$ax/deviation-red.yaml" --root "$ax"
 
-# AC-5: duplicate QZ-n id
-expect_exit "check-artifact deviation: duplicate QZ id" nonzero bash "$ca" deviation "$ax/deviation-red-dup-qz.yaml" --root "$ax"
-expect_out "check-artifact deviation: duplicate QZ id names QZ-1" "duplicate id QZ-1" bash "$ca" deviation "$ax/deviation-red-dup-qz.yaml" --root "$ax"
-
 # AC-7: an entry's empty refs is legal only beside derived: true
 expect_exit "check-artifact deviation: empty refs without derived" nonzero bash "$ca" deviation "$ax/deviation-red-refs-empty.yaml" --root "$ax"
 expect_out "check-artifact deviation: empty refs without derived names entries[D-1].refs" "entries[D-1].refs: empty refs require derived: true" bash "$ca" deviation "$ax/deviation-red-refs-empty.yaml" --root "$ax"
 
-# AC-16: kind / expected_refs / answer_refs are retired with the single quiz-item shape —
-# each is rejected as an unknown key at its path
-expect_exit "check-artifact deviation: legacy quiz kind/expected_refs/answer_refs" nonzero bash "$ca" deviation "$ax/deviation-red-quiz-legacy-kind.yaml" --root "$ax"
-expect_out "check-artifact deviation: legacy kind is an unknown key" "quiz.items[QZ-1].kind: unknown key" bash "$ca" deviation "$ax/deviation-red-quiz-legacy-kind.yaml" --root "$ax"
-expect_out "check-artifact deviation: legacy expected_refs is an unknown key" "quiz.items[QZ-1].expected_refs: unknown key" bash "$ca" deviation "$ax/deviation-red-quiz-legacy-kind.yaml" --root "$ax"
-expect_out "check-artifact deviation: legacy answer_refs is an unknown key" "quiz.items[QZ-1].answer_refs: unknown key" bash "$ca" deviation "$ax/deviation-red-quiz-legacy-kind.yaml" --root "$ax"
-
-# AC-17 / AC-29: an answered item with no result fails; a refs id that does not resolve in
-# the phase-matched spec fails and exits non-zero (an unanswered item with valid refs
-# passes — exercised by deviation-green.yaml's QZ-2 above)
-expect_exit "check-artifact deviation: answered item with no result" nonzero bash "$ca" deviation "$ax/deviation-red-answer-no-result.yaml" --root "$ax"
-expect_out "check-artifact deviation: answered item with no result names the rule" "quiz.items[QZ-1].result: required once answered" bash "$ca" deviation "$ax/deviation-red-answer-no-result.yaml" --root "$ax"
-expect_exit "check-artifact deviation: quiz refs does not resolve" nonzero bash "$ca" deviation "$ax/deviation-red-quiz-ref.yaml" --root "$ax"
-expect_out "check-artifact deviation: quiz refs does not resolve names the id" "quiz.items[QZ-1].refs: AC-99 does not resolve" bash "$ca" deviation "$ax/deviation-red-quiz-ref.yaml" --root "$ax"
+# AC-1: the quiz block moved out of deviation — no `quiz:` property key remains in the
+# schema (a header comment may still name the migration in prose; the grammar check is the
+# absence of a `quiz:` property line), and a deviation fixture carrying a quiz block fails
+# with an unknown-key error
+if grep -qE '^[[:space:]]*quiz:' "$scripts_dir/../skills/_shared/schemas/deviation.schema.yaml"; then
+  echo "FAIL: deviation.schema.yaml still declares a quiz: property"; fail=1
+else
+  echo "PASS: deviation.schema.yaml declares no quiz: property"
+fi
+expect_exit "check-artifact deviation: quiz block is now an unknown key" nonzero bash "$ca" deviation "$ax/deviation-red-quiz-key.yaml" --root "$ax"
+expect_out "check-artifact deviation: quiz block names the unknown key" "quiz: unknown key" bash "$ca" deviation "$ax/deviation-red-quiz-key.yaml" --root "$ax"
 
 # AC-20: metrics is a per-phase list — a duplicate phase and a non-40-hex measured_at both
 # fail; a list with distinct phases (deviation-green-metrics.yaml) passes
@@ -123,6 +116,61 @@ expect_out "check-artifact deviation: metrics measured_at not 40-hex names the p
 expect_exit "check-artifact deviation: valid metrics list (two distinct phases)" zero bash "$ca" deviation "$ax/deviation-green-metrics.yaml" --root "$ax"
 expect_exit "check-artifact deviation: metrics stage_tokens missing stages" nonzero bash "$ca" deviation "$ax/deviation-red-metrics-stages.yaml" --root "$ax"
 expect_out "check-artifact deviation: metrics stage_tokens missing stages names the path" "metrics[0].stage_tokens: stages 0-5 each exactly once" bash "$ca" deviation "$ax/deviation-red-metrics-stages.yaml" --root "$ax"
+
+# ---- check-artifact.sh quiz kind (REQ-1 / AC-2): green + one red per violation class
+expect_exit "check-artifact quiz green" zero bash "$ca" quiz "$ax/quiz-green.yaml" --root "$ax"
+expect_exit "check-artifact quiz: duplicate QZ id" nonzero bash "$ca" quiz "$ax/quiz-red-dup-qz.yaml" --root "$ax"
+expect_out "check-artifact quiz: duplicate QZ id names QZ-1" "duplicate id QZ-1" bash "$ca" quiz "$ax/quiz-red-dup-qz.yaml" --root "$ax"
+expect_exit "check-artifact quiz: answered item with no result" nonzero bash "$ca" quiz "$ax/quiz-red-answer-no-result.yaml" --root "$ax"
+expect_out "check-artifact quiz: answered item with no result names the rule" "items[QZ-1].result: required once answered" bash "$ca" quiz "$ax/quiz-red-answer-no-result.yaml" --root "$ax"
+expect_exit "check-artifact quiz: unresolvable ref" nonzero bash "$ca" quiz "$ax/quiz-red-ref.yaml" --root "$ax"
+expect_out "check-artifact quiz: unresolvable ref names the id" "items[QZ-1].refs[0]: 'AC-99' resolves to no id in phase1.spec.yaml" bash "$ca" quiz "$ax/quiz-red-ref.yaml" --root "$ax"
+expect_exit "check-artifact quiz: non-int items[].phase" nonzero bash "$ca" quiz "$ax/quiz-red-item-phase.yaml" --root "$ax"
+expect_out "check-artifact quiz: non-int items[].phase names the field" "items[QZ-1].phase: expected integer" bash "$ca" quiz "$ax/quiz-red-item-phase.yaml" --root "$ax"
+expect_exit "check-artifact quiz: phase_summaries non-int phase / missing text" nonzero bash "$ca" quiz "$ax/quiz-red-summary.yaml" --root "$ax"
+expect_out "check-artifact quiz: phase_summaries non-int phase" "phase_summaries[0].phase: expected integer" bash "$ca" quiz "$ax/quiz-red-summary.yaml" --root "$ax"
+expect_out "check-artifact quiz: phase_summaries missing text" "phase_summaries[1].text: required" bash "$ca" quiz "$ax/quiz-red-summary.yaml" --root "$ax"
+expect_exit "check-artifact quiz: retired legacy kind/expected_refs/answer_refs" nonzero bash "$ca" quiz "$ax/quiz-red-legacy.yaml" --root "$ax"
+expect_out "check-artifact quiz: legacy kind is an unknown key" "items[QZ-1].kind: unknown key" bash "$ca" quiz "$ax/quiz-red-legacy.yaml" --root "$ax"
+expect_out "check-artifact quiz: legacy expected_refs is an unknown key" "items[QZ-1].expected_refs: unknown key" bash "$ca" quiz "$ax/quiz-red-legacy.yaml" --root "$ax"
+expect_out "check-artifact quiz: legacy answer_refs is an unknown key" "items[QZ-1].answer_refs: unknown key" bash "$ca" quiz "$ax/quiz-red-legacy.yaml" --root "$ax"
+
+# ---- check-artifact.sh assay kind (REQ-2 / AC-6, AC-7): green + one red per violation class
+expect_exit "check-artifact assay green" zero bash "$ca" assay "$ax/assay-green.yaml" --root "$ax"
+expect_exit "check-artifact assay: missing consensus subsection" nonzero bash "$ca" assay "$ax/assay-red-consensus.yaml" --root "$ax"
+expect_out "check-artifact assay: missing consensus subsection names it" "consensus.out_of_scope: required" bash "$ca" assay "$ax/assay-red-consensus.yaml" --root "$ax"
+expect_exit "check-artifact assay: duplicate ledger id within a family" nonzero bash "$ca" assay "$ax/assay-red-dup-id.yaml" --root "$ax"
+expect_out "check-artifact assay: duplicate ledger id within a family names T-1" "duplicate id T-1" bash "$ca" assay "$ax/assay-red-dup-id.yaml" --root "$ax"
+expect_exit "check-artifact assay: readiness without date" nonzero bash "$ca" assay "$ax/assay-red-readiness.yaml" --root "$ax"
+expect_out "check-artifact assay: readiness without date names it" "readiness.date: required" bash "$ca" assay "$ax/assay-red-readiness.yaml" --root "$ax"
+# AC-7: a spec whose facts_source.record names an assay .yaml record resolves consensus ids
+# by structured lookup (the .md read-compat half is exercised by spec-green.yaml + ledger.md
+# above)
+expect_exit "check-artifact spec: facts_source.record names an assay .yaml record (AC-7)" zero bash "$ca" spec "$ax/spec-assayledger-green.yaml" --root "$ax"
+
+# ---- check-artifact.sh explore kind (REQ-3 / AC-13): green + one red per violation class
+expect_exit "check-artifact explore green" zero bash "$ca" explore "$ax/explore-green.yaml" --root "$ax"
+expect_exit "check-artifact explore: plateau false without reach_under_determined" nonzero bash "$ca" explore "$ax/explore-red-plateau.yaml" --root "$ax"
+expect_out "check-artifact explore: plateau false without reach_under_determined names it" "reach_under_determined: required when plateau is false" bash "$ca" explore "$ax/explore-red-plateau.yaml" --root "$ax"
+expect_exit "check-artifact explore: seam_maps entry without parties" nonzero bash "$ca" explore "$ax/explore-red-parties.yaml" --root "$ax"
+expect_out "check-artifact explore: seam_maps entry without parties names it" "seam_maps[0].parties: required" bash "$ca" explore "$ax/explore-red-parties.yaml" --root "$ax"
+
+# AC-14: the usage line lists exactly the six kinds
+expect_out "check-artifact usage lists exactly six kinds" "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore> <file> [--root <dir>]" bash "$ca" bogus "$ax/spec-green.yaml"
+
+# AC-15: the three hard-coded resolution branches (spec/review/deviation dispatched by
+# `kind ==`) are gone — resolution reads each schema's declared `resolves` value instead.
+# This grep targets the literal old ledger-resolution branch shape; it must find nothing.
+if grep -qE "kind == 'review' and isinstance\(target_doc" "$ca"; then
+  echo "FAIL: check-artifact.sh still carries a kind-specific resolution branch"; fail=1
+else
+  echo "PASS: check-artifact.sh resolution dispatch carries no kind-specific branch"
+fi
+if grep -q "resolves = schema.get('resolves')" "$ca"; then
+  echo "PASS: check-artifact.sh resolution dispatch reads the schema's declared resolves value"
+else
+  echo "FAIL: check-artifact.sh does not read a declared resolves value"; fail=1
+fi
 
 python3 - "$ca" "$ax" <<'PY3' || { echo "FAIL: check-artifact edge cases"; fail=1; }
 import subprocess, sys, os, tempfile, shutil
@@ -159,37 +207,34 @@ noloc_green = noloc_red.replace('refs: []', 'file: skills/design-review/SKILL.md
 rc, out = run('review', noloc_green, 'r4.yaml')
 assert rc == 0, out
 
-# AC-17: refs: [] is rejected by the schema's minItems 1; an unanswered item (no answer, no
-# result) with valid refs passes; a quiz item's refs must resolve in the phase-matched spec,
-# and a phase with no spec under --root warns (exit unchanged) rather than errors
-base_q = '''entries: []
-quiz:
-  waived: false
-  items:
-    - id: QZ-1
-      phase: {phase}
-      question: q
-      refs: {refs}
-      anchor: requirements[REQ-1].acs[AC-1]
-{extra}waiting_on_human: []
-'''
-rc, out = run('deviation', base_q.format(phase=1, refs='[]', extra=''), 'q1.yaml')
-assert rc == 1 and 'quiz.items[QZ-1].refs: minItems 1' in out, out
-rc, out = run('deviation', base_q.format(phase=1, refs='[AC-1]', extra=''), 'q2.yaml')
+# quiz kind: refs: [] is rejected by the schema's minItems 1; an unanswered item (no
+# answer, no result) with valid refs passes; a quiz item's refs must resolve in the
+# phase-matched spec, and a phase with no spec under --root warns (exit unchanged) rather
+# than errors
+base_q = '''waived: false
+items:
+  - id: QZ-1
+    phase: {phase}
+    question: q
+    refs: {refs}
+    anchor: requirements[REQ-1].acs[AC-1]
+{extra}'''
+rc, out = run('quiz', base_q.format(phase=1, refs='[]', extra=''), 'q1.yaml')
+assert rc == 1 and 'items[QZ-1].refs: minItems 1' in out, out
+rc, out = run('quiz', base_q.format(phase=1, refs='[AC-1]', extra=''), 'q2.yaml')
 assert rc == 0, out   # unanswered item, valid refs, passes
-rc, out = run('deviation', base_q.format(phase=99, refs='[AC-1]', extra=''), 'q3.yaml')
+rc, out = run('quiz', base_q.format(phase=99, refs='[AC-1]', extra=''), 'q3.yaml')
 assert rc == 0 and 'no spec for phase 99 found under --root' in out, out
 
-# AC-17: an answered item requires a result; once both are present it passes
-answered = base_q.format(phase=1, refs='[AC-1]', extra='      answer: a\n')
-rc, out = run('deviation', answered, 'q4.yaml')
-assert rc == 1 and 'quiz.items[QZ-1].result: required once answered' in out, out
-rc, out = run('deviation', answered.replace('anchor: requirements[REQ-1].acs[AC-1]\n', 'anchor: requirements[REQ-1].acs[AC-1]\n      result: pass\n'), 'q5.yaml')
+# an answered item requires a result; once both are present it passes
+answered = base_q.format(phase=1, refs='[AC-1]', extra='    answer: a\n')
+rc, out = run('quiz', answered, 'q4.yaml')
+assert rc == 1 and 'items[QZ-1].result: required once answered' in out, out
+rc, out = run('quiz', answered.replace('anchor: requirements[REQ-1].acs[AC-1]\n', 'anchor: requirements[REQ-1].acs[AC-1]\n    result: pass\n'), 'q5.yaml')
 assert rc == 0, out
 
 # AC-20: one metrics entry passes; a 39-hex measured_at fails naming the path
 base_m = '''entries: []
-quiz: {{waived: false, items: []}}
 metrics:
   - phase: 1
     wall_clock_h: 1.0
@@ -220,20 +265,60 @@ rc, out = run('review', noncon, 'cv2.yaml')
 assert rc == 1 and "not in ['open', 'fixed', 'waived', 'unverified']" in out and 'covered rows belong in coverage[]' not in out, out
 
 shutil.rmtree(t)
-print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type, refs resolution (AC-4), locator rule (AC-48), quiz refs/result rule (AC-17), metrics duplicate/sha (AC-20), coverage-row resolution + non-conformance covered stays a plain enum rejection (AC-14)')
+print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type, refs resolution (AC-4), locator rule (AC-48), quiz kind refs/result rule, metrics duplicate/sha (AC-20), coverage-row resolution + non-conformance covered stays a plain enum rejection (AC-14)')
 PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
-# the three schema files exist and every top-level field carries a reader tag
+# the six schema files exist and every top-level field carries a reader tag
 python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
 import sys, os, yaml
 d = sys.argv[1]
-assert sorted(os.listdir(d)) == ['deviation.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
+assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'explore.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
 for f in os.listdir(d):
     s = yaml.safe_load(open(os.path.join(d, f)))
     for k, v in s['properties'].items():
         assert v.get('reader') in ('human', 'agent'), f'{f}: {k} has no reader tag'
-print('PASS: three schemas, every top-level field reader-tagged')
+print('PASS: six schemas, every top-level field reader-tagged')
 PY2
+
+# AC-10 / INV-4: every field in the three new schemas names its consumer file in the
+# schema header comment (no field lacks one)
+python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY4' || { echo "FAIL: new-schema field consumers"; fail=1; }
+import sys, os, yaml
+d = sys.argv[1]
+for f in ('quiz.schema.yaml', 'assay.schema.yaml', 'explore.schema.yaml'):
+    text = open(os.path.join(d, f), encoding='utf-8').read()
+    header, _, _ = text.partition('\nkind:')
+    s = yaml.safe_load(text)
+    for k in s['properties']:
+        assert k in header, f'{f}: field {k} has no consumer named in the header comment'
+print('PASS: quiz/assay/explore schemas name a consumer file per top-level field (AC-10 / INV-4)')
+PY4
+
+# AC-26: the resolves declaration is live, not decorative — flip spec.schema.yaml's
+# `resolves: self` to `resolves: target` in a scratch copy of the schema tree (mktemp);
+# validating the same spec-green.yaml instance under the flipped copy stops resolving
+# facts_source.consensus against the file itself (there is no `target` field on a spec
+# document) — the ledger warn that was absent before now appears.
+python3 - "$ca" "$ax" <<'PY5' || { echo "FAIL: check-artifact AC-26 resolves declaration liveness"; fail=1; }
+import sys, os, subprocess, tempfile, shutil
+ca, ax = sys.argv[1], sys.argv[2]
+scratch = tempfile.mkdtemp()
+os.makedirs(os.path.join(scratch, 'scripts'))
+os.makedirs(os.path.join(scratch, 'skills', '_shared', 'schemas'))
+scratch_ca = os.path.join(scratch, 'scripts', 'check-artifact.sh')
+shutil.copy(ca, scratch_ca)
+schema_src = os.path.join(os.path.dirname(ca), '..', 'skills', '_shared', 'schemas', 'spec.schema.yaml')
+original = open(schema_src, encoding='utf-8').read()
+flipped = original.replace('resolves: self', 'resolves: target', 1)
+assert flipped != original, "resolves: self not found in spec.schema.yaml"
+open(os.path.join(scratch, 'skills', '_shared', 'schemas', 'spec.schema.yaml'), 'w', encoding='utf-8').write(flipped)
+before = subprocess.run(['bash', ca, 'spec', os.path.join(ax, 'spec-green.yaml'), '--root', ax], capture_output=True, text=True)
+after = subprocess.run(['bash', scratch_ca, 'spec', os.path.join(ax, 'spec-green.yaml'), '--root', ax], capture_output=True, text=True)
+assert 'ledger not found' not in before.stdout, before.stdout
+assert 'ledger not found' in after.stdout, after.stdout
+shutil.rmtree(scratch)
+print('PASS: check-artifact.sh resolves declaration is live — flipping a scratch copy changes the resolution target (AC-26)')
+PY5
 
 # ---- design-review-precheck.sh: schema floor, draft skip, legacy md block, --attest
 pc="$scripts_dir/design-review-precheck.sh"
@@ -394,7 +479,7 @@ def walk(v):
     elif v is not None:
         vals.add(str(v).strip())
 ed = sys.argv[3]
-for f in ('2026-01-04-gamma.spec.yaml', 'design-review-gamma/review.yaml', 'deviation.yaml'):
+for f in ('2026-01-04-gamma.spec.yaml', 'design-review-gamma/review.yaml', 'deviation.yaml', 'quiz.yaml'):
     walk(yaml.safe_load(open(os.path.join(ed, f), encoding='utf-8')))
 legacy = [l[2:].strip() for l in open(os.path.join(ed, 'index.md'), encoding='utf-8').read().splitlines() if l.startswith('- phase ')]
 checked = 0
@@ -417,12 +502,93 @@ assert checked >= 10, checked
 print('PASS: front-page order == pr-body order; no whole-file pre; %d text nodes trace to YAML fields (INV-1)' % checked)
 PY
 
+# ---- phase 5: quiz.yaml split (AC-1/AC-3/AC-4/AC-25/AC-27), assay/explore readers
+# (AC-9/AC-12), walk exclusion (AC-16), and the four presentation fixes (AC-11/AC-17/
+# AC-18/AC-19) — all asserted on the same migrated dossier-epic fixture rendered above.
+
+# AC-25: the migrated fixture is checker-valid — both files exit 0 (warn-only refs unresolved
+# across phases with no YAML spec are fine; only errors trip the exit code).
+expect_exit "AC-25 check-artifact deviation.yaml (migrated fixture)" zero \
+  bash "$scripts_dir/check-artifact.sh" deviation "$fx/dossier-epic/deviation.yaml" --root "$fx/dossier-epic"
+expect_exit "AC-25 check-artifact quiz.yaml (migrated fixture)" zero \
+  bash "$scripts_dir/check-artifact.sh" quiz "$fx/dossier-epic/quiz.yaml" --root "$fx/dossier-epic"
+
+# AC-1/AC-3: quiz.yaml's per-phase item-id grouping is unchanged from the pre-migration
+# deviation.yaml quiz block (QZ-1 phase 3, QZ-2 phase 1, QZ-3 phase 2).
+python3 - "$fx/dossier-epic/quiz.yaml" <<'PY' || { echo "FAIL: AC-3 quiz migration regression"; fail=1; }
+import yaml, sys
+d = yaml.safe_load(open(sys.argv[1], encoding='utf-8'))
+by_phase = {}
+for it in d.get('items') or []:
+    by_phase.setdefault(it['phase'], set()).add(it['id'])
+want = {1: {'QZ-2'}, 2: {'QZ-3'}, 3: {'QZ-1'}}
+assert by_phase == want, by_phase
+print('PASS: AC-3 — quiz.yaml per-phase item-id sets match the pre-migration deviation.yaml grouping')
+PY
+
+# AC-4: a phase_summaries entry (phase 1, alpha) appears at both render sites inside its
+# phase's 紀錄 card (top of the panel, and again at the top of the quiz section) — additive
+# only: QZ-2 (phase 1)'s ref still resolves to a raw-material jump anchor (INV-5).
+expect_grep "AC-4 phase_summaries: two render sites (phase panel + quiz section)" -eq 2 \
+  'owner-frame: phase 1 shipped the dry-run flag with no acceptance-criteria impact.'
+expect_grep "AC-4 additive: QZ-2's ref still resolves to a raw-material anchor" -ge 1 \
+  '對回</span> <a class="code" data-jump="2026-01-02-alpha-design--AC-1" tabindex="0">AC-1</a>'
+
+# AC-9: the structured assay-*.yaml record renders per-ledger-id anchors (T-1/A-2/Q-2)
+# alongside the legacy assay-notes.md ones (A-1/Q-1); the 建置帳 fold groups its structured
+# rulings by stage (build and deliverable-review both included).
+expect_grep "AC-9: yaml assay record ledger anchors (T/A/Q)" -eq 1 'id="ledger--T-1"'
+expect_grep "AC-9: yaml assay record ledger anchors (T/A/Q)" -eq 1 'id="ledger--A-2"'
+expect_grep "AC-9: yaml assay record ledger anchors (T/A/Q)" -eq 1 'id="ledger--Q-2"'
+expect_grep "AC-9: legacy md assay record ledger anchors unchanged" -eq 1 'id="ledger--A-1"'
+expect_grep "AC-9: legacy md assay record ledger anchors unchanged" -eq 1 'id="ledger--Q-1"'
+expect_grep "AC-9: 建置帳 fold carries the yaml record's build-stage ruling" -ge 1 'confirmed during build'
+expect_grep "AC-9: 建置帳 fold carries the yaml record's deliverable-review-stage ruling" -ge 1 'yes, reuse confirmed'
+
+# AC-12: an explore-*.yaml renders an exploration card in the 契約 group.
+expect_grep "AC-12: exploration card renders in 契約" -ge 1 'confirm the writer module has no hidden readers'
+
+# AC-16: a spec-shaped file nested under a build-*/ scratch dir creates no phase and
+# appears in no tab (the walk excludes build-*/, discovery-*/, live/ at the source).
+expect_grep "AC-16: nested build- subdir spec creates no phase" -eq 0 '第 99 階段'
+expect_grep "AC-16: nested build- subdir spec content absent from every tab" -eq 0 'Should never render'
+
+# AC-27: quiz.yaml routes by exact basename to the structured quiz reader (never a generic
+# file card); a legacy file whose basename merely contains "quiz" keeps its Ship classification.
+expect_grep "AC-27: quiz.yaml never rendered as a generic file card" -eq 0 'title="檔案 quiz.yaml"'
+expect_grep "AC-27: legacy *quiz* file keeps its current (Ship) classification" -ge 1 'Legacy quiz notes'
+
+# AC-17: an AC's given/當/則 segments render as separate list items, not one paragraph.
+expect_grep "AC-17: given/when/then render as list items" -ge 1 '<ul class="gwt"><li><span class="label">給定</span>'
+
+# AC-18: the gate pills sit on their own status row, structurally separate from the
+# epic/phase decision row, below the title line.
+expect_grep "AC-18: gate pills sit on their own row" -ge 1 '<div class="gates-row">'
+
+# AC-19 (structural half): the middle content column no longer carries a fixed narrow max.
+expect_grep "AC-19: no fixed 76ch column max" -eq 0 'max-width:76ch'
+expect_grep "AC-19: middle column uses the available width" -ge 1 'max-width:min(1200px,94vw)'
+
+# AC-11: a long raw record's fold summary carries a digest (line count), never its prose —
+# the lead sentence still appears in the fold BODY (revealed on open), just never inside
+# the <summary> the reader sees collapsed.
+expect_grep "AC-11: digest fold summary carries a count, not file prose" -ge 1 \
+  '<span class="lead"><span class="label">全文</span></span> <span class="num">'
+python3 - "$dout" <<'PY' || { echo "FAIL: AC-11 digest fold summary leaks prose"; fail=1; }
+import re, sys
+h = open(sys.argv[1], encoding='utf-8').read()
+for m in re.finditer(r'<summary>(.*?)</summary>', h, re.S):
+    assert 'This sentence must never appear inside a fold summary line directly.' not in m.group(1), 'AC-11: long-file lead prose leaked into a <summary>'
+print('PASS: AC-11 — long-file lead prose never appears inside a <summary> (fold-body only)')
+PY
+
 # zero-delta phase → visible quiz waiver
 zd="$tmp_root/.touchstone/epics/2026-01-07-zerodelta"; mkdir -p "$zd"
 printf -- '---\nslug: zerodelta\nstatus: active\n---\n\n# Zero delta\n\n**Aim:** x.\n\n## Phases\n\n| # | Title | Spec | Plan | Status | Landed |\n|---|---|---|---|---|---|\n| 1 | Delta | [spec](2026-01-07-delta.spec.yaml) | — | active | |\n' > "$zd/index.md"
 sed -e 's/^title: .*/title: Delta — zero deviation/' -e 's/^  record: .*/  record: ledger.md/' "$fx/dossier-epic/2026-01-04-gamma.spec.yaml" > "$zd/2026-01-07-delta.spec.yaml"
 cp "$fx/artifacts/ledger.md" "$zd/ledger.md"
-printf 'entries: []\nquiz: {waived: true, items: []}\nwaiting_on_human: []\n' > "$zd/deviation.yaml"
+printf 'entries: []\nwaiting_on_human: []\n' > "$zd/deviation.yaml"
+printf 'waived: true\nitems: []\n' > "$zd/quiz.yaml"
 dout="$zd/dossier.html"
 expect_exit "dossier-render.sh zero-delta green" zero bash "$scripts_dir/dossier-render.sh" "$zd"
 expect_grep "zero-delta: quiz waiver visible" -ge 1 '>理解測驗免作</span>'
@@ -1137,29 +1303,30 @@ cp -R "$fx/dossier-epic"/. "$t2q_root/epic/"
 rm -f "$t2q_root/epic/dossier.html"
 cat > "$t2q_root/epic/deviation.yaml" <<'YAML'
 entries: []
-quiz:
-  waived: false
-  items:
-    - id: QZ-1
-      phase: 3
-      question: does a passed item show pass?
-      answer: "yes, via result: pass"
-      refs: [AC-1]
-      anchor: phase_map.interface_delta
-      result: pass
-    - id: QZ-2
-      phase: 3
-      question: does a missed item show miss?
-      answer: "an answer the AI judged incomplete"
-      refs: [AC-1]
-      anchor: phase_map.interface_delta
-      result: miss
-    - id: QZ-3
-      phase: 3
-      question: does an item with no answer show unanswered?
-      refs: [AC-1]
-      anchor: phase_map.interface_delta
 waiting_on_human: []
+YAML
+cat > "$t2q_root/epic/quiz.yaml" <<'YAML'
+waived: false
+items:
+  - id: QZ-1
+    phase: 3
+    question: does a passed item show pass?
+    answer: "yes, via result: pass"
+    refs: [AC-1]
+    anchor: phase_map.interface_delta
+    result: pass
+  - id: QZ-2
+    phase: 3
+    question: does a missed item show miss?
+    answer: "an answer the AI judged incomplete"
+    refs: [AC-1]
+    anchor: phase_map.interface_delta
+    result: miss
+  - id: QZ-3
+    phase: 3
+    question: does an item with no answer show unanswered?
+    refs: [AC-1]
+    anchor: phase_map.interface_delta
 YAML
 expect_exit "dossier T2 quiz fixture renders" zero bash "$scripts_dir/dossier-render.sh" "$t2q_root/epic"
 t2q_out="$t2q_root/epic/dossier.html"
@@ -1202,7 +1369,6 @@ for n in 1 2 3 4; do
 done
 cat > "$t2m_root/epic/deviation.yaml" <<'YAML'
 entries: []
-quiz: {waived: true, items: []}
 metrics:
   - phase: 3
     wall_clock_h: 7.5
@@ -1282,5 +1448,69 @@ else
   echo "FAIL: dossier coverage — covered count did not render exactly once (got $n_covered occurrences)"; fail=1
 fi
 rm -rf "$t2c_root"
+
+# ---- phase-5 fix pass regressions ----
+# the de-named path strings must stay out of design-spec's stage-loaded files
+if grep -rn "schemas/spec.schema.yaml\|severity-tiered-stopping-rule\|live-bearing-predicate" "$scripts_dir/../skills/design-spec/" >/dev/null 2>&1; then
+  echo "FAIL: de-named path string re-appeared under skills/design-spec/"; fail=1
+else
+  echo "PASS: design-spec names no spec-schema / stopping-rule / live-bearing path"
+fi
+
+# no stage context loads the three new schemas or the spec schema
+if bash "$scripts_dir/plugin-map.sh" --root "$scripts_dir/.." 2>/dev/null | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+bad = [f for st in d.get("stages", []) for c in st.get("contexts", []) for f in c.get("files", [])
+       if f.endswith(("quiz.schema.yaml", "assay.schema.yaml", "explore.schema.yaml", "spec.schema.yaml"))]
+sys.exit(1 if bad else 0)
+'; then
+  echo "PASS: no stage context loads quiz/assay/explore/spec schema files"
+else
+  echo "FAIL: a schema file appeared in a stage context list"; fail=1
+fi
+
+# a readiness-false assay record renders its card but never a waiting/blocker row;
+# the assay card renders consensus/flip_triggers/deferred; the front-page quiz ratio is phase-scoped
+t5a_root="$(mktemp -d)"
+mkdir -p "$t5a_root/epic"
+cp -R "$fx/dossier-epic"/. "$t5a_root/epic/"
+rm -f "$t5a_root/epic/dossier.html"
+cat > "$t5a_root/epic/assay-2026-01-07-zeta.yaml" <<'YAML'
+subject: zeta probe
+date: 2026-01-07
+epics: [demo]
+term_sheet: []
+alignment: []
+extraction: []
+consensus:
+  scope: [{text: zeta scope row, trace: [T-1]}]
+  invariants: []
+  contract_facts: []
+  out_of_scope: []
+flip_triggers: [{signal: zeta flip signal, revisit: ship}]
+deferred: [zeta deferred item]
+readiness: {yes: false, date: 2026-01-07, round: R-1}
+YAML
+expect_exit "assay zeta fixture checker-valid" zero bash "$scripts_dir/check-artifact.sh" assay "$t5a_root/epic/assay-2026-01-07-zeta.yaml"
+expect_exit "dossier renders with readiness-false assay" zero bash "$scripts_dir/dossier-render.sh" "$t5a_root/epic"
+if python3 - "$t5a_root/epic/dossier.html" <<'PY'
+import re, sys
+h = open(sys.argv[1], encoding='utf-8').read()
+assert 'zeta probe' in h, 'zeta assay card missing'
+todo = ' '.join(re.findall(r'<ul class="todo check">.*?</ul>', h, re.S))
+assert 'zeta' not in todo, 'readiness-false assay leaked into a blocker/waiting row'
+assert '共識' in h and 'zeta scope row' in h, 'assay card consensus not rendered'
+assert '翻轉觸發' in h and 'zeta flip signal' in h, 'assay card flip_triggers not rendered'
+assert '擱置' in h and 'zeta deferred item' in h, 'assay card deferred not rendered'
+assert re.search(r'理解測驗.{0,300}?<span class="num">1/1</span>', h, re.S), 'front-page quiz ratio not phase-scoped (want 1/1)'
+assert re.search(r'--quiz"><ul class="summary"><li>[^<]*phase 3 landed the equals flag form', h), 'front-page quiz section must open with its phase summary, one point per list item (owner reads it there, not only in the records tab)'
+PY
+then
+  echo "PASS: readiness-false no-blocker + assay card consensus/flip/deferred + phase-scoped quiz ratio"
+else
+  echo "FAIL: phase-5 fix-pass render assertions"; fail=1
+fi
+rm -rf "$t5a_root"
 
 exit "$fail"

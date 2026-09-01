@@ -1,0 +1,12 @@
+subject: epsilon
+date: 2026-01-06
+intent: confirm the writer module has no hidden readers
+seam_maps:
+  - artifact: writer
+    parties:
+      - {party: parser, ref: "scripts/parse.sh:1"}
+      - {party: cli, ref: "scripts/write.sh:1"}
+channels:
+  - {name: name-grep, new_parties: 2}
+  - {name: consumer-sweep, new_parties: 0}
+plateau: true

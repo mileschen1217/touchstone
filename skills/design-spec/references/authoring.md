@@ -5,8 +5,8 @@ kill-on: skill-ceiling
 
 # design-spec — authoring reference
 
-Drafting conventions for `spec.yaml`. The field set is
-`skills/_shared/schemas/spec.schema.yaml`.
+Drafting conventions for `spec.yaml`. The field set is the spec schema
+(`check-artifact.sh` validates it).
 
 ## Want-layer authoring
 
@@ -45,9 +45,9 @@ criteria — confirm or edit," present the sharpened aim/criteria, and wait for
 confirmation. If design work reveals the original direction was wrong, that is
 a scope signal — surface it, never quietly substitute a new goal.
 
-Assign `AC-N` 1-based at draft; never reuse within a spec. `live_bearing` per
-`skills/_shared/inject/live-bearing-predicate.md` (an AC whose Then depends on a
-real dispatch or an un-owned boundary is `true`). The spec carries no per-AC
+Assign `AC-N` 1-based at draft; never reuse within a spec. `live_bearing` follows
+the live-bearing predicate (design-review's verification-honesty lens — an AC
+whose Then depends on a real dispatch or an un-owned boundary is `true`). The spec carries no per-AC
 red/green state and no `[unverified]` marker. A question the draft cannot settle is
 a `waiting_on_human[]` entry, never a bracketed marker in a field.
 

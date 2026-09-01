@@ -1,0 +1,43 @@
+id: SPEC-fixture-assayledger
+title: Fixture spec (facts_source.record names an assay .yaml record — AC-7 structured lookup)
+epic: fixture
+phase: 1
+status: accepted
+date: 2026-01-01
+facts_source:
+  record: assay-green.yaml
+  consensus: [Q-1, A-1]
+foundation: inherit
+phase_map:
+  reader: human
+  position: First of one phase.
+  structure_before_after: Before one module; after two.
+  interface_delta: One flag is added.
+  scope: Touched is the parser; untouched is the writer.
+touch_set:
+  reader: agent
+  touched: [scripts/parse.sh]
+  untouched: [scripts/write.sh]
+delta:
+  blocks:
+    - {id: parser, op: change, kind: component, purpose: parse the new flag}
+    - {id: writer, op: add, kind: component, purpose: emit the result}
+  edges:
+    - {from: parser, to: writer, op: add, label: hands parsed value}
+  contracts:
+    - {id: flag-cli, schema: "--flag <value>"}
+user_stories:
+  - {id: US-1, as: a user, want: a flag, so_that: I can choose}
+requirements:
+  - id: REQ-1
+    shall: the parser SHALL accept --flag.
+    traces_to: [US-1]
+    basis: [Q-1]
+    acs:
+      - {id: AC-1, given: a call with --flag x, when: parsed, then: value is x, live_bearing: false}
+invariants:
+  - {id: INV-1, rule: the writer never reads stdin, why_ref: Q-1, check: grep}
+non_goals: [a second flag]
+risks:
+  - {problem: flag collides, measure: rename, priority: low, why_ref: A-1}
+waiting_on_human: []

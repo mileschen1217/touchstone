@@ -1,0 +1,7 @@
+waived: false
+items:
+  - id: QZ-1
+    phase: one
+    question: q
+    refs: [AC-1]
+    anchor: requirements[REQ-1].acs[AC-1]

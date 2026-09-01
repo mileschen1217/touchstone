@@ -1,7 +1,4 @@
 entries: []
-quiz:
-  waived: false
-  items: []
 metrics:
   - phase: 1
     wall_clock_h: 2.5

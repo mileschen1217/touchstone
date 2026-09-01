@@ -1,0 +1,17 @@
+id: SPEC-fixture-nested
+title: Should never render
+epic: fixture
+phase: 99
+status: accepted
+date: 2026-01-09
+facts_source: {record: assay-notes.md, consensus: []}
+foundation: inherit
+phase_map: {reader: human, position: x, structure_before_after: x, interface_delta: x, scope: x}
+touch_set: {reader: agent, touched: [], untouched: []}
+delta: {blocks: [], edges: []}
+user_stories: []
+requirements: []
+invariants: []
+non_goals: []
+risks: []
+waiting_on_human: []

@@ -1,0 +1,28 @@
+waived: false
+phase_summaries:
+  - phase: 3
+    text: |
+      owner-frame point one: phase 3 landed the equals flag form.
+      owner-frame point two: approve hinges on the interface panel.
+  - phase: 1
+    text: "owner-frame: phase 1 shipped the dry-run flag with no acceptance-criteria impact."
+items:
+  - id: QZ-1
+    phase: 3
+    question: which panel changed during the build?
+    refs: [AC-1]
+    anchor: phase_map.interface_delta
+    answer: the interface panel, through D-1
+    result: pass
+  - id: QZ-2
+    phase: 1
+    question: which acceptance criteria does the dry-run fix touch?
+    refs: [AC-1]
+    anchor: phase_map.position
+  - id: QZ-3
+    phase: 2
+    question: what replaced the header proposal in beta?
+    refs: [AC-1]
+    anchor: phase_map.interface_delta
+    answer: a flag
+    result: pass

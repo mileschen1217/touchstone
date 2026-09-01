@@ -1,0 +1,28 @@
+subject: fixture assay session
+date: 2026-01-01
+epics: [fixture]
+term_sheet:
+  - id: T-1
+    term: seam-map
+    definition: an artifact → {party file:line} map of every party a change must agree with.
+    source: doc-grounded
+alignment:
+  - id: A-1
+    tags: ["yes", cheap]
+    leaning: adopt
+    planned_handling: probe now
+extraction:
+  - id: Q-1
+    text: a ruling.
+consensus:
+  scope:
+    - text: the parser accepts --flag.
+      trace: [Q-1, T-1]
+  invariants: []
+  contract_facts:
+    - text: the writer never reads stdin.
+      trace: [A-1]
+  out_of_scope: []
+flip_triggers: []
+deferred: []
+readiness: {yes: true, date: 2026-01-01, round: R-1}

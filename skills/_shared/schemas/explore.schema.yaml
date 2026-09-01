@@ -1,0 +1,65 @@
+# explore.schema.yaml — the exploration deliverable (explore-<date>-<subject>.yaml): a
+# saturated seam-map, the channels swept, and the plateau call. Keywords as in
+# spec.schema.yaml's header. `resolves: none` — this kind carries no `spec_ref` field; it is
+# consumed as a verify-against baseline, never itself resolved against. The channel/plateau
+# vocabulary is homed in skills/_shared/reach-discovery.md and
+# skills/_shared/ground-and-sweep.md — this schema is the on-disk shape of their output,
+# not a restatement of the method.
+#
+# Consumers, per top-level field:
+#   subject, date — scripts/dossier-render.sh (exploration card header)
+#   intent        — skills/assay/SKILL.md (territory arm confirms the seam-map against this
+#                    stated intent); scripts/dossier-render.sh (card body)
+#   seam_maps     — skills/assay/SKILL.md (territory arm names this file as the seam-map
+#                    source it confirms into Consensus Scope); skills/design-spec/SKILL.md +
+#                    skills/design-review/SKILL.md (reach-axis verify-against baseline);
+#                    scripts/dossier-render.sh (exploration card party list)
+#   channels      — skills/design-spec/SKILL.md + skills/design-review/SKILL.md (reach-axis:
+#                    the channel-sweep evidence behind the plateau call);
+#                    scripts/dossier-render.sh (card)
+#   plateau       — skills/design-spec/SKILL.md + skills/design-review/SKILL.md (reach-axis
+#                    baseline: is the sweep saturated); scripts/dossier-render.sh (card
+#                    status)
+#   reach_under_determined — skills/design-spec/SKILL.md (orders discovering AND recording
+#                    the under-determination); skills/design-review/SKILL.md (a missing party
+#                    found later is a home-miss attributed back to explore);
+#                    scripts/dossier-render.sh (card)
+kind: explore
+resolves: none
+type: object
+additionalProperties: false
+required: [subject, date, intent, seam_maps, channels, plateau]
+properties:
+  subject: {type: string, reader: agent}
+  date: {type: date, reader: agent}
+  intent: {type: string, reader: human}
+  seam_maps:
+    type: array
+    reader: agent
+    items:
+      type: object
+      required: [artifact, parties]
+      additionalProperties: false
+      properties:
+        artifact: {type: string}
+        parties:
+          type: array
+          items:
+            type: object
+            required: [party, ref]
+            additionalProperties: false
+            properties:
+              party: {type: string}
+              ref: {type: string}
+  channels:
+    type: array
+    reader: agent
+    items:
+      type: object
+      required: [name, new_parties]
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        new_parties: {type: integer}
+  plateau: {type: boolean, reader: agent}
+  reach_under_determined: {type: string, reader: human}

@@ -1,0 +1,17 @@
+waived: false
+phase_summaries:
+  - phase: 1
+    text: shipped the flag; owners should know the value slot and the repeat-flag override.
+items:
+  - id: QZ-1
+    phase: 1
+    question: which ACs does the short flag touch?
+    answer: AC-1 (the value slot) and AC-4 (the repeat-flag override), via D-1
+    refs: [AC-1, AC-4]
+    anchor: requirements[REQ-1].acs[AC-1]
+    result: pass
+  - id: QZ-2
+    phase: 1
+    question: what changed at the interface?
+    refs: [AC-1]
+    anchor: requirements[REQ-1].acs[AC-1]

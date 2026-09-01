@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/check-artifact.sh — validate a YAML stage artifact against its schema.
 #
-# Usage: check-artifact.sh <spec|review|deviation> <file> [--root <dir>]
+# Usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore> <file> [--root <dir>]
 #   exit 0 → valid (warnings, prefixed `warn:`, never change the exit code)
 #   exit 1 → one line per violation: `<field-path>: <rule>`
 #   exit 2 → usage / missing dependency (PyYAML: `pip install pyyaml`)
@@ -10,21 +10,26 @@
 # id family; the keyword legend is in spec.schema.yaml's header). Checks: required keys,
 # enums, unknown keys, id uniqueness per family, in-file references (traces_to, edges),
 # ledger references (basis / why_ref / consensus / rulings — an id resolves iff the ledger
-# has a line starting `- <id>` or `| <id>`), field-path grammar on review findings and
-# quiz anchors (resolved in the target spec when --root is given), path-free phase_map,
+# has a line starting `- <id>` or `| <id>`, or, for a `.yaml` ledger, a structured lookup
+# across its term_sheet/alignment/extraction ids), field-path grammar on review findings and
+# quiz anchors (field paths resolve into a target spec only where resolves is target — a
+# quiz anchor gets the grammar check only), path-free phase_map,
 # degraded_reason when degraded, `pattern` on a string value, `minItems` on an array,
 # `spec_ref` resolution (below), and per-kind rules: a review finding with no locator
 # (field/file/refs all absent or empty); a review finding whose lens is conformance and
 # status is covered (coverage rows belong in coverage[], not findings[]); a deviation
-# entry whose refs is empty without `derived: true`; a deviation quiz item whose refs
-# does not resolve in the phase-matched spec, or whose answer is present without a
-# result; a deviation metrics list with a duplicate phase.
+# entry whose refs is empty without `derived: true`; a deviation metrics list with a
+# duplicate phase; a quiz item whose answer is present without a result; an explore
+# document whose plateau is false without a reach_under_determined reason.
 #
 # spec_ref resolution — the value of a `refs`-shaped field must name a US/REQ/AC/INV id
-# defined in a *resolution spec*: kind spec → the file itself; kind review → the `target`
-# spec; kind deviation → the `*.spec.yaml` directly under --root whose top-level `phase`
-# equals the enclosing entry/quiz item's own `phase` (cached per phase). No resolution
-# spec found → one `warn:` line per occurrence, exit unchanged.
+# defined in a *resolution target*, picked by the schema's own top-level `resolves`
+# declaration (`self|target|phase|none` — no kind-specific branch here): `self` → the file
+# itself (kind spec); `target` → the `target` spec named in the document (kind review);
+# `phase` → the `*.spec.yaml` directly under --root whose top-level `phase` equals the
+# enclosing item's own `phase` (cached per phase; kinds deviation and quiz); `none` → this
+# kind carries no spec_ref field. No resolution target found → one `warn:` line per
+# occurrence, exit unchanged.
 #
 # --root <dir>: directory the ledger (spec `facts_source.record`) and a review's `target`
 # resolve against; default = the artifact's own directory.
@@ -32,7 +37,7 @@ set -uo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 kind="${1:-}"; file="${2:-}"; root=""
 [ "${3:-}" = "--root" ] && root="${4:-}"
-case "$kind" in spec|review|deviation) ;; *) echo "usage: check-artifact.sh <spec|review|deviation> <file> [--root <dir>]" >&2; exit 2 ;; esac
+case "$kind" in spec|review|deviation|quiz|assay|explore) ;; *) echo "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore> <file> [--root <dir>]" >&2; exit 2 ;; esac
 [ -f "$file" ] || { echo "check-artifact.sh: no such file: $file" >&2; exit 2; }
 schema="$here/../skills/_shared/schemas/$kind.schema.yaml"
 [ -f "$schema" ] || { echo "check-artifact.sh: schema missing: $schema" >&2; exit 2; }
@@ -154,9 +159,16 @@ def under_root(rel, label):
     if os.path.isabs(rel) or os.path.commonpath([root, full]) != root:
         errors.append(f"{label}: '{rel}' escapes the --root directory"); return None
     return full
+
+# ---- resolution target, picked by the schema's own declared `resolves` value — no
+# kind-specific branch here: self|target|phase|none
+resolves = schema.get('resolves')
+if resolves not in ('self', 'target', 'phase', 'none'):
+    print(f"(schema): resolves declaration {resolves!r} must be one of self|target|phase|none", file=sys.stderr); sys.exit(2)
+
 target_doc = None
 target_path = None
-if kind == 'review':
+if resolves == 'target':
     tp = under_root(doc.get('target'), 'target') or ''
     if tp and os.path.isfile(tp):
         target_path = tp
@@ -164,9 +176,9 @@ if kind == 'review':
         except yaml.YAMLError: target_doc = None
 for p, fp in field_paths:
     if not PATH_RE.match(fp): errors.append(f"{p}: '{fp}' does not parse as a field path"); continue
-    if kind == 'review' and target_doc is not None and not resolve(target_doc, fp):
+    if resolves == 'target' and target_doc is not None and not resolve(target_doc, fp):
         errors.append(f"{p}: '{fp}' resolves to nothing in the target spec")
-    elif kind == 'review' and target_doc is None:
+    elif resolves == 'target' and target_doc is None:
         warns.append(f"{p}: target spec not found under --root; field path unresolved")
 
 # ---- spec_ref resolution (US/REQ/AC/INV ids on refs-list values)
@@ -188,9 +200,9 @@ def resolves_id(x, id_sets):
     fam = x.split('-', 1)[0]
     return fam in id_sets and x in id_sets[fam]
 
-# kind == 'deviation' resolution target: the *.spec.yaml directly under --root whose
-# top-level phase equals ph (cached per phase). Used both by the generic spec_ref
-# resolution below (entries[].refs) and by the quiz refs rule in per-kind rules.
+# resolves == 'phase' target: the *.spec.yaml directly under --root whose top-level phase
+# equals ph (cached per phase). Used by the generic spec_ref resolution below for any kind
+# declaring resolves: phase (deviation entries[].refs, quiz items[].refs).
 _phase_cache = {}
 def spec_for_phase(ph):
     if ph in _phase_cache: return _phase_cache[ph]
@@ -204,13 +216,13 @@ def spec_for_phase(ph):
     return found
 
 if spec_refs:
-    if kind == 'spec':
+    if resolves == 'self':
         self_ids = spec_ids_for(doc)
         base = os.path.basename(path)
         for p, x, ph in spec_refs:
             if not resolves_id(x, self_ids):
                 errors.append(f"{p}: '{x}' resolves to no id in {base}")
-    elif kind == 'review':
+    elif resolves == 'target':
         if target_doc is not None:
             tids = spec_ids_for(target_doc)
             tbase = os.path.basename(target_path)
@@ -224,7 +236,7 @@ if spec_refs:
                 if key in warned: continue
                 warned.add(key)
                 warns.append(f"{key}: target spec not found under --root; refs unresolved")
-    elif kind == 'deviation':
+    elif resolves == 'phase':
         warned = set()
         for p, x, ph in spec_refs:
             key = p.rsplit('[', 1)[0]
@@ -243,20 +255,32 @@ if spec_refs:
 
 # ---- ledger resolution
 ledger = None
-if kind == 'spec':
+if resolves == 'self':
     rec = (doc.get('facts_source') or {}).get('record') if isinstance(doc.get('facts_source'), dict) else None
     if rec: ledger = under_root(rec, 'facts_source.record')
-elif kind == 'review' and isinstance(target_doc, dict):
+elif resolves == 'target' and isinstance(target_doc, dict):
     rec = (target_doc.get('facts_source') or {}).get('record')
     if rec: ledger = under_root(rec, 'target facts_source.record')
 if ledger_refs:
     if ledger and os.path.isfile(ledger):
-        lines = open(ledger, encoding='utf-8').read().splitlines()
-        def resolves(i):
-            pat = re.compile(r'^(?:- |\| )' + re.escape(str(i)) + r'(?=[\s|]|$)')
-            return any(pat.match(l) for l in lines)
+        if ledger.lower().endswith(('.yaml', '.yml')):
+            # structured lookup into an assay .yaml record — id families T/A/B/Q/R
+            try: ld = yaml.safe_load(open(ledger, encoding='utf-8'))
+            except yaml.YAMLError: ld = None
+            ledger_ids = set()
+            if isinstance(ld, dict):
+                for coll in ('term_sheet', 'alignment', 'extraction'):
+                    for it in ld.get(coll) or []:
+                        if isinstance(it, dict) and isinstance(it.get('id'), str):
+                            ledger_ids.add(it['id'])
+            def ledger_resolves(i): return str(i) in ledger_ids
+        else:
+            lines = open(ledger, encoding='utf-8').read().splitlines()
+            def ledger_resolves(i):
+                pat = re.compile(r'^(?:- |\| )' + re.escape(str(i)) + r'(?=[\s|]|$)')
+                return any(pat.match(l) for l in lines)
         for p, x in ledger_refs:
-            if not resolves(str(x)): errors.append(f"{p}: '{x}' resolves to no ledger line ('- {x}' / '| {x}') in {os.path.basename(ledger)}")
+            if not ledger_resolves(str(x)): errors.append(f"{p}: '{x}' resolves to no ledger line ('- {x}' / '| {x}') in {os.path.basename(ledger)}")
     else:
         warns.append(f"ledger not found ({ledger or 'no facts_source.record'}); {len(ledger_refs)} ledger reference(s) unresolved")
 
@@ -292,26 +316,6 @@ elif kind == 'deviation':
         refs_v = e.get('refs')
         if isinstance(refs_v, list) and len(refs_v) == 0 and e.get('derived') is not True:
             errors.append(f"entries[{e.get('id')}].refs: empty refs require derived: true")
-    q = doc.get('quiz') or {}
-    for it in (q.get('items') or []) if isinstance(q, dict) else []:
-        if not isinstance(it, dict): continue
-        iid = it.get('id')
-        if 'answer' in it and 'result' not in it:
-            errors.append(f"quiz.items[{iid}].result: required once answered")
-        ph = it.get('phase')
-        refs_v = it.get('refs') if isinstance(it.get('refs'), list) else []
-        if refs_v:
-            if ph is None:
-                warns.append(f"quiz.items[{iid}].refs: no phase on this item; refs unresolved")
-            else:
-                found = spec_for_phase(ph)
-                if found is None:
-                    warns.append(f"quiz.items[{iid}].refs: no spec for phase {ph} found under --root; refs unresolved")
-                else:
-                    f, tids = found
-                    for r in refs_v:
-                        if isinstance(r, str) and not resolves_id(r, tids):
-                            errors.append(f"quiz.items[{iid}].refs: {r} does not resolve")
 
     seen_phases = set()
     for mi, m in enumerate(doc.get('metrics') or []):
@@ -326,6 +330,15 @@ elif kind == 'deviation':
             stages = sorted(x.get('stage') for x in st if isinstance(x, dict) and isinstance(x.get('stage'), int))
             if stages != [0, 1, 2, 3, 4, 5] or len(st) != 6:
                 errors.append(f"metrics[{mi}].stage_tokens: stages 0-5 each exactly once")
+elif kind == 'quiz':
+    for it in doc.get('items') or []:
+        if not isinstance(it, dict): continue
+        iid = it.get('id')
+        if 'answer' in it and 'result' not in it:
+            errors.append(f"items[{iid}].result: required once answered")
+elif kind == 'explore':
+    if doc.get('plateau') is False and not doc.get('reach_under_determined'):
+        errors.append("reach_under_determined: required when plateau is false")
 
 for w in warns: print(f"warn: {w}")
 for e in errors: print(e)
