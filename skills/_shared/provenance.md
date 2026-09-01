@@ -25,6 +25,11 @@ Sole home of review-round provenance.
 
 No lens produced content → no review.yaml; the gate surfaces the failure and stops.
 
+## Merge rules (shared by every gate; a gate's own section carries only its delta)
+
+- Same `field` + same `type` across arms → ONE finding, `found_by` listing every arm that carried it; otherwise `found_by` = the one arm.
+- `counts` is computed from the merged findings' severities, never copied from an arm's own tally.
+
 ## Presentation duty
 
 `degraded: true` → the presenting gate shows the reason VERBATIM and gets explicit human acknowledgement before reporting ready, even at C+H = 0.

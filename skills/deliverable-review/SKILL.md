@@ -76,13 +76,9 @@ The quality arm returns without `raw_codex.jsonl` + `last-message.txt` in the ro
 
 ## Phase 4 — Merge into review.yaml, converge, report
 
-Write `<epic-dir>/deliverable-review-<date>/review.yaml` — `gate: deliverable-review`, `target` = the governing spec file, `range` = the reviewed range, `sha` = HEAD; the schema is `review.schema.yaml` under `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/`. You (the gate session) write:
+Write `<epic-dir>/deliverable-review-<date>/review.yaml` — `gate: deliverable-review`, `target` = the governing spec file, `range` = the reviewed range, `sha` = HEAD. Field set: `review.schema.yaml` under `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/`; field meanings AND the shared merge rules: `provenance.md` (Phase 1). This gate's one merge delta: a conformance line reported `covered` becomes a `coverage[]` row, never a finding; every uncovered AC and every violated / undecidable invariant is a finding on its field path, `status: unverified` where the arm could not decide (naming the proxy).
 
-- `coverage[]`: one row `{ref, status: covered, evidence}` per AC and invariant the conformance arm reported `covered` — the covered rows never enter `findings[]` (the checker rejects a conformance finding with `status: covered`).
-- `findings[]`, merged by lens: every quality finding with `file` + `line` and `refs: []`; every uncovered AC or violated / undecidable invariant as a finding on its field path (`requirements[REQ-n].acs[AC-n]`, `invariants[INV-n]`) with `refs` = the ids that path resolves to, and `status: unverified` where the conformance arm could not decide. Same `field` + same `type` across arms → one finding with `found_by` listing both; otherwise `found_by` = the one arm.
-- `providers`: per declared lens, which arms produced content; `degraded` / `degraded_reason` per Phase 1 and Phase 3.
-- `waiting_on_human`: every `W-n` item (shape: the schema) still owed by the human after this round — a complete list, so presence means still waiting.
-- Validate with `check-artifact.sh review` (`--root <epic-dir>`; exit 0 required). The raw arm outputs sit in the round dir (`raw_cc.md`; a Codex arm's `raw_codex.jsonl` + `last-message.txt`); no other review file.
+Validate with `check-artifact.sh review` (`--root <epic-dir>`; exit 0 required). The raw arm outputs sit in the round dir (`raw_cc.md`; a Codex arm's `raw_codex.jsonl` + `last-message.txt`); no other review file.
 
 Critical/High block. Convergence: read `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md` yourself — that budget stays with this merging session; arms saw only the severity segment. `degraded: true` → the presentation duty in `provenance.md`, before reporting ready.
 
