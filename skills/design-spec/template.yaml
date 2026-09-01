@@ -10,7 +10,7 @@ date: YYYY-MM-DD
 facts_source:
   record: <assay record file name, relative to the epic dir>
   consensus: [<every ledger id this spec draws on>]
-foundation: inherit          # the three fields live in the epic index
+foundation: inherit          # the inherited fields live in the epic's epic.yaml (foundation + aim)
 
 phase_map:                   # human: problem vocabulary, ≤3 sentences per panel, no paths
   reader: human

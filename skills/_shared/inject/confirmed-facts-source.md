@@ -20,15 +20,15 @@ restates these rules.
    a human confirmed the area's content (e.g. a readiness ruling, a scaffold
    confirm).
 
-An assay record's `## Consensus` section and an epic index's `## Foundation`
+An assay record's `## Consensus` section and an epic.yaml's `foundation` field
 are two example implementations — examples only, never the qualifying
 condition. Any source meeting the three parts qualifies, whoever produced it.
 
 ## Citation granularity (two levels)
 
 - **field-level** — the confirmation stamp covers a whole marked block with
-  no per-row ids (e.g. an epic index `## Foundation`). Feeds **Foundation
-  fields only**; the citation resolves to the section.
+  no per-row ids (e.g. an epic.yaml `foundation` field). Feeds **Foundation
+  fields only**; the citation resolves to the block.
 - **row-level** — each fact carries a stable id (e.g. `[trace: A-2, T-3]`).
   Required for **contract-body facts** (Scope / Invariants /
   interface-contract facts); each adopted fact carries its `[trace: <id>]`.

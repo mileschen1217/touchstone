@@ -49,9 +49,11 @@ never a silent scope or invariant entry. The
 AC layer is authored HERE — a source hands over confirmed facts, never pre-drafted ACs.
 
 **Foundation is inherited, never re-elicited.** Write `foundation: inherit`; the
-three fields (intention / aim / out of scope) are read from the epic index the
-caller names. No epic index → stop with one line: "scaffold the epic first
-(`/touchstone:epic-driven-roadmap scaffold`) — the foundation is elicited there."
+inherited fields (`foundation.intention` / `aim` / `foundation.out_of_scope`, plus
+any owner rulings in `foundation.rulings`) are read from the `epic.yaml` of the
+epic the caller names. No `epic.yaml` → stop with one line: "scaffold the epic
+first (`/touchstone:epic-driven-roadmap scaffold`) — the foundation is elicited
+there."
 
 **Reframe exit** (user reframes during intake, e.g. "this should be a fixture,
 not a spec"): STOP, write no file, report "Scope reframed to [X] — a design
