@@ -46,9 +46,7 @@ from behaviour:
   boundaries. An unfed shape is unwitnessed behaviour.
 
 These are illustrative shapes of one force — apply the core question; you will
-recognize others. For depth, cross-reference the ECC `*-testing` skills
-(python-testing, rust-testing, golang-testing, etc.) and
-`superpowers:test-driven-development`.
+recognize others.
 
 Report findings as a numbered list, each tagged [Critical], [High], [Medium],
 or [Low]. If no issues found, report "No issues found." Report every finding
