@@ -1617,6 +1617,23 @@ else
   echo "FAIL: assay fork-case split (missing file, dangling pointer, or chain still named in SKILL.md)"; fail=1
 fi
 
+# ---- resolve-config.sh: six-field bundle green + malformed red (direct invocation;
+# the checker-rail pair exercises it again through check-resolve-config.sh)
+expect_exit "resolve-config: green fixture prints the bundle" zero \
+  bash "$scripts_dir/resolve-config.sh" --root "$here/../../.touchstone/checker/fixtures/resolve-config/green"
+expect_out "resolve-config: six key=value lines" "research=" \
+  bash "$scripts_dir/resolve-config.sh" --root "$here/../../.touchstone/checker/fixtures/resolve-config/green"
+expect_exit "resolve-config: malformed yaml is fatal" nonzero \
+  bash "$scripts_dir/resolve-config.sh" --root "$here/../../.touchstone/checker/fixtures/resolve-config/red"
+
+# ---- init-checker-scaffold.sh: help exits 0; a scratch missing-state run writes the yaml
+icd="$(mktemp -d)"
+expect_exit "init-checker-scaffold: --help exits 0" zero bash "$scripts_dir/init-checker-scaffold.sh" --help
+expect_exit "init-checker-scaffold: missing state writes yaml (exit 0)" zero \
+  bash "$scripts_dir/init-checker-scaffold.sh" --project-root "$icd" --workspace-root .touchstone
+expect_exit "init-checker-scaffold: yaml written" zero test -f "$icd/.claude/touchstone.yaml"
+rm -rf "$icd"
+
 # ---- codex-probe.sh: envelope-shape smoke — SKIPs cleanly (exit 0) when codex
 # CLI is absent, never fake-green; PASS-asserts the envelope (record line
 # written, outcome field present) when codex is present.
