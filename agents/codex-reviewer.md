@@ -1,6 +1,6 @@
 ---
 name: codex-reviewer
-description: Thin forwarding wrapper around the Codex CLI — runs a review lens as its `codex` arm. Dispatched by `/touchstone:design-review`, `/touchstone:deliverable-review`, and `/touchstone:assay`'s structural-fork critique. Never called directly from main thread for routine review — the gate skills wrap me.
+description: Thin forwarding wrapper around the Codex CLI — runs a review lens as the `codex` arm of the touchstone review gates. Never called directly from main thread for routine review — the gate skills wrap me.
 model: sonnet
 tools: Bash
 timeout_seconds: 600
