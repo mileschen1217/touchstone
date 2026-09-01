@@ -1,14 +1,13 @@
-# deviation.schema.yaml — build-time deviations (D-n). The quiz block moved out to its own
-# quiz.yaml / quiz.schema.yaml (phase 5) — this file no longer accepts a `quiz` key.
-# Keywords as in spec.schema.yaml. Waiting item shape is homed in spec.schema.yaml's header.
-# `resolves: phase` — an entry's `refs` resolves against the `*.spec.yaml` under --root whose
-# top-level `phase` equals that entry's own `phase` — see spec.schema.yaml's header for the
-# spec_ref keyword.
-# Entry fields the builder fills by judgment beside gap/disposition: `panel` = the
+# This schema defines build-time deviations (D-n).
+# Keywords as in the keyword legend (spec schema header). Waiting item shape is homed there
+# too.
+# `resolves: phase` — an entry's `refs` resolves against the phase-matched design spec under
+# --root whose top-level `phase` equals that entry's own `phase` — see the keyword legend
+# (spec schema header) for the spec_ref keyword.
+# Entry fields the builder fills by judgment beside gap / disposition: `panel` = the
 # phase_map panel the gap belongs to (none when it belongs to no human panel);
 # `which_stage_could_have_caught` = the earliest stage whose gate should have caught it;
 # `catcher` = who actually found it (builder / reviewer / owner, with the instrument).
-# An entry's `refs` may be empty only beside `derived: true`.
 kind: deviation
 resolves: phase
 type: object
