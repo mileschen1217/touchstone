@@ -65,6 +65,12 @@ except yaml.YAMLError as e:
 if not isinstance(doc, dict):
     print("(file): top level must be a mapping"); sys.exit(1)
 
+# kind deviation composes: metrics.schema.yaml carries the `metrics` subtree — pop it out
+# before validating doc against deviation.schema.yaml (which no longer declares that
+# property) and validate it separately below, once the deviation walk is done.
+metrics_present = kind == 'deviation' and 'metrics' in doc
+metrics_val = doc.pop('metrics', None) if metrics_present else None
+
 errors, warns = [], []
 ids = {}        # family -> {id: path}
 refs = []       # (path, family, value)
@@ -136,6 +142,14 @@ def walk(v, s, p, phase=None, parent=None):
             walk(x, it, f"{p}[{sel}]", phase, parent)
 
 walk(doc, schema, '')
+
+if metrics_present:
+    mschema_path = os.path.join(os.path.dirname(schema_path), 'metrics.schema.yaml')
+    if os.path.isfile(mschema_path):
+        mschema = yaml.safe_load(open(mschema_path, encoding='utf-8'))
+        walk({'metrics': metrics_val}, mschema, '')
+    else:
+        errors.append("metrics: metrics.schema.yaml missing")
 
 for p, fam, x in refs:
     if x not in ids.get(fam, {}): errors.append(f"{p}: '{x}' names no {fam} id defined in this file")
@@ -326,7 +340,7 @@ elif kind == 'deviation':
             errors.append(f"entries[{e.get('id')}].refs: empty refs require derived: true")
 
     seen_phases = set()
-    for mi, m in enumerate(doc.get('metrics') or []):
+    for mi, m in enumerate(metrics_val or []):
         if not isinstance(m, dict): continue
         ph = m.get('phase')
         if ph in seen_phases:
