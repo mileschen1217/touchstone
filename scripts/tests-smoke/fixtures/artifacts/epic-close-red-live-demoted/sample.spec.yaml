@@ -1,0 +1,15 @@
+id: SPEC-fixture-live-demoted-p1
+title: fixture spec — one live-bearing AC
+epic: fixture-live-demoted
+phase: 1
+status: accepted
+date: 2026-01-01
+requirements:
+  - id: REQ-1
+    shall: "The system SHALL exercise the real boundary."
+    acs:
+      - id: AC-1
+        given: a real dispatch
+        when: exercised
+        then: a live artifact is captured
+        live_bearing: true

@@ -58,6 +58,22 @@ expect_out "check-artifact review: degraded without reason" "degraded_reason: re
 # degraded_reason carries a closed literal set (six shapes) — free-form prose is rejected
 expect_exit "check-artifact review: degraded_reason free-form prose" nonzero bash "$ca" review "$ax/review-red-degraded-enum.yaml" --root "$ax"
 expect_out "check-artifact review: degraded_reason outside the six literal shapes" "degraded_reason: 'codex was flaky today' does not match pattern" bash "$ca" review "$ax/review-red-degraded-enum.yaml" --root "$ax"
+# the independence-lost fallback shape (a real gate producer) is admitted
+expect_exit "check-artifact review: independence-lost degraded_reason admitted" zero bash "$ca" review "$ax/review-degraded-independence-green.yaml" --root "$ax"
+
+# kind epic: the spec is the authority on live_bearing — a demoted row is rejected
+expect_exit "check-artifact epic: spec-live AC demoted in reckoning" nonzero bash "$ca" epic "$ax/epic-close-red-live-demoted/epic.yaml" --root "$ax/epic-close-red-live-demoted"
+expect_out "check-artifact epic: demotion names the spec authority" "contradicts the accepted spec's AC" bash "$ca" epic "$ax/epic-close-red-live-demoted/epic.yaml" --root "$ax/epic-close-red-live-demoted"
+# kind epic: duplicate reckoning rows for one AC are rejected
+expect_exit "check-artifact epic: duplicate reckoning row" nonzero bash "$ca" epic "$ax/epic-close-red-dup-reckoning/epic.yaml" --root "$ax/epic-close-red-dup-reckoning"
+expect_out "check-artifact epic: duplicate row named" "duplicate row for the same AC" bash "$ca" epic "$ax/epic-close-red-dup-reckoning/epic.yaml" --root "$ax/epic-close-red-dup-reckoning"
+
+# roadmap-render: a normal render fails loudly on an invalid epic dir (never a silent omission)
+rrbad="$(mktemp -d)"; mkdir -p "$rrbad/.touchstone/epics/2026-01-01-broken"
+printf 'not: [valid\n' > "$rrbad/.touchstone/epics/2026-01-01-broken/epic.yaml"
+expect_exit "roadmap-render: invalid epic dir fails the render" nonzero bash "$scripts_dir/roadmap-render.sh" --root "$rrbad"
+expect_out "roadmap-render: invalid dir named on stderr" "INVALID epic dir" bash "$scripts_dir/roadmap-render.sh" --root "$rrbad"
+rm -rf "$rrbad"
 
 # AC-3: waiting_on_human is a list of W-n objects — the legacy list-of-strings shape is rejected
 expect_exit "check-artifact review: legacy waiting_on_human strings" nonzero bash "$ca" review "$ax/review-red-legacy-w.yaml" --root "$ax"
@@ -306,7 +322,7 @@ shutil.rmtree(t)
 print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type, refs resolution (AC-4), locator rule (AC-48), quiz kind refs/result rule, metrics duplicate/sha (AC-20), coverage-row resolution + non-conformance covered stays a plain enum rejection (AC-14)')
 PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
-# the seven schema files exist and every top-level field carries a reader tag
+# the eight schema files exist and every top-level field carries a reader tag
 python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
 import sys, os, yaml
 d = sys.argv[1]
@@ -315,7 +331,7 @@ for f in os.listdir(d):
     s = yaml.safe_load(open(os.path.join(d, f)))
     for k, v in s['properties'].items():
         assert v.get('reader') in ('human', 'agent'), f'{f}: {k} has no reader tag'
-print('PASS: seven schemas, every top-level field reader-tagged')
+print('PASS: eight schemas, every top-level field reader-tagged')
 PY2
 
 # AC-10 / INV-4: every field in the three new schemas names its consumer file in the

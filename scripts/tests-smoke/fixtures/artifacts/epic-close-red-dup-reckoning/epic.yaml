@@ -1,0 +1,12 @@
+slug: fixture-dup-reckoning
+status: active
+started: 2026-01-01
+aim: red — two reckoning rows for the same AC
+foundation:
+  intention: fixture
+  out_of_scope: []
+phases:
+  - {n: 1, title: one, status: active}
+reckoning:
+  - {ac: AC-1, covered_by: "first row (a/b:1)", live_bearing: false}
+  - {ac: AC-1, covered_by: "conflicting second row (c/d:2)", live_bearing: false}

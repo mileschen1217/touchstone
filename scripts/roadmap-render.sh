@@ -195,6 +195,13 @@ if os.path.isdir(epics_dir):
         rec['dir'] = name
         epics.append(rec)
 
+if not audit and invalid:
+    # a normal render must never silently erase an epic from the projection —
+    # an unreadable/invalid epic dir fails the render loudly
+    for name, err in invalid:
+        print(f'roadmap-render.sh: INVALID epic dir {name} — {err}', file=sys.stderr)
+    sys.exit(1)
+
 if audit:
     findings = []
     for name, err in invalid:

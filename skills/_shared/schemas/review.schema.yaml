@@ -37,7 +37,7 @@ properties:
   # degraded_reason — one or more `; `-joined segments, each a literal shape the pattern
   # admits (fill <name> / <n> / <detail> / <vendor> per the matched alternative; the lens
   # prefix is optional for a standalone producer); free-form prose is rejected.
-  degraded_reason: {type: string, reader: human, pattern: '((lens [A-Za-z0-9_-]+: )?(codex unavailable|codex timeout \(\d+s\)|codex error: .+|partial(: .+)?|all arms failed)|vendor rule waived by `with (cc|codex)`)(; ((lens [A-Za-z0-9_-]+: )?(codex unavailable|codex timeout \(\d+s\)|codex error: .+|partial(: .+)?|all arms failed)|vendor rule waived by `with (cc|codex)`))*'}
+  degraded_reason: {type: string, reader: human, pattern: '((lens [A-Za-z0-9_-]+: )?(codex unavailable|codex timeout \(\d+s\)|codex error: .+|partial(: .+)?|all arms failed|independence lost — .+)|vendor rule waived by `with (cc|codex)`)(; ((lens [A-Za-z0-9_-]+: )?(codex unavailable|codex timeout \(\d+s\)|codex error: .+|partial(: .+)?|all arms failed|independence lost — .+)|vendor rule waived by `with (cc|codex)`))*'}
   verdict: {type: string, reader: human, enum: [approve, revise, block]}
   counts:
     type: object

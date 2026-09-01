@@ -1,0 +1,16 @@
+slug: fixture-live-demoted
+status: done
+started: 2026-01-01
+landed: 2026-01-31
+aim: red — a spec-live AC demoted to live_bearing false in the reckoning row
+foundation:
+  intention: fixture
+  out_of_scope: []
+phases:
+  - {n: 1, title: one, spec: sample.spec.yaml, status: done, landed: 2026-01-31}
+retrospective: |
+  filled
+reckoning:
+  - {ac: AC-1, covered_by: "test asserts the Then (scripts/tests-smoke/run-smoke.sh case)", live_bearing: false}
+disposition:
+  none: true

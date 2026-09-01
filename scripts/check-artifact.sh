@@ -385,14 +385,33 @@ elif kind == 'epic':
         if isinstance(sd, dict) and sd.get('phase') != ph.get('n'):
             errors.append(f"phases[{ph.get('n')}].n: {ph.get('n')} does not match {sp}'s top-level phase ({sd.get('phase')!r})")
 
+    # the spec is the authority on an AC's live_bearing — a reckoning row cannot
+    # demote a live-bearing AC by writing live_bearing: false (false-close hole)
+    spec_ac_live = {}
+    for f in sorted(glob.glob(os.path.join(root, '*.spec.yaml'))):
+        try: sd = yaml.safe_load(open(f, encoding='utf-8'))
+        except yaml.YAMLError: continue
+        if not isinstance(sd, dict) or sd.get('status') != 'accepted': continue
+        for r in sd.get('requirements') or []:
+            if not isinstance(r, dict): continue
+            for a in r.get('acs') or []:
+                if isinstance(a, dict) and isinstance(a.get('id'), str):
+                    spec_ac_live[a['id']] = a.get('live_bearing') is True
+
     # close-time evidence honesty floor — checked on every reckoning row present, not
     # only at status: done, so an epic.yaml can be validated at any point in its life
     reckoning_acs = {}
     for r in doc.get('reckoning') or []:
         if isinstance(r, dict) and isinstance(r.get('ac'), str):
+            if r['ac'] in reckoning_acs:
+                errors.append(f"reckoning[{r['ac']}]: duplicate row for the same AC")
+                continue
             reckoning_acs[r['ac']] = r
     for ac, row in reckoning_acs.items():
         live = row.get('live_bearing') is True
+        if ac in spec_ac_live and spec_ac_live[ac] != live:
+            errors.append(f"reckoning[{ac}].live_bearing: {live} contradicts the accepted spec's AC ({spec_ac_live[ac]}) — the spec is the authority")
+            live = spec_ac_live[ac]
         covered = str(row.get('covered_by') or '').strip()
         unverified = bool(row.get('unverified'))
         waiver = str(row.get('waiver') or '').strip()
