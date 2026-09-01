@@ -1235,6 +1235,14 @@ def quiz_list_html(items, owner):
     return collapsed(f'<span class="lead">{lab("題目")}</span> <span class="num">{len(items)}</span>',
                       '<ol class="quiz">' + ''.join(quiz_item_li(it, owner) for it in items if isinstance(it, dict)) + '</ol>')
 
+def summary_html(text, owner):
+    """phase_summaries text → one line renders as a paragraph; several lines as a list
+    (one point per line — the owner counts the points at a glance)."""
+    lines = [l.strip() for l in sval(text).splitlines() if l.strip()]
+    if not lines: return ''
+    if len(lines) == 1: return f'<p class="summary">{yv(lines[0], owner)}</p>'
+    return '<ul class="summary">' + ''.join(f'<li>{yv(l, owner)}</li>' for l in lines) + '</ul>'
+
 def quiz_html(p):
     """The current phase's own quiz (front page): items/entries filtered to p['num'] —
     an item's `phase` field decides, never which file it lives in. Items come from
@@ -1244,7 +1252,7 @@ def quiz_html(p):
         return '<p class="placeholder">尚無 quiz.yaml</p>'
     summ = next((sval(s.get('text')) for s in (yaml_quiz.get('phase_summaries') or [])
                  if isinstance(s, dict) and sval(s.get('phase')) == p['num']), '')
-    pre = f'<p class="summary">{yv(summ, k)}</p>' if summ else ''
+    pre = summary_html(summ, k)
     entries = [e for e in ((yaml_dev or {}).get('entries') or []) if isinstance(e, dict) and sval(e.get('phase')) == p['num']]
     if not entries or yaml_quiz.get('waived') is True:
         return pre + f'<p class="waiver">{lab("理解測驗免作")} · {lab("零偏離：本 phase 沒有 D-n")}</p>'
@@ -1699,12 +1707,12 @@ for phnum in sorted(set(dev_by_phase) | set(quiz_by_phase)):
     key = target['key'] if target else 'epic'
     ents, qitems_p = dev_by_phase.get(phnum, []), quiz_by_phase.get(phnum, [])
     summ = phase_summary_text(phnum)
-    body = f'<p class="summary">{yv(summ, key)}</p>' if summ else ''  # site 1: top of the phase panel
+    body = summary_html(summ, key)  # site 1: top of the phase panel
     if ents:
         body += collapsed(f'<span class="lead">{lab("偏離紀錄")}</span> <span class="num">{len(ents)}</span>', '<ul>' + ''.join(dev_entry_html(e, key, anchor=False) for e in ents) + '</ul>')
     if qitems_p:
         if summ:
-            body += f'<p class="summary">{yv(summ, key)}</p>'  # site 2: top of the phase's quiz section
+            body += summary_html(summ, key)  # site 2: top of the phase's quiz section
         body += quiz_list_html(qitems_p, key)
     if body:
         tab['紀錄'][key].append(f'<article><h3 class="file-title">Phase {html.escape(phnum)}</h3>{body}</article>')

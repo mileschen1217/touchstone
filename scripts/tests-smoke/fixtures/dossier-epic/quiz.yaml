@@ -1,7 +1,9 @@
 waived: false
 phase_summaries:
   - phase: 3
-    text: "owner-frame: phase 3 landed the equals flag form; approve hinges on the interface panel."
+    text: |
+      owner-frame point one: phase 3 landed the equals flag form.
+      owner-frame point two: approve hinges on the interface panel.
   - phase: 1
     text: "owner-frame: phase 1 shipped the dry-run flag with no acceptance-criteria impact."
 items:

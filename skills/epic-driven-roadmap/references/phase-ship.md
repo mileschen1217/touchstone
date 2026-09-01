@@ -25,27 +25,29 @@ shipping session) do the following in order:
       ratchet key/unit hunk, a removed waiver; everything else = other. A consumer project
       writes no metrics entry.
 - [ ] **Comprehension quiz** — authored AFTER the structure and metrics exist, into
-      the epic's `quiz.yaml`. First author `phase_summaries[]`: one entry per shipped
-      phase, in the owner's frame — a prose summary of what changed, why, and what it
-      lets the owner skip re-deriving. Then `items[]`: questions the owner should be able to
-      answer from the dossier's 首頁 and 結構變化 alone (what breaks if X, why was Y
-      retired, where does Z live now). One item shape: `question`, the owner's prose
-      `answer` (absent until answered), `refs` — the spec ids you resolve the right answer
-      to (the checker verifies they exist, nothing more), `anchor` (the field path), and
-      `result: pass|miss` — your judgment of the owner's prose, required once answered.
-      A question whose answer resolves to no field is a missing source field: fix
-      upstream, re-project, re-author. Each question anchors to a D-n entry or one panel;
-      drop test — if the owner's answer could not change whether they approve, the
-      question is out; at most 8, no minimum. **Owner's frame, not the builder's:** a
-      question asks what changed, why, or what breaks — in the owner's terms, answerable
-      from the 首頁 alone; a question about internal accounting (a predicate's
-      implementation, a review round's mechanics, an id scheme) fails the drop test even
-      when the fact is true, and ids stay in `refs`/`anchor`, never in the question text.
+      the epic's `quiz.yaml`, **question-first**: `items[]` before `phase_summaries[]` —
+      each question is an acceptance criterion the summary is then written against.
+      Questions the owner can answer from the dossier's 首頁 and 結構變化 alone (what
+      breaks if X, why was Y retired, where does Z live now); each anchors to a D-n
+      entry or one panel; drop test — an answer that could not change approval is out;
+      at most 8, no minimum. Item shape: `question`, the owner's prose `answer` (absent
+      until answered), `refs` (spec ids; the checker verifies existence, nothing more),
+      `anchor` (field path), `result: pass|miss` — your judgment, required once
+      answered. **Owner's frame, not the builder's:** what changed, why, what breaks —
+      internal accounting (a predicate's implementation, a review round's mechanics, an
+      id scheme) fails the drop test even when true; ids stay in `refs`/`anchor`, never
+      in question text. Then `phase_summaries[]`, one entry per shipped phase, written
+      against the questions: 3–5 points, one per line, each point = why it was done →
+      what changed → what the owner skips re-deriving, in 1–2 plain sentences with no
+      build internals; every question's answer must be an identifiable sentence in the
+      summary or a panel — one without such a sentence is a missing source field: fix
+      upstream, re-project, re-author.
       Zero D-n entries → `quiz.waived: true` (the page states the waiver visibly).
 - [ ] **Form check on the pair** — before handing over, read the 首頁 and every quiz
       question as the owner will: (1) a code (an id, a coined term) used before it is
       defined on that page; (2) a judgment (a priority, a check choice, a non-goal) with
-      no basis beside it. Either is a miss handled exactly like a quiz miss below — one
+      no basis beside it; (3) a question whose answer sentence you cannot point to on
+      the page. Any is a miss handled exactly like a quiz miss below — one
       `gate-miss.md` line, the source field fixed upstream, re-project, then hand over.
 - [ ] **Validate the phase's artifacts** — `check-artifact.sh spec` on the spec,
       `review` on every review.yaml, `deviation` on `deviation.yaml`, `quiz` on
