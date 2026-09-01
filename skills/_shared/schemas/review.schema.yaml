@@ -35,7 +35,9 @@ properties:
           items: {type: string, enum: [cc, codex]}
   challenger: {type: string, reader: agent, enum: [cc, codex]}
   degraded: {type: boolean, reader: human}
-  degraded_reason: {type: string, reader: human}
+  # degraded_reason — write one of the six literal shapes the pattern admits, filling
+  # <name>/<n>/<detail>/<vendor>; free-form prose is rejected.
+  degraded_reason: {type: string, reader: human, pattern: 'lens [A-Za-z0-9_-]+: (codex unavailable|codex timeout \(\d+s\)|codex error: .+|partial|all arms failed)|vendor rule waived by `with (cc|codex)`'}
   verdict: {type: string, reader: human, enum: [approve, revise, block]}
   counts:
     type: object

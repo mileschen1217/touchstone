@@ -55,6 +55,10 @@ expect_out "check-artifact review: field path unresolvable in target" "'requirem
 expect_out "check-artifact review: [*] on an empty list resolves to nothing" "'waiting_on_human[*]' resolves to nothing" bash "$ca" review "$ax/review-red-star.yaml" --root "$ax"
 expect_out "check-artifact review: degraded without reason" "degraded_reason: required when degraded is true" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
 
+# degraded_reason carries a closed literal set (six shapes) — free-form prose is rejected
+expect_exit "check-artifact review: degraded_reason free-form prose" nonzero bash "$ca" review "$ax/review-red-degraded-enum.yaml" --root "$ax"
+expect_out "check-artifact review: degraded_reason outside the six literal shapes" "degraded_reason: 'codex was flaky today' does not match pattern" bash "$ca" review "$ax/review-red-degraded-enum.yaml" --root "$ax"
+
 # AC-3: waiting_on_human is a list of W-n objects — the legacy list-of-strings shape is rejected
 expect_exit "check-artifact review: legacy waiting_on_human strings" nonzero bash "$ca" review "$ax/review-red-legacy-w.yaml" --root "$ax"
 expect_out "check-artifact review: legacy waiting_on_human[0] not an object" "waiting_on_human[0]: expected object" bash "$ca" review "$ax/review-red-legacy-w.yaml" --root "$ax"
