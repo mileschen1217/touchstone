@@ -56,9 +56,3 @@ Status drift and doc-graph health — run on demand or weekly:
 Report one line per finding, grouped by check. If a check passes clean, say
 so in one sentence; skip sections with no findings.
 
-## Templates
-
-- `templates/epic-index.md` — epic tracker (copy verbatim; edit in place)
-- `templates/ROADMAP.md` — pure-tracker ROADMAP
-- `templates/content-doc.md` — frontmatter shape for research / spec / plan
-  / ADR (body is free-form)
