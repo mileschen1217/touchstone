@@ -1596,6 +1596,16 @@ else
 fi
 rm -rf "$t5a_root"
 
+# ---- foundation:inherit resolves against epic.yaml (yaml-born epic): the fixture pair
+# carries both ends — the spec declares inherit, the epic.yaml carries the foundation block.
+if grep -q '^foundation: inherit' "$here/fixtures/dossier-epic-yaml/2026-01-04-gamma.spec.yaml" \
+   && grep -q '^foundation:' "$here/fixtures/dossier-epic-yaml/epic.yaml" \
+   && grep -q 'intention:' "$here/fixtures/dossier-epic-yaml/epic.yaml"; then
+  echo "PASS: foundation:inherit two-end pair present on the yaml-born fixture"
+else
+  echo "FAIL: foundation:inherit pair broken on the yaml-born fixture"; fail=1
+fi
+
 # ---- assay fork-case split: the fork chain (ADR authoring / rubric / critique lens)
 # loads only on the fork trigger — the pointer file exists, SKILL.md points at it,
 # and the non-fork SKILL body no longer names the chain files.
