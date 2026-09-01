@@ -1551,6 +1551,17 @@ else
 fi
 rm -rf "$t5a_root"
 
+# ---- assay fork-case split: the fork chain (ADR authoring / rubric / critique lens)
+# loads only on the fork trigger — the pointer file exists, SKILL.md points at it,
+# and the non-fork SKILL body no longer names the chain files.
+if [ -f "$scripts_dir/../skills/assay/references/fork-case.md" ] \
+   && grep -q 'references/fork-case.md' "$scripts_dir/../skills/assay/SKILL.md" \
+   && ! grep -qE 'adr-authoring\.md|arch-rubric\.md|critique-lens\.md' "$scripts_dir/../skills/assay/SKILL.md"; then
+  echo "PASS: assay fork chain split behind references/fork-case.md (trigger-only load)"
+else
+  echo "FAIL: assay fork-case split (missing file, dangling pointer, or chain still named in SKILL.md)"; fail=1
+fi
+
 # ---- codex-probe.sh: envelope-shape smoke — SKIPs cleanly (exit 0) when codex
 # CLI is absent, never fake-green; PASS-asserts the envelope (record line
 # written, outcome field present) when codex is present.

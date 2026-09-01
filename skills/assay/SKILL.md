@@ -110,7 +110,7 @@ A known unknown enters from three sources — laydown residuals (rows neither co
 | yes | expensive | **flip-trigger bypass** or scope cut — never silent proceed |
 | no | — | deferred log |
 
-**Structural fork case** — a fork entry with ≥2 viable approaches and durability stakes: author an ADR per `adr-authoring.md` (same directory) with the flip-trigger, bet-owner, and assumptions fields, the human as bet-owner; grade it against `references/arch-rubric.md`. For a fork worth critique evidence, dispatch the two critique arms directly in one message — `Agent(subagent_type: "touchstone:code-reviewer", …)` with the validation rubric and `Agent(subagent_type: "touchstone:codex-reviewer", …)` with the pressure-test lens, both lens texts and the synthesis rule in `references/critique-lens.md` (read it first; the fallback when the codex arm is unavailable is recorded degraded per `${CLAUDE_PLUGIN_ROOT}/skills/_shared/provenance.md`) — adaptable, omit only with the reason recorded in the ADR.
+**Structural fork case** → read `references/fork-case.md` and follow it (trigger: two-plus viable approaches carrying durability stakes; the ADR authoring chain, rubric grading, and critique arms load there, on this trigger only).
 
 ## Consensus render — the object of the yes
 
