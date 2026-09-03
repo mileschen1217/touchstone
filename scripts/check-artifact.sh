@@ -409,51 +409,71 @@ elif kind == 'epic':
             errors.append(f"phases[{ph.get('n')}].n: {ph.get('n')} does not match {sp}'s top-level phase ({sd.get('phase')!r})")
 
     # the spec is the authority on an AC's live_bearing — a reckoning row cannot
-    # demote a live-bearing AC by writing live_bearing: false (false-close hole)
-    spec_ac_live = {}
+    # demote a live-bearing AC by writing live_bearing: false (false-close hole).
+    # AC ids restart per spec, so a multi-spec epic joins by (spec basename, ac):
+    # spec_ac_live is keyed per spec; ac_spec_count says how many accepted specs
+    # define an id — a reckoning row without a `spec` field is legal only while
+    # that id is unambiguous (exactly one accepted spec defines it).
+    spec_ac_live = {}        # (spec basename, ac id) -> live_bearing
+    ac_spec_count = {}       # ac id -> [spec basenames defining it]
     for f in sorted(glob.glob(os.path.join(root, '*.spec.yaml'))):
         try: sd = yaml.safe_load(open(f, encoding='utf-8'))
         except yaml.YAMLError: continue
         if not isinstance(sd, dict) or sd.get('status') != 'accepted': continue
+        base = os.path.basename(f)
         for r in sd.get('requirements') or []:
             if not isinstance(r, dict): continue
             for a in r.get('acs') or []:
                 if isinstance(a, dict) and isinstance(a.get('id'), str):
-                    spec_ac_live[a['id']] = a.get('live_bearing') is True
+                    spec_ac_live[(base, a['id'])] = a.get('live_bearing') is True
+                    ac_spec_count.setdefault(a['id'], []).append(base)
 
     # close-time evidence honesty floor — checked on every reckoning row present, not
     # only at status: done, so an epic.yaml can be validated at any point in its life
-    reckoning_acs = {}
+    reckoning_acs = {}       # (spec or '', ac) -> row
     for r in doc.get('reckoning') or []:
         if isinstance(r, dict) and isinstance(r.get('ac'), str):
-            if r['ac'] in reckoning_acs:
-                errors.append(f"reckoning[{r['ac']}]: duplicate row for the same AC")
+            key = (str(r.get('spec') or ''), r['ac'])
+            if key in reckoning_acs:
+                errors.append(f"reckoning[{r['ac']}]: duplicate row for the same AC" + (f" of {key[0]}" if key[0] else ""))
                 continue
-            reckoning_acs[r['ac']] = r
-    for ac, row in reckoning_acs.items():
+            reckoning_acs[key] = r
+    for (spec_name, ac), row in reckoning_acs.items():
+        label = f"{ac} of {spec_name}" if spec_name else ac
         live = row.get('live_bearing') is True
-        if ac in spec_ac_live and spec_ac_live[ac] != live:
-            errors.append(f"reckoning[{ac}].live_bearing: {live} contradicts the accepted spec's AC ({spec_ac_live[ac]}) — the spec is the authority")
-            live = spec_ac_live[ac]
+        if spec_name:
+            if (spec_name, ac) not in spec_ac_live:
+                errors.append(f"reckoning[{ac}].spec: '{spec_name}' is not an accepted spec under --root defining {ac}")
+            elif spec_ac_live[(spec_name, ac)] != live:
+                errors.append(f"reckoning[{label}].live_bearing: {live} contradicts the accepted spec's AC ({spec_ac_live[(spec_name, ac)]}) — the spec is the authority")
+                live = spec_ac_live[(spec_name, ac)]
+        else:
+            owners = ac_spec_count.get(ac, [])
+            if len(owners) > 1:
+                errors.append(f"reckoning[{ac}]: {len(owners)} accepted specs define {ac} — the row must carry `spec:` naming one of them")
+            elif owners and spec_ac_live[(owners[0], ac)] != live:
+                errors.append(f"reckoning[{ac}].live_bearing: {live} contradicts the accepted spec's AC ({spec_ac_live[(owners[0], ac)]}) — the spec is the authority")
+                live = spec_ac_live[(owners[0], ac)]
         covered = str(row.get('covered_by') or '').strip()
         unverified = bool(row.get('unverified'))
         waiver = str(row.get('waiver') or '').strip()
         issue = str(row.get('issue') or '').strip()
         if live:
             if unverified:
-                errors.append(f"reckoning[{ac}].unverified: illegal on a live-bearing row")
+                errors.append(f"reckoning[{label}].unverified: illegal on a live-bearing row")
             if waiver:
-                errors.append(f"reckoning[{ac}].waiver: illegal on a live-bearing row")
+                errors.append(f"reckoning[{label}].waiver: illegal on a live-bearing row")
             if not covered or not re.search(r'\(via:|\b[0-9a-fA-F]{7,40}\b', covered):
-                errors.append(f"reckoning[{ac}].covered_by: live-bearing row requires live-artifact provenance (a '(via:' citation or a commit token) — proxy-only coverage is rejected")
+                errors.append(f"reckoning[{label}].covered_by: live-bearing row requires live-artifact provenance (a '(via:' citation or a commit token) — proxy-only coverage is rejected")
         else:
             if (unverified or waiver) and not issue:
-                errors.append(f"reckoning[{ac}].issue: required when unverified or waiver is set")
+                errors.append(f"reckoning[{label}].issue: required when unverified or waiver is set")
             if not covered and not unverified and not waiver:
-                errors.append(f"reckoning[{ac}]: no covered_by, no unverified mark, and no waiver — blocks close")
+                errors.append(f"reckoning[{label}]: no covered_by, no unverified mark, and no waiver — blocks close")
 
     # status: done ⇒ every AC of every accepted *.spec.yaml under --root is reckoned, and
-    # the retrospective is non-empty
+    # the retrospective is non-empty. A row matches its (spec, ac); a spec-less row
+    # matches only while its id is unambiguous across the accepted specs.
     if doc.get('status') == 'done':
         if not str(doc.get('retrospective') or '').strip():
             errors.append("retrospective: required (non-empty) when status is done")
@@ -461,13 +481,16 @@ elif kind == 'epic':
             try: sd = yaml.safe_load(open(f, encoding='utf-8'))
             except yaml.YAMLError: continue
             if not isinstance(sd, dict) or sd.get('status') != 'accepted': continue
+            base = os.path.basename(f)
             for r in sd.get('requirements') or []:
                 if not isinstance(r, dict): continue
                 for a in r.get('acs') or []:
                     if not isinstance(a, dict): continue
                     aid = a.get('id')
-                    if aid and aid not in reckoning_acs:
-                        errors.append(f"reckoning: {aid} in {os.path.basename(f)} has no reckoning[] row")
+                    if not aid: continue
+                    if (base, aid) in reckoning_acs: continue
+                    if ('', aid) in reckoning_acs and len(ac_spec_count.get(aid, [])) == 1: continue
+                    errors.append(f"reckoning: {aid} in {base} has no reckoning[] row")
 
 for w in warns: print(f"warn: {w}")
 for e in errors: print(e)

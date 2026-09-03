@@ -1,0 +1,22 @@
+slug: fixture-ms
+status: done
+started: 2026-01-01
+landed: 2026-02-01
+aim: A spec-less reckoning row on an id two accepted specs define must fail.
+foundation:
+  intention: Ambiguity is not coverage.
+  out_of_scope:
+    - Nothing else.
+phases:
+  - {n: 1, title: First, spec: p1.spec.yaml, status: done, landed: 2026-01-15}
+  - {n: 2, title: Second, spec: p2.spec.yaml, status: done, landed: 2026-02-01}
+retrospective: |
+  What worked: n/a.
+  What pivoted: n/a.
+  What to do differently: n/a.
+reckoning:
+  - {ac: AC-1, covered_by: "(via: read -> src/a.py:1: which spec's AC-1 is this?)", live_bearing: true}
+  - {ac: AC-2, spec: p1.spec.yaml, covered_by: "(via: read -> src/c.py:3: fine)", live_bearing: false}
+  - {ac: AC-3, spec: p2.spec.yaml, covered_by: "(via: read -> src/d.py:4: fine)", live_bearing: false}
+disposition:
+  none: true
