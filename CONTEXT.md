@@ -40,6 +40,12 @@ pointer names the single home of any longer rule.
   findings), the honor-check lens (invariant checks executed) and the
   quality lens (its arm set holds the vendor opposite the builder), one
   `review.yaml`, fed to the ship informed-accept; backed by the pre-push C/H blocker. `/touchstone:code-review batch` is its alias.
+- **lens manifest** (ADR-0044, amends ADR-0042's `prompt_home` half and ADR-0032's
+  cap enforcement) — a gate body declares which lenses go to which arms; the
+  manifest declares what text each lens carries, as `path#heading` sections each
+  marked `arm` or `host`. It is read by the assembler in a subprocess and by the
+  load map at measurement time, never by a gate session. Single home:
+  `skills/_shared/lens-manifest.yaml`.
 - **stopping rule** — one injected fragment governs every gate's rounds
   (design-review, deliverable-review, the local plugin-review); single home:
   `skills/_shared/inject/severity-tiered-stopping-rule.md`.

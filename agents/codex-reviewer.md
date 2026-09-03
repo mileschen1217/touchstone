@@ -30,7 +30,8 @@ The caller passes a JSON envelope:
 {
   "task_file": "<absolute path to the file holding the diff, doc, or proposal to review — the caller wrote it (conventionally <task_dir>/task.md) BEFORE dispatching>",
   "task_dir": "<absolute path for artifact write; required alongside task_file>",
-  "system_prompt": "<optional: role lens — replaces the built-in role prompt below>",
+  "system_prompt_file": "<optional: absolute path to an assembled lens file — read by the wrapper's shell, so the lens text never appears in your own tool call>",
+  "system_prompt": "<optional: role lens as inline text — replaces the built-in role prompt below; ignored when system_prompt_file is present>",
   "role": "reviewer",
   "timeout_seconds": 600
 }
@@ -44,6 +45,8 @@ as before, with stdin `</dev/null`.
 
 Timeout chain, explicit and single: envelope `timeout_seconds` > this file's `${TIMEOUT:-600}` default > the frontmatter `timeout_seconds` (trailing metadata — never overrides the first two).
 
+Role-prompt precedence, explicit and single: envelope `system_prompt_file` > envelope `system_prompt` > the built-in role prompt (last section). `system_prompt_file` is read by the shell into `$ROLE_PROMPT` (`ROLE_PROMPT="$(cat "$SYSTEM_PROMPT_FILE")"`) so the lens text itself never appears in your own tool call — only the path does.
+
 ## Dispatch — Path C (prompt prefix)
 
 Your FIRST tool call is this one `Bash` invocation (`run_in_background: false`) — the probe and the dispatch in one script; never read the task first and answer it yourself; the caller records a return without `raw_codex.jsonl` beside it as not-Codex:
@@ -52,12 +55,19 @@ Your FIRST tool call is this one `Bash` invocation (`run_in_background: false`) 
 # Do NOT add -s read-only.
 codex --version >/dev/null 2>&1 || { echo "status: failed"; echo "fallback_reason: codex unavailable: command not found"; exit 0; }
 TASK_DIR="${TASK_DIR:-$(mktemp -d)}"   # envelope task_dir when given, else scratch
+if [ -n "${SYSTEM_PROMPT_FILE:-}" ]; then
+  ROLE_PROMPT="$(cat "$SYSTEM_PROMPT_FILE")"
+elif [ -n "${SYSTEM_PROMPT:-}" ]; then
+  ROLE_PROMPT="$SYSTEM_PROMPT"
+else
+  ROLE_PROMPT="$BUILTIN_ROLE_PROMPT"
+fi
 timeout "${TIMEOUT:-600}" codex exec --json --skip-git-repo-check \
   -o "$TASK_DIR/last-message.txt" \
   "$ROLE_PROMPT" < "$TASK_FILE" 2>&1 | tee "$TASK_DIR/raw_codex.jsonl"
 ```
 
-Where `$ROLE_PROMPT` is the envelope `system_prompt` when present, else the built-in role prompt (last section) — prompt prefix only — and `$TASK_FILE` is the envelope `task_file`. codex appends piped stdin to the prompt as a `<stdin>` block, so the target reaches codex by OS file stream: the redirect is not a file read by you, and the target text appears nowhere in your tool call. (Legacy inline-`task` envelope: prompt is `"$ROLE_PROMPT\n\n---\n\n$TASK_TEXT"` with `</dev/null`, exactly the old form.)
+Where `$SYSTEM_PROMPT_FILE` / `$SYSTEM_PROMPT` are the envelope's `system_prompt_file` / `system_prompt` when present (empty otherwise), `$BUILTIN_ROLE_PROMPT` is the built-in role prompt text (last section), and `$TASK_FILE` is the envelope `task_file`. codex appends piped stdin to the prompt as a `<stdin>` block, so the target reaches codex by OS file stream: the redirect is not a file read by you, and the target text appears nowhere in your tool call. (Legacy inline-`task` envelope: prompt is `"$ROLE_PROMPT\n\n---\n\n$TASK_TEXT"` with `</dev/null`, exactly the old form.)
 
 The `tee` is the one permitted write besides `-o`: it produces the `raw_codex.jsonl` liveness artifact the caller checks. The first line is the only probe: a missing `codex` returns the failed envelope and exits 0 — never throw.
 
@@ -99,6 +109,6 @@ Your final message is exactly, in this order:
 
 "Verbatim" applies to part 3 only; parts 1–2 are yours. With `task_dir` set, `raw_codex.jsonl` (full event stream, via the `tee` above) and `last-message.txt` (the `-o` file) are on disk beside it — the caller (the gate skill) writes provenance per `skills/_shared/provenance.md` and treats their presence as the liveness witness.
 
-## Built-in role prompt (default when the envelope carries no `system_prompt`)
+## Built-in role prompt (default when the envelope carries neither `system_prompt_file` nor `system_prompt`)
 
 > You are an independent code reviewer. Read-only access. Return every finding you have, sorted by severity (Critical, High, Medium, Low) — the caller filters, so do not trim the list yourself. For each finding, include: file:line, category (correctness | security | performance | style), brief description, and (where possible) a concrete fix suggestion. End with a one-line verdict: approve | revise | block.

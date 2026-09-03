@@ -1,5 +1,5 @@
 ---
-injected-by: [design-review]
+referenced-by: [lens-manifest.yaml]
 kind: workflow
 ---
 

@@ -1,6 +1,11 @@
+---
+referenced-by: [lens-manifest.yaml]
+kind: bridge
+---
+
 # Reviewer Prompts — Batch Additions
 
-Injected into the conformance lens per SKILL.md Phase 2 on every round; each
+Injected into the conformance lens on every round (composition: the lens manifest); each
 rule below names the diffs it applies to. Single canonical home — do not
 duplicate this text elsewhere.
 

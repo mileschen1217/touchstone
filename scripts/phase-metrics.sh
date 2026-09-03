@@ -41,10 +41,9 @@
 #                  target-spec phase join disambiguates by content instead of by history shape.
 #                  --range is no longer used for this field; it still bounds measured_at and the
 #                  human_turns/wall_clock_h/dispatches transcript window below.)
-#   stage_tokens — `bash scripts/plugin-map.sh` JSON; for each stage 0..5, the byte size of the
-#                  UNION of that stage's contexts[].files, ÷ 4 (integer division) — same rule as
-#                  .touchstone/checker/pre-push/check-plugin-ratchets.sh's max_stage_load_tokens,
-#                  computed per stage instead of maxed across stages.
+#   stage_tokens — read straight from `bash scripts/plugin-map.sh`'s own `metrics.stage_tokens`
+#                  (the map is the single home of the load-figure arithmetic; see its header) —
+#                  never recomputed here.
 #   false_edges  — len(map.false_edges).
 #   measured_at  — <head> resolved to its full 40-hex commit sha.
 set -uo pipefail
@@ -426,18 +425,8 @@ if sorted(st.get('stage') for st in map_doc.get('stages', [])) != [0, 1, 2, 3, 4
     sys.stderr.write('phase-metrics.sh: plugin-map.sh returned no stages 0-5 for root %s\n' % map_root)
     sys.exit(1)
 
-stage_tokens = []
-for st in map_doc.get('stages', []):
-    files = set()
-    for ctx in st.get('contexts', []):
-        files.update(ctx.get('files', []))
-    total_bytes = 0
-    for f in files:
-        try:
-            total_bytes += os.path.getsize(os.path.join(map_root, f))
-        except OSError:
-            pass
-    stage_tokens.append({'stage': st['stage'], 'tokens': total_bytes // 4})
+stage_tokens = [{'stage': st['stage'], 'tokens': st['tokens']}
+                for st in sorted(map_doc.get('metrics', {}).get('stage_tokens') or [], key=lambda s: s['stage'])]
 
 false_edges = len(map_doc.get('false_edges') or [])
 

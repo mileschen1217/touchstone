@@ -1,0 +1,7 @@
+lenses:
+  - name: splitlens
+    arms: [cc, codex]
+    subject: true
+    sections:
+      - {ref: 'skills/_shared/inject/armsec.md#Section A', id: sec-a, destination: arm}
+      - {ref: 'skills/_shared/inject/armsec.md#Section B (host)', id: sec-b, destination: host}

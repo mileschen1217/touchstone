@@ -1,0 +1,11 @@
+lenses:
+  - name: lens-a
+    arms: [cc]
+    subject: true
+    sections:
+      - {ref: skills/_shared/inject/does-not-exist.md, id: frag-a, destination: arm}
+  - name: lens-b
+    arms: [codex]
+    subject: true
+    sections:
+      - {ref: 'skills/_shared/inject/frag-b.md#Section One', id: frag-b1, destination: arm}

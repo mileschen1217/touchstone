@@ -1,4 +1,9 @@
-# design-review — the two document lenses (sole injector: design-review Phase 3)
+---
+referenced-by: [lens-manifest.yaml]
+kind: bridge
+---
+
+# design-review — the two document lenses (composition: the lens manifest)
 
 Each section below is one lens prompt. Common preamble for every document lens:
 

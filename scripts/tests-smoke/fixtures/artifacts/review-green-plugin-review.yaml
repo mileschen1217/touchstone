@@ -1,0 +1,13 @@
+gate: plugin-review
+target: spec-green.yaml
+sha: deadbeef
+round: 1
+providers:
+  - {lens: "semantic duplicate", arms: [codex]}
+  - {lens: "rule without consumer", arms: [codex, cc]}
+degraded: false
+verdict: revise
+counts: {C: 0, H: 1, M: 0, L: 0}
+rulings: []
+findings: []
+waiting_on_human: []

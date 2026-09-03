@@ -1146,19 +1146,6 @@ def structure_overlay(p, s):
     return out + collapsed(f'<span class="lead">{lab("區塊與連線")}</span>', tables)
 
 # ---------- structure map panel (plugin repos only — dossier-map-panel) ----------
-def token_count(root, files):
-    """sum of byte sizes of the given file set / 4. Callers pass the union of
-    stages[].contexts[].files — the same context-loaded set plugin-map.sh itself counts
-    behind `unique_lines` — never `load_set` (that also carries scripts and their
-    transitive reads, which are run, not loaded into a context)."""
-    total = 0
-    for p in files:
-        try:
-            total += os.path.getsize(os.path.join(root, p))
-        except OSError:
-            pass
-    return total // 4
-
 def run_plugin_map(root):
     """`bash <root>/scripts/plugin-map.sh --root <root>` — root-relative only, so the
     absence guard (no call at all when plugin.json is missing) is provable on PATH."""
@@ -1186,14 +1173,14 @@ def structure_map_html(root):
         return ('<article id="structure-map"><h3 class="file-title">結構地圖</h3>'
                  f'<p class="placeholder">plugin-map.sh failed: {html.escape(err or "unknown error")}</p></article>')
     stages = sorted((s for s in (data.get('stages') or []) if isinstance(s, dict)), key=lambda s: s.get('stage', 0))
+    # the owner-facing per-stage number comes from the same emitted value the ratchet gate
+    # reads — plugin-map.sh's own metrics.stage_tokens, never a re-derived byte sum here.
+    tok_by_stage = {s.get('stage'): sval(s.get('tokens')) for s in (data.get('metrics', {}).get('stage_tokens') or [])
+                    if isinstance(s, dict)}
     cards = ''
     for s in stages:
         load_set = [sval(x) for x in (s.get('load_set') or [])]
-        ctx_files = set()
-        for c in (s.get('contexts') or []):
-            if isinstance(c, dict):
-                ctx_files.update(sval(x) for x in (c.get('files') or []))
-        tok = token_count(root, ctx_files)
+        tok = tok_by_stage.get(s.get('stage'), '0')
         chain = ''.join(f'<li><code>{html.escape(x)}</code></li>' for x in load_set)
         cards += (f'<section class="panel"><h4>stage {html.escape(sval(s.get("stage")))} · {fspan(sval(s.get("entry")))}</h4>'
                   f'<p class="meta">{lab("lines")} <span class="num">{html.escape(sval(s.get("lines")))}</span> · '
@@ -1538,7 +1525,15 @@ def front_sections(p, s):
     secs.append(('阻擋清單', bl_html, bl_txt))
     rel, d = newest_review(p, 'deliverable-review')
     acs = [a for r in yd.get('requirements') or [] if isinstance(r, dict) for a in (r.get('acs') or []) if isinstance(a, dict)]
-    unv = [f for f in (d.get('findings') or [] if d else []) if isinstance(f, dict) and sval(f.get('status')) == 'unverified']
+    # unverified survives across a gate's rounds: a burn-down round records only its own
+    # findings, so take the union over every deliverable-review record of this phase,
+    # keeping each finding id's LATEST status — surviving unverified only.
+    _by_id = {}
+    for _rel2, _d2 in [(r2, d2) for r2, d2 in reviews_for(p) if sval(d2.get('gate')) == 'deliverable-review']:
+        for _f in _d2.get('findings') or []:
+            if isinstance(_f, dict) and _f.get('id'):
+                _by_id[sval(_f.get('id'))] = _f
+    unv = [f for f in _by_id.values() if sval(f.get('status')) == 'unverified']
     qs = quiz_state(p['num'])
     qitems = [i for i in ((yaml_quiz or {}).get('items') or []) if isinstance(i, dict) and sval(i.get('phase')) == sval(p['num'])]
     qpass = sum(1 for i in qitems if sval(i.get('result')) == 'pass')

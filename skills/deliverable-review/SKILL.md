@@ -24,7 +24,7 @@ kind: workflow
 
 ## Phase 1 — Range, governing spec, builder, arms
 
-Vocabulary (**lens**, **arm**) and every review.yaml provenance field this gate writes: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/provenance.md`, read once at start.
+Vocabulary (**lens**, **arm**) and every review.yaml provenance field this gate writes: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/provenance.md`, read once at start. Which fragments compose each lens is declared once in the lens manifest — the assembler (Phase 2) reads it in a subprocess; this session never reads the manifest or the fragments themselves.
 
 Range: the given argument, else `$(git merge-base HEAD main)..HEAD` (project
 CLAUDE.md may override the base branch).
@@ -48,38 +48,24 @@ The declared lens set (arms column = default configuration; the quality lens's a
 
 ```yaml
 lenses:
-  - {name: conformance, arms: [cc],                       prompt_home: skills/deliverable-review/references/ac-coverage-criteria.md}
-  - {name: honor-check, arms: [cc],                       prompt_home: skills/_shared/inject/design-soundness-honor-check.md}
-  - {name: quality,     arms: [<vendor opposite builder>], prompt_home: the arm agent's own default lens}
+  - {name: conformance, arms: [cc]}
+  - {name: honor-check, arms: [cc]}
+  - {name: quality,     arms: [<vendor opposite builder>]}
 ```
 
 `with <vendor>` replaces the quality arm set with `[<vendor>]`, never builder detection. When that leaves only the builder's vendor, the round is `degraded: true`, `degraded_reason: "vendor rule waived by \`with <vendor>\`"`.
 
-## Phase 2 — Inject (once, verbatim, from `${CLAUDE_PLUGIN_ROOT}`)
+## Phase 2 — Dispatch: one call per arm, all in one message
 
-Conformance lens:
-- the two evidence-honesty fragments under `skills/_shared/inject/` (`live-bearing-predicate.md`, `ac-coverage-honesty-principle.md`), also carried as `evidence_honesty_vocab`.
-- `skills/deliverable-review/references/ac-coverage-criteria.md` (sole injector), then this delta: an AC with `live_bearing: true` is judged by the predicate's evidence rules; what they disqualify is recorded `unverified` naming the proxy, and the arm authenticates the artifact, never re-runs the producer.
-- `skills/deliverable-review/references/reviewer-prompts.md` (sole injector) — always; its rules state their own applicability.
-
-Honor-check lens:
-- `skills/_shared/inject/design-soundness-honor-check.md` with `skills/assay/references/arch-rubric.md` injected as content — **feedback arm**: execute every `invariants[].check` against the delivered tree.
-
-Quality lens:
-- `skills/_shared/inject/severity-qualification.md`; the arm agent's default lens governs. (The round budget stays host-side — see Phase 4.)
-
-## Phase 3 — Dispatch: one call per arm, all in one message
-
-One `Agent` call per arm, carrying every lens assigned to it (findings tagged `[lens: …]`), all calls in ONE assistant message:
-
-- **cc arm (conformance + honor-check)** — `Agent(subagent_type: "touchstone:code-reviewer", description: "conformance, honor-check", prompt: <both lenses' injections> + the spec text + the diff)`. Conformance output, one line per AC and per invariant: `<AC-n|INV-n> | covered <test/artifact ref> | unverified <reason or proxy> | violated <finding>` — the covered lines become `coverage[]` rows at merge, only unverified / violated lines become findings.
-- **quality arm** — `touchstone:codex-reviewer` when the arm is `codex`, `touchstone:code-reviewer` (a fresh context, never the conformance one) when `cc`; `description: "quality"`; for the codex arm write the full diff to `<round dir>/task.md` FIRST and pass envelope `{task_file: <round dir>/task.md, task_dir: <round dir>, role: "batch-reviewer"}` (the diff rides by file, never through the wrapper's context); a cc arm receives the diff as prompt content.
+Dispatch every arm per the arm-dispatch mechanics in `provenance.md` (Phase 1 read). This gate's deltas: arm labels `conformance-cc` / `honor-check-cc` / `quality-codex` (or `quality-cc` when the builder is codex); round dir = `<epic-dir>/deliverable-review-<date>/`; conformance and honor-check take the spec AND the diff as one subject — `--subject-cmd "cat <spec-path>; git diff <range>"` — while the quality lens's subject is `--subject-cmd "git diff <range>"` alone; the codex envelope's role string is `"batch-reviewer"`; findings tagged `[lens: …]`. The conformance arm's output-line format is declared in its assembled lens file, not here.
 
 The quality arm returns without `raw_codex.jsonl` + `last-message.txt` in the round dir → it was not Codex: record it as a `cc` arm under the liveness rule in `provenance.md`, or re-dispatch once. A quality arm that fails (`status: failed` / a `fallback_reason`) → re-dispatch the lens to the builder's own vendor, record that arm in `providers`, and set `degraded: true`, `degraded_reason: "lens quality: independence lost — arm <vendor> = builder (<original arm> failed: <reason>)"`; that also fails → no review.yaml, surface the failure, stop.
 
-## Phase 4 — Merge into review.yaml, converge, report
+## Phase 3 — Merge into review.yaml, converge, report
 
 Write `<epic-dir>/deliverable-review-<date>/review.yaml` — `gate: deliverable-review`, `target` = the governing spec file, `range` = the reviewed range, `sha` = HEAD. Field set: `review.schema.yaml` under `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/`; field meanings AND the shared merge rules: `provenance.md` (Phase 1). This gate's one merge delta: a conformance line reported `covered` becomes a `coverage[]` row, never a finding; every uncovered AC and every violated / undecidable invariant is a finding on its field path, `status: unverified` where the arm could not decide (naming the proxy).
+
+**Read-back check**: run the comparison rule from `provenance.md` on each arm's opening `fragments_read` line before merging; a failed comparison writes no review.yaml until resolved.
 
 Validate with `check-artifact.sh review` (`--root <epic-dir>`; exit 0 required). The raw arm outputs sit in the round dir (`raw_cc.md`; a Codex arm's `raw_codex.jsonl` + `last-message.txt`); no other review file.
 

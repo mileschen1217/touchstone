@@ -3,8 +3,8 @@ target: spec-green.yaml
 sha: abc123
 round: 1
 providers:
-  - {lens: coverage, arms: [cc, codex]}
-  - {lens: design-soundness, arms: [codex]}
+  - {lens: coverage, arms: [cc, codex], fragments_read: [ac-coverage]}
+  - {lens: design-soundness, arms: [codex], fragments_read: [doc-lens-soundness]}
 challenger: cc
 degraded: false
 verdict: approve

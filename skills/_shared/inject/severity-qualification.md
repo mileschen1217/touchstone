@@ -1,5 +1,5 @@
 ---
-injected-by: [design-review, deliverable-review]
+referenced-by: [lens-manifest.yaml]
 kind: bridge
 ---
 

@@ -1,2 +1,4 @@
-max_stage_load_tokens 22863
+max_stage_load_tokens 17929
 untested_reachable_shell_lines 408
+arm_load_tokens 13069
+conditional_load_tokens 2024

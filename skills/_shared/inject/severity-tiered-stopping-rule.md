@@ -8,8 +8,8 @@ kind: bridge
 The one stopping rule of every review gate — design-review, deliverable-review, and the
 touchstone-local plugin-review alike; no gate carries a second budget, threshold, or
 plateau rule of its own. Read by each gate's merging host session, never injected into an
-arm; the severity standard the arms apply is the sibling segment
-`severity-qualification.md` (arm-injected, single home of the removal test).
+arm; the severity standard the arms apply travels in each arm's assembled lens file
+(composition: the lens manifest).
 
 **Budget = initial review + at most ONE re-verify dispatch.** T = 3 (adjustable by a
 human ruling recorded in the epic's calibration ledger). **Terminator: a round that
