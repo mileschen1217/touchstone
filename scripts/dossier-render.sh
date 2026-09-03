@@ -1525,7 +1525,15 @@ def front_sections(p, s):
     secs.append(('阻擋清單', bl_html, bl_txt))
     rel, d = newest_review(p, 'deliverable-review')
     acs = [a for r in yd.get('requirements') or [] if isinstance(r, dict) for a in (r.get('acs') or []) if isinstance(a, dict)]
-    unv = [f for f in (d.get('findings') or [] if d else []) if isinstance(f, dict) and sval(f.get('status')) == 'unverified']
+    # unverified survives across a gate's rounds: a burn-down round records only its own
+    # findings, so take the union over every deliverable-review record of this phase,
+    # keeping each finding id's LATEST status — surviving unverified only.
+    _by_id = {}
+    for _rel2, _d2 in [(r2, d2) for r2, d2 in reviews_for(p) if sval(d2.get('gate')) == 'deliverable-review']:
+        for _f in _d2.get('findings') or []:
+            if isinstance(_f, dict) and _f.get('id'):
+                _by_id[sval(_f.get('id'))] = _f
+    unv = [f for f in _by_id.values() if sval(f.get('status')) == 'unverified']
     qs = quiz_state(p['num'])
     qitems = [i for i in ((yaml_quiz or {}).get('items') or []) if isinstance(i, dict) and sval(i.get('phase')) == sval(p['num'])]
     qpass = sum(1 for i in qitems if sval(i.get('result')) == 'pass')
