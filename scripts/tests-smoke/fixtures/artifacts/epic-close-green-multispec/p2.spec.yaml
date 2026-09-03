@@ -1,0 +1,10 @@
+id: SPEC-fixture-ms-p2
+title: Multi-spec fixture phase 2
+epic: fixture-ms
+phase: 2
+status: accepted
+requirements:
+  - id: REQ-1
+    acs:
+      - {id: AC-1}
+      - {id: AC-3}

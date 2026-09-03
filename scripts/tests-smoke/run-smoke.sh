@@ -71,6 +71,11 @@ expect_out "check-artifact epic: escape names the guard" "escapes the --root dir
 expect_exit "check-artifact epic: duplicate reckoning row" nonzero bash "$ca" epic "$ax/epic-close-red-dup-reckoning/epic.yaml" --root "$ax/epic-close-red-dup-reckoning"
 expect_out "check-artifact epic: duplicate row named" "duplicate row for the same AC" bash "$ca" epic "$ax/epic-close-red-dup-reckoning/epic.yaml" --root "$ax/epic-close-red-dup-reckoning"
 
+# AC ids restart per spec — a multi-spec epic's reckoning joins by (spec, ac)
+expect_exit "check-artifact epic: multi-spec reckoning joined by (spec, ac)" zero bash "$ca" epic "$ax/epic-close-green-multispec/epic.yaml" --root "$ax/epic-close-green-multispec"
+expect_exit "check-artifact epic: spec-less row on an id two specs define" nonzero bash "$ca" epic "$ax/epic-close-red-ambiguous-row/epic.yaml" --root "$ax/epic-close-red-ambiguous-row"
+expect_out "check-artifact epic: ambiguous row names the rule" "the row must carry \`spec:\` naming one of them" bash "$ca" epic "$ax/epic-close-red-ambiguous-row/epic.yaml" --root "$ax/epic-close-red-ambiguous-row"
+
 # roadmap-render: a normal render fails loudly on an invalid epic dir (never a silent omission)
 rrbad="$(mktemp -d)"; mkdir -p "$rrbad/.touchstone/epics/2026-01-01-broken"
 printf 'not: [valid\n' > "$rrbad/.touchstone/epics/2026-01-01-broken/epic.yaml"

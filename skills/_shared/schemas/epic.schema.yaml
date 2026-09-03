@@ -62,6 +62,11 @@ properties:
       additionalProperties: false
       properties:
         ac: {type: string, pattern: '^AC-\d+$'}
+        # spec — the accepted *.spec.yaml (basename) this row's AC belongs to. AC ids
+        # restart per spec, so a multi-spec epic MUST carry it on every row whose id
+        # more than one accepted spec defines; a spec-less row is legal only while
+        # its id is unambiguous.
+        spec: {type: string}
         covered_by: {type: string}
         unverified: {type: boolean}
         live_bearing: {type: boolean}
