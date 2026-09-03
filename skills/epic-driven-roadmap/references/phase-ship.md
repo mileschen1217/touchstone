@@ -35,8 +35,12 @@ shipping session) do the following in order:
       `anchor` (field path), `result: pass|miss` — your judgment, required once
       answered. **Owner's frame, not the builder's:** what changed, why, what breaks —
       internal accounting (a predicate's implementation, a review round's mechanics, an
-      id scheme) fails the drop test even when true; ids stay in `refs`/`anchor`, never
-      in question text. Then `phase_summaries[]`, one entry per shipped phase, written
+      id scheme, build-graph bookkeeping such as waivers and orphan checks) fails the
+      drop test even when true; ids stay in `refs`/`anchor`, never in question text.
+      An anchor to a D-n entry exempts nothing — the entry's owner-visible consequence
+      is what qualifies, never its mechanics. Every noun in a question must be
+      answerable in plain language from the page: a coined house term is a code, so
+      define it at its first mention there or do not use it. Then `phase_summaries[]`, one entry per shipped phase, written
       against the questions: 3–5 points, one per line, each point = why it was done →
       what changed → what the owner skips re-deriving, in 1–2 plain sentences with no
       build internals; every question's answer must be an identifiable sentence in the
