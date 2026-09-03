@@ -41,7 +41,7 @@ Neither file's content is ever printed. Manifest shape:
 skills/_shared/lens-manifest.yaml.
 
   --self-test   exercise the system_prompt_file > system_prompt > built-in
-                precedence documented in agents/codex-reviewer.md (AC-46).
+                precedence documented in agents/codex-reviewer.md.
 USAGE
 }
 
@@ -51,7 +51,7 @@ default_root="$(cd "$self_dir/.." && pwd)"
 # resolve_role_prompt -- the same precedence agents/codex-reviewer.md's
 # dispatch block documents: system_prompt_file (read from disk) beats
 # system_prompt (inline text) beats the built-in role prompt. Exercised in
-# isolation by --self-test (AC-46); kept here as the one runnable assertion
+# isolation by --self-test; kept here as the one runnable assertion
 # of that documented precedence, independent of the codex CLI.
 resolve_role_prompt() {
   local spf="$1" sp="$2" builtin="$3"
@@ -259,7 +259,7 @@ fi
 # ---- subject file: copy (--subject-file) or shell redirect (--subject-cmd).
 # The subject bytes are never captured into a shell variable and never echoed
 # -- `cat` streams a copy, `sh -c` streams a redirect, both straight into the
-# one output redirection below (AC-8). The copy/command's own exit status is
+# one output redirection below (the no-content-through-the-session rule). The copy/command's own exit status is
 # checked: a failing producer must NOT leave a well-formed empty subject behind
 # (the silent-empty-review fail-open), so both outputs are built in temp files
 # and moved into place only after both succeed.

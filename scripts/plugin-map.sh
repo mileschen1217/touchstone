@@ -42,7 +42,7 @@
 # `stages[].contexts[]` also carries `kind: in-session|dispatched`, `bytes`, and (for a
 # dispatched context) `arm`, `lens`, `sections`, `dispatched_by` — the in-session file(s)
 # whose lens-manifest declaration/dispatch pattern attached it (see `lens_decl_rx` below;
-# this scopes AC-25's dual-use-fragment reading to the DISPATCHING session, not to every
+# this scopes the destination-contradiction check's dual-use-fragment reading to the DISPATCHING session, not to every
 # session that happens to load the same file in-session).
 set -uo pipefail
 
@@ -148,7 +148,7 @@ if d is not None:
            for s in (d.get('stages') or [])]
     report(all(u == t for _, u, t in bad), lbl, repr(bad))
 
-# ---- dispatched-context attachment / conditional pricing (AC-21/AC-23/AC-26/AC-27/AC-32)
+# ---- dispatched-context attachment / conditional pricing
 lbl = ('real repo: stage 1 carries AT LEAST challenger@cc/design-soundness@cc/verification-honesty@codex, stage 3 carries AT LEAST conformance@cc/honor-check@cc/quality@codex, each with its arm agent file '
        '(declaration/dispatch-only attachment — a bare prose mention of a lens name elsewhere, e.g. in a shared schema comment, attaches nothing). '
        'Not an exact-set check: other sibling tasks legitimately land more --lens <name> dispatch sites over this epic (e.g. arch-validation/arch-pressure-test once fork-case.md dispatch lands, '
@@ -165,7 +165,7 @@ if d is not None:
     ok = all(m.get(name) is not None and AGENT[arm] in (m[name].get('files') or []) for m, name, arm in want)
     report(ok, lbl, repr({'stage1': sorted(st1), 'stage3': sorted(st3)}))
 
-    lbl = "real repo: every dispatched context carries dispatched_by naming its declaring gate body (design-review/SKILL.md for stage 1's three, deliverable-review/SKILL.md for stage 3's three) — the commander's harvest-ruling addition, and AC-25's dual-use-fragment disambiguator"
+    lbl = "real repo: every dispatched context carries dispatched_by naming its declaring gate body (design-review/SKILL.md for stage 1's three, deliverable-review/SKILL.md for stage 3's three) — the commander's harvest-ruling addition, and the destination-contradiction check's dual-use-fragment disambiguator"
     ok = (all(st1.get(name, {}).get('dispatched_by') == ['skills/design-review/SKILL.md'] for name in ('challenger@cc', 'design-soundness@cc', 'verification-honesty@codex'))
           and all(st3.get(name, {}).get('dispatched_by') == ['skills/deliverable-review/SKILL.md'] for name in ('conformance@cc', 'honor-check@cc', 'quality@codex')))
     report(ok, lbl, repr({name: c.get('dispatched_by') for name, c in {**st1, **st3}.items()}))
@@ -175,7 +175,7 @@ if d is not None:
     # reasons that have nothing to do with this script's correctness. Instead recompute
     # max_stage_load_tokens independently from the emitted in-session contexts (excluding
     # any load-when file, same as the real definition) and assert self-consistency — this
-    # is the structural AC-23 proof ("defined over in-session contexts only, arm bytes
+    # is the structural proof of the gated key's definition ("defined over in-session contexts only, arm bytes
     # cannot fold into it"); the one-time absolute-number check against a specific commit
     # belongs in observations/Commands-to-Run, not in a permanent regression self-test.
     def _is_cond(path):
@@ -218,14 +218,14 @@ if d is not None:
     report(ok, lbl, repr({k: m.get(k) for k in
                           ('max_stage_load_tokens', 'arm_load_tokens', 'max_arm_load_tokens', 'conditional_load_tokens', 'stage_tokens')}))
 
-    # AC-44 fold-back guard: design-review/SKILL.md's own body names
+    # fold-back guard: design-review/SKILL.md's own body names
     # skills/_shared/lens-manifest.yaml (Phase 1's "declared once in ... lens-manifest.yaml"
     # line) — a skill body naming the manifest must never pull the manifest itself, nor any
     # fragment the manifest in turn names (e.g. its challenger-catalogue section), into that
     # skill's in-session closure. kind_of() special-cases the manifest to 'data' (never a
     # LOADED_KINDS member) precisely so the context-file walk terminates AT the manifest,
     # regardless of what prose does or doesn't name it.
-    lbl = "real repo: AC-44 fold-back guard — skills/_shared/lens-manifest.yaml (named by design-review/SKILL.md's own body) appears in NO in-session context's files, and neither does any fragment the manifest names on its own (e.g. design-review/references/challenger.md, which no gate body mentions directly)"
+    lbl = "real repo: fold-back guard — skills/_shared/lens-manifest.yaml (named by design-review/SKILL.md's own body) appears in NO in-session context's files, and neither does any fragment the manifest names on its own (e.g. design-review/references/challenger.md, which no gate body mentions directly)"
     all_insession_files = {f for s in d['stages'] for c in s.get('contexts', [])
                            if c.get('kind') == 'in-session' for f in (c.get('files') or [])}
     ok = ('skills/_shared/lens-manifest.yaml' not in all_insession_files
@@ -246,7 +246,7 @@ if d is not None:
     ok = all(c.get('dispatched_by') == ['skills/crucible/SKILL.md'] for c in disp.values())
     report(ok, lbl, repr({k: v.get('dispatched_by') for k, v in disp.items()}))
 
-    lbl = 'plugin-ratchets green-dispatch: AC-26 arm_load_tokens is the sum over dispatched contexts, max_arm_load_tokens the larger single arm — 262/4 + 545/4 summed vs maxed'
+    lbl = 'plugin-ratchets green-dispatch: arm_load_tokens is the sum over dispatched contexts, max_arm_load_tokens the larger single arm — 262/4 + 545/4 summed vs maxed'
     m = d.get('metrics') or {}
     cc_b = disp.get('splitlens@cc', {}).get('bytes')
     codex_b = disp.get('splitlens@codex', {}).get('bytes')
@@ -256,7 +256,7 @@ if d is not None:
           and m.get('arm_load_tokens') > m.get('max_arm_load_tokens'))
     report(ok, lbl, repr((cc_b, codex_b, m.get('arm_load_tokens'), m.get('max_arm_load_tokens'))))
 
-    lbl = "plugin-ratchets green-dispatch: AC-27/INV-3 — skills/_shared/inject/cond.md's load-when bytes leave max_stage_load_tokens/stage_tokens and land in conditional_load_tokens instead (moved, not shrunk)"
+    lbl = "plugin-ratchets green-dispatch: conditional pricing (moved-not-shrunk invariant) — skills/_shared/inject/cond.md's load-when bytes leave max_stage_load_tokens/stage_tokens and land in conditional_load_tokens instead (moved, not shrunk)"
     ok = (m.get('max_stage_load_tokens') == 89 and m.get('conditional_load_tokens') == 47
           and m.get('stage_tokens') == [{'stage': 1, 'tokens': 89}])
     report(ok, lbl, repr((m.get('max_stage_load_tokens'), m.get('conditional_load_tokens'), m.get('stage_tokens'))))
@@ -367,7 +367,7 @@ def kind_of(p):
     # lens-manifest.yaml is data, never a loadable kind — a skill body naming it (its own
     # header: "never by a gate session, so its own bytes are charged to no context") must
     # not pull it, and everything it in turn names, into that skill's in-session closure
-    # (AC-44's fold-back guard). Checked before the generic skills/_shared/ fragment rule.
+    # (the fold-back guard). Checked before the generic skills/_shared/ fragment rule.
     if p == 'skills/_shared/lens-manifest.yaml':                        return 'data'
     if p.startswith('skills/_shared/schemas/'):                         return 'schema'
     if p.startswith('agents/'):                                         return 'agent'

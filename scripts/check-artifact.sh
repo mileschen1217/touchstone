@@ -325,10 +325,10 @@ elif kind == 'review':
     for pv in doc.get('providers') or []:
         if isinstance(pv, dict) and isinstance(pv.get('lens'), str):
             lens_arms.setdefault(pv['lens'], set()).update(a for a in (pv.get('arms') or []) if isinstance(a, str))
-    # fragments_read — read-back evidence (AC-18): a providers entry missing it is
+    # fragments_read — read-back evidence: a providers entry missing it is
     # admitted only alongside a degraded round; a present-but-empty list is always wrong
     # (an arm that read nothing is the degraded case, not an empty list). The id-outside-
-    # the-manifest failure (AC-15) is gate-side — a review.yaml carries no manifest to
+    # the-manifest failure is gate-side — a review.yaml carries no manifest to
     # check the ids against, so it is not checked here. The plugin-review gate is exempt:
     # its lens composition is rubric-sliced (assembler --lens-file mode), so its arms have
     # no manifest fragment ids to report — the same class its recorded deviation covers.
