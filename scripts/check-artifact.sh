@@ -332,11 +332,16 @@ elif kind == 'review':
     # check the ids against, so it is not checked here. The plugin-review gate is exempt:
     # its lens composition is rubric-sliced (assembler --lens-file mode), so its arms have
     # no manifest fragment ids to report — the same class its recorded deviation covers.
+    # Scope: the requirement binds only a round that actually ran the file transport —
+    # its round dir holds an assembled lens-*.md beside this record. A round with no
+    # assembler run has no printed ids to compare against, so a pre-transport record
+    # stays valid (the retroactivity deviation records this scoping).
+    round_ran_transport = bool(glob.glob(os.path.join(os.path.dirname(os.path.abspath(path)), 'lens-*.md')))
     for pv in doc.get('providers') or []:
         if not isinstance(pv, dict): continue
         lens_name = pv.get('lens') if isinstance(pv.get('lens'), str) else '?'
         if 'fragments_read' not in pv:
-            if doc.get('degraded') is not True and doc.get('gate') != 'plugin-review':
+            if doc.get('degraded') is not True and doc.get('gate') != 'plugin-review' and round_ran_transport:
                 errors.append(f"providers[{lens_name}].fragments_read: required unless the round is degraded")
         elif isinstance(pv.get('fragments_read'), list) and len(pv['fragments_read']) == 0:
             errors.append(f"providers[{lens_name}].fragments_read: must not be empty — an arm that read nothing is the degraded case, omit the key instead")
