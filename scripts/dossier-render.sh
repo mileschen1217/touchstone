@@ -1428,6 +1428,12 @@ def gate_state_after_rulings(d):
     if fs and not open_ch and d.get('rulings'):
         return 'waived'
     return 'fail'
+# Worst first, and `.get(..., -1)` on purpose: a state this table does not know sorts
+# FIRST, where a human sees it, rather than crashing the render or being buried last.
+# `waived` was producible by gate_state_after_rulings() below and missing from this
+# table, so one review round with all its C/H closed under a ruling took the whole
+# dossier down with a KeyError.
+GATE_SORT = {'fail': 0, 'pending': 1, 'waived': 2, 'pass': 3, 'n/a': 4}
 def gate_rows(p):
     """The known-gate/tests/quiz/ship-gate rows, sorted exactly as before (byte-identical
     when no other gate exists); any other gate found in this phase's review.yaml files is
@@ -1442,7 +1448,7 @@ def gate_rows(p):
     rows.append(('tests', 'n/a', None, None, ''))
     rows.append(('quiz', quiz_state(p['num']), None, 'quiz.yaml' if yaml_quiz else None, ''))
     rows.append(('ship-gate', 'n/a', None, None, ''))
-    rows = sorted(rows, key=lambda r: {'fail': 0, 'pending': 1, 'pass': 2, 'n/a': 3}[r[1]])
+    rows = sorted(rows, key=lambda r: GATE_SORT.get(r[1], -1))
     for gate in extra_gates(p):
         rel, d = newest_review(p, gate)
         v = sval(d.get('verdict')) if d else ''

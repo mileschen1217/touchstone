@@ -1578,6 +1578,40 @@ else
 fi
 rm -rf "$t2c_root"
 
+# ---- a gate row in the `waived` state must not take the dossier down ----
+# gate_state_after_rulings() returns 'waived' for a non-approve round whose Critical/High
+# findings are all closed under a recorded ruling. gate_rows()'s sort table listed only
+# fail/pending/pass/n-a, so that state raised KeyError and NO dossier rendered at all —
+# the render died on the one round shape that says "a human already ruled on this".
+t2w_root="$(mktemp -d)"
+mkdir -p "$t2w_root/epic"
+cp -R "$fx/dossier-epic"/. "$t2w_root/epic/"
+rm -f "$t2w_root/epic/dossier.html"
+mkdir -p "$t2w_root/epic/design-review-waived"
+cat > "$t2w_root/epic/design-review-waived/review.yaml" <<'YAML'
+gate: design-review
+target: 2026-01-04-gamma.spec.yaml
+sha: fixture
+round: 2
+providers: [{lens: design-soundness, arms: [cc]}]
+degraded: false
+verdict: revise
+counts: {C: 0, H: 1, M: 0, L: 0}
+rulings: [R-1]
+findings:
+  - {id: F-1, lens: design-soundness, type: real-defect, provenance: original,
+     severity: H, file: fixture.py, summary: closed under a ruling, fix: applied,
+     status: fixed, found_by: [cc]}
+waiting_on_human: []
+YAML
+expect_exit "dossier renders when a gate row is waived" zero bash "$scripts_dir/dossier-render.sh" "$t2w_root/epic"
+if grep -q '豁免' "$t2w_root/epic/dossier.html"; then
+  echo "PASS: the waived gate row reaches the page rather than crashing the render"
+else
+  echo "FAIL: dossier rendered but carries no waived gate row"; fail=1
+fi
+rm -rf "$t2w_root"
+
 # ---- phase-5 fix pass regressions ----
 # the de-named path strings must stay out of design-spec's stage-loaded files
 if grep -rn "schemas/spec.schema.yaml\|severity-tiered-stopping-rule\|live-bearing-predicate" "$scripts_dir/../skills/design-spec/" >/dev/null 2>&1; then
