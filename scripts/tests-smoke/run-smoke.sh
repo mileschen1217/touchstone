@@ -1931,5 +1931,7 @@ expect_exit "external-reviewer: Claude transport succeeds" zero env PATH="$revie
 expect_out "external-reviewer: Claude normalized result" "CLAUDE_OK" \
   cat "$review_root/claude-out/last-message-claude.txt"
 rm -rf "$review_root"
+# ---- work-order format standard: the offline check-artifact suite (zero model tokens)
+expect_exit "work-order fixture suite (skills/_shared/work-order/tests/run-fixtures.sh)" zero bash "$scripts_dir/../skills/_shared/work-order/tests/run-fixtures.sh"
 
 exit "$fail"
