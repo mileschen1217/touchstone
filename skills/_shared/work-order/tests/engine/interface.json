@@ -1,0 +1,6 @@
+{ "signatures": {
+    "strip_iter":  "def strip_iter(it: Iterable[str]) -> Iterator[str]",
+    "rstrip_iter": "def rstrip_iter(it: Iterable[str]) -> Iterator[str]",
+    "hello":       "hello.txt — a file containing exactly the text: hello"
+  },
+  "shared": ["from typing import Iterable, Iterator"] }

@@ -1,0 +1,3 @@
+{ "ac_id": "AC-60",
+  "partitions": ["p1"], "boundaries": [], "negatives": [], "invariants": [], "violating_behaviors": ["vb"],
+  "cases": [{"case": "p1 -> pass"}], "residual": false }

@@ -1,0 +1,5 @@
+{ "ac_id": "AC-16",
+  "partitions": [], "boundaries": [], "negatives": [],
+  "invariants": ["never writes the vault on any failure path"],
+  "violating_behaviors": ["writes a partial vault entry on failure"],
+  "cases": [], "residual": true }

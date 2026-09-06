@@ -1,0 +1,15 @@
+{ "ac_id": "AC-5",
+  "partitions": ["duration < 7200", "duration == 7200", "duration > 7200"],
+  "boundaries": ["7200 (pass)", "7201 (clean-skip)"],
+  "negatives": ["metadata has no duration -> hard failure (AC-52 covers, cross-referenced not retested)"],
+  "invariants": ["clean-skip still writes meta.json (AC-8 carries)"],
+  "violating_behaviors": ["judges skip with >= 7200 (off-by-one at the boundary)", "passes duration-less input as 0"],
+  "unit": "fetch-gates",
+  "impl_units": ["gate_duration"],
+  "cases": [
+    {"case": "duration < 7200 -> pass",                    "test": "tests/test_gates.py::test_duration_under_cap"},
+    {"case": "duration == 7200 -> pass, boundary 7200 (pass)", "test": "tests/test_gates.py::test_duration_at_cap"},
+    {"case": "duration > 7200, 7201 (clean-skip)",         "test": "tests/test_gates.py::test_duration_over_cap"}
+  ],
+  "negatives_covered_by": "AC-52",
+  "residual": false }

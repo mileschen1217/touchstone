@@ -1,0 +1,33 @@
+{
+ "ac_id": "AC-1",
+ "partitions": [
+  "n < 10",
+  "n == 10"
+ ],
+ "boundaries": [
+  "10 (pass)"
+ ],
+ "negatives": [
+  "missing n"
+ ],
+ "invariants": [],
+ "violating_behaviors": [
+  "treats n == 10 as fail"
+ ],
+ "unit": "alpha",
+ "cases": [
+  {
+   "case": "n < 10 -> pass",
+   "test": "tests/test_demo.py::test_nope"
+  },
+  {
+   "case": "n == 10 -> pass, boundary 10 (pass)",
+   "test": "tests/test_demo.py::test_alpha_at"
+  },
+  {
+   "case": "missing n -> error",
+   "test": "tests/test_demo.py::test_alpha_missing"
+  }
+ ],
+ "residual": false
+}

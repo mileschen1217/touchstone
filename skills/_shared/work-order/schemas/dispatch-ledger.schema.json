@@ -1,0 +1,50 @@
+{
+  "$id": "dispatch-ledger-v1",
+  "title": "Dispatch ledger row (v1)",
+  "description": "Append-only JSONL, exactly one row per dispatch attempt including crashed attempts (DS-6). Single writer: the dispatch engine, appends serialized under an exclusive file lock (DS-5). Every field script-derived from run outputs — no hand-written prose fields (INV-3). Readers: scripts/report.py, audit/calibration analysis.",
+  "type": "object",
+  "required": ["unit", "attempt", "tier", "model_id", "budget", "cost_usd", "turns",
+               "thinking_tokens", "terminal_reason", "verdict", "escalated_from",
+               "contract_ref", "artifacts", "ts"],
+  "properties": {
+    "unit": {"type": "string", "description": "Unit id; mutant dispatches use mut:<ac_id>:<n> (consumed by report.py per-AC aggregation)."},
+    "attempt": {"type": "integer", "minimum": 1},
+    "tier": {"type": "string", "description": "Tier name from the configured ordered tier list."},
+    "model_id": {"type": ["string", "null"], "description": "Concrete model id resolved from the tier list; null on a crash before resolution is impossible (resolution precedes spawn, so normally set)."},
+    "budget": {"type": "number", "description": "Per-unit budget fuse (USD) for this attempt."},
+    "cost_usd": {"type": ["number", "null"], "description": "Billed cost from worker output; null when the worker died before emitting a parsable figure (DS-6 permits a best-known partial figure where a harness provides one; THIS engine records null — no recovery path exists for an unparsable output)."},
+    "turns": {"type": ["integer", "null"]},
+    "thinking_tokens": {"type": ["integer", "null"]},
+    "terminal_reason": {"enum": ["budget_exhausted", "error", "completed"],
+      "description": "Precedence when multiple apply in one attempt: budget_exhausted > error > completed (DS-4)."},
+    "verdict": {"enum": ["PASS", "FAIL", "NONE"],
+      "description": "Held-out check verdict; NONE when the check could not run (crash)."},
+    "escalated_from": {"type": ["integer", "null"],
+      "description": "Previous attempt number this attempt escalates from; null on a first attempt. Chain must follow the configured tier order, no skips (AC-8/AC-9)."},
+    "contract_ref": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"type": "string", "description": "sha256 of the rendered contract at dispatch time (audit chain: row -> contract -> transcript -> diff -> check)."},
+        "inputs_rev": {"type": ["string", "null"], "description": "Freeze-manifest sha the render consumed (expansion records + interface artifact)."}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "required": ["diff", "check", "session_id"],
+      "properties": {
+        "diff": {"type": ["string", "null"], "description": "Path to the attempt's diff."},
+        "check": {"type": ["string", "null"], "description": "Path to the held-out check output."},
+        "session_id": {"type": ["string", "null"], "description": "Worker session id for transcript-level audit."}
+      }
+    },
+    "worker_refusal": {"type": "boolean",
+      "description": "Optional; engine-derived: true when the worker report matches the refusal patterns (DS-14). Data feed for the deferred interface-feedback loop (risk-2)."},
+    "interface_revision_ref": {"type": ["string", "null"],
+      "description": "Optional; pointer to an interface-artifact revision this attempt provoked (DS-14)."},
+    "check_cost_usd": {"type": ["number", "null"],
+      "description": "Additive optional field: cost of running the held-out check for this attempt (0 for local rulers). Lets report.py split generation cost vs run cost per mutant from ledger rows alone (DS-11/AC-12)."},
+    "ts": {"type": "string", "description": "ISO8601 UTC append time."}
+  }
+}

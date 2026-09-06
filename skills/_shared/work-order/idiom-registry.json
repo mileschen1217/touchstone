@@ -1,0 +1,16 @@
+{
+  "$id": "idiom-registry",
+  "description": "Sanctioned seam-convention registry: exactly one bridging idiom per task class (DS-3). Contract instances cite an entry by id in their Seam Convention field; the dispatch engine resolves the id at render time and refuses an id whose task_class does not match the run's configured task class. Adding a second entry for an existing task_class is a standard-level change, not a per-contract choice.",
+  "entries": [
+    {
+      "id": "cast-to-target-return",
+      "task_class": "typed-debt",
+      "text": "Where a call to a still-untyped in-scope function makes the type checker report an untyped/Any result, wrap that call as cast(<its target return type>, <call>) — this is the approved convention, later verified module-wide by the integration gate. Do not invent other workarounds for this situation."
+    },
+    {
+      "id": "stub-with-injectable-returns",
+      "task_class": "greenfield",
+      "text": "Where an in-scope dependency is not yet delivered, bridge it with a stub matching the target signature exactly, with injectable return values (e.g. stub_<name>(returns=...)); include at least one injected negative-path test at unit level. The integration gate owns replacing stubs with the real deliveries and re-running the full suite."
+    }
+  ]
+}

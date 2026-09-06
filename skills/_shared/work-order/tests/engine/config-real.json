@@ -1,0 +1,18 @@
+{
+ "tier_list": [
+  {
+   "tier": "haiku",
+   "model": "claude-haiku-4-5-20251001"
+  }
+ ],
+ "budget_usd": 0.5,
+ "template": "templates/task-contract.md",
+ "idiom_registry": "idiom-registry.json",
+ "task_class": "greenfield",
+ "interface": "tests/engine/interface.json",
+ "expansion_dir": "tests/expansion",
+ "freeze": "tests/_work/freeze.json",
+ "units": "tests/engine/units.json",
+ "ledger": "tests/_work/ledger-real.jsonl",
+ "base_dir": "../.."
+}

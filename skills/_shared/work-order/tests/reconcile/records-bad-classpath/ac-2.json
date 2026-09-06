@@ -1,0 +1,6 @@
+{ "ac_id": "AC-2",
+  "partitions": ["beta runs"], "boundaries": [], "negatives": [], "invariants": [],
+  "violating_behaviors": ["beta skipped"],
+  "unit": "beta",
+  "cases": [{"case": "beta runs -> ok", "test": "tests/test_demo.py::WrongClass::test_beta_ok"}],
+  "residual": false }

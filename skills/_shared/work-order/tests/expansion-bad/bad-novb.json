@@ -1,0 +1,5 @@
+{ "ac_id": "AC-63",
+  "partitions": ["p1"], "boundaries": [], "negatives": [], "invariants": [],
+  "violating_behaviors": [],
+  "cases": [{"case": "p1 -> pass", "test": "tests/t.py::test_p1"}],
+  "residual": false }

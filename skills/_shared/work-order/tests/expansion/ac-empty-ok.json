@@ -1,0 +1,6 @@
+{ "ac_id": "AC-40",
+  "partitions": [], "boundaries": [], "negatives": [], "invariants": [], "violating_behaviors": [],
+  "cases": [{"case": "AC text is already a single executable assertion", "test": "tests/test_flag.py::test_exact"}],
+  "residual": false,
+  "no_expansion_needed": true,
+  "no_expansion_reason": "AC text is exhaustive: one assertion, no implicit partitions" }

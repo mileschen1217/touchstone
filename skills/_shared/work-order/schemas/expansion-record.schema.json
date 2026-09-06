@@ -1,0 +1,48 @@
+{
+  "$id": "expansion-record-v1",
+  "title": "Per-AC expansion record (v1)",
+  "description": "One JSON object per acceptance criterion. Produced by a non-builder expansion author before any build dispatch; frozen (sha-recorded) and human-accepted before the engine will dispatch. Consumers: scripts/check_expansion.py (shape validation), scripts/reconcile.py (legs 1,3,4), scripts/make_gate.py + the integration gate's per-AC mutation duty (violating_behaviors), scripts/report.py (expected mutant counts).",
+  "type": "object",
+  "required": ["ac_id", "partitions", "boundaries", "negatives", "invariants", "violating_behaviors", "cases", "residual"],
+  "properties": {
+    "ac_id": {
+      "type": "string",
+      "description": "Must exist in the governing spec (reconcile leg 3 verifies; check_expansion checks shape only)."
+    },
+    "partitions": {"type": "array", "items": {"type": "string"},
+      "description": "Equivalence partitions the AC text left implicit. Each entry must be referenced by a case (substring of some cases[].case) or waived via covered_by (reconcile leg 3)."},
+    "boundaries": {"type": "array", "items": {"type": "string"},
+      "description": "Boundary values. Same reference-or-waiver rule as partitions."},
+    "negatives": {"type": "array", "items": {"type": "string"},
+      "description": "Negative inputs/paths. Referenced by a case, or waived via negatives_covered_by or covered_by."},
+    "invariants": {"type": "array", "items": {"type": "string"},
+      "description": "Invariants other ACs or the integration gate carry; informational for the gate author."},
+    "violating_behaviors": {"type": "array", "items": {"type": "string"},
+      "description": "Abstract mutant descriptions, frozen before the run. Consumed by the integration gate's per-AC mutation list (one mutant per entry, ids mut:<ac_id>:<n>) and counted by report.py."},
+    "unit": {"type": "string",
+      "description": "Acceptance-unit id this AC's eval slice hangs on. Mutually exclusive with residual:true (DS-8)."},
+    "impl_units": {"type": "array", "items": {"type": "string"},
+      "description": "Implementation-unit ids (one signature-bearing interface item each), separate from the acceptance unit (DS-8)."},
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["case", "test"],
+        "properties": {
+          "case": {"type": "string"},
+          "test": {"type": "string", "description": "Existing test node, path::function form; reconcile leg 1 verifies existence."}
+        }
+      }
+    },
+    "covered_by": {"type": "string",
+      "description": "AC id that covers this record's expansion items wholesale; acts as an explicit waiver for unreferenced items (reconcile leg 3)."},
+    "negatives_covered_by": {"type": "string",
+      "description": "AC id that covers the negatives; waives unreferenced negatives only."},
+    "residual": {"type": "boolean",
+      "description": "true = cross-unit residual: no unit binding allowed; the AC routes to the integration gate."},
+    "no_expansion_needed": {"type": "boolean",
+      "description": "Required true when all five expansion arrays are empty (DS-9); must carry no_expansion_reason. Such a record is exempt from the gate's mutation list (no violating_behaviors to mutate)."},
+    "no_expansion_reason": {"type": "string",
+      "description": "Required when no_expansion_needed is true (DS-9)."}
+  }
+}
