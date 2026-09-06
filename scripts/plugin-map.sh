@@ -340,15 +340,35 @@ CHECKER_DIRS = ['.touchstone/checker/pre-commit', '.touchstone/checker/pre-push'
 CHECKER_FILES = ['.touchstone/checker/plugin-map.entries', '.touchstone/checker/waivers.yaml']
 SKIP_NAMES = {'.DS_Store', '.gitkeep'}
 
+# gitignored paths (generated scratch such as a suite's _work/ or __pycache__/)
+# are not shipped surface: they can neither be reached nor be orphans. Outside
+# a git tree the set is empty and the walk is unchanged.
+def _ignored_paths():
+    import subprocess
+    try:
+        r = subprocess.run(['git', '-C', root, 'ls-files', '--others', '--ignored',
+                            '--exclude-standard', '--directory', '-z'],
+                           capture_output=True, text=True)
+    except OSError:
+        return set()
+    if r.returncode != 0:
+        return set()
+    return {p.rstrip('/') for p in r.stdout.split('\0') if p}
+
+
+IGNORED = _ignored_paths()
+
 paths = set()
 for r in SCAN_ROOTS:
     base = os.path.join(root, r)
     if not os.path.isdir(base):
         continue
     for dirpath, dirnames, filenames in os.walk(base):
-        dirnames[:] = sorted(d for d in dirnames if d not in ('fixtures', '.git'))
+        dirnames[:] = sorted(d for d in dirnames
+                             if d not in ('fixtures', '.git')
+                             and rp(os.path.join(dirpath, d)) not in IGNORED)
         for fn in sorted(filenames):
-            if fn in SKIP_NAMES:
+            if fn in SKIP_NAMES or rp(os.path.join(dirpath, fn)) in IGNORED:
                 continue
             paths.add(rp(os.path.join(dirpath, fn)))
 for d in CHECKER_DIRS:
