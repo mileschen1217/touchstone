@@ -8,7 +8,8 @@
 #
 # name        — the lens name, unique across the file; the same name a gate body's
 #               `lenses:` block uses.
-# arms        — the default arm set; a caller may add an arm, never remove the last one.
+# arms        — the default set; callers may add, while a gate may replace it
+#               only through an explicit rule and must leave at least one arm.
 # subject     — always true: every lens takes a subject, so the assembler's output shape
 #               is unconditional; the assembler prepends that required report
 #               line to every generated lens file.
