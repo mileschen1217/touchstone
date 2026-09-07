@@ -134,7 +134,7 @@ test"). That framing inverts the direction of causation. The governing rule is:
 `≥2` is the **derived floor** — a cheap mechanical guard that falls out of the principle
 (1 consumer ⇒ that consumer IS the authoritative host ⇒ never shared), NOT the rule
 itself. Elevating the count to the primary rule produces a mis-applied rule-of-three:
-setting the bar at 3+ (as ADR-0017's `skills/_shared/` line did) or leaving it at 2
+setting the bar at 3+ (as ADR-0017's `skills/.shared/` line did) or leaving it at 2
 both mislead, because the count is a necessary-but-not-sufficient condition. The
 sufficient condition is **no-single-host**: the fragment would be wrong (divergent
 if locally forked) under any hosting arrangement other than shared.

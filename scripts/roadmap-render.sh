@@ -53,7 +53,7 @@ while [ $# -gt 0 ]; do
     *) printf 'usage: roadmap-render.sh [--root <project-root>] [--epics-dir <dir>] [--out <file>] [--audit]\n' >&2; exit 1 ;;
   esac
 done
-[ -n "$project_root" ] || project_root="${CLAUDE_PROJECT_DIR:-}"
+[ -n "$project_root" ] || project_root="${TOUCHSTONE_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-}}"
 [ -n "$project_root" ] || project_root="$(pwd)"
 [ -d "$project_root" ] || { printf 'roadmap-render.sh: --root is not a directory: %s\n' "$project_root" >&2; exit 1; }
 project_root="$(cd "$project_root" && pwd)"

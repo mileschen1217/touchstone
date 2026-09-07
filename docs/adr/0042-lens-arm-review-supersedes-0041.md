@@ -29,7 +29,7 @@ We will make the **lens** the unit of review and the **arm** its configuration:
 
 - A gate declares its lens set (`lenses: [{name, arms, prompt_home}]`) in its body; every lens is dispatched to each of its arms in one message; the merge is keyed by lens; `review.yaml` records `providers` per lens and `found_by` (the arm list) per finding.
 - **Vendor diversity is a property of the arm set.** It is a required configuration exactly where independence would otherwise fail: deliverable-review's quality lens must hold the vendor opposite the builder (reviewer ≠ builder is the invariant). Elsewhere it is optional and measurable (`found_by`).
-- The composite `cross-provider-reviewer` is deleted. Its provenance table moves to `skills/_shared/provenance.md` (the shared layer, referenced by the two gates and assay); its critique lenses move to `skills/assay/references/critique-lens.md`; assay's fork case dispatches the two arms directly.
+- The composite `cross-provider-reviewer` is deleted. Its provenance table moves to `skills/.shared/provenance.md` (the shared layer, referenced by the two gates and assay); its critique lenses move to `skills/assay/references/critique-lens.md`; assay's fork case dispatches the two arms directly.
 - **Provisional load target (direction, not a rule of this phase):** the contract stage's load, measured in tokens (unique loaded bytes ÷ 4), should reach ~10k, with 15k as the waypoint. The single-entry-refactor phase owns that target; this phase only changes the ratchet's unit to tokens and re-seeds the baseline at the measured value.
 
 ## Alternatives Considered
@@ -42,5 +42,5 @@ We will make the **lens** the unit of review and the **arm** its configuration:
 
 - Adding an arm to a lens is a one-line change in the gate's lens table; the merge and the schema already carry it.
 - Every finding carries `found_by`, so the next phase can decide from data whether a lens needs a second arm (the flip-trigger above).
-- The provenance vocabulary (lens, arm, degraded per lens) is shared by three skills; a change to it is a change to `skills/_shared/provenance.md` alone.
+- The provenance vocabulary (lens, arm, degraded per lens) is shared by three skills; a change to it is a change to `skills/.shared/provenance.md` alone.
 - The phase's own review gates still run under the previous (3.0.1) skills; the reshaped gates are exercised on scratch subjects in this phase and adopted by the next.

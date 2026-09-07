@@ -53,7 +53,7 @@ current rule.
    the evidence-honesty lens carries; live in `code-review batch` and the
    epic-close reckoning since that epic shipped.
 7. **`_shared/` no-single-host principle** (ADR-0020 Amendment, 2026-06-24):
-   cross-skill instruction blocks live in `skills/_shared/` governed by
+   cross-skill instruction blocks live in `skills/.shared/` governed by
    no-single-host (same root as the Bridge proximity ladder); recorded here so
    the amendment's date narration can leave the `CONTEXT.md` table.
 

@@ -6,11 +6,11 @@
 set -uo pipefail
 root="${TOUCHSTONE_CHECK_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}" || exit 0
 [ -n "$root" ] || exit 0
-inject="$root/skills/_shared/inject"
+inject="$root/skills/.shared/inject"
 [ -d "$inject" ] || exit 0
 rc=0
 # consumers = skill bodies + the glossary + docs (NOT the inject dir itself)
-consumers="$(find "$root/skills" "$root/docs" -name '*.md' 2>/dev/null | grep -v '/_shared/inject/' ; [ -f "$root/CONTEXT.md" ] && echo "$root/CONTEXT.md")"
+consumers="$(find "$root/skills" "$root/docs" -name '*.md' 2>/dev/null | grep -v '/.shared/inject/' ; [ -f "$root/CONTEXT.md" ] && echo "$root/CONTEXT.md")"
 for frag in "$inject"/*.md; do
   [ -e "$frag" ] || continue
   # sentinels: distinctive long prose lines (>=50 chars, not headings/blank/fences)

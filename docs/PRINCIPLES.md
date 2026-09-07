@@ -29,7 +29,7 @@ injected fragments, never in prose cross-references. Test: delete CONTEXT.md and
 every skill still works.
 
 **P5 — One home per rule.** A rule lives at its most local authoritative owner; it
-moves to `skills/_shared/` only when no single skill can own it (divergence would
+moves to `skills/.shared/` only when no single skill can own it (divergence would
 be a bug). A pointer never coexists with a restatement.
 
 **P6 — State the rule, not its history.** No ADR numbers, supersession notes, or

@@ -6,12 +6,9 @@ kind: bridge
 
 ## Durable record — the terminal deliverable
 
-Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.yaml` — top-level `subject:`
-(one line; the contract author maps intention from it), `date:`, `epics:`. One record
-per subject; a re-run APPENDs new dated entries, never overwrites. Entries stay at
-digest density: one line per resolved row, full text only for rows still open and
-load-bearing — the record is a handoff surface, not a transcript. Structured keys,
-id families and order fixed — consumers key on these names:
+Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.yaml` with top-level
+`subject`, `date`, and `epics`. A rerun appends dated entries. Keep one line per
+resolved row and full text only for open load-bearing rows. Consumers key on:
 
 - `term_sheet[]` — rows `T-n`
 - `alignment[]` — rows `A-n`/`B-n`: dual tags + leaning + planned handling; bold-pass rows marked
@@ -26,12 +23,16 @@ id families and order fixed — consumers key on these names:
   (`breadth-discovery.md`)
 - `flip_triggers[]` — observable signal + revisit point per row
 - `deferred[]` — the non-load-bearing unknown stubs
-- `readiness` — explicit yes + date + the clean round's `R-n`
+- `readiness` — `form: full|short` plus explicit yes and date; full also names
+  the clean probe round's `R-n`, while short carries no round
 - (deviations found downstream are `D-n` entries in the epic's `deviation.yaml`, never a key here)
+
+Before handoff, run `bash "<plugin-root>/scripts/check-artifact.sh" assay
+<record> --root <epic-dir>`; non-zero blocks the handoff.
 
 **Existing `.md` records stay frozen read-only until epic archive** — every record
 authored from this change forward is `.yaml`; no new `.md` record is written.
 
-**The consensus section IS the handoff** — an implementation of the confirmed-facts source contract (`skills/_shared/inject/confirmed-facts-source.md`). The contract author derives Scope and Invariants facts from Consensus rows and itself authors the seam / AC layer — assay emits no contract-material packaging beyond the consensus section. Every disposition names its file (and line or anchor where applicable) so a later session executes it without re-derivation.
+**The consensus section IS the handoff** — an implementation of the confirmed-facts source contract (`skills/.shared/inject/confirmed-facts-source.md`). The contract author derives Scope and Invariants facts from Consensus rows and itself authors the seam / AC layer — assay emits no contract-material packaging beyond the consensus section. Every disposition names its file (and line or anchor where applicable) so a later session executes it without re-derivation.
 
 **Honest ceiling.** The interview narrows unknown-unknowns; it never proves them zero. Gap size is measured downstream by the deviation log — never claimed at interview end.

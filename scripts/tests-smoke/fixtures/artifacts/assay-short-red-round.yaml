@@ -1,0 +1,10 @@
+subject: invalid short fixture
+date: 2026-09-07
+epics: [fixture]
+term_sheet: []
+alignment: []
+extraction: []
+consensus: {scope: [], invariants: [], contract_facts: [], out_of_scope: []}
+flip_triggers: []
+deferred: []
+readiness: {form: short, yes: true, date: 2026-09-07, round: R-1}

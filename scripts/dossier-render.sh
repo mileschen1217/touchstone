@@ -14,7 +14,7 @@
 #            while a .yaml artifact is present / a .yaml artifact that does not parse to a
 #            mapping / --pr-body with no YAML phase (nothing written) — cause on stderr
 #
-# YAML path (a phase whose spec is *.spec.yaml; schemas: skills/_shared/schemas/):
+# YAML path (a phase whose spec is *.spec.yaml; schemas: skills/.shared/schemas/):
 #   契約  = title / stories / requirements+ACs / invariants / delta blocks / contracts /
 #           non-goals / risks, ids anchored `<stem>--<id>`; basis ids link to the ledger
 #           line (`ledger--<id>`, the assay record's `- <id>` / `| <id>` lines)

@@ -1,0 +1,39 @@
+{
+  "name": "touchstone",
+  "version": "3.6.0",
+  "description": "Workflow-discipline skills around the honesty spine (claim <= evidence), packaged for Codex from Touchstone's canonical skill tree.",
+  "author": {
+    "name": "miles_chen",
+    "email": "mileschen1217@gmail.com"
+  },
+  "repository": "https://github.com/mileschen1217/touchstone",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "spec",
+    "review",
+    "epic",
+    "discipline",
+    "honesty"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Touchstone",
+    "shortDescription": "Evidence-grounded software delivery workflows",
+    "longDescription": "Explore, align, specify, build, and review software changes while keeping every claim bounded by evidence.",
+    "developerName": "miles_chen",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mileschen1217/touchstone",
+    "defaultPrompt": [
+      "Use Touchstone to turn this feature idea into an accepted contract.",
+      "Use Touchstone to review this completed build against its contract."
+    ],
+    "brandColor": "#B7791F",
+    "screenshots": []
+  }
+}

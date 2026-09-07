@@ -1,36 +1,33 @@
 #!/usr/bin/env bash
-# plugin-review.sh — touchstone-local, never shipped. Cross-vendor review of this
-# plugin's instruction prose against .touchstone/checker/standalone/plugin-review-rubric.md.
+# plugin-review.sh — touchstone-local, never shipped. Independent semantic review
+# of this plugin's instruction prose against plugin-review-rubric.md.
 #
-# Usage: plugin-review.sh <epic-dir> [--rounds N] [--cc-findings <file>] [--root <dir>] [--dry-run]
+# Usage: plugin-review.sh <epic-dir> --reviewer <codex|claude-code> [--rounds N] [--root <dir>] [--dry-run]
 #        plugin-review.sh --self-test
 #
-# Per round it writes <epic-dir>/plugin-review-<date>/round-<n>/ with a lens file +
-# a subject file per arm — lens-codex.md + subject-codex.md (codex, four lenses)
-# and lens-cc.md + subject-cc.md (the cc arm, two lenses — rule-without-consumer
-# and architecture-level declared-vs-actual; basis: the phase-4 spec's REQ-1) —
-# built by scripts/assemble-arm-task.sh (--lens-file mode; this rubric slicer is
-# single-homed here, so no lens-manifest entry), plus raw_codex.jsonl,
-# last-message.txt, review.yaml (gate plugin-review) and score.md. The Codex arm
-# runs here; the CC arm is dispatched by the calling session against lens-cc.md +
-# subject-cc.md and handed back through --cc-findings (challenger marker format,
-# locator = file[:line]).
+# Per round it writes <epic-dir>/plugin-review-<date>/round-<n>/ with one full
+# lens file and one subject file for the explicitly selected fresh reviewer,
+# plus that provider's liveness artifacts, review.yaml and score.md. Reviewer
+# independence is selected by the maintainer; vendor diversity is not implicit.
 #
 # One round. The stopping rule is the injected fragment at
-# skills/_shared/inject/severity-tiered-stopping-rule.md (cited, not copied — that
+# skills/.shared/inject/severity-tiered-stopping-rule.md (cited, not copied — that
 # file states the criterion that closes a gate round); this script always stops
 # after round 1. Anything still open when the round closes rides to the next
 # phase's backlog. The script fixes nothing — the maintainer session does.
 #
 # --dry-run writes the four lens/subject files into the round dir and exits 0
-# without calling codex — no review.yaml, no cross-vendor claim.
+# without calling the reviewer — no review.yaml and no review claim.
 #
-#   exit 0 → a round was written · 1 → codex unavailable (no artifact written)
-#   exit 2 → usage / missing python3 or PyYAML / a --cc-findings finding tagged
-#            lens 1 or 4 · 3 → codex produced no content
+#   exit 0 → a round was written · 1 → reviewer unavailable/failed
+#   exit 2 → usage / missing python3 or PyYAML · 3 → reviewer produced no content
 set -uo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rubric="$here/plugin-review-rubric.md"
+
+next_round() {  # <day-dir>: an incomplete dry-run round is reusable
+  [ -f "$1/round-1/review.yaml" ] && echo 2 || echo 1
+}
 
 # --------------------------------------------------------------- embedded python
 # Loop decision + waiting_on_human + rubric shape. One home, used by the live loop
@@ -63,7 +60,7 @@ def rubric_shape(path):
 
 def decide(rnd, max_rounds, pct, total, prev_total, new_ch):
     """One round only. The gate's stopping criterion lives in the injected
-    fragment (skills/_shared/inject/severity-tiered-stopping-rule.md); this
+    fragment (skills/.shared/inject/severity-tiered-stopping-rule.md); this
     script's own cap is fixed at 1 regardless of max_rounds."""
     cap = 1
     if rnd >= cap:
@@ -83,46 +80,11 @@ def waiting(findings):
                         'title': title, 'refs': []})
     return out
 
-def parse_cc_lens(path):
-    """Read a --cc-findings file (challenger marker lines, locator = file[:line]).
-    Return [(lens, locator), ...] — the same line shape PARSE_PY's cc arm reads,
-    reduced to just the lens tag for ingestion filtering."""
-    out = []
-    for ln in open(path, encoding='utf-8'):
-        ln = ln.strip()
-        if not ln or ln.startswith('#'):
-            continue
-        m = re.match(r'^([\w./\-]+?)(?::(\d+))?:\s+(.*)$', ln)
-        if not m:
-            continue
-        lm = re.search(r'\blens=([^\s]+)', m.group(3))
-        lens = lm.group(1) if lm else '4'
-        loc = m.group(1) + (':' + m.group(2) if m.group(2) else '')
-        out.append((lens, loc))
-    return out
-
-def cc_ingest(path):
-    """('ok', n) when every finding is lens 2 or 3; else ('reject', message) for
-    the first lens 1 or 4 finding found — the cc arm carries lenses 2 and 3 only."""
-    found = parse_cc_lens(path)
-    for lens, loc in found:
-        if lens not in ('2', '3'):
-            msg = ('plugin-review: --cc-findings: finding at %s tagged lens %s — '
-                   'the cc arm carries lenses 2 and 3 only' % (loc, lens))
-            return 'reject', msg
-    return 'ok', len(found)
-
 mode = sys.argv[1]
 if mode == 'decide':
     rnd, cap, pct, total = int(sys.argv[2]), int(sys.argv[3]), float(sys.argv[4]), int(sys.argv[5])
     prev = None if sys.argv[6] == '' else int(sys.argv[6])
     print(decide(rnd, cap, pct, total, prev, sys.argv[7] == '1'))
-elif mode == 'cc_filter':
-    status, val = cc_ingest(sys.argv[2])
-    if status == 'reject':
-        sys.stderr.write(val + '\n')
-        sys.exit(2)
-    print(val)
 elif mode == 'finalize':
     p = sys.argv[2]
     doc = yaml.safe_load(open(p, encoding='utf-8'))
@@ -159,29 +121,6 @@ elif mode == 'selftest':
                   'title': 'F-3 H agents/x.md:7 — declared-vs-actual', 'refs': []}]
     ok &= w == w3_expect
     print('%s single open H carried to waiting_on_human as a W-n object: %s' % ('PASS' if w == w3_expect else 'FAIL', w))
-    # (c) --cc-findings lens filter — driven directly, no subprocess, no codex
-    import tempfile as _tempfile, os as _os
-    def _mk(lines):
-        fd, p = _tempfile.mkstemp()
-        with _os.fdopen(fd, 'w', encoding='utf-8') as fh:
-            fh.write('\n'.join(lines) + '\n')
-        return p
-    p1 = _mk(['skills/a/SKILL.md:12: the rule has no consumer lens=1 type=real-defect severity=H'])
-    status, val = cc_ingest(p1)
-    ok &= status == 'reject' and 'skills/a/SKILL.md:12' in val and 'lens 1' in val
-    print('%s cc-findings ingestion rejects lens 1: %s %s' % ('PASS' if status == 'reject' else 'FAIL', status, val))
-    _os.remove(p1)
-    p2 = _mk(['agents/x.md:7: no downstream consumer lens=4 type=coverage-gap severity=L'])
-    status, val = cc_ingest(p2)
-    ok &= status == 'reject' and 'lens 4' in val
-    print('%s cc-findings ingestion rejects lens 4: %s %s' % ('PASS' if status == 'reject' else 'FAIL', status, val))
-    _os.remove(p2)
-    p3 = _mk(['skills/a/SKILL.md:12: rule without consumer lens=2 type=real-defect severity=H',
-              'agents/x.md:7: architecture-level declared-vs-actual lens=3 type=real-defect severity=H'])
-    status, n3 = cc_ingest(p3)
-    ok &= status == 'ok' and n3 == 2
-    print('%s cc-findings ingestion accepts lens 2 and 3, both parsed: status=%s n=%s' % ('PASS' if (status == 'ok' and n3 == 2) else 'FAIL', status, n3))
-    _os.remove(p3)
     sys.exit(0 if ok else 1)
 else:
     sys.exit('plugin-review.sh: unknown loop mode %s' % mode)
@@ -232,12 +171,12 @@ json.dump(out, sys.stdout, ensure_ascii=False, indent=1)
 PY
 )
 
-# Parse Codex's message -> review.yaml + score.md; print one machine line.
+# Parse the selected reviewer's message -> review.yaml + score.md; print one machine line.
 PARSE_PY=$(cat <<'PY'
 import json, os, re, subprocess, sys, yaml
 
 (msg_p, rubric_p, out_review, out_score, rnd_s, sha, target, prev_review,
- cc_file, prev_sha, root, providers_cc) = sys.argv[1:13]
+ prev_sha, root, reviewer) = sys.argv[1:12]
 rnd = int(rnd_s)
 
 # ---- rubric: items, weights, criteria
@@ -382,40 +321,7 @@ def norm(f, arm):
             'fix': ' '.join(str(f.get('fix') or '').split())[:400] or '(no fix given)',
             'status': 'open', 'refs': []}
 
-findings = [norm(f, 'codex') for f in parsed if isinstance(f, dict)]
-
-# ---- CC arm: challenger marker lines, locator = file[:line]
-cc = []
-if cc_file and os.path.isfile(cc_file):
-    for ln in open(cc_file, encoding='utf-8'):
-        ln = ln.strip()
-        if not ln or ln.startswith('#'):
-            continue
-        m = re.match(r'^([\w./\-]+?)(?::(\d+))?:\s+(.*)$', ln)
-        if not m:
-            continue
-        rest = m.group(3)
-        def attr(k, dflt=''):
-            mm = re.search(r'\b' + k + r'=([^\s]+)', rest)
-            return mm.group(1) if mm else dflt
-        question = re.split(r'\s{2,}|\btype=', rest)[0].strip()
-        cc.append({'file': m.group(1), 'line': int(m.group(2) or 0),
-                   'lens': attr('lens', '4'), 'type': attr('type', 'refinement'),
-                   'severity': attr('severity', 'M'), 'summary': question,
-                   'fix': '(cc arm: question — the maintainer answers or fixes)',
-                   'provenance_hint': attr('provenance', '')})
-
-collapsed = 0
-for c in cc:
-    n = norm(c, 'cc')
-    hit = next((f for f in findings if f['file'] == n['file'] and f['type'] == n['type'] and f['lens'] == n['lens']), None)
-    if hit:
-        if 'cc' not in hit['found_by']:
-            hit['found_by'] = hit['found_by'] + ['cc']
-        hit['summary'] = (hit['summary'] + ' | cc: ' + n['summary'])[:800]
-        collapsed += 1
-    else:
-        findings.append(n)
+findings = [norm(f, reviewer) for f in parsed if isinstance(f, dict)]
 
 for i, f in enumerate(findings, 1):
     f['id'] = 'F-%d' % i
@@ -426,22 +332,13 @@ order = ['id', 'lens', 'type', 'provenance', 'severity', 'file', 'line',
 findings = [{k: f[k] for k in order} for f in findings]
 
 counts = {s: sum(1 for f in findings if f['severity'] == s) for s in ('C', 'H', 'M', 'L')}
-# the CC arm counts only when its file yielded parsable findings — a flag alone is not an arm
-cc_ran = providers_cc == '1' and len(cc) > 0
-# codex carries all four lenses; the cc arm carries items 2 and 3 only (lens-cc.md)
-providers = [{'lens': it['name'], 'arms': ['codex'] + (['cc'] if cc_ran and it['n'] in (2, 3) else [])} for it in items]
-degraded = bool(degraded_reason) or not cc_ran
-reason = degraded_reason
-if not cc_ran:
-    stand = ('partial: CC arm not dispatched — standalone run; the calling session '
-             'dispatches the CC arm and passes --cc-findings') if providers_cc != '1' else \
-            'partial: --cc-findings given but no parsable CC finding — the CC arm is not recorded'
-    reason = (degraded_reason + '; ' + stand) if degraded_reason else stand
+providers = [{'lens': it['name'], 'arms': [reviewer]} for it in items]
+degraded = bool(degraded_reason)
 
 doc = {'gate': 'plugin-review', 'target': target, 'sha': sha, 'round': rnd,
        'providers': providers, 'degraded': degraded}
 if degraded:
-    doc['degraded_reason'] = reason
+    doc['degraded_reason'] = degraded_reason
 doc.update({'verdict': verdict, 'counts': counts, 'rulings': [],
             'findings': findings, 'waiting_on_human': []})
 with open(out_review, 'w', encoding='utf-8') as fh:
@@ -487,12 +384,12 @@ with open(out_score, 'w', encoding='utf-8') as fh:
     if prev_total is not None:
         fh.write('previous round weighted total: %d\n' % prev_total)
     if not scores:
-        fh.write('\nNo criterion scores were parsed from the Codex message — every criterion counted 0.\n')
+        fh.write('\nNo criterion scores were parsed from the reviewer message — every criterion counted 0.\n')
     fh.write('\n<!-- total=%d max=%d pct=%.1f -->\n' % (total, weighted_max, pct))
 
-print('TOTAL=%d MAX=%d PCT=%.1f C=%d H=%d NEWCH=%d PREV=%s COLLAPSED=%d FINDINGS=%d'
+print('TOTAL=%d MAX=%d PCT=%.1f C=%d H=%d NEWCH=%d PREV=%s FINDINGS=%d'
       % (total, weighted_max, pct, counts['C'], counts['H'], new_ch,
-         '' if prev_total is None else prev_total, collapsed, len(findings)))
+         '' if prev_total is None else prev_total, len(findings)))
 PY
 )
 
@@ -508,13 +405,11 @@ findings = doc.get('findings') or []
 errs = []
 if len(findings) != int(want_n):
     errs.append('findings=%d want %s' % (len(findings), want_n))
-STAND = ('partial: CC arm not dispatched — standalone run; the calling session '
-         'dispatches the CC arm and passes --cc-findings')   # the parser cases run standalone (no CC arm)
 if mode == 'clean':
-    if doc.get('degraded') and doc.get('degraded_reason') != STAND:
+    if doc.get('degraded'):
         errs.append('degraded=%r reason=%r' % (doc.get('degraded'), doc.get('degraded_reason')))
     if [pv['arms'] for pv in (doc.get('providers') or [])] != [['codex']] * len(doc.get('providers') or []):
-        errs.append('standalone run must record the codex arm only: %r' % doc.get('providers'))
+        errs.append('parser fixture must record the selected codex reviewer: %r' % doc.get('providers'))
     need = ('id', 'found_by', 'lens', 'type', 'provenance', 'severity', 'file',
             'line', 'summary', 'fix', 'status', 'refs')
     for f in findings:
@@ -543,21 +438,13 @@ PY
 )
 
 # ------------------------------------------------------------------- lens/subject
-# The two-file split (AC-47): a LENS body per arm (strict-output-format
-# instructions, score block, rubric slice) handed to scripts/assemble-arm-task.sh
-# as --lens-file, and a SUBJECT (plugin map summary + numbered plugin text) shared
-# by both arms and produced by --subject-cmd — the subject bytes are never held in
-# this script's own variables, only redirected by assemble-arm-task.sh itself.
+# The two-file split: a full LENS body (strict output, score block, rubric) and a
+# SUBJECT (plugin map summary + numbered plugin text). The subject bytes are never
+# held in this script's own variables, only redirected by assemble-arm-task.sh.
 score_block_all=$(cat <<'EOF'
 C1.1: 2
 C1.2: 1
 ... (through C4.3)
-EOF
-)
-score_block_cc=$(cat <<'EOF'
-C2.1: 2
-C2.2: 1
-... (through C3.3)
 EOF
 )
 
@@ -565,7 +452,7 @@ build_lens() {  # <out-file> <rubric-slice> <score-block>
   local out="$1" rubric_slice="$2" score_block="$3"
   {
     cat <<'EOF'
-You are reviewing a Claude Code plugin's instruction prose (skills, agents, hooks,
+You are reviewing an agent-harness plugin's instruction prose (skills, agents, hooks,
 checkers). This is prose review, not code review: the defects are semantic — a rule
 stated twice, a rule nobody obeys, a claim the dependency map contradicts, a workflow
 step nothing downstream handles.
@@ -637,19 +524,28 @@ if [ "${1:-}" = "--self-test" ]; then
   st_fail=0
   python3 -c "$LOOP_PY" selftest "$rubric" || st_fail=1
 
+  st_round_state="$(mktemp -d)"
+  mkdir -p "$st_round_state/round-1"
+  [ "$(next_round "$st_round_state")" = 1 ] \
+    && echo "PASS incomplete dry-run round remains runnable" \
+    || { echo "FAIL incomplete dry-run round was counted complete"; st_fail=1; }
+  : > "$st_round_state/round-1/review.yaml"
+  [ "$(next_round "$st_round_state")" = 2 ] \
+    && echo "PASS review.yaml marks round complete" \
+    || { echo "FAIL completed round was not counted"; st_fail=1; }
+  rm -rf "$st_round_state"
+
   # Parser regression cases run through PARSE_PY itself — the same
   # from_blocks / from_records / from_lines path the live round uses. The first
   # case is the shipped defect: an unquoted `: ` inside a summary makes
   # yaml.safe_load raise, and losing the block to it is a silent false-clean.
   st_dir="$(mktemp -d)"
   st_root="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$here")"
-  : > "$st_dir/cc-empty.txt"
-
   parser_case() {  # <label> <msg-file> <want-findings> <clean|partial|noscore>
     local label="$1" msg="$2" want="$3" mode="$4" line rc ca_out ca_rc
     line="$(python3 -c "$PARSE_PY" "$msg" "$rubric" "$st_dir/review.yaml" \
-      "$st_dir/score.md" 1 selftest selftest.spec.yaml "" "$st_dir/cc-empty.txt" \
-      "" "$st_root" 0 2>&1)"; rc=$?
+      "$st_dir/score.md" 1 selftest selftest.spec.yaml "" "" "$st_root" codex \
+      2>&1)"; rc=$?
     if [ "$rc" -ne 0 ]; then
       echo "FAIL parser $label — PARSE_PY rc=$rc: $line"; st_fail=1; return
     fi
@@ -673,7 +569,7 @@ findings:
     lens: 2
     type: real-defect
     severity: H
-    summary: single home: skills/_shared/inject/frag.md, restated here
+    summary: single home: skills/.shared/inject/frag.md, restated here
     fix: cite the home, drop the copy
   - file: skills/b/SKILL.md
     line: 3
@@ -749,48 +645,65 @@ MSG
   parser_case "message with no score lines — score reported absent, never a silent 0" \
     "$st_dir/m-noscore.txt" 1 noscore
 
-  # (d) the lens/subject split (design item 5) — run the real file-building path
-  # through the actual assembler, no codex: build lens-cc.md + subject-cc.md and
-  # assert the split landed where it should.
-  st_map="$(mktemp)"; st_files="$(mktemp)"; st_ccrubric="$(mktemp)"
-  st_mapsum_py="$(mktemp)"; st_subject_script="$(mktemp)"; st_lens_cc="$(mktemp)"
+  # The full lens/subject split runs through the actual assembler, without a CLI.
+  st_map="$(mktemp)"; st_files="$(mktemp)"
+  st_mapsum_py="$(mktemp)"; st_subject_script="$(mktemp)"; st_lens="$(mktemp)"
   bash "$st_root/scripts/plugin-map.sh" --root "$st_root" > "$st_map" 2>/dev/null
   python3 -c "$FILES_PY" "$st_map" "$st_root" > "$st_files"
-  awk '/^## Item 4 /{exit} /^## Item 2 /{f=1} f{print}' "$rubric" > "$st_ccrubric"
   printf '%s' "$MAPSUM_PY" > "$st_mapsum_py"
   subject_cmd_script "$st_subject_script" "$st_mapsum_py" "$st_map" "$st_files" "$st_root"
-  build_lens "$st_lens_cc" "$st_ccrubric" "$score_block_cc"
+  build_lens "$st_lens" "$rubric" "$score_block_all"
   st_round="$st_dir/split-round"
-  if bash "$st_root/scripts/assemble-arm-task.sh" --arm cc --round-dir "$st_round" \
-      --lens-file "$st_lens_cc" --subject-cmd "bash '$st_subject_script'" --root "$st_root" \
+  if bash "$st_root/scripts/assemble-arm-task.sh" --arm codex --round-dir "$st_round" \
+      --lens-file "$st_lens" --subject-cmd "bash '$st_subject_script'" --root "$st_root" \
       >/dev/null 2>&1 \
-      && grep -q '^## Item 2 ' "$st_round/lens-cc.md" 2>/dev/null \
-      && ! grep -q '=== PLUGIN TEXT' "$st_round/lens-cc.md" 2>/dev/null; then
-    echo "PASS lens-cc.md split: has rubric item 2 heading, no PLUGIN TEXT marker"
+      && grep -q '^## Item 1 ' "$st_round/lens-codex.md" 2>/dev/null \
+      && grep -q '^## Item 4 ' "$st_round/lens-codex.md" 2>/dev/null \
+      && ! grep -q '=== PLUGIN TEXT' "$st_round/lens-codex.md" 2>/dev/null; then
+    echo "PASS full lens split: has rubric items 1-4, no PLUGIN TEXT marker"
   else
-    echo "FAIL lens-cc.md split"; st_fail=1
+    echo "FAIL full lens split"; st_fail=1
   fi
-  if [ -f "$st_round/subject-cc.md" ] \
-      && grep -q '=== PLUGIN TEXT' "$st_round/subject-cc.md" 2>/dev/null \
-      && ! grep -q 'C2.1:' "$st_round/subject-cc.md" 2>/dev/null; then
-    echo "PASS subject-cc.md split: has PLUGIN TEXT marker, no score block"
+  if [ -f "$st_round/subject-codex.md" ] \
+      && grep -q '=== PLUGIN TEXT' "$st_round/subject-codex.md" 2>/dev/null \
+      && ! grep -q 'C1.1:' "$st_round/subject-codex.md" 2>/dev/null; then
+    echo "PASS subject split: has PLUGIN TEXT marker, no score block"
   else
-    echo "FAIL subject-cc.md split"; st_fail=1
+    echo "FAIL subject split"; st_fail=1
   fi
-  rm -f "$st_map" "$st_files" "$st_ccrubric" "$st_mapsum_py" "$st_subject_script" "$st_lens_cc"
+  rm -f "$st_map" "$st_files" "$st_mapsum_py" "$st_subject_script" "$st_lens"
   rm -rf "$st_round"
+
+  # A normal plugin review has one explicitly selected, full-lens reviewer.
+  # This catches regressions back to the historical hard-coded dual-vendor
+  # shape: choosing Claude must neither require nor prepare a Codex arm.
+  st_epic="$st_dir/single-reviewer-epic"
+  mkdir -p "$st_epic"
+  : > "$st_epic/selftest.spec.yaml"
+  st_single_out="$(bash "$0" "$st_epic" --reviewer claude-code --root "$st_root" --dry-run 2>&1)"
+  st_single_rc=$?
+  st_single_round="$st_epic/plugin-review-$(date +%Y-%m-%d)/round-1"
+  if [ "$st_single_rc" -eq 0 ] \
+      && [ -f "$st_single_round/lens-claude-code.md" ] \
+      && grep -q '^## Item 1 ' "$st_single_round/lens-claude-code.md" \
+      && grep -q '^## Item 4 ' "$st_single_round/lens-claude-code.md" \
+      && [ ! -e "$st_single_round/lens-codex.md" ]; then
+    echo "PASS selected reviewer receives all four lenses and no second vendor arm is prepared"
+  else
+    echo "FAIL single-reviewer dry-run rc=$st_single_rc: $st_single_out"; st_fail=1
+  fi
 
   rm -rf "$st_dir"
   exit "$st_fail"
 fi
 
-epic=""; rounds=1; cc_findings=""; root=""; dry_run=0
+epic=""; rounds=1; reviewer=""; root=""; dry_run=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --rounds)      [ $# -ge 2 ] || { echo "plugin-review.sh: --rounds needs a number" >&2; exit 2; }
                    rounds="$2"; shift 2 ;;
-    --cc-findings) [ $# -ge 2 ] || { echo "plugin-review.sh: --cc-findings needs a file" >&2; exit 2; }
-                   cc_findings="$2"; shift 2 ;;
+    --reviewer)    [ $# -ge 2 ] || { echo "plugin-review.sh: --reviewer needs codex or claude-code" >&2; exit 2; }
+                   reviewer="$2"; shift 2 ;;
     --root)        [ $# -ge 2 ] || { echo "plugin-review.sh: --root needs a directory" >&2; exit 2; }
                    root="$2"; shift 2 ;;
     --dry-run)     dry_run=1; shift ;;
@@ -800,25 +713,24 @@ while [ $# -gt 0 ]; do
                    epic="$1"; shift ;;
   esac
 done
-[ -n "$epic" ] || { echo "usage: plugin-review.sh <epic-dir> [--rounds N] [--cc-findings <file>] [--root <dir>] [--dry-run]" >&2; exit 2; }
+[ -n "$epic" ] || { echo "usage: plugin-review.sh <epic-dir> --reviewer <codex|claude-code> [--rounds N] [--root <dir>] [--dry-run]" >&2; exit 2; }
 [ -d "$epic" ] || { echo "plugin-review.sh: no such epic dir: $epic" >&2; exit 2; }
 epic="$(cd "$epic" && pwd)"
+case "$reviewer" in
+  codex|claude-code) ;;
+  '') echo "plugin-review.sh: --reviewer is required; select a provider independent from the builder" >&2; exit 2 ;;
+  *) echo "plugin-review.sh: unsupported reviewer '$reviewer' (want codex or claude-code)" >&2; exit 2 ;;
+esac
 case "$rounds" in ''|*[!0-9]*) echo "plugin-review.sh: --rounds must be a number" >&2; exit 2 ;; esac
 [ "$rounds" -ge 1 ] || rounds=1
 if [ "$rounds" -gt 1 ]; then
   echo "plugin-review.sh: --rounds $rounds requested — one round only; clamped to 1" >&2
   rounds=1
 fi
-[ -z "$cc_findings" ] || [ -f "$cc_findings" ] || { echo "plugin-review.sh: no such --cc-findings file: $cc_findings" >&2; exit 2; }
 [ -f "$rubric" ] || { echo "plugin-review.sh: rubric missing: $rubric" >&2; exit 2; }
 
 command -v python3 >/dev/null 2>&1 || { echo "plugin-review.sh: python3 not found" >&2; exit 2; }
 python3 -c 'import yaml' 2>/dev/null || { echo "plugin-review.sh: PyYAML not installed — run: python3 -m pip install pyyaml" >&2; exit 2; }
-
-# Lens filter at ingestion (AC-2) — runs before any round directory exists.
-if [ -n "$cc_findings" ]; then
-  python3 -c "$LOOP_PY" cc_filter "$cc_findings" || exit 2
-fi
 
 if [ -z "$root" ]; then
   root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
@@ -827,15 +739,10 @@ fi
 [ -d "$root" ] || { echo "plugin-review.sh: no such root: $root" >&2; exit 2; }
 root="$(cd "$root" && pwd)"
 
-# Liveness: no Codex, no artifact. A plugin-review round is never recorded
-# as cross-vendor without the Codex artifacts. --dry-run never calls codex.
-if [ "$dry_run" -eq 0 ] && ! command -v codex >/dev/null 2>&1; then
-  cat >&2 <<EOF
-plugin-review.sh: codex not on PATH — no round directory and no review.yaml written.
-  Liveness rule (single home): skills/_shared/provenance.md —
-  \`codex\` is listed in providers only when the round dir holds its raw_codex.jsonl and
-  last-message.txt; a round without them is not a cross-vendor round.
-EOF
+# Liveness: an unavailable selected reviewer produces no review artifact.
+reviewer_cli="$reviewer"; [ "$reviewer" = "claude-code" ] && reviewer_cli="claude"
+if [ "$dry_run" -eq 0 ] && ! command -v "$reviewer_cli" >/dev/null 2>&1; then
+  echo "plugin-review.sh: selected reviewer '$reviewer' is unavailable — no review.yaml written" >&2
   exit 1
 fi
 
@@ -845,23 +752,16 @@ for f in "$epic"/*.spec.yaml; do [ -f "$f" ] && target="$(basename "$f")"; done
 [ -n "$target" ] || { echo "plugin-review.sh: no *.spec.yaml in $epic" >&2; exit 2; }
 day_dir="$epic/plugin-review-$(date +%Y-%m-%d)"
 sha="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo unknown)"
-providers_cc=0; [ -n "$cc_findings" ] && providers_cc=1
 
-map_json="$(mktemp)"; file_list="$(mktemp)"; cc_rubric="$(mktemp)"; mapsum_pyfile="$(mktemp)"
+map_json="$(mktemp)"; file_list="$(mktemp)"; mapsum_pyfile="$(mktemp)"
 subject_script="$(mktemp)"
-trap 'rm -f "$map_json" "$file_list" "$cc_rubric" "$mapsum_pyfile" "$subject_script"' EXIT
+trap 'rm -f "$map_json" "$file_list" "$mapsum_pyfile" "$subject_script"' EXIT
 bash "$root/scripts/plugin-map.sh" --root "$root" > "$map_json" || {
   echo "plugin-review.sh: plugin-map.sh failed" >&2; exit 2; }
 python3 -c "$FILES_PY" "$map_json" "$root" > "$file_list"
 
-# cc arm's rubric slice: items 2 and 3 only, verbatim — the cc arm's two lenses
-# (design decision, basis: the phase-4 spec's REQ-1). codex keeps all four items
-# via $rubric unchanged.
-awk '/^## Item 4 /{exit} /^## Item 2 /{f=1} f{print}' "$rubric" > "$cc_rubric"
-
-# The SUBJECT (plugin map summary + numbered plugin text) is identical for every
-# arm — one script, run once per arm by assemble-arm-task.sh via --subject-cmd, its
-# stdout redirected straight into that arm's subject file (never held here).
+# The subject is generated once for the selected reviewer and redirected by the
+# assembler, never held in this script's variables.
 printf '%s' "$MAPSUM_PY" > "$mapsum_pyfile"
 subject_cmd_script "$subject_script" "$mapsum_pyfile" "$map_json" "$file_list" "$root"
 subject_cmd="bash '$subject_script'"
@@ -869,7 +769,7 @@ subject_cmd="bash '$subject_script'"
 stop=""; rnd_done=0; pct_last="0.0"; c_last=0; h_last=0
 while : ; do
   mkdir -p "$day_dir"
-  n=$(( $(find "$day_dir" -maxdepth 1 -type d -name 'round-*' 2>/dev/null | wc -l | tr -d ' ') + 1 ))
+  n="$(next_round "$day_dir")"
   if [ "$n" -gt 1 ]; then                                       # one round only, ever
     stop="max-rounds"; rnd_done=$((n - 1))
     lastdir="$day_dir/round-$rnd_done"
@@ -883,44 +783,37 @@ while : ; do
   mkdir -p "$rd"
   prev_review=""; prev_sha=""
 
-  # ---- lens per arm (codex: all four items; cc: items 2 and 3), one shared
-  # subject — dispatched through the assembler in its two-file shape (AC-47).
-  # --lens-file: this rubric slicer is single-homed here, so no lens-manifest
-  # entry (deviation D-43).
-  lens_codex_tmp="$(mktemp)"; lens_cc_tmp="$(mktemp)"
-  build_lens "$lens_codex_tmp" "$rubric" "$score_block_all"
-  build_lens "$lens_cc_tmp" "$cc_rubric" "$score_block_cc"
-  bash "$root/scripts/assemble-arm-task.sh" --arm codex --round-dir "$rd" \
-    --lens-file "$lens_codex_tmp" --subject-cmd "$subject_cmd" --root "$root" >/dev/null \
-    || { echo "plugin-review.sh: assemble-arm-task.sh failed for the codex arm" >&2; rm -f "$lens_codex_tmp" "$lens_cc_tmp"; exit 2; }
-  bash "$root/scripts/assemble-arm-task.sh" --arm cc --round-dir "$rd" \
-    --lens-file "$lens_cc_tmp" --subject-cmd "$subject_cmd" --root "$root" >/dev/null \
-    || { echo "plugin-review.sh: assemble-arm-task.sh failed for the cc arm" >&2; rm -f "$lens_codex_tmp" "$lens_cc_tmp"; exit 2; }
-  rm -f "$lens_codex_tmp" "$lens_cc_tmp"
+  lens_tmp="$(mktemp)"
+  build_lens "$lens_tmp" "$rubric" "$score_block_all"
+  bash "$root/scripts/assemble-arm-task.sh" --arm "$reviewer" --round-dir "$rd" \
+    --lens-file "$lens_tmp" --subject-cmd "$subject_cmd" --root "$root" >/dev/null \
+    || { echo "plugin-review.sh: assemble-arm-task.sh failed for $reviewer" >&2; rm -f "$lens_tmp"; exit 2; }
+  rm -f "$lens_tmp"
 
   if [ "$dry_run" -eq 1 ]; then
-    echo "plugin-review: dry-run — wrote $rd/lens-codex.md ($(wc -c < "$rd/lens-codex.md" | tr -d ' ') bytes), $rd/subject-codex.md ($(wc -c < "$rd/subject-codex.md" | tr -d ' ') bytes), $rd/lens-cc.md ($(wc -c < "$rd/lens-cc.md" | tr -d ' ') bytes), $rd/subject-cc.md ($(wc -c < "$rd/subject-cc.md" | tr -d ' ') bytes); no codex call, no review.yaml" >&2
+    echo "plugin-review: dry-run — reviewer=$reviewer; wrote $rd/lens-$reviewer.md ($(wc -c < "$rd/lens-$reviewer.md" | tr -d ' ') bytes), $rd/subject-$reviewer.md ($(wc -c < "$rd/subject-$reviewer.md" | tr -d ' ') bytes); no reviewer call, no review.yaml" >&2
     exit 0
   fi
 
-  # ---- Codex arm (never -s read-only; role prompt = lens-codex.md, stdin = subject-codex.md)
-  echo "plugin-review: round $n — codex exec over $(wc -c < "$rd/lens-codex.md" | tr -d ' ') bytes of lens + $(wc -c < "$rd/subject-codex.md" | tr -d ' ') bytes of subject" >&2
-  # `timeout` is GNU coreutils; stock macOS has none (Homebrew ships `gtimeout`). Absent
-  # both → run unbounded rather than false-block with rc 127.
-  tmo="$(command -v timeout || command -v gtimeout || true)"
-  ${tmo:+"$tmo" 900} codex exec --json --skip-git-repo-check \
-    -o "$rd/last-message.txt" "$(cat "$rd/lens-codex.md")" < "$rd/subject-codex.md" \
-    > "$rd/raw_codex.jsonl" 2> "$rd/codex_stderr.log"
-  crc=$?
-  if [ ! -s "$rd/last-message.txt" ]; then
-    echo "plugin-review: codex produced no message (rc=$crc) — no review.yaml for round $n." >&2
-    echo "  fallback_reason: $( [ "$crc" -eq 124 ] && echo 'codex timeout (900s)' || echo "codex error: rc=$crc" )" >&2
+  echo "plugin-review: round $n — reviewer=$reviewer over $(wc -c < "$rd/lens-$reviewer.md" | tr -d ' ') bytes of lens + $(wc -c < "$rd/subject-$reviewer.md" | tr -d ' ') bytes of subject" >&2
+  if [ "$reviewer" = "codex" ]; then
+    raw="$rd/raw_codex.jsonl"; message="$rd/last-message.txt"
+  else
+    raw="$rd/raw_claude.json"; message="$rd/last-message-claude.txt"
+  fi
+  if [ -s "$raw" ] && [ -s "$message" ]; then
+    echo "plugin-review: reusing completed $reviewer liveness artifacts for parser retry" >&2
+  elif ! bash "$root/scripts/run-external-reviewer.sh" --provider "$reviewer" \
+      --lens-file "$rd/lens-$reviewer.md" --subject-file "$rd/subject-$reviewer.md" \
+      --result-dir "$rd" --timeout 900 > "$rd/reviewer-status.txt"; then
+    echo "plugin-review: $reviewer failed — no review.yaml for round $n" >&2
     exit 3
   fi
+  [ -s "$message" ] || { echo "plugin-review: $reviewer produced no message — no review.yaml for round $n" >&2; exit 3; }
 
-  line="$(python3 -c "$PARSE_PY" "$rd/last-message.txt" "$rubric" "$rd/review.yaml" \
-    "$rd/score.md" "$n" "$sha" "$target" "$prev_review" "$cc_findings" "$prev_sha" \
-    "$root" "$providers_cc")" || { echo "plugin-review.sh: parse failed for round $n" >&2; exit 3; }
+  line="$(python3 -c "$PARSE_PY" "$message" "$rubric" "$rd/review.yaml" \
+    "$rd/score.md" "$n" "$sha" "$target" "$prev_review" "$prev_sha" \
+    "$root" "$reviewer")" || { echo "plugin-review.sh: parse failed for round $n" >&2; exit 3; }
   eval "$line"
   rnd_done="$n"; pct_last="$PCT"; c_last="$C"; h_last="$H"
 

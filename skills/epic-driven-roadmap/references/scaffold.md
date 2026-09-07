@@ -25,10 +25,10 @@ anything is written.
    (today, YYYY-MM-DD), `status: proposed`, `aim`, `foundation`
    (intention + out-of-scope from step 0; an owner ruling sentence goes into
    `foundation.rulings` verbatim), and the phase-1 row. Validate:
-   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" epic <path> --root <epic-dir>`
+   `bash "<plugin-root>/scripts/check-artifact.sh" epic <path> --root <epic-dir>`
    — exit 0 before anything else happens.
 4. Project the tracker:
-   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh" --root <project-root>`
+   `bash "<plugin-root>/scripts/roadmap-render.sh" --root <project-root>`
    — ROADMAP.md is generated output; never hand-write or hand-edit a row.
 5. New content docs for this epic (research, specs, plans, ADRs) get
    frontmatter `epics: [<slug>]` — see `templates/content-doc.md`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-lens-manifest.sh — pre-commit: validates skills/_shared/lens-manifest.yaml
+# check-lens-manifest.sh — pre-commit: validates skills/.shared/lens-manifest.yaml
 # (the single declaration of a lens's section composition and destination) and
 # the three gate dispatch sites that name lenses.
 #
@@ -95,9 +95,9 @@ except ImportError:
     print("[check-lens-manifest] WARN: PyYAML not found -- lens-manifest check skipped", file=sys.stderr)
     sys.exit(0)
 
-manifest_path = os.path.join(root, 'skills/_shared/lens-manifest.yaml')
+manifest_path = os.path.join(root, 'skills/.shared/lens-manifest.yaml')
 if not os.path.isfile(manifest_path):
-    print("[check-lens-manifest] manifest not found: skills/_shared/lens-manifest.yaml")
+    print("[check-lens-manifest] manifest not found: skills/.shared/lens-manifest.yaml")
     sys.exit(1)
 
 with open(manifest_path) as f:
@@ -113,7 +113,7 @@ if not isinstance(lenses, list):
     print("[check-lens-manifest] manifest: 'lenses' must be a list")
     sys.exit(1)
 
-VALID_ARMS = {'cc', 'codex'}
+VALID_ARMS = {'cc', 'claude-code', 'codex'}
 VALID_DEST = {'host', 'arm'}
 HEADING_RE = re.compile(r'^(#{1,6})\s+(.*\S)\s*$')
 
@@ -172,7 +172,7 @@ for idx, lens in enumerate(lenses):
     else:
         for a in arms:
             if a not in VALID_ARMS:
-                fail("AC-39: lens '%s': arm outside cc|codex: %s" % (name, a))
+                fail("AC-39: lens '%s': arm is not a registered harness: %s" % (name, a))
 
     if lens.get('subject') is not True:
         fail("AC-39: lens '%s': subject must be true" % name)

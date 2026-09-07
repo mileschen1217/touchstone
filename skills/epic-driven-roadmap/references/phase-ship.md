@@ -5,10 +5,17 @@ One moment per phase PR: **pre-approve** — the Post-build pair, whose yes is t
 is crucible's contract accept). The PR approve is that yes acted on, not a further
 ruling. There is no explainer file: the dossier's 首頁 (decision line → gate strip →
 blocker checklist → how-verified → structure → do-confirm checklist) is the explainer,
-and the PR body is its text projection. Anvil's terminal hand-off (branch, review
-verdict, unverified list) is this moment's input: the unverified list is what the 首頁's
-blocker checklist shows, and an unverified live-bearing AC on it blocks the informed
-accept until its live artifact exists or the AC is deferred to a later phase.
+and the PR body is its text projection. A valid deliverable-review `review.yaml`
+is required input; if none was produced, halt before this moment. Anvil's terminal
+hand-off (branch, review verdict, unverified list) supplies that input: the unverified list is what the 首頁's
+blocker checklist shows, and an unverified live-bearing AC blocks the informed
+accept until its live artifact exists.
+
+Before starting Pre-approve, a non-passing review verdict or unresolved
+Critical/High finding halts this moment. Read
+`<plugin-root>/skills/.shared/inject/severity-tiered-stopping-rule.md` and apply
+its matching human-checkpoint branch; do not ask for the informed accept until
+that branch permits a passing hand-off.
 
 ## Pre-approve — Post-build pair (single home; close step 2 cites this)
 
@@ -16,10 +23,11 @@ After the phase's branch is pushed and BEFORE the human approves the PR, you (th
 shipping session) do the following in order:
 
 - [ ] **Metrics entry (plugin repo only — the root carries `.claude-plugin/plugin.json`).**
-      Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/phase-metrics.sh" <epic-dir> <this phase's
+      Run `bash "<plugin-root>/scripts/phase-metrics.sh" <epic-dir> <this phase's
       session transcript(s)> --phase N --range <base>..<ship sha> --churn <shape_driven>,<other>`
-      and append the printed entry to `deviation.yaml.metrics` (a list, one entry per
-      phase). The script's only manual input is `--churn`: classify
+      and append the printed entry to `deviation.yaml.metrics` (a list validated
+      by `check-artifact.sh deviation` through the composed metrics schema, one
+      entry per phase). The script's only manual input is `--churn`: classify
       `git diff --stat <base>..HEAD -- .touchstone/checker scripts/plugin-map.sh` per hunk —
       shape_driven = a hunk that writes or reads a field a schema of this phase changed, a
       ratchet key/unit hunk, a removed waiver; everything else = other. A consumer project
@@ -56,11 +64,11 @@ shipping session) do the following in order:
 - [ ] **Validate the phase's artifacts** — `check-artifact.sh spec` on the spec,
       `review` on every review.yaml, `deviation` on `deviation.yaml`, `quiz` on
       `quiz.yaml` (all exit 0):
-      `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" <kind> <file> --root <epic-dir>`.
+      `bash "<plugin-root>/scripts/check-artifact.sh" <kind> <file> --root <epic-dir>`.
 - [ ] **Project** — the shipped hook re-rendered `dossier.html` at every artifact
-      write; run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" <epic-dir>`
+      write; run `bash "<plugin-root>/scripts/dossier-render.sh" <epic-dir>`
       yourself only when the hook did not fire. Optional structure overlay first:
-      `bash "${CLAUDE_PLUGIN_ROOT}/scripts/archify-project.sh" <spec.yaml> <epic-dir>/archify`
+      `bash "<plugin-root>/scripts/archify-project.sh" <spec.yaml> <epic-dir>/archify`
       (exit 3 = archify absent; the tab keeps its delta tables). Then
       `… --pr-body <epic-dir>` (writes `<epic-dir>/pr-body.md`, the 首頁 in text;
       `gh pr create --body-file` it). A sentence you want to add to the page is a

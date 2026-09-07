@@ -21,7 +21,10 @@ check_tracked() {  # <repo-relative-path>
   if [ -z "$mode" ]; then
     [ -e "$root/$1" ] || return
     [ -x "$root/$1" ] && return
-    fsmode="$(stat -f %Lp "$root/$1" 2>/dev/null || stat -c %a "$root/$1" 2>/dev/null || true)"
+    # GNU stat uses -c; BSD stat uses -f. Try the GNU form first because GNU
+    # accepts -f with different semantics and can emit a filesystem report
+    # before rejecting the BSD format operand.
+    fsmode="$(stat -c %a "$root/$1" 2>/dev/null || stat -f %Lp "$root/$1" 2>/dev/null || true)"
     bad="${bad:+${bad}
 }  $1 (filesystem mode ${fsmode:-unknown}, untracked)"
     return

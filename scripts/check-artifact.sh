@@ -6,7 +6,7 @@
 #   exit 1 → one line per violation: `<field-path>: <rule>`
 #   exit 2 → usage / missing dependency (PyYAML: `pip install pyyaml`)
 #
-# Schemas: skills/_shared/schemas/<kind>.schema.yaml (single home of every field set and
+# Schemas: skills/.shared/schemas/<kind>.schema.yaml (single home of every field set and
 # id family; the keyword legend is in spec.schema.yaml's header). Checks: required keys,
 # enums, unknown keys, id uniqueness per family, in-file references (traces_to, edges),
 # ledger references (basis / why_ref / consensus / rulings — an id resolves iff the ledger
@@ -49,7 +49,7 @@ kind="${1:-}"; file="${2:-}"; root=""
 [ "${3:-}" = "--root" ] && root="${4:-}"
 case "$kind" in spec|review|deviation|quiz|assay|explore|epic) ;; *) echo "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic> <file> [--root <dir>]" >&2; exit 2 ;; esac
 [ -f "$file" ] || { echo "check-artifact.sh: no such file: $file" >&2; exit 2; }
-schema="$here/../skills/_shared/schemas/$kind.schema.yaml"
+schema="$here/../skills/.shared/schemas/$kind.schema.yaml"
 [ -f "$schema" ] || { echo "check-artifact.sh: schema missing: $schema" >&2; exit 2; }
 command -v python3 >/dev/null 2>&1 || { echo "check-artifact.sh: python3 not found" >&2; exit 2; }
 python3 -c 'import yaml' 2>/dev/null || { echo "check-artifact.sh: PyYAML not installed — run: python3 -m pip install pyyaml" >&2; exit 2; }
@@ -354,6 +354,14 @@ elif kind == 'review':
             for a in f['found_by']:
                 if a not in lens_arms.get(f['lens'], set()):
                     errors.append(f"findings[{f.get('id')}].found_by: '{a}' is not an arm of lens '{f['lens']}' in providers")
+elif kind == 'assay':
+    readiness = doc.get('readiness') or {}
+    if isinstance(readiness, dict):
+        form = readiness.get('form', 'full')
+        if form == 'full' and not readiness.get('round'):
+            errors.append("readiness.round: required when form is full")
+        if form == 'short' and readiness.get('round'):
+            errors.append("readiness.round: forbidden when form is short")
 elif kind == 'deviation':
     for e in doc.get('entries') or []:
         if not isinstance(e, dict): continue

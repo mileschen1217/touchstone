@@ -11,8 +11,8 @@
 #   --project-root <dir>    default: $CLAUDE_PROJECT_DIR, else the current dir
 #   --workspace-root <path> default: .touchstone (used only when (re)writing —
 #                            i.e. missing file, or --reset)
-#   --reset                 back up an existing parseable touchstone.yaml to
-#                            <project-root>/.claude/touchstone.yaml.bak, then rewrite
+#   --reset                 back up an existing parseable config beside its
+#                            source, then write the neutral root touchstone.yaml
 #   --help                  print this usage and exit 0
 #
 # Exit codes (the four idempotence states):
@@ -46,45 +46,53 @@ while [ $# -gt 0 ]; do
     *) echo "init-checker-scaffold.sh: unknown argument: $1" >&2; exit 2 ;;
   esac
 done
-[ -n "$proj" ] || proj="${CLAUDE_PROJECT_DIR:-$PWD}"
+[ -n "$proj" ] || proj="${TOUCHSTONE_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$PWD}}"
 ws_root_write="${ws_root_arg:-.touchstone}"
 
-yaml="$proj/.claude/touchstone.yaml"
+yaml="$proj/touchstone.yaml"
+legacy_yaml="$proj/.claude/touchstone.yaml"
 ws_root="$ws_root_write"
+migrated=0
 
 # ---- Step 1 (idempotence): decide from current file state before touching
 # anything else — a missing/malformed/no-reset file never reaches mkdir or
 # the yaml write below.
-if [ -f "$yaml" ]; then
+if [ -f "$yaml" ] || [ -f "$legacy_yaml" ]; then
   command -v python3 >/dev/null 2>&1 || { echo "init-checker-scaffold.sh: python3 not found" >&2; exit 2; }
   python3 -c 'import yaml' 2>/dev/null || { echo "init-checker-scaffold.sh: PyYAML not installed — run: python3 -m pip install pyyaml" >&2; exit 2; }
 
-  if ! python3 - "$yaml" <<'PY'
-import sys, yaml
-path = sys.argv[1]
-try:
-    with open(path, encoding='utf-8') as f:
-        yaml.safe_load(f)
-except yaml.YAMLError as e:
-    mark = getattr(e, 'problem_mark', None)
-    loc = f"line {mark.line + 1}, column {mark.column + 1}" if mark is not None else "unknown location"
-    print(f"init-checker-scaffold.sh: {path}: malformed YAML — parse error at {loc}: {e}", file=sys.stderr)
-    sys.exit(1)
-PY
-  then
+  resolver="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/resolve-config.sh"
+  if ! bash "$resolver" --root "$proj" >/dev/null; then
     exit 1
   fi
 
-  if [ "$reset" -eq 0 ]; then
+  if [ -f "$yaml" ] && [ "$reset" -eq 0 ]; then
     echo "Current config:"
     cat "$yaml"
-    echo "already configured — run /touchstone:init --reset to overwrite."
+    echo "already configured — run touchstone init --reset to overwrite."
     exit 0
   fi
 
-  bak="$proj/.claude/touchstone.yaml.bak"
-  cp "$yaml" "$bak" || { echo "init-checker-scaffold.sh: could not write $bak" >&2; exit 2; }
-  echo "Preserved prior yaml at .bak"
+  if [ -f "$yaml" ]; then
+    source_yaml="$yaml"
+  else
+    source_yaml="$legacy_yaml"
+  fi
+
+  if [ "$reset" -eq 1 ]; then
+    bak="$source_yaml.bak"
+    cp "$source_yaml" "$bak" || { echo "init-checker-scaffold.sh: could not write $bak" >&2; exit 2; }
+    echo "Preserved prior yaml at ${bak#"$proj"/}"
+  else
+    ws_root="$(python3 - "$source_yaml" <<'PY'
+import sys, yaml
+with open(sys.argv[1], encoding='utf-8') as handle:
+    document = yaml.safe_load(handle) or {}
+print(document.get('workspace_root') or '.touchstone')
+PY
+)"
+    migrated=1
+  fi
 fi
 
 # ---- Step 2 (was Step 3): seven workspace subpaths.
@@ -116,18 +124,20 @@ fi
 
 # ---- Step 4: write yaml.
 plugin_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-version="$(grep -o '"version": *"[^"]*"' "$plugin_root/.claude-plugin/plugin.json" 2>/dev/null | head -1 | sed -E 's/.*"([^"]+)"$/\1/')"
+version_manifest="$plugin_root/.codex-plugin/plugin.json"
+[ -f "$version_manifest" ] || version_manifest="$plugin_root/.claude-plugin/plugin.json"
+version="$(grep -o '"version": *"[^"]*"' "$version_manifest" 2>/dev/null | head -1 | sed -E 's/.*"([^"]+)"$/\1/')"
 [ -n "$version" ] || version="unknown"
-mkdir -p "$proj/.claude" || { echo "init-checker-scaffold.sh: mkdir failed: $proj/.claude" >&2; exit 2; }
 {
-  printf '# written by /touchstone:init v%s. Hand-editable.\n' "$version"
+  printf '# written by touchstone init v%s. Hand-editable.\n' "$version"
   printf 'schema_version: 2\n'
   printf 'workspace_root: %s\n' "$ws_root"
 } > "$yaml" || { echo "init-checker-scaffold.sh: write failed: $yaml" >&2; exit 2; }
 
 # ---- Step 5: verification summary.
+[ "$migrated" -eq 0 ] || echo "✓ Migrated legacy config; retained .claude/touchstone.yaml for compatibility"
 echo "✓ Wrote $yaml"
 printf '  workspace_root:      %s\n' "$ws_root"
 echo
-echo "Next: try /touchstone:design-spec <feature-name>"
+echo "Next: invoke the touchstone design-spec skill for <feature-name>"
 exit 0

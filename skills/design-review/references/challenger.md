@@ -16,7 +16,7 @@ boundary no AC covers), finding→class (does fixing this finding change a
 boundary). A block in `delta.blocks[]` that hides a decision, owns state, or
 sequences calls with neither an AC nor a checked invariant is a coverage gap.
 
-**Decider — the removal test** (defined in the injected stopping rule). Two
+**Decider — the removal test** (defined in injected severity qualification). Two
 corollaries when a finding survives it: is it testable (a pass/fail check can be
 written), is it quantified (a measurable threshold, not "fast" / "good").
 
@@ -40,10 +40,10 @@ decision table + cause-effect graph; state-transition (0-switch baseline,
 party sweep; Nagy's 5 (challenge data, challenge context, positive↔negative,
 additional outcomes, different-context-same-outcome).
 
-**Output format** — one marker per line, the locator a field path
+**Output** — one marker per field-path locator
 <!-- local-ref-ok -->
 (`requirements[REQ-2].acs[AC-4].then`, `delta.blocks[parser]`, `touch_set.touched`):
 
 ```
-<field-path>: <single concrete question>  type=<…> provenance=<…>
+<field-path>: <concrete question> type=<…> provenance=<…> fix=<action/ruling>
 ```

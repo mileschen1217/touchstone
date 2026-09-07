@@ -1,0 +1,137 @@
+# This schema defines the structured interview record, replacing the seven-section markdown
+# record. Keywords as in the keyword legend (spec schema header).
+# `resolves: none` — this kind carries no `spec_ref` field (it is not itself a resolution
+# target for US / REQ / AC / INV ids; a spec's `facts_source.record` uses the
+# `ledger_ref` resolution defined in the spec-schema keyword legend). Id families T
+# (term_sheet), A and B (alignment — map-arm rows are
+# `A-n`, bold-pass rows are `B-n`, one shared list), Q and R (extraction — rulings `Q-n`,
+# dated predict or probe rounds `R-n`) are preserved so a spec's `facts_source.consensus`
+# refs keep resolving structurally. `rulings[]` on an extraction or alignment item is the
+# design-review write-back target (date, stage, text, appended — never a markdown line
+# form).
+kind: assay
+resolves: none
+type: object
+additionalProperties: false
+required: [subject, date, epics, term_sheet, alignment, extraction, consensus, flip_triggers, deferred, readiness]
+properties:
+  subject: {type: string, reader: agent}
+  date: {type: date, reader: agent}
+  epics: {type: array, items: {type: string}, reader: agent}
+  term_sheet:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [id, term, definition, source]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: T, pattern: '^T-\d+$'}
+        term: {type: string}
+        definition: {type: string}
+        source: {type: string, enum: [doc-grounded, session-coined-ai, session-coined-human, ledger-conflict]}
+  alignment:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [id, tags, leaning]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: A, pattern: '^[AB]-\d+$'}
+        tags: {type: array, items: {type: string}}
+        leaning: {type: string}
+        planned_handling: {type: string}
+        rulings:
+          type: array
+          items:
+            type: object
+            required: [date, stage, text]
+            additionalProperties: false
+            properties:
+              date: {type: date}
+              stage: {type: string}
+              text: {type: string}
+  extraction:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [id, text]
+      additionalProperties: false
+      properties:
+        id: {type: string, id: Q, pattern: '^[QR]-\d+$'}
+        text: {type: string}
+        rulings:
+          type: array
+          items:
+            type: object
+            required: [date, stage, text]
+            additionalProperties: false
+            properties:
+              date: {type: date}
+              stage: {type: string}
+              text: {type: string}
+  consensus:
+    type: object
+    reader: agent
+    required: [scope, invariants, contract_facts, out_of_scope]
+    additionalProperties: false
+    properties:
+      scope:
+        type: array
+        items:
+          type: object
+          required: [text, trace]
+          additionalProperties: false
+          properties:
+            text: {type: string}
+            trace: {type: array, items: {type: string}}
+      invariants:
+        type: array
+        items:
+          type: object
+          required: [text, trace]
+          additionalProperties: false
+          properties:
+            text: {type: string}
+            trace: {type: array, items: {type: string}}
+      contract_facts:
+        type: array
+        items:
+          type: object
+          required: [text, trace]
+          additionalProperties: false
+          properties:
+            text: {type: string}
+            trace: {type: array, items: {type: string}}
+      out_of_scope:
+        type: array
+        items:
+          type: object
+          required: [text, trace]
+          additionalProperties: false
+          properties:
+            text: {type: string}
+            trace: {type: array, items: {type: string}}
+  flip_triggers:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [signal, revisit]
+      additionalProperties: false
+      properties:
+        signal: {type: string}
+        revisit: {type: string}
+  deferred: {type: array, reader: human, items: {type: string}}
+  readiness:
+    type: object
+    reader: agent
+    required: [yes, date]
+    additionalProperties: false
+    properties:
+      form: {type: string, enum: [full, short]}
+      yes: {type: boolean}
+      date: {type: date}
+      round: {type: string, pattern: '^R-\d+$'}

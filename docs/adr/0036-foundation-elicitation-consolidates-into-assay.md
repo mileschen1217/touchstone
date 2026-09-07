@@ -41,7 +41,7 @@ Foundation block — only its source changes (assay head instead of fresh elicit
 
 ## Consequences
 
-- Edits (Phase-2 PR, version bump): `skills/_shared/foundation-gate.md` caller
+- Edits (Phase-2 PR, version bump): `skills/.shared/foundation-gate.md` caller
   contract (crucible-chain case → consume assay record), `skills/design-spec/SKILL.md`
   Draft Mode (consume-or-elicit branch), `skills/assay/SKILL.md` (Stage-3 head named
   as the foundation source for the chain consumer).

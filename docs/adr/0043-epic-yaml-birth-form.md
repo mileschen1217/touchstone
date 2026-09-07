@@ -37,7 +37,7 @@ also fixes *index.md* as the single source of truth.
 ## Decision
 
 **Full migration.** For live and future epics, the epic's facts are authored in
-`epic.yaml` (schema `skills/_shared/schemas/epic.schema.yaml` — new file, ships with the
+`epic.yaml` (schema `skills/.shared/schemas/epic.schema.yaml` — new file, ships with the
 implementing spec — validated by `check-artifact.sh` kind `epic`): slug/status/started/
 landed, aim, foundation (intention, out-of-scope), `phases[]` (the *only* home of phase
 number, title, spec link, status, landed), pivots, open questions, docs[]. Close-time

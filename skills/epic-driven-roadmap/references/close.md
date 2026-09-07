@@ -18,27 +18,20 @@ is noted in the close report.
    `references/phase-ship.md`) — in the close report; close never re-runs the
    quiz and asks for no accept of its own. A phase that shipped without its
    pair → produce it now, per phase-ship.md, before closing.
-2. **Evidence Reckoning.** Author `reckoning[]` in the epic's `epic.yaml` —
-   one row per AC of every `status: accepted` spec in the epic dir, written
-   once at close by reading the committed artifact the AC asserts about,
-   never the plan or test assertion pointing at it. Cite fresh, specific
-   evidence in `covered_by` (`(via: read → <file>:<line>: <content asserted
-   present>)`; a `live_bearing: true` row closes only on a live artifact's
-   provenance — producer identity + freshness/commit token). The
-   deliverable-review `review.yaml` is the first place to read; its
-   `status: unverified` findings pre-fill `unverified` rows. `waiver` = a
-   human-written rationale to consciously proceed past a non-live gap;
-   `issue` = the filed debt issue for an unverified or waived row. The
-   blocking rules are the checker's (step 3) — an un-reckoned AC, an
-   evidence-free row, a proxy-only or unverified/waived live-bearing row, or
-   a missing issue blocks there.
+2. **Evidence Reckoning.** Read
+   `<plugin-root>/skills/.shared/schemas/epic.schema.yaml`, then author
+   `reckoning[]` in the epic's `epic.yaml` according to its authoring notes.
+   Read the deliverable-review
+   `review.yaml` first; its `status: unverified` findings pre-fill the
+   corresponding unverified rows. The checker in step 3 enforces the schema's
+   blocking rules.
    Then ask the fixed recall question — "這個 epic 裡,你抓到哪些 gates 沒抓到的?" —
    and append every answer to `.touchstone/gate-miss.md` in the six-field
    primitive (`date | artifact | 事件 | 應然 locus | 實然 locus | severity`); an
    answer of "none" appends nothing — the close report records `recall: none`.
 3. Run (blocking; re-run after step 4 too — `status: done` arms the close gate):
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" epic .touchstone/epics/<epic-dir>/epic.yaml --root .touchstone/epics/<epic-dir>
+   bash "<plugin-root>/scripts/check-artifact.sh" epic .touchstone/epics/<epic-dir>/epic.yaml --root .touchstone/epics/<epic-dir>
    ```
    Show the full output. Non-zero → fix and re-run; nothing below runs until it
    exits zero.
@@ -50,7 +43,7 @@ is noted in the close report.
    `disposition` field (`promoted` / `retired` / `kill_on` / `standing_docs`
    lists, or `none: true`).
 5a. The shipped hook re-rendered the dossier at every write above; run
-   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>`
+   `bash "<plugin-root>/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>`
    yourself only when the hook did not fire.
 6. Regenerate `ROADMAP.md` (same invocation the scaffold reference names, run
    from the project root) — the epic's row moves to Completed by generation,

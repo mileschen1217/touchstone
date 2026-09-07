@@ -2,7 +2,9 @@
 
 > A test of what is genuine. (試金石 — a stone used to test the authenticity of metal.)
 
-A Claude Code plugin for **workflow discipline** — 11 skills + 4 agents, organised around the **honesty spine**: *claim ≤ evidence*. Gaps are marked, not hidden.
+An Agent Skills plugin for **workflow discipline** on Claude Code and Codex —
+11 skills around the **honesty spine**: *claim ≤ evidence*. Gaps are marked,
+not hidden.
 
 ## What it is
 
@@ -18,13 +20,29 @@ The spine is carried *through* the plugin's surfaces, not enforced by a separate
 
 ## Install
 
+Clone the repository once:
+
 ```bash
 git clone https://github.com/mileschen1217/touchstone ~/projects/touchstone
+```
+
+Claude Code:
+
+```bash
 claude plugin marketplace add ~/projects/touchstone
 claude plugin install touchstone@touchstone --scope user
 ```
 
-⚠️ Plugin dispatches agents and runs bash; use in trusted contexts only.
+Codex:
+
+```bash
+codex plugin marketplace add ~/projects/touchstone
+codex plugin add touchstone@touchstone
+```
+
+Both hosts load the same canonical `skills/` tree through native manifests.
+Review plugin hooks before trusting them. Touchstone dispatches agents and runs
+shell commands, so use it only in trusted contexts.
 
 ## Dependencies
 
@@ -33,18 +51,14 @@ Touchstone delegates work to agents and skills that live in other plugins. Insta
 **Optional (build orchestration):** the `conductor` plugin — `anvil` builds through
 `conductor:orchestration-mode`; absent, anvil falls back to the light loop.
 
-**Optional (cross-vendor review path):**
-
-```bash
-# codex — cross-vendor agents (codex:rescue, codex-* reviewers/implementers)
-claude plugin install codex@openai-codex --scope user
-```
-
-The CC review arm (`code-reviewer`) is vendored plugin-local since 0.18.0 — no external plugin is needed for any touchstone execution path. Without `codex`, only single-vendor (Claude-only) review paths work — touchstone degrades gracefully but loses the parallel CC+Codex composite. (The optional `everything-claude-code` plugin's language-testing skills remain a useful depth reference for the test-evidence lens, nothing more.)
+**Optional cross-provider review:** install and authenticate the complementary
+CLI. Claude Code uses `codex`; Codex uses `claude`. Without it, Touchstone uses
+a fresh native context and records the review as degraded because provider
+independence was lost.
 
 ## Skills
 
-- `touchstone:init` — Bootstrap project adoption with `.claude/touchstone.yaml`.
+- `touchstone:init` — Bootstrap project adoption with root `touchstone.yaml`.
 - `touchstone:crucible` — Front-end contract orchestrator: explore → assay → design-spec, one human accept.
 - `touchstone:anvil` — Back-end contract executor: entry check → conductor orchestration-mode (AC-coverage floor) → final cross-vendor review, stops before ship.
 - `touchstone:assay` — Pre-contract interview instrument: three-way alignment (vocabulary / maps / territory) — laydown-first full table ⇄ tacit-intent extraction → published predict round → consequence probes → readiness (explicit yes + clean round) → record consensus section the contract author consumes.
@@ -53,30 +67,34 @@ The CC review arm (`code-reviewer`) is vendored plugin-local since 0.18.0 — no
 - `touchstone:code-review` — Cross-vendor batch review of a logical commit group (single-commit ad-hoc review → Claude Code built-in `/code-review`).
 - `touchstone:epic-driven-roadmap` — Pure-tracker ROADMAP + per-epic index convention.
 - `touchstone:grounded-claims` — Narration mode: cite source, mark `[假設]`.
-- `touchstone:cross-provider-reviewer` — Parallel CC + Codex composite; internal roles `review` / `architecture-critique`.
+- `touchstone:reviewer` — Internal, harness-neutral review-arm procedure.
 
-## Agents
+## Claude Code agents
 
-- `touchstone:codex-reviewer` — Codex arm, both internal roles (review / adversarial critique via envelope lens; Pattern B reviewer).
-- `touchstone:code-reviewer` — Read-only CC arm, both internal roles (Pattern A / Pattern B).
+- `touchstone:codex-reviewer` — Thin transport to the external Codex CLI.
+- `touchstone:code-reviewer` — Thin transport to the shared reviewer skill.
 
 ## 6-stage workflow
 
-The full workflow lives in your global `~/.claude/CLAUDE.md` (touchstone integrates as routing). See `docs/comparisons.md` for scope and `CONTEXT.md` for vocabulary.
+Touchstone's skills carry the portable workflow. Project `CLAUDE.md` or
+`AGENTS.md` files may add local routing and policy. See `docs/comparisons.md`
+for scope and `CONTEXT.md` for vocabulary.
 
 ## Project-registered checks
 
-Touchstone's `PreToolUse(Bash)` hook intercepts the agent's `git commit` and `git push` calls and runs your project's own deterministic checks before the command executes — no per-repo setup required.
+Touchstone's `PreToolUse(Bash)` hook intercepts the agent's `git commit` and
+`git push` calls on supported hosts and runs the project's deterministic checks
+before the command executes.
 
 ### Convention
 
 Add check scripts at `.touchstone/checker/<stage>/check-*.sh` (e.g. `pre-commit/check-adr-cite.sh`), where `<stage>` is `pre-commit` or `pre-push`. Scripts are:
 
-- **Project-owned and committed** — the canonical `.gitignore` carve (written by `/touchstone:init`) excludes most of `.touchstone/` but includes `checker/`, so checks enter git normally.
+- **Project-owned and committed** — the canonical `.gitignore` carve (written by the `init` skill) excludes most of `.touchstone/` but includes `checker/`, so checks enter git normally.
 - **Locus-agnostic** — a check does not know what invokes it. The same script works under the CC hook today and as a native `git commit` hook tomorrow, with zero changes.
 - **Stage-keyed, not gate-keyed** — directories are named by stable git-hook stage (`pre-commit` / `pre-push`), not by touchstone gate name. Gate-name coupling is the silent-dead-check trap: a renamed gate makes a check silently never run.
 
-Bootstrap with `/touchstone:init`, which creates the scaffold and applies the carve idempotently.
+Bootstrap with the `touchstone:init` skill, which creates the scaffold and applies the carve idempotently.
 
 ### Enforcement
 
@@ -89,7 +107,10 @@ The plugin registers a single `PreToolUse(Bash)` hook. It fires in **every repo 
 
 ### Honest ceiling
 
-The CC hook catches **only agent commits/pushes made via the Bash tool**. A human committing manually in their own terminal is not intercepted — this is acceptable for an agent-driven workflow. Universal coverage (catching human commits too) is a future option: install the same locus-agnostic check scripts as native `git` hooks; no check changes required.
+The plugin hook catches **only agent commits/pushes that traverse the host's
+local Bash tool hook path**. A human committing in a terminal is not
+intercepted. Install the same locus-agnostic checks as native Git hooks when
+terminal-direct coverage is required.
 
 Command classification is best-effort regex on the command string. **KNOWN-LIMITATION forms that classify as `none` (not checked):**
 
@@ -100,7 +121,9 @@ An unrecognised commit variant silently skips its checks, so the covered command
 
 ## Status
 
-`2.0.0` — the distilled rewrite (see `.claude-plugin/plugin.json`). Experimental. Used by the author on one project. Cross-project portability is unverified — see `docs/comparisons.md` for scope boundaries.
+`3.6.0` — first dual-manifest Claude Code and Codex release. Experimental;
+clean-install and live-provider evidence are required before declaring a host
+path verified.
 
 ## License
 

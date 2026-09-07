@@ -52,8 +52,3 @@ from behaviour:
 
 These are illustrative shapes of one force — apply the core question; you will
 recognize others.
-
-Report findings as a numbered list, each tagged [Critical], [High], [Medium],
-or [Low]. If no issues found, report "No issues found." Report every finding
-you have — keep each one terse, but completeness of the list is not the place
-to economize; the caller filters.
