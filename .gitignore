@@ -13,6 +13,7 @@ __pycache__/
 !.touchstone/gate-miss.md
 .claude/touchstone.yaml.bak
 .claude/worktrees/
+.worktrees/
 CLAUDE.local.md
 ROADMAP.md
 .venv/
