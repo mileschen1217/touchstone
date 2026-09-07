@@ -8,6 +8,8 @@
 # phase_map panel the gap belongs to (none when it belongs to no human panel);
 # `which_stage_could_have_caught` = the earliest stage whose gate should have caught it;
 # `catcher` = who actually found it (builder / reviewer / owner, with the instrument).
+# `metrics` is intentionally absent here: check-artifact removes that subtree,
+# validates it against metrics.schema.yaml, then applies this schema.
 kind: deviation
 resolves: phase
 type: object
