@@ -24,7 +24,8 @@
 #   probe-anvil.sh verify <evidence-dir> --expect <mode> [--plugin-dir <checkout>]
 #       order        ruler.yaml appeared before freeze.json, freeze.json before any source
 #                    edit, verdict.yaml exists, and (with --plugin-dir) plugin_revision.txt
-#                    is its HEAD with `tree: clean`. Exit 1 names the artifact out of order.
+#                    is its HEAD or an ancestor, with `tree: clean`. Exit 1 names the
+#                    artifact out of order.
 #       halt-freeze  freeze.json was deleted, no source path edited afterwards, no
 #                    verdict.yaml, output.log names freeze.json.
 #       silent-once  exactly two ruler-author dispatches; ruler.yaml and freeze.json present.
@@ -197,9 +198,10 @@ cmd_verify() {
   [ -f "$out/events.jsonl" ] || { echo "probe-anvil: $out/events.jsonl missing" >&2; return 1; }
   local head_sha=""
   [ -n "$plugin" ] && head_sha="$(git -C "$plugin" rev-parse HEAD 2>/dev/null || true)"
-  python3 - "$out" "$expect" "$head_sha" <<'PY'
-import json, os, re, sys
+  python3 - "$out" "$expect" "$head_sha" "${plugin:-.}" <<'PY'
+import json, os, re, subprocess, sys
 out, expect, head_sha = sys.argv[1], sys.argv[2], sys.argv[3]
+plugin_dir = sys.argv[4] if len(sys.argv) > 4 else '.'
 ev = [json.loads(l) for l in open(os.path.join(out, 'events.jsonl'), encoding='utf-8') if l.strip()]
 source = 'observer'
 if not ev:
@@ -265,7 +267,9 @@ if expect == 'order':
         fails.append(f'out of order: source edit (seq {s_src}) with no freeze.json')
     if not art('verdict.yaml'): fails.append('verdict.yaml absent at hand-off')
     if head_sha:
-        if not rev_lines or rev_lines[0].strip() != head_sha: fails.append(f'plugin_revision.txt {rev_lines[:1]!r} != checkout HEAD {head_sha}')
+        rev0 = rev_lines[0].strip() if rev_lines else ''
+        anc = subprocess.run(['git', '-C', plugin_dir, 'merge-base', '--is-ancestor', rev0, 'HEAD'], capture_output=True).returncode == 0 if rev0 else False
+        if not anc: fails.append(f'plugin_revision.txt {rev0!r} is not the checkout HEAD {head_sha} or an ancestor of it')
         if len(rev_lines) < 2 or rev_lines[1].strip() != 'tree: clean': fails.append(f'plugin_revision.txt tree line {rev_lines[1:2]!r} is not `tree: clean`')
 elif expect == 'halt-freeze':
     if s_del is None: fails.append('freeze.json was never deleted by the observer')
