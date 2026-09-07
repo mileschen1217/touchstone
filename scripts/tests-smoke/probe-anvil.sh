@@ -33,8 +33,8 @@
 #                    output; ruler.yaml and freeze.json present.
 #       silent-twice exactly two dispatches, no freeze.json, output.log names ruler.yaml.
 #       overreach    deviation.yaml carries a D-n naming the overreaching path and records the
-#                    ruler discarded, no freeze.json, at most two dispatches (the second
-#                    violation halts).
+#                    ruler discarded, at most two dispatches; a second violation halts (no
+#                    freeze.json), a clean second dispatch continues to freeze.
 #       ambiguous    the spec's waiting_on_human gained a W-n naming AC-7, freeze.json exists,
 #                    deviation.yaml carries a blocked D-n naming AC-7, verdict.yaml carries
 #                    AC-7 UNVERIFIED with reason ambiguous.
@@ -291,7 +291,17 @@ elif expect == 'overreach':
     dev = rd('artifacts/deviation.yaml')
     if not re.search(r'src/(helper|app)\.py', dev): fails.append('deviation.yaml carries no D-n naming the overreaching path')
     if not re.search(r'discard|remov|rm -rf', dev + log, re.IGNORECASE): fails.append('no record that the overreaching ruler was discarded')
-    if art('freeze.json'): fails.append('freeze.json exists — the run did not stop at the scope check')
+    # an Agent event is logged when the dispatch returns, after its own tool events; the second
+    # dispatch overstepped iff a source path was Written (the author has no Edit tool) between the
+    # first and the second Agent event, or the session recorded a second D-n naming the path
+    win = [d['seq'] for d in dispatches[:2]]
+    authored = len(win) == 2 and any(
+        e.get('tool') == 'Write' and re.search(r'src/(helper|app)\.py$', e.get('file_path') or '')
+        and win[0] < e['seq'] <= win[1] for e in ev)
+    recorded = len([blk for blk in re.split(r'(?m)^\s*- id: D-\d+', dev)[1:] if re.search(r'src/(helper|app)\.py', blk)]) >= 2
+    second_violation = authored or recorded
+    if second_violation and art('freeze.json'): fails.append('freeze.json exists — the second scope violation did not halt the run')
+    if not second_violation and len(dispatches) == 2 and not art('freeze.json'): fails.append('the second dispatch stayed in scope yet the run did not continue to freeze')
     if len(dispatches) > 2: fails.append(f'ruler-author dispatches: {len(dispatches)} (want ≤ 2)')
 elif expect == 'ambiguous':
     spec = rd('artifacts/spec.yaml'); dev = rd('artifacts/deviation.yaml'); ver = rd('artifacts/verdict.yaml')
