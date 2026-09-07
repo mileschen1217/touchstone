@@ -35,7 +35,7 @@ pj_base="$(ver origin/main:.claude-plugin/plugin.json)"
 # reads both). Enforce it too — but only when marketplace.json actually exists at HEAD
 # AND origin (a consumer project without one must not be false-blocked → infra-safe).
 mp_cur="$(ver HEAD:.claude-plugin/marketplace.json)"
-mp_base="$(ver origin/main:.claude-plugin/marketplace.json)"
+mp_base="$(ver origin/main:.claude-plugin/marketplace.json)"; codex_cur="$(ver HEAD:.codex-plugin/plugin.json)"
 
 if [ -n "$pj_base" ] && [ "$pj_cur" = "$pj_base" ]; then
   echo "[check-version-bump] shipped surface changed but plugin.json version unchanged ($pj_cur) — bump plugin.json + marketplace.json in lockstep"; exit 1
@@ -45,5 +45,5 @@ if [ -n "$mp_cur" ] && [ -n "$mp_base" ] && [ "$mp_cur" = "$mp_base" ]; then
 fi
 if [ -n "$mp_cur" ] && [ "$pj_cur" != "$mp_cur" ]; then
   echo "[check-version-bump] plugin.json ($pj_cur) and marketplace.json ($mp_cur) versions diverge — keep them in lockstep"; exit 1
-fi
+elif [ -n "$codex_cur" ] && [ "$pj_cur" != "$codex_cur" ]; then echo "[check-version-bump] Claude plugin.json ($pj_cur) and Codex plugin.json ($codex_cur) versions diverge — keep them in lockstep"; exit 1; fi
 exit 0

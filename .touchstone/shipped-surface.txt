@@ -5,5 +5,7 @@
 skills/
 agents/
 .claude-plugin/
+.codex-plugin/
+.agents/plugins/marketplace.json
 hooks/
 scripts/

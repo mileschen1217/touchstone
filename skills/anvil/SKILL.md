@@ -1,12 +1,17 @@
 ---
 name: anvil
-description: Use when an accepted contract (spec.yaml with status accepted) needs to be built; stops before ship and hands off to phase-ship. Out of scope — a spec not yet `status: accepted`.
+description: >-
+  Use when an accepted contract (spec.yaml with status accepted) needs to be
+  built; stops before ship and hands off to phase-ship. Out of scope — a spec
+  not yet at status accepted.
 allowed-tools: [Bash, Read, Skill, Agent, Edit, Write]
 user-invocable: true
 kind: workflow
 ---
 
 # /touchstone:anvil — Back-End Contract Executor
+
+Apply `../.shared/harness-runtime.md` before any host-dependent operation.
 
 Invocation: `/touchstone:anvil <spec-path>`. Run in a fresh session.
 
@@ -15,14 +20,14 @@ Invocation: `/touchstone:anvil <spec-path>`. Run in a fresh session.
 The spec's `status` is `accepted`, and:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/design-review-precheck.sh" "$spec" --attest
+bash "<plugin-root>/scripts/design-review-precheck.sh" "$spec" --attest
 ```
 
 Non-zero exit → surface the output verbatim and halt. Zero → proceed.
 
 ## Stage 2 — build via conductor
 
-Invoke `Skill(skill: "conductor:orchestration-mode")` with the spec as the
+Run `invoke_skill(conductor:orchestration-mode, <spec path>)` with the spec as the
 task. The commander (this session, under conductor's procedure) decomposes,
 grades, dispatches, and harvests; per-task acceptance and scope-change
 escalation are conductor's. A trivial contract resolves as conductor's
@@ -41,21 +46,21 @@ Anvil's three duties inside this stage:
    directory.
 3. **Deviation log** — a build-time gap against the spec is a `D-n` entry in the
    epic's `deviation.yaml` the moment it is found, never a note in the run
-   report. Field set: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/deviation.schema.yaml`;
+   report. Field set: `<plugin-root>/skills/.shared/schemas/deviation.schema.yaml`;
    the judgment-authored fields are yours to write (the schema's authoring
    notes say which).
 
 Conductor unavailable (skill absent) → build under
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/light-loop.md` (read it; the same three
+`<plugin-root>/skills/.shared/light-loop.md` (read it; the same three
 duties apply), then continue at Stage 3; state the fallback in the run report.
 
 ## Stage 3 — deliverable-review
 
-Invoke `Skill(skill: "touchstone:deliverable-review")` on the branch range with
+Run `invoke_skill(deliverable-review, <branch range and builder arm>)` with
 the spec as the governing spec. Anvil never promotes an AC to verified — an
 `unverified` status in review.yaml survives intact to Evidence Reckoning.
 Convergence and what blocks: the stopping rule the gate injects,
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/severity-tiered-stopping-rule.md`
+`<plugin-root>/skills/.shared/inject/severity-tiered-stopping-rule.md`
 — anvil reads its outcome and never re-runs the gate past its budget.
 
 ## Terminal — reviewed deliverable on a branch, handed to phase-ship

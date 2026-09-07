@@ -2,7 +2,7 @@
 # scripts/assemble-arm-task.sh — builds one dispatched arm's two round-dir files
 # (its lens and its review subject) OUTSIDE any gate session's own context,
 # printing only paths and fragment ids. Manifest shape:
-# skills/_shared/lens-manifest.yaml (read its own header before editing this).
+# skills/.shared/lens-manifest.yaml (read its own header before editing this).
 #
 # Usage:
 #   assemble-arm-task.sh --arm <label> --round-dir <dir> \
@@ -38,7 +38,7 @@ Writes <round-dir>/lens-<arm>.md and <round-dir>/subject-<arm>.md. Prints
 exactly three lines to stdout: the lens path, the subject path, and the
 space-separated fragment ids (empty third line when --lens-file was used).
 Neither file's content is ever printed. Manifest shape:
-skills/_shared/lens-manifest.yaml.
+skills/.shared/lens-manifest.yaml.
 
   --self-test   exercise the system_prompt_file > system_prompt > built-in
                 precedence documented in agents/codex-reviewer.md.
@@ -158,7 +158,7 @@ if [ -n "$lens_file" ]; then
     cat -- "$lens_file"
   } > "$tmp_lens"
 else
-  manifest="$root/skills/_shared/lens-manifest.yaml"
+  manifest="$root/skills/.shared/lens-manifest.yaml"
   pyfile="$(mktemp)"
   errfile="$(mktemp)"
   bodyfile="$(mktemp)"

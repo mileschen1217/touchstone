@@ -5,9 +5,9 @@ kind: bridge
 
 # Architecture-critique lenses (composition: the lens manifest)
 
-Two arms, two lenses — the validation rubric goes to the `cc` arm (`touchstone:code-reviewer`), the adversarial pressure-test to the `codex` arm (`touchstone:codex-reviewer`), never the reverse. Each lens travels in its arm's assembled lens file (`lens_file` / `system_prompt_file`), verbatim. The proposal travels as each arm's `subject_file` — the codex arm's envelope names it `task_file`; the cc arm receives it as `subject_file:` alongside `lens_file:`, never as prompt content.
+Two arms, two lenses — the validation rubric goes to the `claude-code` arm, the adversarial pressure-test to the `codex` arm, never the reverse. Each lens travels in its arm's assembled lens file (`lens_file` / `system_prompt_file`), verbatim. The proposal travels as each arm's `subject_file`, never as prompt content.
 
-## cc arm — validation rubric
+## claude-code arm — validation rubric
 
 > You are a software architecture validator. Read-only — never edit files; use Bash only for read-only git inspection. Where the proposal references real code, ground your judgment in it (`file:line`); where it doesn't, judge the proposal's own text. Evaluate the proposal in the envelope (`task`) against:
 >

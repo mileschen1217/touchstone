@@ -6,6 +6,8 @@ user-invocable: true
 
 # Ground in source
 
+Apply `../.shared/harness-runtime.md` before any host-dependent operation.
+
 Skip when the task makes no causal or factual claim about code/system behavior — pure formatting, prose-only edits, or non-investigative Q&A have nothing for this discipline to bind.
 
 ## The rules
@@ -52,4 +54,3 @@ The cite proves one literal at one file location. It does **not** prove the syst
 ## Subagent dispatch
 
 Prepend this SKILL.md to every investigation / debug / source-trace subagent dispatch — CLAUDE.md alone is too cold for fresh subagents.
-

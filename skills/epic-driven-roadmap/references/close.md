@@ -38,7 +38,7 @@ is noted in the close report.
    answer of "none" appends nothing — the close report records `recall: none`.
 3. Run (blocking; re-run after step 4 too — `status: done` arms the close gate):
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" epic .touchstone/epics/<epic-dir>/epic.yaml --root .touchstone/epics/<epic-dir>
+   bash "<plugin-root>/scripts/check-artifact.sh" epic .touchstone/epics/<epic-dir>/epic.yaml --root .touchstone/epics/<epic-dir>
    ```
    Show the full output. Non-zero → fix and re-run; nothing below runs until it
    exits zero.
@@ -50,7 +50,7 @@ is noted in the close report.
    `disposition` field (`promoted` / `retired` / `kill_on` / `standing_docs`
    lists, or `none: true`).
 5a. The shipped hook re-rendered the dossier at every write above; run
-   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>`
+   `bash "<plugin-root>/scripts/dossier-render.sh" .touchstone/epics/<epic-dir>`
    yourself only when the hook did not fire.
 6. Regenerate `ROADMAP.md` (same invocation the scaffold reference names, run
    from the project root) — the epic's row moves to Completed by generation,

@@ -6,12 +6,13 @@ user-invocable: true
 
 # /touchstone:crucible — Front-End Contract Orchestrator
 
+Apply `../.shared/harness-runtime.md` before any host-dependent operation.
+
 Forges raw intent into an accepted contract in ONE invocation; the human
 accepts once at the end — the **contract accept**, the first of the two human
 accepts a unit of work passes (the second is the ship informed-accept at
-phase-ship). Requires a live responsive user (assay interviews; the terminal
-step is a human accept). Skip when no full chain is needed — a spec revision
-goes straight to `/touchstone:design-spec` + `/touchstone:design-review`.
+phase-ship). Requires a live responsive user. Skip a spec revision: invoke
+`design-spec`, then `design-review`.
 
 ## Exploration's role (decide first)
 
@@ -54,7 +55,7 @@ design-review gate; the form sets how much of assay and of the gate runs:
    must respect, scoped by the intent. Findings feed the interview and the
    contract; they never author it. When the intent changes a cross-boundary
    artifact (>1 party must agree on it), apply
-   `${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md` as the method to
+   `<plugin-root>/skills/.shared/reach-discovery.md` as the method to
    sweep the artifact's reach and write the saturated seam-map here at explore
    into the epic dir as `explore-<date>-<subject>.yaml`, for the interview to
    confirm into Consensus Scope.
@@ -63,9 +64,9 @@ design-review gate; the form sets how much of assay and of the gate runs:
    readiness ruling — the explicit human yes — exists.** A structural fork it
    surfaces produces an ADR (and is itself trigger 2); the ledger row that
    produced it is what design-spec cites.
-3. **`/touchstone:design-spec`** with the assay record path as its facts
+3. **`invoke_skill(design-spec, …)`** with the assay record path as its facts
    source; US-N ids and story→requirement traces are design-spec's to author.
-4. Set `status: accepted-candidate`, invoke `/touchstone:design-review <spec>`
+4. Set `status: accepted-candidate`, run `invoke_skill(design-review, <spec>)`
    — the gate runs pre-accept, here, in the mode the form selects. The gate
    governs its own convergence; crucible only surfaces its terminal outcome —
    a clean close advances, a blocked line halts at `accepted-candidate` for
@@ -81,6 +82,5 @@ inline line naming the standing decision and why it still holds.
 ## Terminal — the contract accept
 
 Present the clean-gated spec for the single terminal accept; the accept
-promotes `accepted-candidate → accepted` for both forms. Name
-`/touchstone:anvil` as next. Crucible stops at the contract — it never invokes
-the build, never emits requirements, never assigns US-N ids.
+promotes `accepted-candidate → accepted` for both forms. Name `anvil` as next.
+Crucible never invokes the build, emits requirements, or assigns US-N ids.

@@ -5,7 +5,7 @@ status: Accepted
 date: 2026-06-21
 ---
 
-# ADR-0017: Injectable doctrine fragments live in `skills/_shared/inject/`, not in CONTEXT.md sections
+# ADR-0017: Injectable doctrine fragments live in `skills/.shared/inject/`, not in CONTEXT.md sections
 
 ## Status
 
@@ -40,7 +40,7 @@ coupling had three problems:
 
 ## Decision
 
-Each injected fragment is its own file under `skills/_shared/inject/`, carrying:
+Each injected fragment is its own file under `skills/.shared/inject/`, carrying:
 
 - `injected-by: [skills]` — the skills that load-and-inject this file verbatim into a
   cold reviewer/architect envelope.
@@ -50,16 +50,16 @@ Each injected fragment is its own file under `skills/_shared/inject/`, carrying:
 CONTEXT.md keeps a one-line glossary definition + a pointer to the fragment path for
 each entry. The fragment file is the **single home** of the full rule text. Skills that
 previously read `CONTEXT.md § "X"` now read
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/<file>.md` directly.
+`${CLAUDE_PLUGIN_ROOT}/skills/.shared/inject/<file>.md` directly.
 
-`skills/_shared/inject/` is a **distinct category** from the generic `skills/_shared/`
+`skills/.shared/inject/` is a **distinct category** from the generic `skills/.shared/`
 shared instruction blocks:
 
-- `skills/_shared/` — procedure or instruction blocks referenced by 3+ warm skills
+- `skills/.shared/` — procedure or instruction blocks referenced by 3+ warm skills
   (e.g. `config-resolver.md`, `foundation-gate.md`). Consumed by the warm orchestrator
   that runs the skill. (superseded by ADR-0020 pt1 amendment 2026-06-24: the rule is
   no-single-host; ≥2 is the derived floor — `3+` was a mis-applied rule-of-three.)
-- `skills/_shared/inject/` — doctrine fragments consumed verbatim by COLD agents
+- `skills/.shared/inject/` — doctrine fragments consumed verbatim by COLD agents
   (reviewers, architects) that have no CONTEXT.md access. A fragment is a complete,
   self-contained unit; a warm skill loads it and forwards it in the agent envelope.
 
@@ -80,7 +80,7 @@ shared instruction blocks:
 **Negative / mitigations:**
 
 - One more directory convention to learn. Mitigated by the `## Template co-location`
-  section in CONTEXT.md, which now documents `skills/_shared/inject/` explicitly.
+  section in CONTEXT.md, which now documents `skills/.shared/inject/` explicitly.
 - A fragment's one-line glossary definition in CONTEXT.md and its full text in the
   fragment can drift. Mitigated by keeping CONTEXT.md to a strict 1-line def + pointer
   (no second copy of the rule text). The fragment is authoritative; the CONTEXT.md entry
@@ -92,20 +92,20 @@ explicit; this ADR makes the new home explicit.
 
 ## Addendum (2026-06-24, dual-use carve-out — `ground-and-sweep.md`)
 
-Cold-ONLY doctrine fragments default to `skills/_shared/inject/`. A **warm-read +
+Cold-ONLY doctrine fragments default to `skills/.shared/inject/`. A **warm-read +
 cold-injected dual-use fragment** — one that is read warm by an orchestrator skill AND
 injected verbatim into a cold reviewer, with both consumers declared in `referenced-by:`
-+ `injected-by:` frontmatter — may live in `skills/_shared/` and be injected from
-there. It is not required to relocate to `skills/_shared/inject/`. `ground-and-sweep.md`
++ `injected-by:` frontmatter — may live in `skills/.shared/` and be injected from
+there. It is not required to relocate to `skills/.shared/inject/`. `ground-and-sweep.md`
 is the first instance of this carve-out; its dual `referenced-by: [design-spec]` +
 `injected-by: [design-review]` frontmatter makes both consumers visible.
 
 
 ## Related ADRs
 
-- ADR-0016 (skill-suite structure convention) — establishes `skills/_shared/` as the
+- ADR-0016 (skill-suite structure convention) — establishes `skills/.shared/` as the
   home for cross-skill instruction blocks shared by 3+ skills; this ADR adds
-  `skills/_shared/inject/` as a sub-home for the distinct cold-agent inject category.
+  `skills/.shared/inject/` as a sub-home for the distinct cold-agent inject category.
 - ADR-0011 (honesty spine as Constitution) — the `claim ≤ evidence` principle carried
   by `ac-coverage-honesty-principle.md` and the live-bearing predicate is grounded in
   the honesty spine.

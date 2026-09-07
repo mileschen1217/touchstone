@@ -39,7 +39,7 @@ silently unenforceable: a lens could double in size and no gate would notice.
 
 We will make two amendments.
 
-1. **`skills/_shared/lens-manifest.yaml` is the single home of each lens's
+1. **`skills/.shared/lens-manifest.yaml` is the single home of each lens's
    section composition and destination.** A gate body keeps ADR-0042's routing
    half (`lenses: [{name, arms}]`) and drops `prompt_home`. The manifest
    declares, per lens, each section as a repo-relative path with an optional

@@ -1,0 +1,22 @@
+schema: touchstone-harness-registry/v1
+harnesses:
+  claude-code:
+    provider_family: anthropic
+    adapter: skills/.shared/adapters/claude-code.md
+    manifest: .claude-plugin/plugin.json
+    capabilities:
+      - skill-invocation
+      - native-subagent
+      - command-hooks
+      - file-edit-hooks
+      - external-reviewer
+  codex:
+    provider_family: openai
+    adapter: skills/.shared/adapters/codex.md
+    manifest: .codex-plugin/plugin.json
+    capabilities:
+      - skill-invocation
+      - native-subagent
+      - command-hooks
+      - file-edit-hooks
+      - external-reviewer

@@ -16,7 +16,7 @@ After the phase's branch is pushed and BEFORE the human approves the PR, you (th
 shipping session) do the following in order:
 
 - [ ] **Metrics entry (plugin repo only — the root carries `.claude-plugin/plugin.json`).**
-      Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/phase-metrics.sh" <epic-dir> <this phase's
+      Run `bash "<plugin-root>/scripts/phase-metrics.sh" <epic-dir> <this phase's
       session transcript(s)> --phase N --range <base>..<ship sha> --churn <shape_driven>,<other>`
       and append the printed entry to `deviation.yaml.metrics` (a list, one entry per
       phase). The script's only manual input is `--churn`: classify
@@ -56,11 +56,11 @@ shipping session) do the following in order:
 - [ ] **Validate the phase's artifacts** — `check-artifact.sh spec` on the spec,
       `review` on every review.yaml, `deviation` on `deviation.yaml`, `quiz` on
       `quiz.yaml` (all exit 0):
-      `bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" <kind> <file> --root <epic-dir>`.
+      `bash "<plugin-root>/scripts/check-artifact.sh" <kind> <file> --root <epic-dir>`.
 - [ ] **Project** — the shipped hook re-rendered `dossier.html` at every artifact
-      write; run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" <epic-dir>`
+      write; run `bash "<plugin-root>/scripts/dossier-render.sh" <epic-dir>`
       yourself only when the hook did not fire. Optional structure overlay first:
-      `bash "${CLAUDE_PLUGIN_ROOT}/scripts/archify-project.sh" <spec.yaml> <epic-dir>/archify`
+      `bash "<plugin-root>/scripts/archify-project.sh" <spec.yaml> <epic-dir>/archify`
       (exit 3 = archify absent; the tab keeps its delta tables). Then
       `… --pr-body <epic-dir>` (writes `<epic-dir>/pr-body.md`, the 首頁 in text;
       `gh pr create --body-file` it). A sentence you want to add to the page is a

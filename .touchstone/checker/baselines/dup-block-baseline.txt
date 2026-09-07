@@ -11,7 +11,7 @@
 #    `cross-provider-architect` / `architect` retired and merged into the single
 #    `cross-provider-reviewer` composite + 2 arms — the duplicated runs those
 #    fingerprints exempted no longer exist (single home each).
-# ── inject-instruction lines — "Read and inject verbatim …/_shared/inject/…" at
+# ── inject-instruction lines — "Read and inject verbatim …/.shared/inject/…" at
 #    each consumer is the pointer pattern itself. Verdict: exempt.
 read and inject verbatim claude plugin root skills shared inject design soundness honor check md into the reviewer
 read claude plugin root skills shared inject bridge content gate md and
@@ -26,7 +26,7 @@ read claude plugin root skills shared config resolver md with the read tool and 
 the sentinel stage review summary critical n high n degraded true false
 caught by locus should have locus gap class missing ac false green no gate
 # ── (P2 REQ-14/AC-36) U-a evidence-honesty dual-home RESOLVED: the shared core
-#    now lives in the single-home fragment skills/_shared/inject/ac-coverage-criteria.md
+#    now lives in the single-home fragment skills/.shared/inject/ac-coverage-criteria.md
 #    (sibling of ac-coverage-honesty-principle), load-and-injected at code-review batch
 #    and epic-close; the 4 U-a exempt fingerprints below are deleted (no restatement
 #    remains to exempt).
@@ -53,7 +53,7 @@ review maintainer notes orientation for maintainers the executable procedure liv
 guideline 200 lines 2 5k tokens per skill body hard cap 500
 # ── severity-tiered stopping-rule pointer lines (P2 REQ-1/AC-41) — the matched
 #    text IS the pointer sentence to the single home
-#    (skills/_shared/inject/severity-tiered-stopping-rule.md) at each of the 5
+#    (skills/.shared/inject/severity-tiered-stopping-rule.md) at each of the 5
 #    wiring sites; site bodies carry only their own delta, never the rule body.
 #    Verdict: exempt (pointer, not restatement) — same class as the
 #    inject-instruction cluster above. Calibration: calibration.md § U-stop.

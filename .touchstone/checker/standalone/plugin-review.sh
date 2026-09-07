@@ -17,7 +17,7 @@
 # locator = file[:line]).
 #
 # One round. The stopping rule is the injected fragment at
-# skills/_shared/inject/severity-tiered-stopping-rule.md (cited, not copied — that
+# skills/.shared/inject/severity-tiered-stopping-rule.md (cited, not copied — that
 # file states the criterion that closes a gate round); this script always stops
 # after round 1. Anything still open when the round closes rides to the next
 # phase's backlog. The script fixes nothing — the maintainer session does.
@@ -63,7 +63,7 @@ def rubric_shape(path):
 
 def decide(rnd, max_rounds, pct, total, prev_total, new_ch):
     """One round only. The gate's stopping criterion lives in the injected
-    fragment (skills/_shared/inject/severity-tiered-stopping-rule.md); this
+    fragment (skills/.shared/inject/severity-tiered-stopping-rule.md); this
     script's own cap is fixed at 1 regardless of max_rounds."""
     cap = 1
     if rnd >= cap:
@@ -673,7 +673,7 @@ findings:
     lens: 2
     type: real-defect
     severity: H
-    summary: single home: skills/_shared/inject/frag.md, restated here
+    summary: single home: skills/.shared/inject/frag.md, restated here
     fix: cite the home, drop the copy
   - file: skills/b/SKILL.md
     line: 3
@@ -832,7 +832,7 @@ root="$(cd "$root" && pwd)"
 if [ "$dry_run" -eq 0 ] && ! command -v codex >/dev/null 2>&1; then
   cat >&2 <<EOF
 plugin-review.sh: codex not on PATH — no round directory and no review.yaml written.
-  Liveness rule (single home): skills/_shared/provenance.md —
+  Liveness rule (single home): skills/.shared/provenance.md —
   \`codex\` is listed in providers only when the round dir holds its raw_codex.jsonl and
   last-message.txt; a round without them is not a cross-vendor round.
 EOF

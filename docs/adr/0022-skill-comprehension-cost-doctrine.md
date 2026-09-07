@@ -80,10 +80,10 @@ inject fragments, CONTEXT.md entries):
 - CONTEXT.md abbreviation entries (`FF`/`FB`, etc.) are candidates for replacement in
   the next content pass. The authoritative forms live in the consuming skills; CONTEXT.md
   tracks only the expanded canonical term.
-- Positional shared-step names in `skills/_shared/` are renamed to function-descriptive
+- Positional shared-step names in `skills/.shared/` are renamed to function-descriptive
   names. Canonical worked example: `step0-resolver.md` → `config-resolver.md`
   (names a position → names its function; completed in Phase 2.10).
-- Cold-inject fragments in `skills/_shared/inject/` must be audited for unexpanded
+- Cold-inject fragments in `skills/.shared/inject/` must be audited for unexpanded
   abbreviations and undefined terms; each failure is a comprehension-cost bug, not a
   style note.
 

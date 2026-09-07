@@ -11,6 +11,8 @@ user-invocable: true
 
 # /touchstone:assay — Pre-Contract Interview Instrument
 
+Apply `../.shared/harness-runtime.md` before any host-dependent operation.
+
 One fused interview session aligning human and AI across three arms — vocabulary, map, territory (each below). Terminal deliverable: the durable record's `consensus` key, every entry traced to a row the human confirmed in-session.
 
 **Live user required.** In a non-interactive context (CI, a loop, a scheduled run), do NOT guess-fill an answer: flag a blocker naming assay, and stop.
@@ -63,7 +65,7 @@ Lay out every assumption you would otherwise silently adopt. Each entry MUST:
 
 Ask questions in the laydown's architectural-impact order, targeting tacit knowledge ONLY: intent, priority, unstated constraints, what done looks like. Do NOT ask architecture or API design questions — that design work is yours. A fact the repo or its docs can answer (the **territory arm**) is yours to look up, never the human's to be asked — a repo claim you make follows the grounded-claims citation discipline; bring the human only decisions and tacit knowledge.
 
-- Ask exactly ONE question per message, shaped by `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/human-question-template.md` — read it once at start.
+- Ask exactly ONE question per message, shaped by `<plugin-root>/skills/.shared/inject/human-question-template.md` — read it once at start.
 - Enumerable answers go through AskUserQuestion with your leaning marked "(Recommended)" — one call, one question.
 - Speak plainly: no skill-internal section names, no self-coined code labels. Refer to a table entry by a content phrase — a stable-id handle beside the phrase is fine — never by row number alone.
 
@@ -71,7 +73,7 @@ Named instrument — the **want-vs-should-want probe**: "if you didn't have to j
 
 **Loop rule.** An extraction answer may flip an existing row OR add wholly new ones — update the table and re-converge in-session; never carry a known contradiction forward.
 
-**Case-partition capture (opportunistic).** When a laydown or extraction row's confirmation happens to settle the whole case list for a contract rule — the human agreeing to those cases row by row — note beside it the technique that generated the list, so the consensus render can carry the row as a **case-partition** (term home: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/breadth-discovery.md`). Capture is a by-product of questioning you already do: no question, prompt, or interview step exists to elicit such a list.
+**Case-partition capture (opportunistic).** When a laydown or extraction row's confirmation happens to settle the whole case list for a contract rule — the human agreeing to those cases row by row — note beside it the technique that generated the list, so the consensus render can carry the row as a **case-partition** (term home: `<plugin-root>/skills/.shared/breadth-discovery.md`). Capture is a by-product of questioning you already do: no question, prompt, or interview step exists to elicit such a list.
 
 **A published predict round closes questioning — every path.** When you can predict the user's answers to the next three questions (fewer left → all remaining), publish the round: each remaining question WITH your predicted answer; an empty queue is published as an explicit empty-queue statement. Questioning closes only after the user confirms; a missed prediction reopens that question (a user correction likewise reopens the queue), and a later published round must pass before questioning may close again. Each round — predict or probe — takes the next id in a SINGLE dated sequence of `R-n` ids (one shared counter).
 
@@ -82,7 +84,7 @@ The territory arm looks up repo facts the human is never asked. One territory fa
 term is homed in `reach-discovery.md`) — one that crosses an actor/module boundary such
 that **>1 party** must agree on it, decided by party-count rather than by file type —
 the AI SHALL produce a **saturated seam-map** via
-`${CLAUDE_PLUGIN_ROOT}/skills/_shared/reach-discovery.md` and carry it into Consensus
+`<plugin-root>/skills/.shared/reach-discovery.md` and carry it into Consensus
 Scope — when crucible's explore phase already wrote the epic's
 `explore-<date>-<subject>.yaml`, confirm its seam-map instead of re-sweeping; absent
 one, produce it here. When the intent changes only single-party artifacts (an
@@ -107,7 +109,7 @@ A known unknown enters from three sources — laydown residuals (rows neither co
 
 **Structural fork case** → read `references/fork-case.md` and follow it (trigger: two-plus viable approaches carrying durability stakes; the ADR authoring chain, rubric grading, and critique arms load there, on this trigger only).
 
-Only when the table has converged (no open contradiction, every unknown dispositioned) and the render is due, read `${CLAUDE_PLUGIN_ROOT}/skills/assay/references/consensus-render.md`.
+Only when the table has converged (no open contradiction, every unknown dispositioned) and the render is due, read `<plugin-root>/skills/assay/references/consensus-render.md`.
 
 ## Consequence probes — alignment made falsifiable
 
@@ -119,6 +121,6 @@ Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all
 
 **The human rules readiness once.** Anything short of an explicit yes is not-ready — name the specific gap the non-answer signals and return to it, never round a soft or delegated reply up to consent. A delegation ("whatever you think") gets re-asked with two concrete options; an explicit correction folds into the table, re-renders the consensus, restates, loops. Only an explicit yes advances.
 
-Only when the readiness yes has landed and you are writing the terminal record, read `${CLAUDE_PLUGIN_ROOT}/skills/assay/references/durable-record.md` for the record contract.
+Only when the readiness yes has landed and you are writing the terminal record, read `<plugin-root>/skills/assay/references/durable-record.md` for the record contract.
 
-Only when crucible selected the short form, read `${CLAUDE_PLUGIN_ROOT}/skills/assay/references/short-form.md` and run its substitutions.
+Only when crucible selected the short form, read `<plugin-root>/skills/assay/references/short-form.md` and run its substitutions.

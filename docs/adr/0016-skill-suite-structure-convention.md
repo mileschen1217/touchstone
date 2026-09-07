@@ -42,7 +42,7 @@ Adopt this skill-suite structure convention:
    (history notes, Related/Dependencies lists already carried by CONTEXT.md) to a per-skill
    `README.md`. Content CONTEXT.md already encodes → delete (Bridge P1). **Load-bearing
    disambiguation stays in-skill** as a minimal block — it is not orientation.
-2. **Shared mechanism → `skills/_shared/<concern>.md`**, one file per concern (no consolidated
+2. **Shared mechanism → `skills/.shared/<concern>.md`**, one file per concern (no consolidated
    god-file index; Bridge P3). Any extraction is **atomic** with repointing its static checker;
    the step0-fixtures test agent OUTPUT, not file content, so they are unaffected by a move.
 3. **The human is the named regression oracle** for every prune/extraction commit until a
@@ -54,7 +54,7 @@ Adopt this skill-suite structure convention:
    the shared section exceeds ~50 lines.
    > **Amended 2026-07-06 (md-essence-rewrite ruling):** the human-accepted essence-rewrite
    > contract flipped this by direct ruling — the shared scaffold (provenance/artifacts/failure
-   > semantics/return) is extracted to `skills/_shared/pattern-a-base.md`. The Codex-probe block
+   > semantics/return) is extracted to `skills/.shared/pattern-a-base.md`. The Codex-probe block
    > stays inline in EACH composite; the machine drift assert in
    > `check-foundation-gate-structure.sh` (probe ×2, composite count = 2) remains live.
 5. **`keep-long` annotations** must carry a current line count, enforced by the static checker, and

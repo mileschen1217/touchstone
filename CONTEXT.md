@@ -34,7 +34,7 @@ pointer names the single home of any longer rule.
   context (`cc` or `codex`). A gate declares its lens set and dispatches every lens
   to each of its arms; the merge is keyed by lens; vendor diversity is a property of
   the arm set, required only where independence (reviewer ≠ builder) would otherwise
-  fail — deliverable-review's quality lens. Single home: `skills/_shared/provenance.md`.
+  fail — deliverable-review's quality lens. Single home: `skills/.shared/provenance.md`.
 - **deliverable review** — the one gate after a build: the conformance lens
   (per-AC evidence — covered rows in `coverage[]`, only unverified / violated rows as
   findings), the honor-check lens (invariant checks executed) and the
@@ -45,18 +45,18 @@ pointer names the single home of any longer rule.
   manifest declares what text each lens carries, as `path#heading` sections each
   marked `arm` or `host`. It is read by the assembler in a subprocess and by the
   load map at measurement time, never by a gate session. Single home:
-  `skills/_shared/lens-manifest.yaml`.
+  `skills/.shared/lens-manifest.yaml`.
 - **stopping rule** — one injected fragment governs every gate's rounds
   (design-review, deliverable-review, the local plugin-review); single home:
-  `skills/_shared/inject/severity-tiered-stopping-rule.md`.
+  `skills/.shared/inject/severity-tiered-stopping-rule.md`.
 - **review.yaml** — the single output of a review round (gate, providers per lens,
   degraded, verdict, counts, findings F-n by field path with `refs` and `found_by`,
   rulings, `W-n` waiting items); schema home
-  `skills/_shared/schemas/review.schema.yaml`; provenance fields
-  `skills/_shared/provenance.md`.
+  `skills/.shared/schemas/review.schema.yaml`; provenance fields
+  `skills/.shared/provenance.md`.
 - **live-bearing AC / live artifact** — an AC undischargeable offline, and the
   captured real-boundary output (with producer + freshness provenance) that
-  discharges it; single home: `skills/_shared/inject/live-bearing-predicate.md`.
+  discharges it; single home: `skills/.shared/inject/live-bearing-predicate.md`.
 - **Evidence Reckoning** — at epic close every AC is reckoned covered or carries an
   enumerated `[unverified: reason]`; live-bearing ACs may not use `[unverified]`.
 
@@ -97,6 +97,6 @@ pointer names the single home of any longer rule.
 
 ## Fragment index
 
-Injected doctrine for cold reviewers lives in `skills/_shared/` (one home each);
+Injected doctrine for cold reviewers lives in `skills/.shared/` (one home each);
 each fragment's frontmatter declares its consumers. This index is the map, the
 fragments are the law.

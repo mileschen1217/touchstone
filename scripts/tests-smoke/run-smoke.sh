@@ -135,7 +135,7 @@ expect_out "check-artifact deviation: empty refs without derived names entries[D
 # schema (a header comment may still name the migration in prose; the grammar check is the
 # absence of a `quiz:` property line), and a deviation fixture carrying a quiz block fails
 # with an unknown-key error
-if grep -qE '^[[:space:]]*quiz:' "$scripts_dir/../skills/_shared/schemas/deviation.schema.yaml"; then
+if grep -qE '^[[:space:]]*quiz:' "$scripts_dir/../skills/.shared/schemas/deviation.schema.yaml"; then
   echo "FAIL: deviation.schema.yaml still declares a quiz: property"; fail=1
 else
   echo "PASS: deviation.schema.yaml declares no quiz: property"
@@ -339,7 +339,7 @@ print('PASS: check-artifact existential [*], root escape rejected, ledger id bou
 PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
 # the eight schema files exist and every top-level field carries a reader tag
-python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
+python3 - "$scripts_dir/../skills/.shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
 import sys, os, yaml
 d = sys.argv[1]
 assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'epic.schema.yaml', 'explore.schema.yaml', 'metrics.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
@@ -352,7 +352,7 @@ PY2
 
 # AC-10 / INV-4: every field in the three new schemas names its consumer file in the
 # schema header comment (no field lacks one)
-python3 - "$scripts_dir/../skills/_shared/schemas" "$scripts_dir/dossier-render.sh" "$scripts_dir/check-artifact.sh" <<'PY4' || { echo "FAIL: new-schema field consumers"; fail=1; }
+python3 - "$scripts_dir/../skills/.shared/schemas" "$scripts_dir/dossier-render.sh" "$scripts_dir/check-artifact.sh" <<'PY4' || { echo "FAIL: new-schema field consumers"; fail=1; }
 import sys, os, yaml
 # No field exists without a consumer — asserted against the consumer CODE
 # (renderer + checker), never a header comment (comments carry no consumer
@@ -376,14 +376,14 @@ import sys, os, subprocess, tempfile, shutil
 ca, ax = sys.argv[1], sys.argv[2]
 scratch = tempfile.mkdtemp()
 os.makedirs(os.path.join(scratch, 'scripts'))
-os.makedirs(os.path.join(scratch, 'skills', '_shared', 'schemas'))
+os.makedirs(os.path.join(scratch, 'skills', '.shared', 'schemas'))
 scratch_ca = os.path.join(scratch, 'scripts', 'check-artifact.sh')
 shutil.copy(ca, scratch_ca)
-schema_src = os.path.join(os.path.dirname(ca), '..', 'skills', '_shared', 'schemas', 'spec.schema.yaml')
+schema_src = os.path.join(os.path.dirname(ca), '..', 'skills', '.shared', 'schemas', 'spec.schema.yaml')
 original = open(schema_src, encoding='utf-8').read()
 flipped = original.replace('resolves: self', 'resolves: target', 1)
 assert flipped != original, "resolves: self not found in spec.schema.yaml"
-open(os.path.join(scratch, 'skills', '_shared', 'schemas', 'spec.schema.yaml'), 'w', encoding='utf-8').write(flipped)
+open(os.path.join(scratch, 'skills', '.shared', 'schemas', 'spec.schema.yaml'), 'w', encoding='utf-8').write(flipped)
 before = subprocess.run(['bash', ca, 'spec', os.path.join(ax, 'spec-green.yaml'), '--root', ax], capture_output=True, text=True)
 after = subprocess.run(['bash', scratch_ca, 'spec', os.path.join(ax, 'spec-green.yaml'), '--root', ax], capture_output=True, text=True)
 assert 'ledger not found' not in before.stdout, before.stdout
@@ -865,6 +865,23 @@ if command -v jq >/dev/null 2>&1; then
   ro_fire "relative file_path via cwd" "$ro_root" ".touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml" "$ro_root"
   if [ -f "$ro_a" ]; then echo "PASS: render-on-write relative file_path resolves via cwd"
   else echo "FAIL: render-on-write relative file_path did not render"; fail=1; fi
+
+  # Codex apply_patch reports the patch in tool_input.command. A multi-file
+  # edit renders each affected epic once.
+  rm -f "$ro_a" "$ro_b"
+  ro_patch="*** Begin Patch
+*** Update File: .touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml
+*** Update File: .touchstone/epics/2026-02-02-beta/deviation.yaml
+*** End Patch"
+  ro_codex_out="$(jq -nc --arg command "$ro_patch" --arg cwd "$ro_root" \
+    '{tool_input:{command:$command}, cwd:$cwd}' \
+    | bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_codex_rc=$?
+  if [ "$ro_codex_rc" -eq 0 ] && [ -z "$ro_codex_out" ] \
+     && [ -f "$ro_a" ] && [ -f "$ro_b" ]; then
+    echo "PASS: render-on-write Codex multi-file apply_patch renders both epics"
+  else
+    echo "FAIL: render-on-write Codex patch rc=$ro_codex_rc A=$([ -f "$ro_a" ] && echo yes || echo no) B=$([ -f "$ro_b" ] && echo yes || echo no) out=$ro_codex_out"; fail=1
+  fi
 
   # yaml outside any epics dir -> silent no-op, no dossier
   rm -f "$ro_a"
@@ -1711,7 +1728,7 @@ icd="$(mktemp -d)"
 expect_exit "init-checker-scaffold: --help exits 0" zero bash "$scripts_dir/init-checker-scaffold.sh" --help
 expect_exit "init-checker-scaffold: missing state writes yaml (exit 0)" zero \
   bash "$scripts_dir/init-checker-scaffold.sh" --project-root "$icd" --workspace-root .touchstone
-expect_exit "init-checker-scaffold: yaml written" zero test -f "$icd/.claude/touchstone.yaml"
+expect_exit "init-checker-scaffold: neutral yaml written" zero test -f "$icd/touchstone.yaml"
 rm -rf "$icd"
 
 # ---- the redesigned codex dispatch shape (agents/codex-reviewer.md): the task rides a
@@ -1820,5 +1837,74 @@ if [ "$rf_rc" -ne 0 ] && printf '%s' "$rf_out" | grep -q 'stale'; then
 else
   echo "FAIL: check-roadmap-fresh.sh red fixture (rc=$rf_rc): $rf_out"; fail=1
 fi
+
+# ---- harness runtime contract: a canonical registry resolves each supported
+# harness, rejects an unknown id, and accepts a complete third-party entry
+# without changing the resolver.
+expect_exit "resolve-harness: registry validates" zero \
+  bash "$scripts_dir/resolve-harness.sh" --check
+expect_out "resolve-harness: Claude adapter resolves" "provider_family=anthropic" \
+  bash "$scripts_dir/resolve-harness.sh" --harness claude-code
+expect_out "resolve-harness: Codex adapter resolves" "provider_family=openai" \
+  bash "$scripts_dir/resolve-harness.sh" --harness codex
+expect_exit "resolve-harness: unknown harness is rejected" nonzero \
+  bash "$scripts_dir/resolve-harness.sh" --harness unknown
+
+third_root="$(mktemp -d)"
+mkdir -p "$third_root/skills/.shared/adapters" "$third_root/.third-plugin"
+printf '%s\n' '# Third adapter' > "$third_root/skills/.shared/adapters/third.md"
+printf '%s\n' '{"name":"third"}' > "$third_root/.third-plugin/plugin.json"
+cat > "$third_root/harnesses.yaml" <<'YAML'
+schema: touchstone-harness-registry/v1
+harnesses:
+  third:
+    provider_family: example
+    adapter: skills/.shared/adapters/third.md
+    manifest: .third-plugin/plugin.json
+    capabilities: [skill-invocation]
+YAML
+expect_out "resolve-harness: third harness needs no resolver change" "harness=third" \
+  bash "$scripts_dir/resolve-harness.sh" --root "$third_root" \
+    --registry "$third_root/harnesses.yaml" --harness third
+rm -rf "$third_root"
+
+# ---- external reviewer transport: both provider adapters receive the lens as
+# role context, stream the subject from a file, and leave provider-specific
+# liveness plus one normalized last-message artifact.
+review_root="$(mktemp -d)"
+mkdir -p "$review_root/bin" "$review_root/codex-out" "$review_root/claude-out"
+printf '%s\n' 'review lens' > "$review_root/lens.md"
+printf '%s\n' 'review subject' > "$review_root/subject.md"
+cat > "$review_root/bin/codex" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-}" = "--version" ] && { echo codex-test; exit 0; }
+out=""
+while [ $# -gt 0 ]; do
+  case "$1" in -o|--output-last-message) out="$2"; shift 2 ;; *) shift ;; esac
+done
+grep -q 'review subject' || exit 9
+printf '%s\n' CODEX_OK > "$out"
+printf '%s\n' '{"type":"turn.completed"}'
+SH
+cat > "$review_root/bin/claude" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-}" = "--version" ] && { echo claude-test; exit 0; }
+grep -q 'review subject' || exit 9
+printf '%s\n' '{"type":"result","result":"CLAUDE_OK"}'
+SH
+chmod +x "$review_root/bin/codex" "$review_root/bin/claude"
+expect_exit "external-reviewer: Codex transport succeeds" zero env PATH="$review_root/bin:$PATH" \
+  bash "$scripts_dir/run-external-reviewer.sh" --provider codex \
+    --lens-file "$review_root/lens.md" --subject-file "$review_root/subject.md" \
+    --result-dir "$review_root/codex-out"
+expect_out "external-reviewer: Codex normalized result" "CODEX_OK" \
+  cat "$review_root/codex-out/last-message.txt"
+expect_exit "external-reviewer: Claude transport succeeds" zero env PATH="$review_root/bin:$PATH" \
+  bash "$scripts_dir/run-external-reviewer.sh" --provider claude-code \
+    --lens-file "$review_root/lens.md" --subject-file "$review_root/subject.md" \
+    --result-dir "$review_root/claude-out"
+expect_out "external-reviewer: Claude normalized result" "CLAUDE_OK" \
+  cat "$review_root/claude-out/last-message-claude.txt"
+rm -rf "$review_root"
 
 exit "$fail"

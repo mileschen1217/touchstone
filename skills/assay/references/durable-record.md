@@ -32,6 +32,6 @@ id families and order fixed — consumers key on these names:
 **Existing `.md` records stay frozen read-only until epic archive** — every record
 authored from this change forward is `.yaml`; no new `.md` record is written.
 
-**The consensus section IS the handoff** — an implementation of the confirmed-facts source contract (`skills/_shared/inject/confirmed-facts-source.md`). The contract author derives Scope and Invariants facts from Consensus rows and itself authors the seam / AC layer — assay emits no contract-material packaging beyond the consensus section. Every disposition names its file (and line or anchor where applicable) so a later session executes it without re-derivation.
+**The consensus section IS the handoff** — an implementation of the confirmed-facts source contract (`skills/.shared/inject/confirmed-facts-source.md`). The contract author derives Scope and Invariants facts from Consensus rows and itself authors the seam / AC layer — assay emits no contract-material packaging beyond the consensus section. Every disposition names its file (and line or anchor where applicable) so a later session executes it without re-derivation.
 
 **Honest ceiling.** The interview narrows unknown-unknowns; it never proves them zero. Gap size is measured downstream by the deviation log — never claimed at interview end.

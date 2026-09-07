@@ -91,11 +91,11 @@ if d is not None:
                             'stale_waivers', 'invalid_waivers') if d.get(k)]
     report(not nonempty, lbl, 'non-empty: %s' % nonempty)
 
-lbl = 'plugin-graph red-false-edge: one false edge on skills/_shared/inject/frag.md claimed by skills/other/SKILL.md'
+lbl = 'plugin-graph red-false-edge: one false edge on skills/.shared/inject/frag.md claimed by skills/other/SKILL.md'
 d = mapped(os.path.join(GRAPH, 'red-false-edge'), lbl)
 if d is not None:
     fe = d.get('false_edges') or []
-    ok = (len(fe) == 1 and fe[0].get('target') == 'skills/_shared/inject/frag.md'
+    ok = (len(fe) == 1 and fe[0].get('target') == 'skills/.shared/inject/frag.md'
           and fe[0].get('claimed_by') == 'skills/other/SKILL.md')
     report(ok, lbl, repr(fe))
 
@@ -149,25 +149,25 @@ if d is not None:
     report(all(u == t for _, u, t in bad), lbl, repr(bad))
 
 # ---- dispatched-context attachment / conditional pricing
-lbl = ('real repo: stage 1 carries AT LEAST challenger@cc/design-soundness@cc/verification-honesty@codex, stage 3 carries AT LEAST conformance@cc/honor-check@cc/quality@codex, each with its arm agent file '
+    lbl = ('real repo: stage 1 carries AT LEAST challenger@claude-code/design-soundness@claude-code/verification-honesty@codex, stage 3 carries AT LEAST conformance@claude-code/honor-check@claude-code/quality@codex, each with its arm agent file '
        '(declaration/dispatch-only attachment — a bare prose mention of a lens name elsewhere, e.g. in a shared schema comment, attaches nothing). '
        'Not an exact-set check: other sibling tasks legitimately land more --lens <name> dispatch sites over this epic (e.g. arch-validation/arch-pressure-test once fork-case.md dispatch lands, '
        'exactly as the commander plan anticipates) — the EXACT-set, no-over-attachment proof lives on the green-dispatch fixture below, which this task fully controls')
 d = mapped(repo, lbl)
 if d is not None:
-    AGENT = {'cc': 'agents/code-reviewer.md', 'codex': 'agents/codex-reviewer.md'}
+    AGENT = {'claude-code': 'agents/code-reviewer.md', 'codex': 'agents/codex-reviewer.md'}
     def dispatched_of(stage_num):
         s = next((s for s in d['stages'] if s['stage'] == stage_num), None)
         return {c['context']: c for c in (s or {}).get('contexts', []) if c.get('kind') == 'dispatched'}
     st1, st3 = dispatched_of(1), dispatched_of(3)
-    want = [(st1, 'challenger@cc', 'cc'), (st1, 'design-soundness@cc', 'cc'), (st1, 'verification-honesty@codex', 'codex'),
-            (st3, 'conformance@cc', 'cc'), (st3, 'honor-check@cc', 'cc'), (st3, 'quality@codex', 'codex')]
+    want = [(st1, 'challenger@claude-code', 'claude-code'), (st1, 'design-soundness@claude-code', 'claude-code'), (st1, 'verification-honesty@codex', 'codex'),
+            (st3, 'conformance@claude-code', 'claude-code'), (st3, 'honor-check@claude-code', 'claude-code'), (st3, 'quality@codex', 'codex')]
     ok = all(m.get(name) is not None and AGENT[arm] in (m[name].get('files') or []) for m, name, arm in want)
     report(ok, lbl, repr({'stage1': sorted(st1), 'stage3': sorted(st3)}))
 
     lbl = "real repo: every dispatched context carries dispatched_by naming its declaring gate body (design-review/SKILL.md for stage 1's three, deliverable-review/SKILL.md for stage 3's three) — the commander's harvest-ruling addition, and the destination-contradiction check's dual-use-fragment disambiguator"
-    ok = (all(st1.get(name, {}).get('dispatched_by') == ['skills/design-review/SKILL.md'] for name in ('challenger@cc', 'design-soundness@cc', 'verification-honesty@codex'))
-          and all(st3.get(name, {}).get('dispatched_by') == ['skills/deliverable-review/SKILL.md'] for name in ('conformance@cc', 'honor-check@cc', 'quality@codex')))
+    ok = (all(st1.get(name, {}).get('dispatched_by') == ['skills/design-review/SKILL.md'] for name in ('challenger@claude-code', 'design-soundness@claude-code', 'verification-honesty@codex'))
+          and all(st3.get(name, {}).get('dispatched_by') == ['skills/deliverable-review/SKILL.md'] for name in ('conformance@claude-code', 'honor-check@claude-code', 'quality@codex')))
     report(ok, lbl, repr({name: c.get('dispatched_by') for name, c in {**st1, **st3}.items()}))
 
     # Not a pinned byte count: this repo's own prose keeps growing (a shared worktree with
@@ -219,16 +219,16 @@ if d is not None:
                           ('max_stage_load_tokens', 'arm_load_tokens', 'max_arm_load_tokens', 'conditional_load_tokens', 'stage_tokens')}))
 
     # fold-back guard: design-review/SKILL.md's own body names
-    # skills/_shared/lens-manifest.yaml (Phase 1's "declared once in ... lens-manifest.yaml"
+    # skills/.shared/lens-manifest.yaml (Phase 1's "declared once in ... lens-manifest.yaml"
     # line) — a skill body naming the manifest must never pull the manifest itself, nor any
     # fragment the manifest in turn names (e.g. its challenger-catalogue section), into that
     # skill's in-session closure. kind_of() special-cases the manifest to 'data' (never a
     # LOADED_KINDS member) precisely so the context-file walk terminates AT the manifest,
     # regardless of what prose does or doesn't name it.
-    lbl = "real repo: fold-back guard — skills/_shared/lens-manifest.yaml (named by design-review/SKILL.md's own body) appears in NO in-session context's files, and neither does any fragment the manifest names on its own (e.g. design-review/references/challenger.md, which no gate body mentions directly)"
+    lbl = "real repo: fold-back guard — skills/.shared/lens-manifest.yaml (named by design-review/SKILL.md's own body) appears in NO in-session context's files, and neither does any fragment the manifest names on its own (e.g. design-review/references/challenger.md, which no gate body mentions directly)"
     all_insession_files = {f for s in d['stages'] for c in s.get('contexts', [])
                            if c.get('kind') == 'in-session' for f in (c.get('files') or [])}
-    ok = ('skills/_shared/lens-manifest.yaml' not in all_insession_files
+    ok = ('skills/.shared/lens-manifest.yaml' not in all_insession_files
           and 'skills/design-review/references/challenger.md' not in all_insession_files)
     report(ok, lbl, repr(sorted(f for f in all_insession_files if 'lens-manifest' in f or f == 'skills/design-review/references/challenger.md')))
 
@@ -239,10 +239,10 @@ if d is not None:
     disp = {c['context']: c for c in st1.get('contexts', []) if c.get('kind') == 'dispatched'}
     ok = (set(disp) == {'splitlens@cc', 'splitlens@codex'}
           and all(sorted(s.get('id') for s in c.get('sections', [])) == ['sec-a'] for c in disp.values())
-          and all('skills/_shared/inject/armsec.md' in c.get('files', []) for c in disp.values()))
+          and all('skills/.shared/inject/armsec.md' in c.get('files', []) for c in disp.values()))
     report(ok, lbl, repr(disp))
 
-    lbl = "plugin-ratchets green-dispatch: dispatched_by names the CONTEXT that declares the lens (skills/crucible/SKILL.md), never a raw file path, and never a second in-session context (skills/other/SKILL.md) that shares the same dual-use fragment (skills/_shared/inject/frag.md) without declaring the lens itself — the addendum to the commander's harvest ruling (the destination-contradiction check this feeds must fail only the dispatching session, not a third skill reading the same shared file for its own unrelated purpose)"
+    lbl = "plugin-ratchets green-dispatch: dispatched_by names the CONTEXT that declares the lens (skills/crucible/SKILL.md), never a raw file path, and never a second in-session context (skills/other/SKILL.md) that shares the same dual-use fragment (skills/.shared/inject/frag.md) without declaring the lens itself — the addendum to the commander's harvest ruling (the destination-contradiction check this feeds must fail only the dispatching session, not a third skill reading the same shared file for its own unrelated purpose)"
     ok = all(c.get('dispatched_by') == ['skills/crucible/SKILL.md'] for c in disp.values())
     report(ok, lbl, repr({k: v.get('dispatched_by') for k, v in disp.items()}))
 
@@ -256,7 +256,7 @@ if d is not None:
           and m.get('arm_load_tokens') > m.get('max_arm_load_tokens'))
     report(ok, lbl, repr((cc_b, codex_b, m.get('arm_load_tokens'), m.get('max_arm_load_tokens'))))
 
-    lbl = "plugin-ratchets green-dispatch: conditional pricing (moved-not-shrunk invariant) — skills/_shared/inject/cond.md's load-when bytes leave max_stage_load_tokens/stage_tokens and land in conditional_load_tokens instead (moved, not shrunk)"
+    lbl = "plugin-ratchets green-dispatch: conditional pricing (moved-not-shrunk invariant) — skills/.shared/inject/cond.md's load-when bytes leave max_stage_load_tokens/stage_tokens and land in conditional_load_tokens instead (moved, not shrunk)"
     ok = (m.get('max_stage_load_tokens') == 89 and m.get('conditional_load_tokens') == 47
           and m.get('stage_tokens') == [{'stage': 1, 'tokens': 89}])
     report(ok, lbl, repr((m.get('max_stage_load_tokens'), m.get('conditional_load_tokens'), m.get('stage_tokens'))))
@@ -367,15 +367,16 @@ def kind_of(p):
     # lens-manifest.yaml is data, never a loadable kind — a skill body naming it (its own
     # header: "never by a gate session, so its own bytes are charged to no context") must
     # not pull it, and everything it in turn names, into that skill's in-session closure
-    # (the fold-back guard). Checked before the generic skills/_shared/ fragment rule.
-    if p == 'skills/_shared/lens-manifest.yaml':                        return 'data'
-    if p.startswith('skills/_shared/schemas/'):                         return 'schema'
+    # (the fold-back guard). Checked before the generic skills/.shared/ fragment rule.
+    if p == 'skills/.shared/lens-manifest.yaml':                        return 'data'
+    if re.match(r'^skills/[^/]+/agents/openai\.yaml$', p):              return 'data'
+    if p.startswith('skills/.shared/schemas/'):                         return 'schema'
     if p.startswith('agents/'):                                         return 'agent'
     if p.startswith('hooks/'):                                          return 'hook'
     if re.match(r'^\.touchstone/checker/[^/]+/check-[^/]+\.sh$', p):    return 'checker'
     if p.endswith('.sh'):                                               return 'script'
     if p.startswith('docs/'):                                           return 'reference'
-    if p.startswith('skills/_shared/'):                                 return 'fragment'
+    if p.startswith('skills/.shared/'):                                 return 'fragment'
     if re.match(r'^skills/[^/]+/(references|templates)/', p):           return 'fragment'
     if re.match(r'^skills/[^/]+/[^/]+\.md$', p):                        return 'fragment'
     return 'doc'
@@ -516,6 +517,7 @@ def add_edge(src, dst, kind, at, declared_only=False):
                   'declared_only': declared_only}
 
 TOKEN_RE = re.compile(r'/?touchstone:([A-Za-z0-9][A-Za-z0-9_-]*)')
+INVOKE_RE = re.compile(r'\binvoke_skill\(\s*([A-Za-z0-9][A-Za-z0-9_-]*)')
 
 # Leaves — never scanned for outbound edges: docs/** (reference material), the
 # two data files plugin-map itself reads (a path listed in the entry set or the
@@ -541,6 +543,10 @@ for src in scannable:
                 add_edge(src, agent_of[name], 'dispatches', at)
             elif name in skill_of:
                 add_edge(src, skill_of[name], 'invokes', at)
+        for m in INVOKE_RE.finditer(line):
+            name = m.group(1)
+            if name in skill_of:
+                add_edge(src, skill_of[name], 'invokes', at)
         if 'Agent(' in line:
             for name, dst in agent_of.items():
                 if name in line:
@@ -559,6 +565,16 @@ if hook in nodeset:
             add_edge(hook, p, 'runs', glob_at)
 if 'hooks/hooks.json' in nodeset and hook in nodeset:
     add_edge('hooks/hooks.json', hook, 'runs', 'hooks/hooks.json:1')
+
+# Codex skill presentation/policy metadata is discovered by convention beside
+# its owning SKILL.md; it is package data, not in-session prose.
+for p in nodes:
+    m = re.match(r'^skills/([^/]+)/agents/openai\.yaml$', p)
+    if not m:
+        continue
+    owner = 'skills/%s/SKILL.md' % m.group(1)
+    if owner in nodeset:
+        add_edge(owner, p, 'reads', p + ':1')
 
 # ------------------------------------------- declared (frontmatter) edges
 false_edges = []
@@ -755,17 +771,17 @@ def closure(seed, blocked=frozenset(), adjacency=None):
     return seen
 
 # ------------------------------------------- lens manifest / dispatched contexts
-# skills/_shared/lens-manifest.yaml declares which prose sections compose each
+# skills/.shared/lens-manifest.yaml declares which prose sections compose each
 # review lens and which side of a dispatch (arm vs host) each section lands on.
 # A lens attaches to a stage when some file in that stage's in-session load closure
 # DECLARES or DISPATCHES it — a gate body's `lenses:` routing-block line or an
 # assembler `--lens <name>` invocation — never a bare prose mention (see
 # lens_decl_rx's docstring); one dispatched context is then emitted per arm in the
 # lens's `arms` list, billed per the header contract's rules.
-ARM_AGENT = {'cc': 'agents/code-reviewer.md', 'codex': 'agents/codex-reviewer.md'}
+ARM_AGENT = {'cc': 'agents/code-reviewer.md', 'claude-code': 'agents/code-reviewer.md', 'codex': 'agents/codex-reviewer.md'}
 
 def load_lens_manifest():
-    p = os.path.join(root, 'skills/_shared/lens-manifest.yaml')
+    p = os.path.join(root, 'skills/.shared/lens-manifest.yaml')
     if not os.path.isfile(p):
         return []
     try:
@@ -800,7 +816,7 @@ def lens_decl_rx(name):
             + r'|--lens[ \t]+["\']?%s["\']?(?=[\s"\']|$)' % esc)
     return _lens_decl_rx_cache[name]
 
-LENS_MANIFEST_PATH = 'skills/_shared/lens-manifest.yaml'
+LENS_MANIFEST_PATH = 'skills/.shared/lens-manifest.yaml'
 
 def lens_declared_by_contexts(per_ctx, lens_name):
     """The stage's in-session CONTEXT names (skill entries, e.g. 'skills/design-review/

@@ -16,6 +16,8 @@ user-invocable: true
 
 # epic-driven-roadmap
 
+Apply `../.shared/harness-runtime.md` before any host-dependent operation.
+
 One generated `ROADMAP.md` at the project root — a projection, never
 hand-edited; one tracker per epic at
 `.touchstone/epics/YYYY-MM-DD-<slug>/epic.yaml` (dir = start date + slug), the
@@ -40,8 +42,7 @@ Procedure plus Evidence Reckoning and the Disposition pass →
 
 ## Audit
 
-`bash "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-render.sh" --root <project-root> --audit`
+`bash "<plugin-root>/scripts/roadmap-render.sh" --root <project-root> --audit`
 — staleness and invalid-dir findings; a stale generated `ROADMAP.md` is caught
 on the commit rail's freshness check. The status-drift and broken-link classes
 dissolved with the hand-written tracker (generated output cannot drift).
-

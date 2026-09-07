@@ -1,3 +1,4 @@
 # written by /touchstone:init v3.3.0. Hand-editable.
 schema_version: 2
 workspace_root: .touchstone
+adopted_disciplines: [source-as-truth]

@@ -3,4 +3,4 @@ name: other
 ---
 # other
 
-Loads skills/_shared/inject/frag.md as a fragment.
+Loads skills/.shared/inject/frag.md as a fragment.

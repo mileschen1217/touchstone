@@ -1,0 +1,5 @@
+interface:
+  display_name: Touchstone Reviewer
+  short_description: Internal review arm for Touchstone gates
+policy:
+  allow_implicit_invocation: false

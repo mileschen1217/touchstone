@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/phase-metrics.sh — print one phase's metrics entry (the metrics-entry shape in
-# skills/_shared/schemas/deviation.schema.yaml) on stdout as a single, two-space-
+# skills/.shared/schemas/deviation.schema.yaml) on stdout as a single, two-space-
 # indented YAML list item, ready to paste under deviation.yaml's `metrics:` list.
 #
 # Usage: phase-metrics.sh <epic-dir> <transcript.jsonl>... --phase N

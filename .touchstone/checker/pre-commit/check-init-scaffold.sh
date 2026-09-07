@@ -39,15 +39,15 @@ scratch_copy() {
   printf '%s' "$dst"
 }
 
-assert_missing() {  # <fixture-dir> -- no yaml -> exit 0, file created, no "already configured"
+assert_missing() {  # <fixture-dir> -- no yaml -> exit 0, neutral file created, no "already configured"
   local fx="$1" scratch out rc
   scratch="$(scratch_copy "$fx")"
   out="$(bash "$scaffold" --project-root "$scratch" --workspace-root .touchstone 2>&1)"; rc=$?
   if [ "$rc" -ne 0 ]; then
     echo "[check-init-scaffold] $fx: expected exit 0 (missing -> written), got $rc: $out"; rm -rf "$scratch"; return 1
   fi
-  if [ ! -f "$scratch/.claude/touchstone.yaml" ]; then
-    echo "[check-init-scaffold] $fx: touchstone.yaml was not written"; rm -rf "$scratch"; return 1
+  if [ ! -f "$scratch/touchstone.yaml" ]; then
+    echo "[check-init-scaffold] $fx: neutral touchstone.yaml was not written"; rm -rf "$scratch"; return 1
   fi
   if printf '%s' "$out" | grep -q "already configured"; then
     echo "[check-init-scaffold] $fx: missing-file run must not print 'already configured': $out"; rm -rf "$scratch"; return 1
@@ -55,7 +55,7 @@ assert_missing() {  # <fixture-dir> -- no yaml -> exit 0, file created, no "alre
   rm -rf "$scratch"; return 0
 }
 
-assert_exists_noreset() {  # <fixture-dir> -- valid yaml, no --reset -> exit 0, "already configured", untouched
+assert_exists_noreset() {  # <fixture-dir> -- legacy yaml -> neutral migration, legacy untouched
   local fx="$1" scratch out rc yaml before
   scratch="$(scratch_copy "$fx")"
   yaml="$scratch/.claude/touchstone.yaml"
@@ -64,16 +64,22 @@ assert_exists_noreset() {  # <fixture-dir> -- valid yaml, no --reset -> exit 0, 
   if [ "$rc" -ne 0 ]; then
     echo "[check-init-scaffold] $fx: expected exit 0 (already configured), got $rc: $out"; rm -rf "$scratch" "$before"; return 1
   fi
-  if ! printf '%s' "$out" | grep -q "already configured"; then
-    echo "[check-init-scaffold] $fx: expected an 'already configured' line: $out"; rm -rf "$scratch" "$before"; return 1
+  if ! printf '%s' "$out" | grep -q "Migrated legacy config"; then
+    echo "[check-init-scaffold] $fx: expected a legacy migration line: $out"; rm -rf "$scratch" "$before"; return 1
   fi
   if ! cmp -s "$before" "$yaml"; then
-    echo "[check-init-scaffold] $fx: touchstone.yaml was modified without --reset"; rm -rf "$scratch" "$before"; return 1
+    echo "[check-init-scaffold] $fx: legacy touchstone.yaml was modified"; rm -rf "$scratch" "$before"; return 1
+  fi
+  if [ ! -f "$scratch/touchstone.yaml" ] || ! grep -q 'workspace_root: .touchstone' "$scratch/touchstone.yaml"; then
+    echo "[check-init-scaffold] $fx: neutral config did not preserve the legacy workspace root"; rm -rf "$scratch" "$before"; return 1
+  fi
+  if ! bash "$repo_root/scripts/resolve-config.sh" --root "$scratch" >/dev/null 2>&1; then
+    echo "[check-init-scaffold] $fx: migrated neutral and retained legacy configs conflict"; rm -rf "$scratch" "$before"; return 1
   fi
   rm -rf "$scratch" "$before"; return 0
 }
 
-assert_reset() {  # <fixture-dir> -- valid yaml, --reset -> exit 0, .bak preserved, rewritten
+assert_reset() {  # <fixture-dir> -- valid legacy yaml, --reset -> backup preserved, neutral file written
   local fx="$1" scratch out rc
   scratch="$(scratch_copy "$fx")"
   out="$(bash "$scaffold" --project-root "$scratch" --workspace-root .touchstone --reset 2>&1)"; rc=$?
@@ -82,6 +88,9 @@ assert_reset() {  # <fixture-dir> -- valid yaml, --reset -> exit 0, .bak preserv
   fi
   if [ ! -f "$scratch/.claude/touchstone.yaml.bak" ]; then
     echo "[check-init-scaffold] $fx: --reset did not produce touchstone.yaml.bak"; rm -rf "$scratch"; return 1
+  fi
+  if [ ! -f "$scratch/touchstone.yaml" ]; then
+    echo "[check-init-scaffold] $fx: --reset did not write neutral touchstone.yaml"; rm -rf "$scratch"; return 1
   fi
   rm -rf "$scratch"; return 0
 }

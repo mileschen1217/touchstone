@@ -9,5 +9,5 @@ lenses:
   - {name: lens-b, arms: [codex]}
 ```
 
-This step always reads skills/_shared/inject/cond-frag.md as part of the
+This step always reads skills/.shared/inject/cond-frag.md as part of the
 nightly-batch process.
