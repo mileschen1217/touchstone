@@ -32,6 +32,8 @@
 #       invalid-once exactly two dispatches, the second prompt carrying check-artifact
 #                    output; ruler.yaml and freeze.json present.
 #       silent-twice exactly two dispatches, no freeze.json, output.log names ruler.yaml.
+#                    (a dispatch = an Agent call of the ruler-author, or a SendMessage that
+#                    continues that agent before freeze — the re-dispatch may reuse the context)
 #       overreach    deviation.yaml carries a D-n naming the overreaching path and records the
 #                    ruler discarded, at most two dispatches; a second violation halts (no
 #                    freeze.json), a clean second dispatch continues to freeze.
@@ -65,7 +67,7 @@ agent="\$(printf '%s' "\$payload" | jq -r '.tool_input.subagent_type // empty' 2
 desc="\$(printf '%s' "\$payload" | jq -r '.tool_input.description // empty' 2>/dev/null)"
 model="\$(printf '%s' "\$payload" | jq -r '.tool_input.model // empty' 2>/dev/null)"
 fpath="\$(printf '%s' "\$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null)"
-prompt="\$(printf '%s' "\$payload" | jq -r '.tool_input.prompt // empty' 2>/dev/null)"
+prompt="\$(printf '%s' "\$payload" | jq -r '.tool_input.prompt // .tool_input.message // empty' 2>/dev/null)"
 markers=""
 case "\$prompt" in *"re-dispatch"*) markers="re-dispatch" ;; esac
 case "\$prompt" in *"check-artifact"*|*"acs["*) markers="\${markers:+\$markers,}check-artifact" ;; esac
@@ -252,6 +254,28 @@ s_freeze = first(lambda e: e.get('freeze'))
 s_src = first(lambda e: e.get('src_dirty'))
 s_del = first(lambda e: e.get('freeze_deleted'))
 dispatches = [e for e in ev if e.get('tool') == 'Agent' and ('ruler-author' in (e.get('agent') or '') or (e.get('description') or '') == 'ruler-author')]
+# a re-dispatch may continue the same author agent through SendMessage (the session appends the
+# check output to the message): every SendMessage after the first author dispatch and before
+# freeze is an author round; its markers come from the transcript when the observer has none
+if dispatches:
+    sm_texts = []
+    for line in open(os.path.join(out, 'output.log'), encoding='utf-8', errors='replace'):
+        try: d = json.loads(line)
+        except Exception: continue
+        m = d.get('message') or {}
+        for c in (m.get('content') or []) if isinstance(m.get('content'), list) else []:
+            if isinstance(c, dict) and c.get('type') == 'tool_use' and c.get('name') == 'SendMessage':
+                sm_texts.append(str((c.get('input') or {}).get('message') or ''))
+    k = 0
+    for e in ev:
+        if e.get('tool') != 'SendMessage': continue
+        txt = sm_texts[k] if k < len(sm_texts) else ''; k += 1
+        if e['seq'] > dispatches[0]['seq'] and (s_freeze is None or e['seq'] < s_freeze):
+            if not e.get('prompt_markers'):
+                e['prompt_markers'] = [mk for mk, pat in (('re-dispatch', 're-dispatch'), ('check-artifact', 'check-artifact'), ('rulings', 'rulings:')) if pat in txt]
+            e['continuation'] = True
+            dispatches.append(e)
+    dispatches.sort(key=lambda e: e['seq'])
 art = lambda n: os.path.isfile(os.path.join(out, 'artifacts', n))
 log = rd('output.log')
 rev_lines = rd('plugin_revision.txt').splitlines()
