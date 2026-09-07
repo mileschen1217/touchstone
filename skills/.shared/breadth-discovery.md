@@ -31,12 +31,10 @@ re-derive.
   An enumeration the human never confirmed is not a partition at all, and is never
   carried anywhere.
 
-- **entry identity** — an entry lives inside a dated `## Consensus` section of an assay
-  record. Its identity is that section's date plus its full `[trace: ids]` set,
-  order-insensitive; anything binding to the entry may cite any single id out of the
-  set. Supersession runs per RULE and keys on the section date: the newest dated
-  section's entry for a rule displaces the older one whether or not their id sets
-  overlap.
+- **entry identity** — a YAML entry is keyed by its record's `date` plus full
+  `trace` set, order-insensitive; a legacy Markdown entry uses its dated
+  Consensus section. Any trace id may cite it. Per rule, the newest dated entry
+  supersedes older entries regardless of id overlap.
 
 - **partition-under-determined** — a partition whose production floor failed: the human
   did confirm the enumeration, but no technique was ever named for it. Render it by

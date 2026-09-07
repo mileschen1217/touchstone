@@ -143,8 +143,6 @@ audit: no demote-to-invariant candidates."
 - Next: crucible writes `accepted-candidate`, then runs `invoke_skill(design-review, …)`
   runs the lens × arm gate before human accept; its rounds converge under the
   gate's own stopping rule — a meaning-changing edit re-enters that gate
-- Usage: `/touchstone:design-spec` (interactive) or
-  `/touchstone:design-spec <feature-name>` (skip name prompt)
 
 ## Related
 

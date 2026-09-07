@@ -21,7 +21,7 @@ kind: workflow
 Apply `../.shared/harness-runtime.md` before any host-dependent operation.
 
 ```
-/touchstone:deliverable-review [<range>] [with <codex|claude-code>]   # default <main>..HEAD
+/touchstone:deliverable-review [<range>] [--spec <path>] [with <codex|claude-code>]
 ```
 
 ## Phase 1 — Range, governing spec, builder, arms
@@ -31,10 +31,10 @@ Vocabulary (**lens**, **arm**) and every review.yaml provenance field this gate 
 Range: the given argument, else `$(git merge-base HEAD main)..HEAD` (project
 CLAUDE.md may override the base branch).
 
-Governing spec: the caller's `spec` argument, else the active epic's
+Governing spec: `--spec`, else the active epic's
 `status: accepted` `*.spec.yaml`; the epic dir is `bundle.epics` of
 `<plugin-root>/skills/.shared/config-resolver.md` (follow it).
-Unresolvable (a direct invocation only — anvil always passes the spec, so its hand-off
+Unresolvable (a direct invocation only — anvil passes `--spec`, so its hand-off
 to phase-ship always carries a review.yaml) → the conformance and honor-check lenses are
 not dispatched; emit exactly one line, `no governing spec — conformance not audited`, run
 the quality lens alone, and report its findings in the run message — no review.yaml is

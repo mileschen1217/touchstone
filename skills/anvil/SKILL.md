@@ -56,8 +56,8 @@ duties apply), then continue at Stage 3; state the fallback in the run report.
 
 ## Stage 3 — deliverable-review
 
-Run `invoke_skill(deliverable-review, <branch range>)` with
-the spec as the governing spec. Anvil never promotes an AC to verified — an
+Run `invoke_skill(deliverable-review, <branch range> --spec <spec>)`. Anvil
+never promotes an AC to verified — an
 `unverified` status in review.yaml survives intact to Evidence Reckoning.
 Convergence and what blocks: the stopping rule the gate injects,
 `<plugin-root>/skills/.shared/inject/severity-tiered-stopping-rule.md`
