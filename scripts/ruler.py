@@ -846,7 +846,7 @@ def cmd_held_out(a):
                 log_file = os.path.join(log_dir, f'held-out-{i}.log')
                 with open(log_file, 'w', encoding='utf-8') as f:
                     f.write(f"$ python3 ruler.py run --ruler {ruler_in_tree} {test}\n# tree: {tree}\n# outcome: {outcome}\n{out}")
-                # epic-relative (`build/probes/<AC>/…` or `build/held-out/<AC>/…`): a reader inside the
+                # epic-relative (`build/probes/<AC>/…` or `build/held-out/<AC>/…`): a test running inside the
                 # detached worktree resolves it from the build dir's parent, never from the repo root
                 node_out.append({'test': test, 'outcome': outcome, 'output_ref': rel_to(os.path.dirname(r.build_dir), log_file)})
                 if outcome != 'pass':
