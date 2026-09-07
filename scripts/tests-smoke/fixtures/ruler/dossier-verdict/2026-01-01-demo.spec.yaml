@@ -1,0 +1,43 @@
+id: SPEC-demo
+title: Demo spec
+epic: demo
+phase: 1
+status: accepted
+date: 2026-01-01
+facts_source:
+  record: ledger.md
+  consensus: [Q-1, A-1]
+foundation: inherit
+phase_map:
+  reader: human
+  position: First of one phase.
+  structure_before_after: Before one module; after two.
+  interface_delta: One flag is added.
+  scope: Touched is the parser; untouched is the writer.
+touch_set:
+  reader: agent
+  touched: [src/greet.py]
+  untouched: [src/README.md]
+delta:
+  blocks:
+    - {id: greeter, op: add, kind: component, purpose: greet}
+  edges: []
+  contracts: []
+user_stories:
+  - {id: US-1, as: a user, want: a greeting, so_that: I can check the tool}
+requirements:
+  - id: REQ-1
+    shall: the greeter SHALL greet.
+    traces_to: [US-1]
+    basis: [Q-1]
+    acs:
+      - {id: AC-1, given: a name, when: run, then: it greets, live_bearing: false}
+      - {id: AC-2, given: no name, when: run, then: exit 2 naming usage, live_bearing: false}
+      - {id: AC-3, given: a real terminal, when: run, then: the greeting is visible, live_bearing: false}
+      - {id: AC-4, given: a name and --shout, when: run, then: the greeting is upper-cased, live_bearing: false}
+invariants:
+  - {id: INV-1, rule: stdlib only, why_ref: Q-1, check: grep}
+non_goals: [a second language]
+risks:
+  - {problem: none, measure: none, priority: low, why_ref: A-1}
+waiting_on_human: []

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/check-artifact.sh — validate a YAML stage artifact against its schema.
 #
-# Usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic> <file> [--root <dir>]
+# Usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic|ruler|verdict> <file> [--root <dir>]
 #   exit 0 → valid (warnings, prefixed `warn:`, never change the exit code)
 #   exit 1 → one line per violation: `<field-path>: <rule>`
 #   exit 2 → usage / missing dependency (PyYAML: `pip install pyyaml`)
@@ -47,7 +47,7 @@ set -uo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 kind="${1:-}"; file="${2:-}"; root=""
 [ "${3:-}" = "--root" ] && root="${4:-}"
-case "$kind" in spec|review|deviation|quiz|assay|explore|epic) ;; *) echo "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic> <file> [--root <dir>]" >&2; exit 2 ;; esac
+case "$kind" in spec|review|deviation|quiz|assay|explore|epic|ruler|verdict) ;; *) echo "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic|ruler|verdict> <file> [--root <dir>]" >&2; exit 2 ;; esac
 [ -f "$file" ] || { echo "check-artifact.sh: no such file: $file" >&2; exit 2; }
 schema="$here/../skills/.shared/schemas/$kind.schema.yaml"
 [ -f "$schema" ] || { echo "check-artifact.sh: schema missing: $schema" >&2; exit 2; }
@@ -140,7 +140,11 @@ def walk(v, s, p, phase=None, parent=None):
     elif t == 'array' and 'items' in s:
         it = s['items']
         for i, x in enumerate(v):
-            sel = x.get('id') if isinstance(x, dict) and isinstance(x.get('id'), str) else str(i)
+            sel = str(i)
+            if isinstance(x, dict):
+                for key in ('id', 'ac'):   # ruler / verdict rows are keyed by `ac`
+                    if isinstance(x.get(key), str):
+                        sel = x[key]; break
             walk(x, it, f"{p}[{sel}]", phase, parent)
 
 walk(doc, schema, '')
@@ -391,6 +395,48 @@ elif kind == 'quiz':
 elif kind == 'explore':
     if doc.get('plateau') is False and not doc.get('reach_under_determined'):
         errors.append("reach_under_determined: required when plateau is false")
+elif kind == 'ruler':
+    # the three node forms, and per status: a ruled AC carries ≥1 node with a non-empty
+    # check_command and ≥1 interface signature; a regression AC ≥1 node; an unverified AC a
+    # non-empty reason (the AC ↔ spec trace itself is ruler.py check's, not this shape floor)
+    NODE_RE = re.compile(r'^(?:smoke::.+|[^:\s]+\.(?:py|sh)::[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)$')
+    SIG_RE = re.compile(r'^[^:\s]+::\S.*$')   # <path>::<signature the tests bind to> — the signature text is the author's, read by the human at the ship accept
+    for a in doc.get('acs') or []:
+        if not isinstance(a, dict): continue
+        ac = a.get('ac'); st = a.get('status')
+        nodes = [n for n in (a.get('nodes') or []) if isinstance(n, dict)]
+        for i, n in enumerate(nodes):
+            t = str(n.get('test', ''))
+            if not NODE_RE.match(t):
+                errors.append(f"acs[{ac}].nodes[{i}].test: '{t}' is none of the three node forms (<path>.py::<name> | <path>.sh::<name> | smoke::<label>)")
+            if st in ('ruled', 'regression') and not str(n.get('check_command') or '').strip():
+                errors.append(f"acs[{ac}].nodes[{i}].check_command: empty on a {st} AC")
+        for i, s in enumerate(a.get('interface') or []):
+            if not SIG_RE.match(str(s)):
+                errors.append(f"acs[{ac}].interface[{i}]: '{s}' is not <path>::<signature>")
+        if st in ('ruled', 'regression') and not nodes:
+            errors.append(f"acs[{ac}].nodes: a {st} AC carries no node")
+        if st == 'ruled' and not [s for s in (a.get('interface') or []) if str(s).strip()]:
+            errors.append(f"acs[{ac}].interface: a ruled AC carries no interface signature")
+        if st == 'unverified' and not str(a.get('unverified_reason') or '').strip():
+            errors.append(f"acs[{ac}].unverified_reason: required when status is unverified")
+elif kind == 'verdict':
+    # aggregation shape: PASS only over all-pass nodes; FAIL / DISPUTED / UNVERIFIED carry a
+    # reason; the summary counts equal the rows
+    counts = {'pass': 0, 'fail': 0, 'disputed': 0, 'unverified': 0}
+    for a in doc.get('acs') or []:
+        if not isinstance(a, dict): continue
+        ac = a.get('ac'); v = a.get('verdict')
+        nodes = [n for n in (a.get('nodes') or []) if isinstance(n, dict)]
+        if v == 'PASS' and (not nodes or any(n.get('outcome') != 'pass' for n in nodes)):
+            errors.append(f"acs[{ac}].verdict: PASS with a node that did not pass (or no node)")
+        if v in ('FAIL', 'DISPUTED', 'UNVERIFIED') and not str(a.get('reason') or '').strip():
+            errors.append(f"acs[{ac}].reason: required for {v}")
+        if isinstance(v, str) and v.lower() in counts: counts[v.lower()] += 1
+    s = doc.get('summary') if isinstance(doc.get('summary'), dict) else {}
+    for k, n in counts.items():
+        if s.get(k) != n:
+            errors.append(f"summary.{k}: {s.get(k)} ≠ {n} rows")
 elif kind == 'epic':
     # dual hand-written form: an index.md beside epic.yaml with no generated-projection
     # marker is an error naming the dual form (epic.yaml is the single authored source)

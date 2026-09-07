@@ -1,0 +1,84 @@
+# This schema defines verdict.yaml — the artifact the ship informed-accept reads: written by
+# `ruler.py held-out` after re-running every frozen node in the held-out environment (a
+# detached worktree at the build commit, the frozen ruler files copied in read-only, python
+# nodes in an isolated venv populated only from deps.install_cmd), never by the builder
+# session. Keywords as in the keyword legend (spec schema header). `resolves: none` —
+# `acs[].ac` is the ruler's row, already traced by `ruler.py check`.
+#
+# Aggregation (held-out), per AC: DISPUTED iff any node of the AC has an entry in
+# build/disputes.yaml (decided before aggregation; the nodes still run and their outcomes
+# are recorded; reason = the entry's asserts / spec_says / conflict verbatim); else PASS iff
+# every node executed and passed; any fail or timeout → FAIL; any not-run → FAIL reason
+# not-run. UNVERIFIED only for the ruler's own `unverified` status (reason verbatim) or, when
+# deps.manifest is none, a python node that failed on ModuleNotFoundError for a non-stdlib
+# module (reason `no-dependency-declaration: <module>`); with a manifest the same failure is
+# FAIL with the import error. A node due to run that produced no result is FAIL reason
+# not-run, never UNVERIFIED. `sha_check: violated` is written before any node runs (a frozen
+# file edited, deleted or added) and every ruled row is then FAIL reason sha-violated. Before
+# every node the run re-checks the frozen shas and the worktree's `git status --porcelain`;
+# a mismatch marks that node and every later node FAIL reason contaminated-by:<earlier node>.
+# Per-node timeout default 300 s.
+#
+# build/disputes.yaml (the builder's only move against a frozen test) is a list of
+# `{ac, test, asserts, spec_says, conflict}`; held-out validates it before any node runs and
+# exits non-zero naming the entry on a missing field, an AC or node absent from the frozen
+# ruler, or two entries for one node. The owner rules at phase-ship (test-wrong /
+# builder-wrong) in deviation.yaml waiting_on_human.
+#
+# Consumers: scripts/ruler.py (held-out writes), scripts/check-artifact.sh (shape),
+# scripts/dossier-render.sh (blocker checklist / how-verified table on the 首頁; a DISPUTED
+# row shows the node's test source beside the entry), skills/epic-driven-roadmap/
+# references/phase-ship.md (ship inputs).
+kind: verdict
+resolves: none
+type: object
+additionalProperties: false
+required: [kind, spec, freeze_sha, sha_check, violated_files, environment, acs, summary]
+properties:
+  kind: {type: string, reader: agent, enum: [verdict]}
+  spec: {type: string, reader: agent}
+  freeze_sha: {type: string, reader: agent}    # files_sha the freeze bound
+  sha_check: {type: string, reader: human, enum: [ok, violated]}
+  violated_files: {type: array, reader: human, items: {type: string}}
+  environment:
+    type: object
+    reader: agent
+    required: [worktree, commit, isolation, install_cmd]
+    additionalProperties: false
+    properties:
+      worktree: {type: string}
+      commit: {type: string}
+      isolation: {type: string, enum: [venv, worktree-only]}   # venv whenever a python node exists
+      install_cmd: {type: string}              # verbatim or none
+      plugin_revision: {type: string}          # self-build: the working-tree commit the probes ran against
+  acs:
+    type: array
+    reader: human
+    items:
+      type: object
+      required: [ac, verdict, nodes]
+      additionalProperties: false
+      properties:
+        ac: {type: string, id: AC}
+        verdict: {type: string, enum: [PASS, FAIL, DISPUTED, UNVERIFIED]}
+        reason: {type: string}                 # required for FAIL, DISPUTED and UNVERIFIED
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [test, outcome, output_ref]
+            additionalProperties: false
+            properties:
+              test: {type: string}
+              outcome: {type: string, enum: [pass, fail, not-run, timeout]}
+              output_ref: {type: string}       # path of the captured output for this node
+  summary:
+    type: object
+    reader: human
+    required: [pass, fail, disputed, unverified]
+    additionalProperties: false
+    properties:
+      pass: {type: integer}
+      fail: {type: integer}
+      disputed: {type: integer}
+      unverified: {type: integer}

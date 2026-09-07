@@ -5,11 +5,16 @@ One moment per phase PR: **pre-approve** — the Post-build pair, whose yes is t
 is crucible's contract accept). The PR approve is that yes acted on, not a further
 ruling. There is no explainer file: the dossier's 首頁 (decision line → gate strip →
 blocker checklist → how-verified → structure → do-confirm checklist) is the explainer,
-and the PR body is its text projection. A valid deliverable-review `review.yaml`
-is required input; if none was produced, halt before this moment. Anvil's terminal
-hand-off (branch, review verdict, unverified list) supplies that input: the unverified list is what the 首頁's
-blocker checklist shows, and an unverified live-bearing AC blocks the informed
-accept until its live artifact exists.
+and the PR body is its text projection. Anvil's terminal hand-off (branch, review.yaml,
+`build/verdict.yaml`, the ruler index `build/ruler.yaml`) is this moment's input: the
+verdict's FAIL, DISPUTED and UNVERIFIED rows are what the 首頁's blocker checklist shows.
+A FAIL row blocks the informed accept until a new verdict carries it PASS; an UNVERIFIED
+live-bearing row blocks it until its live artifact exists or the AC is deferred to a later
+phase; a DISPUTED row shows the frozen test's source and the builder's reason side by
+side and blocks until you rule in `deviation.yaml` `waiting_on_human` naming the AC —
+`test-wrong` (the AC is deferred; the next unit's ruler-author round takes the ruling as
+input) or `builder-wrong` (the row stays a FAIL to fix until a new verdict carries it
+PASS). The ruler index is the AC → tests map you read there instead of code.
 
 Before starting Pre-approve, a non-passing review verdict or unresolved
 Critical/High finding halts this moment. Read

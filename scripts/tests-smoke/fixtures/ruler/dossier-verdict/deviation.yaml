@@ -1,0 +1,10 @@
+entries: []
+waiting_on_human:
+  - id: W-1
+    kind: ruling
+    owner: human
+    title: "RULED test-wrong: AC-4's frozen node pins one rendering the AC does not; AC-4 deferred to the next unit"
+    detail: "ruling: test-wrong; disposition: deferred. The next unit's ruler-author round takes this ruling as input."
+    ruling: test-wrong
+    disposition: deferred
+    refs: [AC-4]

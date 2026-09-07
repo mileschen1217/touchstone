@@ -1,0 +1,9 @@
+slug: greet
+status: active
+started: 2026-01-01
+aim: a probe fixture — one accepted spec for a two-flag greeter, built by anvil headless.
+foundation:
+  intention: fixture for the anvil behaviour probe
+  out_of_scope: []
+phases:
+  - {n: 1, title: greet CLI, status: active, spec: 2026-01-01-greet.spec.yaml}

@@ -1,0 +1,8 @@
+kind: ruler
+spec: spec.yaml
+acs:
+  - ac: AC-1
+    status: ruled
+    interface: ["src/a.py::def f()"]
+    nodes:
+      - {test: "tests/x.py::t", check_command: "python3 scripts/ruler.py run --ruler build/ruler.yaml tests/x.py::t"}

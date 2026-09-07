@@ -1,0 +1,47 @@
+id: SPEC-greet
+title: greet CLI
+epic: greet
+phase: 1
+status: accepted
+date: 2026-01-01
+facts_source:
+  record: ledger.md
+  consensus: [Q-1, A-1]
+foundation: inherit
+phase_map:
+  reader: human
+  position: First of one phase.
+  structure_before_after: Before no greeter; after one small command-line greeter.
+  interface_delta: One command is added.
+  scope: Touched is the greeter module; untouched is the readme.
+touch_set:
+  reader: agent
+  touched: [src/greet.py]
+  untouched: [src/README.md]
+delta:
+  blocks:
+    - {id: greeter, op: add, kind: component, purpose: print a greeting for a name, technology: python3 stdlib}
+  edges: []
+  contracts:
+    - {id: greet-cli, schema: "python3 src/greet.py <name> [--shout] → stdout `hello, <name>` (upper-cased with --shout), exit 0; no name → exit 2 with `usage:` on stderr"}
+user_stories:
+  - {id: US-1, as: a user, want: a greeting for a name, so_that: I can check the tool runs}
+requirements:
+  - id: REQ-1
+    shall: the greeter SHALL print a greeting for every name given.
+    traces_to: [US-1]
+    basis: [Q-1]
+    acs:
+      - {id: AC-1, given: "`python3 src/greet.py bob`", when: run, then: "stdout is exactly `hello, bob` and the exit code is 0", live_bearing: false}
+      - {id: AC-2, given: "`python3 src/greet.py`", when: run with no name, then: "exit code 2 and stderr starts with `usage:`", live_bearing: false}
+      - {id: AC-3, given: "`python3 src/greet.py bob --shout`", when: run, then: "stdout is exactly `HELLO, BOB`", live_bearing: false}
+      - {id: AC-4, given: "`python3 src/greet.py bob ann`", when: run, then: "stdout has exactly two lines", live_bearing: false}
+      - {id: AC-5, given: "`python3 src/greet.py --version`", when: run, then: "stdout is `greet 1.0` and the exit code is 0", live_bearing: false}
+      - {id: AC-6, given: "`python3 src/greet.py ''`", when: run with an empty name, then: "exit code 2", live_bearing: false}
+      - {id: AC-7, given: "`python3 src/greet.py zed ann bob`", when: run with several names, then: "the greetings come out in order", live_bearing: false}
+invariants:
+  - {id: INV-1, rule: the greeter imports the standard library only, why_ref: Q-1, check: grep}
+non_goals: [a second language]
+risks:
+  - {problem: name with spaces, measure: quote it, priority: low, why_ref: A-1}
+waiting_on_human: []

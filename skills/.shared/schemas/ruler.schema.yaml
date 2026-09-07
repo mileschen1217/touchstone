@@ -1,0 +1,85 @@
+# This schema defines the ruler — the per-build AC → test-node index that a non-builder
+# context (ruler-author) writes from the spec before any implementation exists, and that
+# `scripts/ruler.py` red-firsts, freezes, re-runs held-out, and turns into the verdict.
+# Keywords as in the keyword legend (spec schema header). `resolves: none` — `acs[].ac`
+# resolves against the governing spec through `ruler.py check` (the two-way trace), never
+# through check-artifact.sh.
+#
+# Node forms (`nodes[].test`), the three the tooling accepts:
+#   <path>.py::<name>   a python `def <name>()` (or a unittest.TestCase class, or
+#                       `<Class>::<method>`) defined in <path>. The test file needs no
+#                       `__main__` dispatcher: the runner imports the file and calls the
+#                       named function itself. Standard library plus the packages the
+#                       ruler's deps.manifest declares — nothing else.
+#   <path>.sh::<name>   a shell function `<name>()` defined in <path>; the file defines
+#                       functions only (no trailing `"$@"` dispatcher — the runner sources
+#                       the file and calls the function). The function prints
+#                       `PASS: <name>` and returns 0, or prints `FAIL: <name> …` and returns
+#                       non-zero.
+#   smoke::<label>      an expect_exit / expect_out label of scripts/tests-smoke/run-smoke.sh;
+#                       the harness line `PASS: <label>` / `FAIL: <label>` is the outcome.
+#                       A smoke node freezes nothing outside the ruler: when touch_set.touched
+#                       names the harness, the author writes no smoke node.
+# Every node runs through one executor, `ruler.py run --ruler <ruler_file> <node>`, and
+# `nodes[].check_command` is that command verbatim (`ruler.py check` exits 1 naming the node
+# on any other command — `true`, another file, `python3 <file> <name>`). Outcome of a run:
+# pass (exit 0; for shell / smoke the PASS line for the label was printed) or fail (an
+# assertion, an exception, an import error, a missing function or label = fail reason
+# not-run, a timeout = fail reason timeout, any non-zero exit). red-first requires fail from
+# every node of a `ruled` AC and admits pass only from a `regression` AC.
+#
+# `interface[]` — one `<path>::<signature>` per public symbol or surface the AC's tests bind
+# to (`<path>.py::def name(...)`, `<path>.py::class Name`, `<path>.sh::name()`,
+# `<path>::text` for a file whose content is asserted); the record of what the tests touch,
+# read by the human at the ship accept beside the verdict.
+#
+# Paths are relative to the repo root. Check commands run with the tree root as cwd and the
+# environment variable TOUCHSTONE_BUILD_DIR set to the directory that holds ruler.yaml's
+# `build/` — live-probe evidence lives under `$TOUCHSTONE_BUILD_DIR/probes/<AC>/`.
+# `files_sha` (freeze.json / verdict.yaml) = sha256 over the sorted `<path>:<sha256>` lines
+# of ruler.yaml and every file under the ruler directory, one line each, newline-terminated.
+# `ambiguity[]` — an AC with two readings lists both here, status `unverified`, reason
+# `ambiguous`; freeze still proceeds, the build skips that AC and anvil opens a W-n.
+#
+# Consumers: scripts/ruler.py (every subcommand), scripts/check-artifact.sh (shape),
+# scripts/dossier-render.sh (AC → nodes index on the 首頁), hooks/guard-ruler.sh (the
+# frozen paths, via freeze.json).
+kind: ruler
+resolves: none
+type: object
+additionalProperties: false
+required: [kind, spec, deps, acs]
+properties:
+  kind: {type: string, reader: agent, enum: [ruler]}
+  spec: {type: string, reader: agent}          # the governing spec, relative to the repo root
+  deps:
+    type: object
+    reader: agent
+    required: [manifest, install_cmd]
+    additionalProperties: false
+    properties:
+      manifest: {type: string}                 # relative path | none
+      install_cmd: {type: string}              # verbatim, run inside the held-out venv | none
+  acs:
+    type: array
+    reader: human
+    minItems: 1
+    items:
+      type: object
+      required: [ac, status]
+      additionalProperties: false
+      properties:
+        ac: {type: string, id: AC}
+        status: {type: string, enum: [ruled, regression, unverified]}
+        unverified_reason: {type: string}      # required when status is unverified
+        interface: {type: array, items: {type: string}}
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [test, check_command]
+            additionalProperties: false
+            properties:
+              test: {type: string}
+              check_command: {type: string}
+        ambiguity: {type: array, items: {type: string}}   # both readings, never a chosen one

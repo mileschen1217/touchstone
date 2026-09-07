@@ -1,6 +1,0 @@
-{ "ac_id": "AC-3",
-  "partitions": ["k odd"], "boundaries": [], "negatives": [], "invariants": [],
-  "violating_behaviors": ["flips parity"],
-  "unit": "beta",
-  "cases": [{"case": "k odd -> kept", "test": "tests/test_demo.py::test_beta_ok"}],
-  "residual": false }

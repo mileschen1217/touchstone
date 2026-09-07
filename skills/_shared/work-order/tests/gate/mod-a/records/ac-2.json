@@ -1,5 +1,0 @@
-{ "ac_id": "AC-2",
-  "partitions": [], "boundaries": [], "negatives": [],
-  "invariants": ["stdout stays empty on hard error"],
-  "violating_behaviors": ["writes to stdout on hard error"],
-  "cases": [], "residual": true }

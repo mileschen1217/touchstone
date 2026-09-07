@@ -1,0 +1,9 @@
+kind: ruler
+spec: spec.yaml
+deps: {manifest: none, install_cmd: "none"}
+acs:
+  - ac: AC-1
+    status: ruled
+    interface: ["scripts/target.sh::main()"]
+    nodes:
+      - {test: "smoke::target says ok", check_command: "python3 scripts/ruler.py run --ruler build/ruler.yaml smoke::target says ok"}

@@ -1,8 +1,0 @@
-id: SPEC-fixture-mini
-requirements:
-  - id: REQ-1
-    acs:
-      - {id: AC-1, given: "alpha input n", when: "processed", then: "n <= 10 passes, missing n errors"}
-      - {id: AC-2, given: "beta", when: "run", then: "ok"}
-      - {id: AC-3, given: "gamma", when: "run", then: "ok"}
-      - {id: AC-11, given: "delta", when: "run", then: "ok"}

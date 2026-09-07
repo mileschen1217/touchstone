@@ -1,0 +1,20 @@
+kind: ruler
+spec: spec.yaml
+deps: {manifest: none, install_cmd: none}
+acs:
+  - ac: AC-1
+    status: ruled
+    interface: ["src/a.py::def f()"]
+    nodes:
+      - {test: "tests/x.txt::t", check_command: "python3 scripts/ruler.py run --ruler build/ruler.yaml tests/x.txt::t"}   # not one of the three forms
+  - ac: AC-2
+    status: ruled
+    interface: ["src/a.py::def f()"]
+    nodes:
+      - {test: "tests/x.py::t", check_command: ""}                          # empty check command
+  - ac: AC-3
+    status: ruled
+    nodes:
+      - {test: "tests/x.py::t", check_command: "python3 scripts/ruler.py run --ruler build/ruler.yaml tests/x.py::t"}     # no interface signature
+  - ac: AC-4
+    status: unverified                                                     # no reason

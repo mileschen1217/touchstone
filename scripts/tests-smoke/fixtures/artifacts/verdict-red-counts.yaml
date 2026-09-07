@@ -1,0 +1,12 @@
+kind: verdict
+spec: spec.yaml
+freeze_sha: "5b2ea48d4c6a0b0e1c9b0a1f2e3d4c5b6a7980f1e2d3c4b5a69788796a5b4c3d"
+sha_check: ok
+violated_files: []
+environment: {worktree: /tmp/x, commit: abc, isolation: venv, install_cmd: none}
+acs:
+  - ac: AC-1
+    verdict: PASS
+    nodes:
+      - {test: tests/x.py::t, outcome: pass, output_ref: build/held-out/AC-1/held-out-0.log}
+summary: {pass: 2, fail: 0, disputed: 0, unverified: 0}

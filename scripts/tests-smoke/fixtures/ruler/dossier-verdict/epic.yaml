@@ -1,0 +1,7 @@
+slug: demo
+status: active
+started: 2026-01-01
+aim: dossier verdict projection fixture.
+foundation: {intention: fixture, out_of_scope: []}
+phases:
+  - {n: 1, title: demo, status: active, spec: 2026-01-01-demo.spec.yaml}

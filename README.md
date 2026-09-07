@@ -48,19 +48,26 @@ shell commands, so use it only in trusted contexts.
 
 Touchstone delegates work to agents and skills that live in other plugins. Install these before running touchstone skills.
 
-**Optional (build orchestration):** the `conductor` plugin — `anvil` builds through
-`conductor:orchestration-mode`; absent, anvil falls back to the light loop.
-
 **Optional cross-provider review:** install and authenticate the complementary
 CLI. Claude Code uses `codex`; Codex uses `claude`. Without it, Touchstone uses
 a fresh native context and records the review as degraded because provider
 independence was lost.
 
+**Optional (cross-vendor review path):**
+
+```bash
+# codex — cross-vendor agents (codex:rescue, codex-* reviewers/implementers)
+claude plugin install codex@openai-codex --scope user
+```
+
+The CC review arm (`code-reviewer`) is vendored plugin-local since 0.18.0 — no external plugin is needed for any touchstone execution path. Without `codex`, only single-vendor (Claude-only) review paths work — touchstone degrades gracefully but loses the parallel CC+Codex composite. (The optional `everything-claude-code` plugin's language-testing skills remain a useful depth reference for the test-evidence lens, nothing more.)
+
 ## Skills
 
 - `touchstone:init` — Bootstrap project adoption with root `touchstone.yaml`.
 - `touchstone:crucible` — Front-end contract orchestrator: explore → assay → design-spec, one human accept.
-- `touchstone:anvil` — Back-end contract executor: entry check → conductor orchestration-mode (AC-coverage floor) → final cross-vendor review, stops before ship.
+- `touchstone:anvil` — Back-end contract executor: entry check → frozen ruler (a non-builder author writes the tests; every node fails on the pre-build tree before the freeze) → session build (a wrong test is a dispute entry, never an edit) → held-out verdict in a clean worktree → deliverable-review, stops before ship.
+- `touchstone:dossier` — Render the current epic's dossier and open it (render-at-read; never depends on a prior render).
 - `touchstone:assay` — Pre-contract interview instrument: three-way alignment (vocabulary / maps / territory) — laydown-first full table ⇄ tacit-intent extraction → published predict round → consequence probes → readiness (explicit yes + clean round) → record consensus section the contract author consumes.
 - `touchstone:design-spec` — Author the contract spine: Foundation → User Stories (US-N) → Requirements (REQ-N, `traces-to`) → ACs (GWT), challenge-stamped.
 - `touchstone:design-review` — Gate spec/plan/ADR before Build (cross-provider doc review).

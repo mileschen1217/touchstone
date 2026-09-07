@@ -395,6 +395,7 @@ def kind_of(p):
     if p.startswith('hooks/'):                                          return 'hook'
     if re.match(r'^\.touchstone/checker/[^/]+/check-[^/]+\.sh$', p):    return 'checker'
     if p.endswith('.sh'):                                               return 'script'
+    if p.endswith('.py'):                                               return 'script'
     if p.startswith('docs/'):                                           return 'reference'
     if p.startswith('skills/.shared/'):                                 return 'fragment'
     if re.match(r'^skills/[^/]+/(references|templates)/', p):           return 'fragment'

@@ -1,0 +1,4 @@
+- ac: AC-3
+  test: build/ruler/test_greet.py::test_ac_3
+  asserts: a
+  spec_says: b

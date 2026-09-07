@@ -1,0 +1,26 @@
+kind: verdict
+spec: 2026-01-01-demo.spec.yaml
+freeze_sha: "0000000000000000000000000000000000000000000000000000000000000000"
+sha_check: ok
+violated_files: []
+environment: {worktree: /tmp/held-out-fixture, commit: fixture, isolation: venv, install_cmd: none}
+acs:
+  - ac: AC-1
+    verdict: PASS
+    nodes:
+      - {test: build/ruler/test_greet.py::test_ac_1, outcome: pass, output_ref: build/held-out/AC-1/held-out-0.log}
+  - ac: AC-2
+    verdict: FAIL
+    reason: "fail: test_ac_2 — AssertionError: usage line missing"
+    nodes:
+      - {test: build/ruler/test_greet.py::test_ac_2, outcome: fail, output_ref: build/held-out/AC-2/held-out-0.log}
+  - ac: AC-3
+    verdict: UNVERIFIED
+    reason: a real terminal is not a boundary the repo owns
+    nodes: []
+  - ac: AC-4
+    verdict: DISPUTED
+    reason: "asserts: stdout is exactly HELLO, BOB with --shout\nspec_says: the greeting is upper-cased — the AC names no exact form\nconflict: the test pins one rendering the AC does not"
+    nodes:
+      - {test: build/ruler/test_greet.py::test_ac_3, outcome: fail, output_ref: build/held-out/AC-4/held-out-0.log}
+summary: {pass: 1, fail: 1, disputed: 1, unverified: 1}

@@ -1,0 +1,10 @@
+entries: []
+waiting_on_human:
+  - id: W-1
+    kind: ruling
+    owner: human
+    title: "RULED test-wrong: AC-3's frozen node binds --shout, which the requirement never introduces; the next unit's ruler-author rewrites AC-3's nodes"
+    detail: "ruling: test-wrong. The disputed node build/ruler/test_greet.py::test_ac_3 is wrong, the builder was right; AC-3 is deferred to the next unit whose author round takes this ruling as input."
+    ruling: test-wrong
+    disposition: deferred
+    refs: [AC-3]
