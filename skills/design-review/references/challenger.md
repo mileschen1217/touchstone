@@ -16,7 +16,7 @@ boundary no AC covers), finding→class (does fixing this finding change a
 boundary). A block in `delta.blocks[]` that hides a decision, owns state, or
 sequences calls with neither an AC nor a checked invariant is a coverage gap.
 
-**Decider — the removal test** (defined in the injected stopping rule). Two
+**Decider — the removal test** (defined in injected severity qualification). Two
 corollaries when a finding survives it: is it testable (a pass/fail check can be
 written), is it quantified (a measurable threshold, not "fast" / "good").
 

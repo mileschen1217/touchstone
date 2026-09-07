@@ -1126,6 +1126,14 @@ expect_exit "assembler: conformance lens carries severity qualification" zero ba
 expect_exit "assembler: conformance severity rule present" zero grep -q "Severity qualification" "$asm_dir/lens-c.md"
 expect_exit "assembler: honor-check lens carries severity qualification" zero bash "$scripts_dir/assemble-arm-task.sh" --arm h --round-dir "$asm_dir" --lens honor-check --subject-cmd "echo x"
 expect_exit "assembler: honor-check severity rule present" zero grep -q "Severity qualification" "$asm_dir/lens-h.md"
+expect_exit "assembler: design-soundness lens assembles" zero bash "$scripts_dir/assemble-arm-task.sh" --arm ds --round-dir "$asm_dir" --lens design-soundness --subject-cmd "echo x"
+expect_exit "assembler: design-soundness carries shared output contract" zero grep -q "one finding per line" "$asm_dir/lens-ds.md"
+if grep -q '^## verification-honesty' "$asm_dir/lens-ds.md"; then echo "FAIL: assembler: design-soundness received verification-honesty"; fail=1
+else echo "PASS: assembler: design-soundness excludes verification-honesty"; fi
+expect_exit "assembler: verification-honesty lens assembles" zero bash "$scripts_dir/assemble-arm-task.sh" --arm vh --round-dir "$asm_dir" --lens verification-honesty --subject-cmd "echo x"
+expect_exit "assembler: verification-honesty carries shared output contract" zero grep -q "one finding per line" "$asm_dir/lens-vh.md"
+if grep -q '^## design-soundness' "$asm_dir/lens-vh.md"; then echo "FAIL: assembler: verification-honesty received design-soundness"; fail=1
+else echo "PASS: assembler: verification-honesty excludes design-soundness"; fi
 rm -rf "$asm_dir"
 
 find_checker() {  # <name> -> absolute path on stdout, or nothing

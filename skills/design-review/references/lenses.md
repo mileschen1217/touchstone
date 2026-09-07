@@ -5,6 +5,8 @@ kind: bridge
 
 # design-review — the two document lenses (composition: the lens manifest)
 
+## document-lens-contract
+
 Each section below is one lens prompt. Common preamble for every document lens:
 
 > You review a design spec given as YAML fields, reading the spec plus the repo's Accepted ADR corpus only — never test source or code. Cite every finding by field path (`requirements[REQ-2].acs[AC-4].then`, `delta.blocks[<id>]`, `touch_set.touched`). <!-- local-ref-ok -->

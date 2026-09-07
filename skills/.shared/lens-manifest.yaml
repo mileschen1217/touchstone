@@ -43,7 +43,8 @@ lenses:
       - {ref: skills/.shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
       - {ref: skills/.shared/ground-and-sweep.md, id: sweep, destination: arm}
       - {ref: 'skills/design-review/references/sweep-baselines.md#Sweep-axis baselines', id: sweep-baselines, destination: arm}
-      - {ref: skills/design-review/references/lenses.md, id: doc-lens-soundness, destination: arm}
+      - {ref: 'skills/design-review/references/lenses.md#document-lens-contract', id: doc-lens-contract, destination: arm}
+      - {ref: 'skills/design-review/references/lenses.md#design-soundness', id: doc-lens-soundness, destination: arm}
       - {ref: skills/.shared/inject/design-soundness-honor-check.md, id: honor-check, destination: arm}
       - {ref: skills/assay/references/arch-rubric.md, id: arch-rubric, destination: arm}
       - {ref: skills/design-review/references/standing-vs-transient-bridge.md, id: bridge-standing, destination: arm}
@@ -54,7 +55,8 @@ lenses:
     subject: true
     sections:
       - {ref: skills/.shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
-      - {ref: skills/design-review/references/lenses.md, id: doc-lens-honesty, destination: arm}
+      - {ref: 'skills/design-review/references/lenses.md#document-lens-contract', id: doc-lens-contract, destination: arm}
+      - {ref: 'skills/design-review/references/lenses.md#verification-honesty', id: doc-lens-honesty, destination: arm}
       - {ref: skills/.shared/inject/live-bearing-predicate.md, id: live-bearing, destination: arm}
       - {ref: skills/.shared/inject/ac-coverage-honesty-principle.md, id: ac-honesty, destination: arm}
       - {ref: skills/design-review/references/standing-vs-transient-bridge.md, id: bridge-standing, destination: arm}
