@@ -7,10 +7,10 @@
   with the Skill tool and pass `args` unchanged.
 - `dispatch_review_arm(...)`: for `claude-code`, invoke the registered
   Touchstone reviewer agent with one Agent call. For `codex`, invoke the
-  registered Codex forwarding agent, which runs
-  `scripts/run-external-reviewer.sh`. Pass file paths, role, and result
-  directory; do not paste lens or subject content into the prompt. The owning
-  workflow validates returned liveness and provenance.
+  Codex forwarding agent with JSON
+  `{task_file: <subject path>, task_dir: <result dir>, system_prompt_file:
+  <lens path>, timeout_seconds: 600}`. Never paste file contents into the
+  prompt. The owning workflow validates liveness and provenance.
 
 Treat `Agent` and `Skill` as Claude transport names, never as portable runtime
 terms.
