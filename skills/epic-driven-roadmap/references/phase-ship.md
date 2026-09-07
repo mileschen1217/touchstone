@@ -11,6 +11,12 @@ hand-off (branch, review verdict, unverified list) supplies that input: the unve
 blocker checklist shows, and an unverified live-bearing AC blocks the informed
 accept until its live artifact exists.
 
+Before starting Pre-approve, a non-passing review verdict or unresolved
+Critical/High finding halts this moment. Read
+`<plugin-root>/skills/.shared/inject/severity-tiered-stopping-rule.md` and apply
+its matching human-checkpoint branch; do not ask for the informed accept until
+that branch permits a passing hand-off.
+
 ## Pre-approve — Post-build pair (single home; close step 2 cites this)
 
 After the phase's branch is pushed and BEFORE the human approves the PR, you (the
