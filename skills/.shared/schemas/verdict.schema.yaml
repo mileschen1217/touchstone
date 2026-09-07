@@ -71,7 +71,7 @@ properties:
             properties:
               test: {type: string}
               outcome: {type: string, enum: [pass, fail, not-run, timeout]}
-              output_ref: {type: string}       # path of the captured output for this node
+              output_ref: {type: string}       # captured output for this node, relative to the epic dir (build/probes/<AC>/… for a live-bearing AC, build/held-out/<AC>/… otherwise); `none` when the node did not run
   summary:
     type: object
     reader: human
