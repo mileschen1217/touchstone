@@ -1,0 +1,18 @@
+subject: short fixture
+date: 2026-09-07
+epics: [fixture]
+term_sheet: []
+alignment: []
+extraction:
+  - id: Q-1
+    text: one confirmed short-form ruling.
+consensus:
+  scope:
+    - text: keep the change bounded.
+      trace: [Q-1]
+  invariants: []
+  contract_facts: []
+  out_of_scope: []
+flip_triggers: []
+deferred: []
+readiness: {form: short, yes: true, date: 2026-09-07}

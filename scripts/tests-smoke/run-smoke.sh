@@ -48,6 +48,7 @@ expect_out "check-artifact spec: dangling edge endpoint" "delta.edges[0].to: 'no
 expect_out "check-artifact spec: missing phase_map" "phase_map: required" bash "$ca" spec "$ax/spec-red-nomap.yaml" --root "$ax"
 
 expect_exit "check-artifact review green" zero bash "$ca" review "$ax/review-green.yaml" --root "$ax"
+expect_exit "check-artifact review: plan target uses file-line locators" zero bash "$ca" review "$ax/review-plan-green/review.yaml" --root "$ax/review-plan-green"
 expect_exit "check-artifact review red" nonzero bash "$ca" review "$ax/review-red.yaml" --root "$ax"
 expect_out "check-artifact review: duplicate F id" "duplicate id F-3" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
 expect_out "check-artifact review: missing waiting_on_human" "waiting_on_human: required" bash "$ca" review "$ax/review-red.yaml" --root "$ax"
@@ -173,6 +174,9 @@ expect_out "check-artifact quiz: legacy answer_refs is an unknown key" "items[QZ
 
 # ---- check-artifact.sh assay kind (REQ-2 / AC-6, AC-7): green + one red per violation class
 expect_exit "check-artifact assay green" zero bash "$ca" assay "$ax/assay-green.yaml" --root "$ax"
+expect_exit "check-artifact assay short form without a fake round" zero bash "$ca" assay "$ax/assay-short-green.yaml" --root "$ax"
+expect_exit "check-artifact assay short form rejects a fake round" nonzero bash "$ca" assay "$ax/assay-short-red-round.yaml" --root "$ax"
+expect_out "check-artifact assay short form names forbidden round" "readiness.round: forbidden when form is short" bash "$ca" assay "$ax/assay-short-red-round.yaml" --root "$ax"
 expect_exit "check-artifact assay: missing consensus subsection" nonzero bash "$ca" assay "$ax/assay-red-consensus.yaml" --root "$ax"
 expect_out "check-artifact assay: missing consensus subsection names it" "consensus.out_of_scope: required" bash "$ca" assay "$ax/assay-red-consensus.yaml" --root "$ax"
 expect_exit "check-artifact assay: duplicate ledger id within a family" nonzero bash "$ca" assay "$ax/assay-red-dup-id.yaml" --root "$ax"
@@ -1113,6 +1117,15 @@ expect_exit "assembler: failing subject leaves no partial files" nonzero ls "$as
 # well-formed but semantically hollow lens is the recorded regression shape
 expect_exit "assembler: quality lens assembles" zero bash "$scripts_dir/assemble-arm-task.sh" --arm t --round-dir "$asm_dir" --lens quality --subject-cmd "echo x"
 expect_exit "assembler: quality lens carries the reviewer role (not hollow)" zero grep -q "independent code reviewer" "$asm_dir/lens-t.md"
+if grep -q 'Omit `fragments_read`' "$asm_dir/lens-t.md"; then
+  echo "FAIL: assembler: quality lens contradicts its fragments_read header"; fail=1
+else
+  echo "PASS: assembler: quality lens preserves its fragments_read header"
+fi
+expect_exit "assembler: conformance lens carries severity qualification" zero bash "$scripts_dir/assemble-arm-task.sh" --arm c --round-dir "$asm_dir" --lens conformance --subject-cmd "echo x"
+expect_exit "assembler: conformance severity rule present" zero grep -q "Severity qualification" "$asm_dir/lens-c.md"
+expect_exit "assembler: honor-check lens carries severity qualification" zero bash "$scripts_dir/assemble-arm-task.sh" --arm h --round-dir "$asm_dir" --lens honor-check --subject-cmd "echo x"
+expect_exit "assembler: honor-check severity rule present" zero grep -q "Severity qualification" "$asm_dir/lens-h.md"
 rm -rf "$asm_dir"
 
 find_checker() {  # <name> -> absolute path on stdout, or nothing
@@ -1847,6 +1860,10 @@ expect_out "resolve-harness: Claude adapter resolves" "provider_family=anthropic
   bash "$scripts_dir/resolve-harness.sh" --harness claude-code
 expect_out "resolve-harness: Codex adapter resolves" "provider_family=openai" \
   bash "$scripts_dir/resolve-harness.sh" --harness codex
+expect_exit "resolve-harness: declared capability is available" zero \
+  bash "$scripts_dir/resolve-harness.sh" --harness codex --require external-reviewer
+expect_exit "resolve-harness: missing capability is rejected" nonzero \
+  bash "$scripts_dir/resolve-harness.sh" --harness codex --require unavailable-capability
 expect_exit "resolve-harness: unknown harness is rejected" nonzero \
   bash "$scripts_dir/resolve-harness.sh" --harness unknown
 

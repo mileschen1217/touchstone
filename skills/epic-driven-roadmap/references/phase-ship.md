@@ -7,8 +7,8 @@ ruling. There is no explainer file: the dossier's 首頁 (decision line → gate
 blocker checklist → how-verified → structure → do-confirm checklist) is the explainer,
 and the PR body is its text projection. Anvil's terminal hand-off (branch, review
 verdict, unverified list) is this moment's input: the unverified list is what the 首頁's
-blocker checklist shows, and an unverified live-bearing AC on it blocks the informed
-accept until its live artifact exists or the AC is deferred to a later phase.
+blocker checklist shows, and an unverified live-bearing AC blocks the informed
+accept until its live artifact exists.
 
 ## Pre-approve — Post-build pair (single home; close step 2 cites this)
 
@@ -18,8 +18,9 @@ shipping session) do the following in order:
 - [ ] **Metrics entry (plugin repo only — the root carries `.claude-plugin/plugin.json`).**
       Run `bash "<plugin-root>/scripts/phase-metrics.sh" <epic-dir> <this phase's
       session transcript(s)> --phase N --range <base>..<ship sha> --churn <shape_driven>,<other>`
-      and append the printed entry to `deviation.yaml.metrics` (a list, one entry per
-      phase). The script's only manual input is `--churn`: classify
+      and append the printed entry to `deviation.yaml.metrics` (a list validated
+      by `check-artifact.sh deviation` through the composed metrics schema, one
+      entry per phase). The script's only manual input is `--churn`: classify
       `git diff --stat <base>..HEAD -- .touchstone/checker scripts/plugin-map.sh` per hunk —
       shape_driven = a hunk that writes or reads a field a schema of this phase changed, a
       ratchet key/unit hunk, a removed waiver; everything else = other. A consumer project

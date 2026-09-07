@@ -1,7 +1,8 @@
 # Codex harness adapter
 
 - `resolve_plugin_root`: use the installed skill path exposed by Codex and
-  ascend to the plugin root. Hook commands may use `${PLUGIN_ROOT}`.
+  ascend to the plugin root. Hook commands may use `${PLUGIN_ROOT}`; Codex also
+  supplies `${CLAUDE_PLUGIN_ROOT}` for compatible plugin hooks.
 - `resolve_project_root`: use `git rev-parse --show-toplevel` from the task cwd.
 - `invoke_skill(name, args)`: explicitly invoke the installed Touchstone skill
   by name and pass `args` unchanged.

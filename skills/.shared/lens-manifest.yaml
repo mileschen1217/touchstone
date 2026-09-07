@@ -10,7 +10,8 @@
 #               `lenses:` block uses.
 # arms        — the default arm set; a caller may add an arm, never remove the last one.
 # subject     — always true: every lens takes a subject, so the assembler's output shape
-#               is unconditional.
+#               is unconditional; the assembler prepends that required report
+#               line to every generated lens file.
 # sections[].ref
 #             — repo-relative path, optionally `#<heading>` (the heading's text without
 #               its leading `#`s). No heading means the whole file.
@@ -64,6 +65,7 @@ lenses:
     arms: [claude-code]
     subject: true
     sections:
+      - {ref: skills/.shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
       - {ref: skills/.shared/inject/live-bearing-predicate.md, id: live-bearing, destination: arm}
       - {ref: skills/.shared/inject/ac-coverage-honesty-principle.md, id: ac-honesty, destination: arm}
       - {ref: 'skills/deliverable-review/references/ac-coverage-criteria.md#AC-coverage evidence rules', id: ac-coverage, destination: arm}
@@ -75,6 +77,7 @@ lenses:
     arms: [claude-code]
     subject: true
     sections:
+      - {ref: skills/.shared/inject/severity-qualification.md, id: sev-qual, destination: arm}
       - {ref: skills/.shared/inject/design-soundness-honor-check.md, id: honor-check, destination: arm}
       - {ref: skills/assay/references/arch-rubric.md, id: arch-rubric, destination: arm}
 

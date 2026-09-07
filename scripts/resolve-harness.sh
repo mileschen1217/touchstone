@@ -5,7 +5,7 @@
 set -uo pipefail
 
 usage() {
-  echo "usage: resolve-harness.sh [--root <plugin-root>] [--registry <path>] (--check | --harness <id>)" >&2
+  echo "usage: resolve-harness.sh [--root <plugin-root>] [--registry <path>] (--check | --harness <id> [--require <capability>])" >&2
 }
 
 self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,12 +13,14 @@ root="$(cd "$self_dir/.." && pwd)"
 registry=""
 harness=""
 check=0
+required_capability=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) root="${2:-}"; shift 2 ;;
     --registry) registry="${2:-}"; shift 2 ;;
     --harness) harness="${2:-}"; shift 2 ;;
+    --require) required_capability="${2:-}"; shift 2 ;;
     --check) check=1; shift ;;
     --help|-h) usage; exit 0 ;;
     *) usage; exit 2 ;;
@@ -39,14 +41,14 @@ python3 -c 'import yaml' >/dev/null 2>&1 || {
   echo "resolve-harness.sh: PyYAML not installed" >&2; exit 2;
 }
 
-python3 - "$root" "$registry" "$harness" "$check" <<'PY'
+python3 - "$root" "$registry" "$harness" "$check" "$required_capability" <<'PY'
 import os
 import re
 import sys
 
 import yaml
 
-root, registry_path, requested, check = sys.argv[1:]
+root, registry_path, requested, check, required_capability = sys.argv[1:]
 
 
 def fail(message):
@@ -98,6 +100,8 @@ if check == "1":
 entry = harnesses.get(requested)
 if entry is None:
     fail(f"unknown harness: {requested}")
+if required_capability and required_capability not in entry["capabilities"]:
+    fail(f"harness {requested}: missing capability: {required_capability}")
 print(f"harness={requested}")
 print(f"provider_family={entry['provider_family']}")
 print(f"adapter={entry['adapter']}")

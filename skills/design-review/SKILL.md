@@ -12,9 +12,15 @@ Apply `../.shared/harness-runtime.md` before any host-dependent operation.
 
 ## Scope
 
-In scope: `*.spec.yaml`, plan, ADR (`**/plans/**`, `**/adr/**`); else reply "not in scope — specs / plans / ADRs only" and exit. Subject status: `accepted-candidate` is the normal subject; `accepted` → treat as re-review; `draft` → reply "draft — not gated" and exit.
+In scope: `*.spec.yaml`, plan, ADR (`**/plans/**`, `**/adr/**`); else reply
+"not in scope — specs / plans / ADRs only" and exit. Plan/ADR findings use
+`file` + `line`, with empty `refs` and no `coverage`; spec findings may use
+field paths and refs. Subject status rules apply only to specs:
+`accepted-candidate` is normal, `accepted` is re-review, and `draft` is not gated.
 
-**Mode.** A spec whose `facts_source` record's readiness ruling says "short form" selects the **short-chain mode**: one round, the challenger and verification-honesty lenses only, the stopping rule's re-verify dispatch unused — the round closes on its own outcome. Every other subject runs the full mode: three lenses, the stopping rule's full budget.
+**Mode.** `facts_source` readiness `form: short` runs one challenger +
+verification-honesty round. Missing form means legacy `full`; full runs all
+three lenses and the stopping rule's budget.
 
 ## Phase 1 — Setup
 

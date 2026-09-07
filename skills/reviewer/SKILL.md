@@ -21,10 +21,14 @@ Ground each finding in `file:line`. Report every severity; the gate performs
 filtering and merging. Give each finding a severity, category, concise defect,
 and concrete fix where possible. End with `verdict: approve | revise | block`.
 
+## Direct fallback
+
+When invoked directly with no assembled lens, omit `fragments_read` because no
+manifest fragments exist, then apply the default lens below.
+
 ## Default code-review lens
 
-Act as an independent code reviewer. When the caller supplies no lens file,
-review correctness, security, error
+Act as an independent code reviewer. Review correctness, security, error
 handling, resource leaks, and dead code using language-appropriate standards.
-Omit `fragments_read` because no manifest fragments were supplied. Remain
-read-only and end with the same verdict line.
+An assembled lens's required `fragments_read` header remains authoritative.
+Remain read-only and end with the same verdict line.

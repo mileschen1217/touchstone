@@ -32,6 +32,10 @@ set -uo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rubric="$here/plugin-review-rubric.md"
 
+next_round() {  # <day-dir>: an incomplete dry-run round is reusable
+  [ -f "$1/round-1/review.yaml" ] && echo 2 || echo 1
+}
+
 # --------------------------------------------------------------- embedded python
 # Loop decision + waiting_on_human + rubric shape. One home, used by the live loop
 # and by --self-test.
@@ -84,11 +88,35 @@ def waiting(findings):
     return out
 
 def parse_cc_lens(path):
-    """Read a --cc-findings file (challenger marker lines, locator = file[:line]).
-    Return [(lens, locator), ...] — the same line shape PARSE_PY's cc arm reads,
-    reduced to just the lens tag for ingestion filtering."""
+    """Return (lens, locator) from strict fenced YAML or legacy marker lines."""
+    text = open(path, encoding='utf-8').read()
+    block = re.search(r'```ya?ml\s*\n(.*?)```', text, re.S | re.I)
+    if block:
+        # Parse only the three filter fields. Reviewers often leave `: `
+        # unquoted in summary/fix, so loading the whole block as YAML would
+        # reject otherwise recoverable findings before PARSE_PY can salvage it.
+        parsed, row = [], None
+        for line_text in block.group(1).splitlines():
+            m = re.match(r'^\s*-\s+file:\s*(.+?)\s*$', line_text)
+            if m:
+                if row is not None:
+                    parsed.append((row.get('lens', '4'), row['file'] + (':' + row['line'] if row.get('line') else '')))
+                row = {'file': m.group(1).strip('"\'')}
+                continue
+            if row is None:
+                continue
+            m = re.match(r'^\s+line:\s*(\d+)\s*$', line_text)
+            if m:
+                row['line'] = m.group(1)
+            m = re.match(r'^\s+lens:\s*([0-9]+)\s*$', line_text)
+            if m:
+                row['lens'] = m.group(1)
+        if row is not None:
+            parsed.append((row.get('lens', '4'), row['file'] + (':' + row['line'] if row.get('line') else '')))
+        if parsed:
+            return parsed
     out = []
-    for ln in open(path, encoding='utf-8'):
+    for ln in text.splitlines():
         ln = ln.strip()
         if not ln or ln.startswith('#'):
             continue
@@ -182,6 +210,14 @@ elif mode == 'selftest':
     ok &= status == 'ok' and n3 == 2
     print('%s cc-findings ingestion accepts lens 2 and 3, both parsed: status=%s n=%s' % ('PASS' if (status == 'ok' and n3 == 2) else 'FAIL', status, n3))
     _os.remove(p3)
+    p4 = _mk(['fragments_read: ', '```yaml', 'findings:',
+              '  - file: skills/a/SKILL.md', '    line: 12', '    lens: 2',
+              '    type: real-defect', '    severity: H', '    summary: defect',
+              '    fix: fix it', '```', '', 'C2.1: 2', 'VERDICT: revise'])
+    status, n4 = cc_ingest(p4)
+    ok &= status == 'ok' and n4 == 1
+    print('%s cc-findings ingestion accepts strict fenced YAML: status=%s n=%s' % ('PASS' if (status == 'ok' and n4 == 1) else 'FAIL', status, n4))
+    _os.remove(p4)
     sys.exit(0 if ok else 1)
 else:
     sys.exit('plugin-review.sh: unknown loop mode %s' % mode)
@@ -384,26 +420,14 @@ def norm(f, arm):
 
 findings = [norm(f, 'codex') for f in parsed if isinstance(f, dict)]
 
-# ---- CC arm: challenger marker lines, locator = file[:line]
+# ---- CC arm: the same strict block as Codex, with legacy marker fallback
 cc = []
 if cc_file and os.path.isfile(cc_file):
-    for ln in open(cc_file, encoding='utf-8'):
-        ln = ln.strip()
-        if not ln or ln.startswith('#'):
-            continue
-        m = re.match(r'^([\w./\-]+?)(?::(\d+))?:\s+(.*)$', ln)
-        if not m:
-            continue
-        rest = m.group(3)
-        def attr(k, dflt=''):
-            mm = re.search(r'\b' + k + r'=([^\s]+)', rest)
-            return mm.group(1) if mm else dflt
-        question = re.split(r'\s{2,}|\btype=', rest)[0].strip()
-        cc.append({'file': m.group(1), 'line': int(m.group(2) or 0),
-                   'lens': attr('lens', '4'), 'type': attr('type', 'refinement'),
-                   'severity': attr('severity', 'M'), 'summary': question,
-                   'fix': '(cc arm: question — the maintainer answers or fixes)',
-                   'provenance_hint': attr('provenance', '')})
+    cc_raw = open(cc_file, encoding='utf-8').read()
+    cc_parsed = from_blocks(cc_raw)
+    if cc_parsed is None:
+        cc_parsed = from_lines(cc_raw)
+    cc = [f for f in cc_parsed if isinstance(f, dict)]
 
 collapsed = 0
 for c in cc:
@@ -637,6 +661,17 @@ if [ "${1:-}" = "--self-test" ]; then
   st_fail=0
   python3 -c "$LOOP_PY" selftest "$rubric" || st_fail=1
 
+  st_round_state="$(mktemp -d)"
+  mkdir -p "$st_round_state/round-1"
+  [ "$(next_round "$st_round_state")" = 1 ] \
+    && echo "PASS incomplete dry-run round remains runnable" \
+    || { echo "FAIL incomplete dry-run round was counted complete"; st_fail=1; }
+  : > "$st_round_state/round-1/review.yaml"
+  [ "$(next_round "$st_round_state")" = 2 ] \
+    && echo "PASS review.yaml marks round complete" \
+    || { echo "FAIL completed round was not counted"; st_fail=1; }
+  rm -rf "$st_round_state"
+
   # Parser regression cases run through PARSE_PY itself — the same
   # from_blocks / from_records / from_lines path the live round uses. The first
   # case is the shipped defect: an unquoted `: ` inside a summary makes
@@ -869,7 +904,7 @@ subject_cmd="bash '$subject_script'"
 stop=""; rnd_done=0; pct_last="0.0"; c_last=0; h_last=0
 while : ; do
   mkdir -p "$day_dir"
-  n=$(( $(find "$day_dir" -maxdepth 1 -type d -name 'round-*' 2>/dev/null | wc -l | tr -d ' ') + 1 ))
+  n="$(next_round "$day_dir")"
   if [ "$n" -gt 1 ]; then                                       # one round only, ever
     stop="max-rounds"; rnd_done=$((n - 1))
     lastdir="$day_dir/round-$rnd_done"
@@ -908,10 +943,15 @@ while : ; do
   # `timeout` is GNU coreutils; stock macOS has none (Homebrew ships `gtimeout`). Absent
   # both → run unbounded rather than false-block with rc 127.
   tmo="$(command -v timeout || command -v gtimeout || true)"
-  ${tmo:+"$tmo" 900} codex exec --json --skip-git-repo-check \
-    -o "$rd/last-message.txt" "$(cat "$rd/lens-codex.md")" < "$rd/subject-codex.md" \
-    > "$rd/raw_codex.jsonl" 2> "$rd/codex_stderr.log"
-  crc=$?
+  if [ -s "$rd/raw_codex.jsonl" ] && [ -s "$rd/last-message.txt" ]; then
+    echo "plugin-review: reusing completed Codex liveness artifacts for parser retry" >&2
+    crc=0
+  else
+    ${tmo:+"$tmo" 900} codex exec --json --skip-git-repo-check \
+      -o "$rd/last-message.txt" "$(cat "$rd/lens-codex.md")" < "$rd/subject-codex.md" \
+      > "$rd/raw_codex.jsonl" 2> "$rd/codex_stderr.log"
+    crc=$?
+  fi
   if [ ! -s "$rd/last-message.txt" ]; then
     echo "plugin-review: codex produced no message (rc=$crc) — no review.yaml for round $n." >&2
     echo "  fallback_reason: $( [ "$crc" -eq 124 ] && echo 'codex timeout (900s)' || echo "codex error: rc=$crc" )" >&2

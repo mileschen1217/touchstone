@@ -354,6 +354,14 @@ elif kind == 'review':
             for a in f['found_by']:
                 if a not in lens_arms.get(f['lens'], set()):
                     errors.append(f"findings[{f.get('id')}].found_by: '{a}' is not an arm of lens '{f['lens']}' in providers")
+elif kind == 'assay':
+    readiness = doc.get('readiness') or {}
+    if isinstance(readiness, dict):
+        form = readiness.get('form', 'full')
+        if form == 'full' and not readiness.get('round'):
+            errors.append("readiness.round: required when form is full")
+        if form == 'short' and readiness.get('round'):
+            errors.append("readiness.round: forbidden when form is short")
 elif kind == 'deviation':
     for e in doc.get('entries') or []:
         if not isinstance(e, dict): continue

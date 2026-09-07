@@ -6,13 +6,16 @@ kind: bridge
 
 ## Short form — the subset a short contract runs
 
-Crucible selects the form (its three escalation triggers); when the form is short, run the vocabulary, map, and territory arms from `SKILL.md` with these substitutions, in this order:
+When Crucible selects short, run the three assay arms with these substitutions:
 
-1. **Term sheet** — session-new terms only; a pre-existing term keeps its home and gets no row.
-2. **Laydown + bold pass** — unchanged (every rule of the map arm, the explicit empty-bold line included).
-3. **Extraction** — at most three questions, each load-bearing and not answerable from the repo; for every other row write your leaning and let the human flip it in the same turn. No predict round, no separate probe round.
-4. **Consensus entries** carry the shape `decision · evidence (ledger row) · wrong-if (the observable that says the decision was wrong)` — the wrong-if is the probe, folded into the entry instead of a round of its own.
-5. **One explicit yes** on the consensus render is the readiness ruling; the record cites it with the date and a single `R-n`.
-6. **Record** — the same seven keys in the same order; a key the short form did not run reads `short form: not run`.
+1. **Term sheet** — session-new terms only.
+2. **Laydown + bold pass** — unchanged, including the empty-bold line.
+3. **Extraction** — ask at most three load-bearing, repo-unanswerable
+   questions; state leanings for other rows. Run no predict or probe round.
+4. **Consensus** — each entry carries `decision · evidence (ledger row) ·
+   wrong-if`; the last part is the folded probe.
+5. **One explicit yes** on the consensus render is the readiness ruling; write
+   `readiness: {form: short, yes: true, date: <date>}` with no `round`.
+6. **Record** — keep all collection keys; use empty collections, never a string sentinel.
 
-The wrong-if signals are what phase-ship's deviation count later tests: a short-form phase logging more deviations than the flip-trigger registry tolerates is the sign the form cut too deep.
+Phase-ship tests `wrong-if` through deviations; excess deviations mean short cut too deep.

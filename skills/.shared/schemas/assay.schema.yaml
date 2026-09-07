@@ -129,9 +129,10 @@ properties:
   readiness:
     type: object
     reader: agent
-    required: [yes, date, round]
+    required: [yes, date]
     additionalProperties: false
     properties:
+      form: {type: string, enum: [full, short]}
       yes: {type: boolean}
       date: {type: date}
       round: {type: string, pattern: '^R-\d+$'}

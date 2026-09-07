@@ -68,7 +68,9 @@ An external quality arm without its adapter-defined liveness artifacts did not r
 
 Write `<epic-dir>/deliverable-review-<date>/review.yaml` — `gate: deliverable-review`, `target` = the governing spec file, `range` = the reviewed range, `sha` = HEAD. Field set: `review.schema.yaml` under `<plugin-root>/skills/.shared/schemas/`; field meanings AND the shared merge rules: `provenance.md` (Phase 1). This gate's one merge delta: a conformance line reported `covered` becomes a `coverage[]` row, never a finding; every uncovered AC and every violated / undecidable invariant is a finding on its field path, `status: unverified` where the arm could not decide (naming the proxy).
 
-**Read-back check**: run the comparison rule from `provenance.md` on each arm's opening `fragments_read` line before merging; a failed comparison writes no review.yaml until resolved.
+**Read-back check**: apply `provenance.md` before merging. Missing or partial
+read-back writes a degraded round; an unknown fragment id fails the merge and
+writes no `review.yaml`.
 
 Validate with `check-artifact.sh review` (`--root <epic-dir>`; exit 0 required). The raw arm outputs sit in the round dir (`raw_cc.md`; a Codex arm's `raw_codex.jsonl` + `last-message.txt`); no other review file.
 

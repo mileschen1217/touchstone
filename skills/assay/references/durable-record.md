@@ -26,7 +26,8 @@ id families and order fixed — consumers key on these names:
   (`breadth-discovery.md`)
 - `flip_triggers[]` — observable signal + revisit point per row
 - `deferred[]` — the non-load-bearing unknown stubs
-- `readiness` — explicit yes + date + the clean round's `R-n`
+- `readiness` — `form: full|short` plus explicit yes and date; full also names
+  the clean probe round's `R-n`, while short carries no round
 - (deviations found downstream are `D-n` entries in the epic's `deviation.yaml`, never a key here)
 
 **Existing `.md` records stay frozen read-only until epic archive** — every record

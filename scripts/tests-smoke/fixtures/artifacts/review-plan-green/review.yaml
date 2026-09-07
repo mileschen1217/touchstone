@@ -1,0 +1,27 @@
+gate: design-review
+target: plan.md
+sha: fixture
+round: 1
+providers:
+  - lens: design-soundness
+    arms: [codex]
+    fragments_read: [soundness]
+challenger: codex
+degraded: false
+verdict: approve
+counts: {C: 0, H: 0, M: 0, L: 1}
+rulings: []
+findings:
+  - id: F-1
+    lens: design-soundness
+    type: refinement
+    provenance: original
+    severity: L
+    file: plan.md
+    line: 1
+    summary: fixture refinement
+    fix: no action
+    status: open
+    found_by: [codex]
+    refs: []
+waiting_on_human: []
