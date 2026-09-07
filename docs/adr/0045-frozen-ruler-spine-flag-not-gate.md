@@ -125,7 +125,7 @@ option.
   DISPUTED rows at phase-ship, test and reason side by side. No pre-freeze rulings.
 - A wrong frozen test costs one build unit, not a halt: it surfaces as FAIL or DISPUTED
   with evidence, and the next unit's author fixes it.
-- `ruler.py` shrinks to four subcommands (check, red-first, freeze, held-out) with no
+- `ruler.py` shrinks to five subcommands (check, run, red-first, freeze, held-out) with no
   stub tree and no outcome taxonomy; three schemas become two (ruler, verdict); the
   plugin ships one fewer agent and one more hook.
 - The satisficer's cheapest path to green is now: build the behaviour, or flag the test
