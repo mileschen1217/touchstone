@@ -42,9 +42,9 @@ fragments it declares.
   the merge's read-back comparison. `--arm` label = `<lens>-<vendor>` wherever two
   same-vendor arms share a round dir.
 - Run one adapter `dispatch_review_arm` per arm; pass role and paths, never file
-  content. External liveness is `raw_codex.jsonl` + `last-message.txt` or
-  `raw_claude.json` + `last-message-claude.txt`; native arms return their real
-  dispatch record.
+  content. Liveness: Codex external `raw_codex.jsonl` + `last-message.txt`;
+  Claude external `raw_claude.json` + `last-message-claude.txt`; native dispatch
+  record (Claude: `raw_cc.md`).
 - A failed complementary provider may fall back to another native fresh
   context only as degraded, with presentation duty.
 - A re-dispatched arm (fallback or liveness re-try) reuses the SAME two assembled files — never re-assemble.

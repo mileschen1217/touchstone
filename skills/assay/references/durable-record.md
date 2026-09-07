@@ -6,12 +6,9 @@ kind: bridge
 
 ## Durable record — the terminal deliverable
 
-Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.yaml` — top-level `subject:`
-(one line; the contract author maps intention from it), `date:`, `epics:`. One record
-per subject; a re-run APPENDs new dated entries, never overwrites. Entries stay at
-digest density: one line per resolved row, full text only for rows still open and
-load-bearing — the record is a handoff surface, not a transcript. Structured keys,
-id families and order fixed — consumers key on these names:
+Write `<epics-dir>/<slug>/assay-<YYYY-MM-DD>-<subject>.yaml` with top-level
+`subject`, `date`, and `epics`. A rerun appends dated entries. Keep one line per
+resolved row and full text only for open load-bearing rows. Consumers key on:
 
 - `term_sheet[]` — rows `T-n`
 - `alignment[]` — rows `A-n`/`B-n`: dual tags + leaning + planned handling; bold-pass rows marked
@@ -29,6 +26,9 @@ id families and order fixed — consumers key on these names:
 - `readiness` — `form: full|short` plus explicit yes and date; full also names
   the clean probe round's `R-n`, while short carries no round
 - (deviations found downstream are `D-n` entries in the epic's `deviation.yaml`, never a key here)
+
+Before handoff, run `bash "<plugin-root>/scripts/check-artifact.sh" assay
+<record> --root <epic-dir>`; non-zero blocks the handoff.
 
 **Existing `.md` records stay frozen read-only until epic archive** — every record
 authored from this change forward is `.yaml`; no new `.md` record is written.

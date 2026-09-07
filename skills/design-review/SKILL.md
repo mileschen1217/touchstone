@@ -18,9 +18,9 @@ In scope: `*.spec.yaml`, plan, ADR (`**/plans/**`, `**/adr/**`); else reply
 field paths and refs. Subject status rules apply only to specs:
 `accepted-candidate` is normal, `accepted` is re-review, and `draft` is not gated.
 
-**Mode.** In the assay record named by `facts_source.record`, `readiness.form:
-short` runs one challenger + verification-honesty round. Missing means `full`:
-run all lenses with the full budget.
+**Mode.** From the assay record at `facts_source.record`, `readiness.form:
+short` runs challenger + verification-honesty once. Missing is `full`: run all
+lenses and full budget.
 
 ## Phase 1 — Setup
 
