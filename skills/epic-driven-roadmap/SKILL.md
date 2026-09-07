@@ -26,14 +26,19 @@ shallow: facts plus pointers to content docs (specs, plans, research). Design
 prose, rationale, and research findings belong in a content doc, never in the
 tracker.
 
-Three procedures: **Scaffold** a new epic, **Close** an epic, **Audit**
-tracker health. Skip this skill entirely if the project has no
+Four procedures: **Scaffold** an epic, **Ship a phase**, **Close** an epic, and
+**Audit** tracker health. Skip this skill entirely if the project has no
 `.touchstone/epics/` dir — nothing to maintain yet.
 
 ## Scaffold a new epic
 
 Procedure (foundation elicitation first — requires a live, responsive user) →
 [`references/scaffold.md`](references/scaffold.md).
+
+## Ship a phase
+
+Pre-approve procedure and informed-accept handoff →
+[`references/phase-ship.md`](references/phase-ship.md).
 
 ## Close an epic
 
