@@ -31,8 +31,9 @@
 #       invalid-once exactly two dispatches, the second prompt carrying check-artifact
 #                    output; ruler.yaml and freeze.json present.
 #       silent-twice exactly two dispatches, no freeze.json, output.log names ruler.yaml.
-#       overreach    deviation.yaml carries a D-n naming the overreaching path, no ruler.yaml
-#                    survives, no freeze.json, at most two dispatches.
+#       overreach    deviation.yaml carries a D-n naming the overreaching path and records the
+#                    ruler discarded, no freeze.json, at most two dispatches (the second
+#                    violation halts).
 #       ambiguous    the spec's waiting_on_human gained a W-n naming AC-7, freeze.json exists,
 #                    deviation.yaml carries a blocked D-n naming AC-7, verdict.yaml carries
 #                    AC-7 UNVERIFIED with reason ambiguous.
@@ -285,7 +286,7 @@ elif expect in ('silent-once', 'silent-twice', 'invalid-once'):
 elif expect == 'overreach':
     dev = rd('artifacts/deviation.yaml')
     if not re.search(r'src/(helper|app)\.py', dev): fails.append('deviation.yaml carries no D-n naming the overreaching path')
-    if art('ruler.yaml'): fails.append('ruler.yaml survived — the ruler was not discarded')
+    if not re.search(r'discard|remov|rm -rf', dev + log, re.IGNORECASE): fails.append('no record that the overreaching ruler was discarded')
     if art('freeze.json'): fails.append('freeze.json exists — the run did not stop at the scope check')
     if len(dispatches) > 2: fails.append(f'ruler-author dispatches: {len(dispatches)} (want ≤ 2)')
 elif expect == 'ambiguous':
