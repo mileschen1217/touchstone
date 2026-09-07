@@ -23,11 +23,11 @@ produced one and a half real findings, two false positives and one halt:
 
 | round | non-traceable rows | later judgment |
 |---|---|---|
-| 1 | AC-51 hollow, AC-28 chosen-interpretation | one false, one misclassified |
-| 2 | AC-51 hollow, AC-35 hollow, AC-5 chosen; 50 of 52 lines written | AC-35 real; AC-5 weak; two rows missing |
-| 3 | AC-51 hollow, AC-28 hollow | AC-51's objection ("a hard-coded self-test printing the PASS lines would pass") holds for any black-box test of a self-test and cannot be answered by a stronger assertion; AC-28 a small partial node |
+| 1 | the self-test row hollow, the completeness row read as an interpretation choice | one false, one misclassified |
+| 2 | the self-test row and a probe row hollow, a boundary row read as a chosen interpretation; 50 of 52 rows written | the probe finding real; the boundary one weak; two rows missing |
+| 3 | the self-test row and the completeness row hollow | the self-test objection ("a hard-coded self-test printing the PASS lines would pass") holds for any black-box test of a self-test and cannot be answered by a stronger assertion; the completeness row a small partial node |
 
-The reader's class for AC-28 moved chosen → traceable → hollow across three rounds on an
+The reader's class for the completeness row moved chosen → traceable → hollow across three rounds on an
 unchanged row. `ruler.py freeze` refuses on any hollow line, so a noisy judgment fed a
 deterministic gate and the build stopped with nothing built. The owner was asked to rule
 on "does this reader objection count", a question the mechanism created, not the problem.
@@ -51,7 +51,7 @@ What the literature measures (retrieved 2026-09-07):
   and review them for years: 61% of SWE-bench tests flagged as possibly rejecting valid
   solutions, 68% of tasks filtered by 93 engineers (SWE-bench Verified, OpenAI 2024).
 - **No single verifier suffices**; stack verifiers of different kinds. Mutation testing
-  cannot classify equivalent mutants — the exact shape of the AC-51 objection
+  cannot classify equivalent mutants — the exact shape of the self-test objection above
   (Verification Horizon, arXiv 2606.26300).
 - **Anthropic's own guidance** names the spine and the failure form in one page: "have
   one Claude write tests, then another write code to pass them"; a fresh verification
