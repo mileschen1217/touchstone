@@ -16,6 +16,7 @@ __pycache__/
 .worktrees/
 CLAUDE.local.md
 ROADMAP.md
+!.touchstone/checker/fixtures/**/ROADMAP.md
 .venv/
 
 # conductor orchestration run artifacts (local build-process audit; machine paths)
