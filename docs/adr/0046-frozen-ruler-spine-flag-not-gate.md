@@ -1,4 +1,4 @@
-# 0045 — The build's `done` rests on a frozen, non-builder ruler re-run held-out; disagreement is a flag with a reason, never a gate
+# 0046 — The build's `done` rests on a frozen, non-builder ruler re-run held-out; disagreement is a flag with a reason, never a gate
 
 - **Status:** Accepted 2026-09-07 — owner ruling after the anvil self-build halted before freeze (deviation D-6 of epic anvil-work-order-dispatch); revises the accepted phase-1 spec (REQ-3 removed, REQ-4 reduced, one requirement added); promoted to docs/adr at the 2026-09-07 design-review re-verify (a cold reader must find the ruling the spec cites)
 - **Date:** 2026-09-07

@@ -8,7 +8,7 @@ kind: workflow
 
 # /touchstone:dossier — render at read, then open
 
-`<epic-dir>` = the argument, else the one `status: active` epic dir under `bundle.epics` (resolve the bundle with `${CLAUDE_PLUGIN_ROOT}/skills/_shared/config-resolver.md`; several active → ask which). Run:
+`<epic-dir>` = the argument, else the one `status: active` epic dir under `bundle.epics` (resolve the bundle with `${CLAUDE_PLUGIN_ROOT}/skills/.shared/config-resolver.md`; several active → ask which). Run:
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/dossier-render.sh" --open <epic-dir>

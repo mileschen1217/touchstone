@@ -2,7 +2,7 @@
 """scripts/ruler.py — the ruler tool: one script, five subcommands. The mechanical home of
 ruler-before-code (red-first), the frozen ruler (freeze), the two-way AC ↔ node trace
 (check), the one executor every node goes through (run) and the independent verdict
-(held-out). Field sets: the ruler / verdict schemas under skills/_shared/schemas/ (node
+(held-out). Field sets: the ruler / verdict schemas under skills/.shared/schemas/ (node
 forms, aggregation, the disputes file and the files_sha recipe are documented there, once).
 
   ruler.py check     --ruler <ruler.yaml> --spec <spec.yaml> [--root <repo>]

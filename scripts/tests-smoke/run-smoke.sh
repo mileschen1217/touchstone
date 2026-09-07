@@ -343,7 +343,7 @@ print('PASS: check-artifact existential [*], root escape rejected, ledger id bou
 PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
 # the ten schema files exist and every top-level field carries a reader tag
-python3 - "$scripts_dir/../skills/_shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
+python3 - "$scripts_dir/../skills/.shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
 import sys, os, yaml
 d = sys.argv[1]
 assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'epic.schema.yaml', 'explore.schema.yaml', 'metrics.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'ruler.schema.yaml', 'spec.schema.yaml', 'verdict.schema.yaml'], os.listdir(d)
@@ -1848,8 +1848,6 @@ expect_exit "external-reviewer: Claude transport succeeds" zero env PATH="$revie
 expect_out "external-reviewer: Claude normalized result" "CLAUDE_OK" \
   cat "$review_root/claude-out/last-message-claude.txt"
 rm -rf "$review_root"
-# ---- work-order format standard: the offline check-artifact suite (zero model tokens)
-expect_exit "work-order fixture suite (skills/_shared/work-order/tests/run-fixtures.sh)" zero bash "$scripts_dir/../skills/_shared/work-order/tests/run-fixtures.sh"
 # ---- ruler tool (scripts/ruler.py) over its fixture suite (fixtures/ruler/): every mini
 # fixture is a project root (spec.yaml + build/ruler.yaml + build/ruler/ + src/) whose content
 # is the pre-build tree, copied to a scratch git repo with one pre-build commit; an optional
@@ -2082,10 +2080,10 @@ expect_exit "probe-anvil.sh --self-test" zero bash "$here/probe-anvil.sh" --self
 expect_exit "ruler-author pins model opus, omits Edit, names the rulings: input" zero bash -c "grep -q '^model: opus' '$scripts_dir/../agents/ruler-author.md' && grep -q '^tools: Read, Grep, Glob, Write$' '$scripts_dir/../agents/ruler-author.md' && grep -q 'rulings:' '$scripts_dir/../agents/ruler-author.md'"
 expect_exit "anvil SKILL.md names no retired path" nonzero grep -qiE "conductor|orchestration-mode|light-loop|ruler-reader|stub|hollow" "$scripts_dir/../skills/anvil/SKILL.md"
 expect_exit "anvil SKILL.md 2.1 appends rulings: from deviation.yaml" zero grep -q 'Append `rulings: <epic-dir>/deviation.yaml`' "$scripts_dir/../skills/anvil/SKILL.md"
-for rl_gone in skills/_shared/light-loop.md agents/ruler-reader.md skills/_shared/schemas/freeze.schema.yaml; do
+for rl_gone in skills/.shared/light-loop.md agents/ruler-reader.md skills/.shared/schemas/freeze.schema.yaml; do
   expect_exit "retired path absent: $rl_gone" nonzero test -e "$scripts_dir/../$rl_gone"
 done
-expect_exit "retired dispatch-engine directory absent (skills/_shared/work-*)" nonzero bash -c "ls -d '$scripts_dir/../skills/_shared/'work-* 2>/dev/null | grep -q ."
+expect_exit "retired dispatch-engine directory absent (skills/.shared/work-*)" nonzero bash -c "ls -d '$scripts_dir/../skills/.shared/'work-* 2>/dev/null | grep -q ."
 for rl_p in "$rl_scratch"/*/; do git -C "$rl_p" worktree prune >/dev/null 2>&1; done
 rm -rf "$rl_scratch"
 

@@ -29,7 +29,7 @@ Non-zero exit → surface the output verbatim and halt. Zero → `mkdir -p <epic
 
 ruler-author → `ruler.py check` → `red-first` → `freeze` → session build → `held-out` → deliverable-review. No other path, no fallback, and nothing between the ruler and the freeze asks a human or a model for a judgment — `ruler.py freeze` writes from the red-first log alone.
 
-Artifacts, all under `<epic-dir>/build/` (`B`): `ruler.yaml` + `ruler/` — the AC → test index and its test files (schema `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/ruler.schema.yaml`); `freeze.json` — the sha of every ruler file, written once by `ruler.py freeze`; `disputes.yaml` — the builder's entries against a frozen test; `verdict.yaml` — per-AC PASS / FAIL / DISPUTED / UNVERIFIED written by `ruler.py held-out` (schema `verdict.schema.yaml`, same directory), the artifact the ship accept reads. `R="${CLAUDE_PLUGIN_ROOT}/scripts/ruler.py"`, `S=<scratchpad>`.
+Artifacts, all under `<epic-dir>/build/` (`B`): `ruler.yaml` + `ruler/` — the AC → test index and its test files (schema `${CLAUDE_PLUGIN_ROOT}/skills/.shared/schemas/ruler.schema.yaml`); `freeze.json` — the sha of every ruler file, written once by `ruler.py freeze`; `disputes.yaml` — the builder's entries against a frozen test; `verdict.yaml` — per-AC PASS / FAIL / DISPUTED / UNVERIFIED written by `ruler.py held-out` (schema `verdict.schema.yaml`, same directory), the artifact the ship accept reads. `R="${CLAUDE_PLUGIN_ROOT}/scripts/ruler.py"`, `S=<scratchpad>`.
 
 Dispatches during a build are exactly ruler-author (2.1) and Stage 3's review arms; each takes its model from the agent definition's `model:` line, never from this session (the plugin-graph checker enforces the pin). You consume a dispatch's files, never its report text. Any other `Agent()` is a `D-n` entry.
 
@@ -44,7 +44,7 @@ ruler_file: <epic-dir>/build/ruler.yaml
 ruler_dir: <epic-dir>/build/ruler
 repo_root: <root>
 ruler_py: <the path check commands name — scripts/ruler.py in this plugin's own repo, else $R>
-schema_file: ${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/ruler.schema.yaml
+schema_file: ${CLAUDE_PLUGIN_ROOT}/skills/.shared/schemas/ruler.schema.yaml
 pre_build_commit: <git -C <root> rev-parse HEAD>
 pre_build_tree: $S/pre-build   # git -C <root> worktree add --detach "$S/pre-build" <pre_build_commit>, made before this dispatch
 ")
@@ -68,7 +68,7 @@ python3 "$R" freeze    --ruler "$B/ruler.yaml" --root <root>
 
 ### 2.3 session build
 
-`test -f "$B/freeze.json"` immediately before the first edit under `touch_set.touched`; missing → halt naming it — never re-run `freeze` or `red-first` to replace it (`ruler.py freeze` refuses a second freeze of the same build). Then build every AC yourself: an item you cannot finish is `blocked` with its reason and you move to the next; a gap against the spec is a `D-n` in the epic's `deviation.yaml` (field set: `${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/deviation.schema.yaml`) the moment you find it, never a note in the run report.
+`test -f "$B/freeze.json"` immediately before the first edit under `touch_set.touched`; missing → halt naming it — never re-run `freeze` or `red-first` to replace it (`ruler.py freeze` refuses a second freeze of the same build). Then build every AC yourself: an item you cannot finish is `blocked` with its reason and you move to the next; a gap against the spec is a `D-n` in the epic's `deviation.yaml` (field set: `${CLAUDE_PLUGIN_ROOT}/skills/.shared/schemas/deviation.schema.yaml`) the moment you find it, never a note in the run report.
 
 A ruler file is never edited after freeze: `hooks/guard-ruler.sh` blocks Edit and Write on `B/freeze.json`, every file it lists and everything under `B/ruler/`, and `held-out`'s sha check turns any other route into a FAIL naming the file. A test you believe wrong is one entry appended to `B/disputes.yaml` — `ac`, `test`, `asserts` (what the test checks), `spec_says` (the AC text you read), `conflict` (why both cannot hold) — the test stays as it is, still runs held-out, and its verdict row is DISPUTED with the test and your reason side by side for the owner's ruling at phase-ship. No ruler-author dispatch happens between freeze and held-out. Run `python3 "$R" run --ruler "$B/ruler.yaml" <node>` as often as you like — a report, never the verdict. Your own tests live outside `B/ruler/` and never enter the ruler, the freeze or the verdict. Commit the build before 2.4.
 
@@ -85,7 +85,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-artifact.sh" verdict "$B/verdict.yaml"
 
 ## Stage 3 — deliverable-review
 
-Invoke `Skill(skill: "touchstone:deliverable-review")` on the branch range with the spec as the governing spec. Convergence belongs to the stopping rule that gate injects (`severity-tiered-stopping-rule.md` under `${CLAUDE_PLUGIN_ROOT}/skills/_shared/inject/`): read its outcome, never re-run the gate past its budget. An `unverified` review row survives intact, like an UNVERIFIED verdict row.
+Invoke `Skill(skill: "touchstone:deliverable-review")` on the branch range with the spec as the governing spec. Convergence belongs to the stopping rule that gate injects (`severity-tiered-stopping-rule.md` under `${CLAUDE_PLUGIN_ROOT}/skills/.shared/inject/`): read its outcome, never re-run the gate past its budget. An `unverified` review row survives intact, like an UNVERIFIED verdict row.
 
 ## Terminal — reviewed deliverable, handed to phase-ship
 

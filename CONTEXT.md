@@ -91,7 +91,7 @@ pointer names the single home of any longer rule.
   (a wrong test is a `build/disputes.yaml` entry, never an edit) → held-out (a clean
   worktree re-runs the frozen ruler and writes `build/verdict.yaml` — PASS / FAIL /
   DISPUTED / UNVERIFIED per AC, the artifact the ship accept reads) → deliverable-review
-  → hand-off to phase-ship. Schemas: `skills/_shared/schemas/{ruler,verdict}.schema.yaml`.
+  → hand-off to phase-ship. Schemas: `skills/.shared/schemas/{ruler,verdict}.schema.yaml`.
 - **AC-coverage floor** — `ruler.py check` before freeze: every spec AC has exactly one
   ruler row (ruled, regression, or unverified with a reason) and every node's check
   command is the runner form; blocks a dropped AC.

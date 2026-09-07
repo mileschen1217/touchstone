@@ -30,12 +30,10 @@ if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
 fi
 [ -n "$pcwd" ] || pcwd="$PWD"
 
-root="${TOUCHSTONE_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-}}"
+root="${CLAUDE_PROJECT_DIR:-}"
 if [ -z "$root" ]; then
-  if command -v git >/dev/null 2>&1; then
-    root="$(git -C "$pcwd" rev-parse --show-toplevel 2>/dev/null || true)"
-  fi
-  [ -n "$root" ] || root="$pcwd"
+  command -v git >/dev/null 2>&1 || exit 0
+  root="$(git -C "$pcwd" rev-parse --show-toplevel 2>/dev/null || true)"
 fi
 [ -n "$root" ] && [ -d "$root" ] || exit 0
 root="$(cd "$root" 2>/dev/null && pwd)" || exit 0
@@ -52,20 +50,12 @@ if [ -f "$wcfg" ]; then
     \'*) w="${w#\'}"; w="${w%%\'*}" ;;
     *)   w="${w%%#*}"; w="$(printf '%s' "$w" | sed 's/[[:space:]]*$//')" ;;
   esac
-  printf '%s' "$value"
-}
-
-neutral="$root/touchstone.yaml"
-legacy="$root/.claude/touchstone.yaml"
-w_neutral="$(read_workspace_root "$neutral")"
-w_legacy="$(read_workspace_root "$legacy")"
-if [ -n "$w_neutral" ] && [ -n "$w_legacy" ] && [ "$w_neutral" != "$w_legacy" ]; then
-  jq -nc '{systemMessage:"dossier-render skipped: conflicting touchstone.yaml files"}' 2>/dev/null \
-    || printf '{"systemMessage":"dossier-render skipped: conflicting touchstone.yaml files"}\n'
-  exit 0
 fi
-w="${w_neutral:-${w_legacy:-.touchstone}}"
-case "$w" in /*) wroot="$w" ;; *) wroot="$root/$w" ;; esac
+[ -n "$w" ] || w=".touchstone"
+case "$w" in
+  /*) wroot="$w" ;;
+  *)  wroot="$root/$w" ;;
+esac
 
 # the two root stats — zero epic dirs → silent exit
 epics="$wroot/epics"; archive="$wroot/archive/epics"

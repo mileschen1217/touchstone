@@ -3,7 +3,7 @@
 > A test of what is genuine. (試金石 — a stone used to test the authenticity of metal.)
 
 An Agent Skills plugin for **workflow discipline** on Claude Code and Codex —
-11 skills around the **honesty spine**: *claim ≤ evidence*. Gaps are marked,
+12 skills around the **honesty spine**: *claim ≤ evidence*. Gaps are marked,
 not hidden.
 
 ## What it is
