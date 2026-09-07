@@ -70,7 +70,7 @@ properties:
         # when one of these is set or the title opens with RULED
         ruling: {type: string}
         disposition: {type: string}
-        resolved: {type: string}
+        resolved: {type: date}                # a date (quoted or bare) or text
         refs:
           type: array
           items:

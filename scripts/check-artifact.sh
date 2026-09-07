@@ -14,7 +14,7 @@
 # across its term_sheet/alignment/extraction ids), field-path grammar on review findings and
 # quiz anchors (field paths resolve into a target spec only where resolves is target — a
 # quiz anchor gets the grammar check only), path-free phase_map,
-# degraded_reason when degraded, `pattern` on a string value, `minItems` on an array,
+# degraded_reason when degraded, `pattern` on a string value, `minItems` / `maxItems` on an array,
 # `spec_ref` resolution (below), and per-kind rules: a review finding with no locator
 # (field/file/refs all absent or empty); a review finding whose lens is conformance and
 # status is covered (coverage rows belong in coverage[], not findings[]); a review
@@ -105,6 +105,8 @@ def walk(v, s, p, phase=None, parent=None):
             errors.append(f"{p}: '{v}' not in {s['enum']}")
     if t == 'array' and 'minItems' in s and len(v) < s['minItems']:
         errors.append(f"{p}: minItems {s['minItems']}")
+    if t == 'array' and 'maxItems' in s and len(v) > s['maxItems']:
+        errors.append(f"{p}: maxItems {s['maxItems']}")
     fam = s.get('id')
     if fam and isinstance(v, str):
         if fam in ('US', 'REQ', 'AC', 'INV', 'F', 'D', 'QZ', 'W') and not re.fullmatch(fam + r'-\d+', v):
