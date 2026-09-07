@@ -46,6 +46,7 @@ repo_root: <root>
 ruler_py: <the path check commands name — scripts/ruler.py in this plugin's own repo, else $R>
 schema_file: ${CLAUDE_PLUGIN_ROOT}/skills/_shared/schemas/ruler.schema.yaml
 pre_build_commit: <git -C <root> rev-parse HEAD>
+pre_build_tree: $S/pre-build   # git -C <root> worktree add --detach "$S/pre-build" <pre_build_commit>, made before this dispatch
 ")
 ```
 
@@ -58,8 +59,7 @@ Append `rulings: <epic-dir>/deviation.yaml` whenever that file's `waiting_on_hum
 
 ```bash
 python3 "$R" check     --ruler "$B/ruler.yaml" --spec <spec-path> --root <root>
-git -C <root> worktree add --detach "$S/pre-build" <pre_build_commit>
-python3 "$R" red-first --ruler "$B/ruler.yaml" --tree "$S/pre-build" --root <root>
+python3 "$R" red-first --ruler "$B/ruler.yaml" --tree "$S/pre-build" --root <root>   # the worktree 2.1 made
 python3 "$R" freeze    --ruler "$B/ruler.yaml" --root <root>
 ```
 

@@ -75,6 +75,7 @@ properties:
         interface: {type: array, items: {type: string}}
         nodes:
           type: array
+          maxItems: 3                          # at most three nodes per AC (the author's cap)
           items:
             type: object
             required: [test, check_command]

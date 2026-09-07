@@ -879,11 +879,15 @@ for _rp in (os.path.join(epic_dir, 'build', 'ruler.yaml'), os.path.join(epic_dir
 def verdict_rows():
     return [a for a in ((yaml_verdict or {}).get('acs') or []) if isinstance(a, dict)]
 def ac_rulings():
-    """{AC: set of rulings} from deviation.yaml waiting_on_human — 'deferred' for any item whose
-    refs name the AC, plus 'test-wrong' / 'builder-wrong' when the item's text says so."""
+    """{AC: set of rulings} from deviation.yaml waiting_on_human — only an item that carries a
+    ruling counts (a `ruling:` / `disposition:` / `resolved:` key, or a title opening with RULED):
+    'deferred' for every AC its refs name, plus 'test-wrong' / 'builder-wrong' when its text says
+    so. An open item (a question still waiting) defers nothing."""
     out = {}
     for w in ((yaml_dev or {}).get('waiting_on_human') or []):
         if not isinstance(w, dict): continue
+        ruled = any(sval(w.get(k)) for k in ('ruling', 'disposition', 'resolved')) or sval(w.get('title')).upper().startswith('RULED')
+        if not ruled: continue
         text = ' '.join(sval(w.get(k)) for k in ('title', 'detail', 'ruling', 'disposition')).lower()
         for r in (w.get('refs') or []):
             if not isinstance(r, str): continue

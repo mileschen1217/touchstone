@@ -349,7 +349,9 @@ def marker_line(out, label):
         s = line.strip()
         for mk in ('FAIL', 'PASS'):
             pre = f"{mk}: {label}"
-            if s.startswith(pre) and (len(s) == len(pre) or not s[len(pre)].isalnum()):
+            rest = s[len(pre):] if s.startswith(pre) else None
+            # the label ends the line, or a detail follows after ` (`, `: ` or ` — ` — never another word
+            if rest is not None and (rest == '' or rest.startswith((' (', ': ', ' — '))):
                 return mk
     return None
 
@@ -451,8 +453,9 @@ def cmd_run(a):
         return 1
     node = a.node
     txt = open(ruler, encoding='utf-8', errors='replace').read()
-    if node not in txt:
-        print(f"ruler.py run: fail — not-run — node {node!r} is not in {a.ruler}")
+    # registered = named by a `test:` key, not merely mentioned somewhere in the file
+    if not re.search(r'(?m)(^|[{,\s])test:\s*[\'"]?' + re.escape(node) + r'[\'"]?\s*(,|}|$)', txt):
+        print(f"ruler.py run: fail — not-run — node {node!r} is not a nodes[].test of {a.ruler}")
         return 1
     os.environ.setdefault('TOUCHSTONE_BUILD_DIR', build_dir_of(ruler))
     os.environ.setdefault('PYTHONDONTWRITEBYTECODE', '1')
@@ -748,6 +751,27 @@ def cmd_held_out(a):
     for rel_key, ap in r.files():
         if rel_to(r.root, ap) not in freeze['files']:
             violated.append(f"{rel_to(r.root, ap)} (added after freeze)")
+    # the record itself: files_sha must be the aggregate of its own files map and the one red-first
+    # recorded — a rewritten freeze.json (any route) that does not also forge both is caught here
+    # (files_sha lines are build-dir-relative, `<rel>:<sha>`, sorted by rel — the same form freeze wrote)
+    agg_items = sorted((os.path.relpath(k if os.path.isabs(k) else os.path.join(r.root, k), r.build_dir).replace(os.sep, '/'), v) for k, v in freeze['files'].items())
+    agg = hashlib.sha256(('\n'.join(f"{k}:{v}" for k, v in agg_items) + '\n').encode()).hexdigest()
+    if agg != str(freeze.get('files_sha')):
+        violated.append("freeze.json (files_sha is not the aggregate of its files)")
+    rf = freeze.get('red_first') if isinstance(freeze.get('red_first'), dict) else {}
+    if str(rf.get('files_sha')) != str(freeze.get('files_sha')):
+        violated.append("freeze.json (red_first.files_sha differs from files_sha)")
+    log_rel = str(rf.get('log') or '')
+    log_p = log_rel if os.path.isabs(log_rel) else os.path.join(r.root, log_rel)
+    if log_rel and os.path.isfile(log_p):
+        try:
+            rec = json.load(open(log_p, encoding='utf-8'))
+            if str(rec.get('files_sha')) != str(freeze.get('files_sha')):
+                violated.append(f"{log_rel} (red-first files_sha differs from freeze.json)")
+        except Exception as e:  # noqa: BLE001 — an unreadable record is a violation, named
+            violated.append(f"{log_rel} (unreadable red-first record: {e})")
+    elif log_rel:
+        violated.append(f"{log_rel} (red-first record missing)")
     if violated:
         acs = []
         for row in r.acs:
@@ -795,13 +819,17 @@ def cmd_held_out(a):
                 python = os.path.join(extra_path, 'python3')
                 isolation = 'venv'
                 if install_cmd != 'none':
-                    ip = subprocess.run(install_cmd, shell=True, cwd=tree, env=node_env(r, extra_path), capture_output=True, text=True, timeout=a.timeout)
-                    if ip.returncode != 0:
-                        install_fail = ("install_cmd failed (%d): %s" % (ip.returncode, ((ip.stdout or '') + (ip.stderr or '')).strip().splitlines()[-1:] or ['']))[:300]
+                    try:
+                        ip = subprocess.run(install_cmd, shell=True, cwd=tree, env=node_env(r, extra_path), capture_output=True, text=True, timeout=a.timeout)
+                        if ip.returncode != 0:
+                            install_fail = ("install_cmd failed (%d): %s" % (ip.returncode, ((ip.stdout or '') + (ip.stderr or '')).strip().splitlines()[-1:] or ['']))[:300]
+                    except subprocess.TimeoutExpired:
+                        install_fail = f"install_cmd timed out after {a.timeout}s"
         env = node_env(r, extra_path)
+        # the clean baseline is the tree before anything of ours has run — the harness included
+        _, baseline, _ = git(tree, 'status', '--porcelain')
         harness_out = prerun_harness(r, tree, env, a.timeout, scratch)
         env = node_env(r, extra_path, harness_out)
-        _, baseline, _ = git(tree, 'status', '--porcelain')
 
         def contamination():
             """None when the tree and the frozen copies are as they were, else what changed."""
@@ -818,6 +846,10 @@ def cmd_held_out(a):
 
         # 5. nodes
         acs, last_node, contaminated_by = [], None, None
+        if harness_out:
+            what = contamination()
+            if what:
+                contaminated_by = f"contaminated-by: smoke harness ({what})"
         for row in r.acs:
             ac = str(row.get('ac'))
             nodes = [n for n in (row.get('nodes') or []) if isinstance(n, dict)]
@@ -856,8 +888,7 @@ def cmd_held_out(a):
                     reasons.append(f"{outcome}: {test} — {tail_of(out)}" if tail_of(out) else f"{outcome}: {test}")
             disputed = [n['test'] for n in node_out if n['test'] in disputes]
             if disputed:
-                e = disputes[disputed[0]]
-                acs.append({'ac': ac, 'verdict': 'DISPUTED', 'reason': dispute_reason(e), 'nodes': node_out})
+                acs.append({'ac': ac, 'verdict': 'DISPUTED', 'reason': ' || '.join(dispute_reason(disputes[t]) for t in disputed), 'nodes': node_out})
             elif node_out and all(x['outcome'] == 'pass' for x in node_out):
                 acs.append({'ac': ac, 'verdict': 'PASS', 'nodes': node_out})
             elif undeclared and len(undeclared) == sum(1 for x in node_out if x['outcome'] != 'pass'):
@@ -866,6 +897,13 @@ def cmd_held_out(a):
                 if not node_out:
                     reasons.append('not-run: no node')
                 acs.append({'ac': ac, 'verdict': 'FAIL', 'reason': '; '.join(dict.fromkeys(reasons)), 'nodes': node_out})
+        # the last node has no successor to poison: a tree it left dirty is recorded on its own row
+        if last_node and contaminated_by is None:
+            what = contamination()
+            if what:
+                for x in acs:
+                    if any(n['test'] == last_node for n in x['nodes']):
+                        x['reason'] = (x.get('reason') + '; ' if x.get('reason') else '') + f"left the tree dirty after {last_node} ({what})"
         env_doc = {'worktree': tree, 'commit': commit, 'isolation': isolation, 'install_cmd': install_cmd}
         if a.plugin_revision:
             env_doc['plugin_revision'] = a.plugin_revision
