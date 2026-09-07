@@ -62,10 +62,12 @@ never promotes an AC to verified — an
 Convergence and what blocks: the stopping rule the gate injects,
 `<plugin-root>/skills/.shared/inject/severity-tiered-stopping-rule.md`
 — anvil reads its outcome and never re-runs the gate past its budget.
+If the gate produces no `review.yaml` for any reason, surface its failure and
+halt; there is no phase-ship hand-off on that path.
 
 ## Terminal — reviewed deliverable on a branch, handed to phase-ship
 
-Hand the branch, the review.yaml verdict, and any surviving `unverified` list to
+After a valid `review.yaml` exists, hand the branch, its verdict, and any surviving `unverified` list to
 phase-ship (`epic-driven-roadmap` `references/phase-ship.md`) — they are inputs
 to the ship informed-accept there, the second of a unit of work's two human
 accepts; anvil asks for no accept of its own. **Anvil stops before ship** — never

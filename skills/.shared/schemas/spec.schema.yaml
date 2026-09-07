@@ -4,7 +4,10 @@
 #   reader: human|agent   — on every top-level field; marks which fields a human-facing summary projects
 #   id: <family>          — a stable id `<family>-<n>` (or a slug for block / contract / flow), unique within the file
 #   ref: <family>         — value(s) must name an id of that family defined in this file
-#   ledger_ref: true      — value(s) must resolve in the ledger (a line starting `- <id>` or `| <id>`)
+#   ledger_ref: true      — value(s) must resolve in the facts-source ledger: structured
+#                           lookup across an assay YAML record's term_sheet, alignment,
+#                           and extraction ids; legacy Markdown falls back to a line
+#                           starting `- <id>` or `| <id>`
 #   path_free: true       — human panel text: no slash-separated names or file extensions
 #   pattern <regex>       — keyword `pattern`; a string value must fullmatch <regex>
 #   minItems: <n>         — array must carry at least n items

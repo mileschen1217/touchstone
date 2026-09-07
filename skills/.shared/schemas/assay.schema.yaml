@@ -1,10 +1,9 @@
 # This schema defines the structured interview record, replacing the seven-section markdown
 # record. Keywords as in the keyword legend (spec schema header).
 # `resolves: none` — this kind carries no `spec_ref` field (it is not itself a resolution
-# target for US / REQ / AC / INV ids; a spec's `facts_source.record` pointing at a record of
-# this shape is resolved by a structured lookup across term_sheet, alignment, and extraction
-# ids during ledger resolution — read-compatible with the legacy markdown record's
-# line-prefix rule). Id families T (term_sheet), A and B (alignment — map-arm rows are
+# target for US / REQ / AC / INV ids; a spec's `facts_source.record` uses the
+# `ledger_ref` resolution defined in the spec-schema keyword legend). Id families T
+# (term_sheet), A and B (alignment — map-arm rows are
 # `A-n`, bold-pass rows are `B-n`, one shared list), Q and R (extraction — rulings `Q-n`,
 # dated predict or probe rounds `R-n`) are preserved so a spec's `facts_source.consensus`
 # refs keep resolving structurally. `rulings[]` on an extraction or alignment item is the

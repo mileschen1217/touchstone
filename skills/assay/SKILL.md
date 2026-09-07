@@ -21,6 +21,9 @@ One fused interview session aligning human and AI across three arms — vocabula
 
 **Inputs.** A sharpened intent plus explore findings already in context (explore always precedes assay — you cannot lay out assumptions about an undrawn map), and the parent epic directory path (the record's home). No parent epic → ask; never silently pick.
 
+Short form selected → read
+`<plugin-root>/skills/assay/references/short-form.md` now; apply its substitutions throughout.
+
 ## Presentation
 
 Every turn — laying out the map or running extraction — follows four rules:
@@ -122,5 +125,3 @@ Criterion: every load-bearing known unknown resolved or flip-triggered (NOT "all
 **The human rules readiness once.** Anything short of an explicit yes is not-ready — name the specific gap the non-answer signals and return to it, never round a soft or delegated reply up to consent. A delegation ("whatever you think") gets re-asked with two concrete options; an explicit correction folds into the table, re-renders the consensus, restates, loops. Only an explicit yes advances.
 
 Only when the readiness yes has landed and you are writing the terminal record, read `<plugin-root>/skills/assay/references/durable-record.md` for the record contract.
-
-Only when crucible selected the short form, read `<plugin-root>/skills/assay/references/short-form.md` and run its substitutions.

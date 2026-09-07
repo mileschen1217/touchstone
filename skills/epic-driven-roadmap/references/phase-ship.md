@@ -5,8 +5,9 @@ One moment per phase PR: **pre-approve** — the Post-build pair, whose yes is t
 is crucible's contract accept). The PR approve is that yes acted on, not a further
 ruling. There is no explainer file: the dossier's 首頁 (decision line → gate strip →
 blocker checklist → how-verified → structure → do-confirm checklist) is the explainer,
-and the PR body is its text projection. Anvil's terminal hand-off (branch, review
-verdict, unverified list) is this moment's input: the unverified list is what the 首頁's
+and the PR body is its text projection. A valid deliverable-review `review.yaml`
+is required input; if none was produced, halt before this moment. Anvil's terminal
+hand-off (branch, review verdict, unverified list) supplies that input: the unverified list is what the 首頁's
 blocker checklist shows, and an unverified live-bearing AC blocks the informed
 accept until its live artifact exists.
 
