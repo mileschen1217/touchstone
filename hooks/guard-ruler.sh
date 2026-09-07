@@ -30,7 +30,7 @@ normalize() {  # absolute path with . and .. collapsed, no filesystem access nee
 
 target="$(normalize "$path")"
 block() {  # <why>
-  printf 'guard-ruler: %s is frozen (%s) — a wrong test is an entry in build/disputes.yaml, never an edit\n' "$target" "$1" >&2
+  printf 'guard-ruler: blocked (exit 2) — %s is frozen (%s); a wrong test is an entry in build/disputes.yaml, never an edit\n' "$target" "$1" >&2
   exit 2
 }
 
