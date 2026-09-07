@@ -74,7 +74,7 @@ ruler=false; [ -f "\$epic/build/ruler.yaml" ] && ruler=true
 freeze=false; [ -f "\$epic/build/freeze.json" ] && freeze=true
 verdict=false; [ -f "\$epic/build/verdict.yaml" ] && verdict=true
 disputes=false; [ -f "\$epic/build/disputes.yaml" ] && disputes=true
-wn="\$(grep -c '^  *- *id: *W-' "\$PROJECT/\$SPEC" 2>/dev/null || echo 0)"
+wn="\$(grep -c '^  *- *id: *W-' "\$PROJECT/\$SPEC" 2>/dev/null)"; wn="\${wn:-0}"; case "\$wn" in ''|*[!0-9]*) wn=0 ;; esac
 deleted=false
 if [ "\$DELETE_FREEZE" = 1 ] && [ "\$freeze" = true ] && [ ! -f "\$OUT/freeze-deleted" ]; then
   rm -f "\$epic/build/freeze.json"; : > "\$OUT/freeze-deleted"; deleted=true
@@ -153,7 +153,7 @@ PY
   : >"$out/events.jsonl"
   write_observer "$scratch/observe.sh" "$project" "$out" "$spec_rel" "$delete_freeze"
   local settings="$scratch/settings.json"
-  jq -n --arg obs "$scratch/observe.sh" '{hooks:{PostToolUse:[{matcher:"",hooks:[{type:"command",command:("bash " + $obs)}]}]}}' >"$settings"
+  jq -n --arg obs "$scratch/observe.sh" '{hooks:{PostToolUse:[{hooks:[{type:"command",command:("bash " + $obs)}]}]}}' >"$settings"
 
   local prompt="/touchstone:anvil $spec_rel"
   [ -n "$extra" ] && prompt="$prompt
@@ -200,6 +200,43 @@ cmd_verify() {
 import json, os, re, sys
 out, expect, head_sha = sys.argv[1], sys.argv[2], sys.argv[3]
 ev = [json.loads(l) for l in open(os.path.join(out, 'events.jsonl'), encoding='utf-8') if l.strip()]
+source = 'observer'
+if not ev:
+    # the observer recorded nothing: derive the same event shape from the stream-json transcript —
+    # one event per tool_use (main thread and sidechains), artifact presence inferred from the
+    # tool that produced each artifact, source dirt from Write/Edit/heredoc targets
+    source = 'transcript'
+    srcs = [l.strip() for l in open(os.path.join(out, 'source-paths.txt'), encoding='utf-8')] if os.path.isfile(os.path.join(out, 'source-paths.txt')) else []
+    ruler = freeze = verdict = disputes = False; dirty = set(); seq = 0
+    pending = {}
+    for line in open(os.path.join(out, 'output.log'), encoding='utf-8', errors='replace'):
+        try: d = json.loads(line)
+        except Exception: continue
+        m = d.get('message') or {}
+        for c in (m.get('content') or []) if isinstance(m.get('content'), list) else []:
+            if not isinstance(c, dict): continue
+            if c.get('type') == 'tool_use':
+                inp = c.get('input') or {}; name = c.get('name') or ''
+                fp = str(inp.get('file_path') or ''); cmd = str(inp.get('command') or ''); prompt = str(inp.get('prompt') or '')
+                if fp.endswith('build/ruler.yaml') and name in ('Write', 'Edit'): ruler = True
+                if name in ('Write', 'Edit') and any(fp.endswith('/' + s) or fp == s for s in srcs): dirty.add(fp)
+                for s in srcs:
+                    if re.search(r'>\s*[\'"]?(?:\./)?' + re.escape(s) + r'\b', cmd): dirty.add(s)
+                markers = [k for k, pat in (('re-dispatch', 're-dispatch'), ('check-artifact', 'check-artifact'), ('rulings', 'rulings:')) if pat in prompt]
+                seq += 1
+                e = {'seq': seq, 'tool': name, 'agent': inp.get('subagent_type') or '', 'description': inp.get('description') or '', 'model': inp.get('model') or '',
+                     'file_path': fp, 'prompt_markers': markers, 'ruler': ruler, 'freeze': freeze, 'verdict': verdict, 'disputes': disputes,
+                     'freeze_deleted': False, 'spec_wn': 0, 'src_dirty': sorted(dirty), '_cmd': cmd}
+                ev.append(e); pending[c.get('id')] = e
+            elif c.get('type') == 'tool_result':
+                e = pending.get(c.get('tool_use_id'))
+                if not e: continue
+                res = c.get('content'); text = res if isinstance(res, str) else json.dumps(res)
+                if 'ruler.py' in e['_cmd'] and ' freeze' in e['_cmd'] and 'OK frozen' in text: freeze = True; e['freeze'] = True
+                if 'held-out' in e['_cmd'] and 'verdict:' in text: verdict = True; e['verdict'] = True
+                if 'freeze.json' in e['_cmd'] and ('rm ' in e['_cmd']) and 'freeze.json' in text: pass
+                if 'disputes.yaml' in e['file_path']: disputes = True
+    for e in ev: e.pop('_cmd', None)
 def first(pred):
     for e in ev:
         if pred(e): return e['seq']
@@ -266,7 +303,7 @@ else:
     print(f'probe-anvil: unknown --expect {expect}', file=sys.stderr); sys.exit(2)
 for f in fails: print(f'FAIL {f}')
 print(f'probe-anvil verify {expect}: ' + ('ok' if not fails else f'{len(fails)} failure(s)') +
-      f' (ruler seq {s_ruler}, freeze seq {s_freeze}, first source edit seq {s_src}, dispatches {len(dispatches)})')
+      f' (ruler seq {s_ruler}, freeze seq {s_freeze}, first source edit seq {s_src}, dispatches {len(dispatches)}, events from the {source})')
 sys.exit(1 if fails else 0)
 PY
 }
