@@ -22,8 +22,9 @@ forms, aggregation, the disputes file and the files_sha recipe are documented th
       <build>/red-first.json, bound to the ruler files_sha); exit 1 when a ruled node passes.
   ruler.py freeze    --ruler <ruler.yaml> [--root <repo>] [--red-first <json>] [--out <freeze.json>]
       refuses unless the red-first log binds to the current files_sha (naming any file that
-      changed since), every ruled node failed there, no freeze.json exists yet; else writes
-      freeze.json {files, files_sha, commit, red_first, frozen_at} once.
+      changed since), every ruled node failed there, no freeze.json exists and the log records
+      no earlier freeze of this build; else writes freeze.json {files, files_sha, commit,
+      red_first, frozen_at} once and stamps frozen_at into the red-first log.
   ruler.py held-out  --ruler <ruler.yaml> [--freeze <freeze.json>] [--out <verdict.yaml>]
                      [--root <repo>] [--scratch <dir>] [--disputes <yaml>] [--timeout <s>]
                      [--plugin-revision <sha>] [--clean]
@@ -625,6 +626,8 @@ def cmd_freeze(a):
             log = json.load(open(log_path, encoding='utf-8'))
         except ValueError as e:
             refusals.append(f"red-first log unparsable: {e}")
+    if log and log.get('frozen_at'):
+        refusals.append(f"this build was already frozen at {log['frozen_at']} (recorded in {log_path}) — a missing freeze.json is a halt, never a re-freeze")
     if log:
         if log.get('files_sha') != cur:
             changed = changed_files(r, log.get('files') or {})
@@ -647,6 +650,9 @@ def cmd_freeze(a):
               'red_first': {'files_sha': log['files_sha'], 'log': rel_to(r.root, log_path)}, 'frozen_at': now()}
     with open(out, 'w', encoding='utf-8') as f:
         json.dump(freeze, f, indent=2)
+    log['frozen_at'] = freeze['frozen_at']   # the red-first log remembers the freeze: a second freeze in this build refuses
+    with open(log_path, 'w', encoding='utf-8') as f:
+        json.dump(log, f, indent=2)
     print(f"OK frozen: {out} ({len(freeze['files'])} files, files_sha {cur[:12]}, commit {freeze['commit'][:8]})")
     return 0
 
