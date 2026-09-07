@@ -40,10 +40,10 @@ decision table + cause-effect graph; state-transition (0-switch baseline,
 party sweep; Nagy's 5 (challenge data, challenge context, positive↔negative,
 additional outcomes, different-context-same-outcome).
 
-**Output format** — one marker per line, the locator a field path
+**Output** — one marker per field-path locator
 <!-- local-ref-ok -->
 (`requirements[REQ-2].acs[AC-4].then`, `delta.blocks[parser]`, `touch_set.touched`):
 
 ```
-<field-path>: <single concrete question>  type=<…> provenance=<…>
+<field-path>: <concrete question> type=<…> provenance=<…> fix=<action/ruling>
 ```
