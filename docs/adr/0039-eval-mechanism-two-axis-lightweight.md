@@ -66,3 +66,13 @@ audit 2026-08-29): no skill, script, or reference read either file. Both are del
 The product axis (`gate-miss.md`, `deviation.yaml`) is unchanged. The 2026-08-28
 amendment's "touchstone's own epics keep running them locally" clause is superseded —
 nothing runs them anywhere now.
+
+## Amendment 2026-09-07 — no dispatch economy outside touchstone
+
+Assumption ③ ("conductor's precedent/constants loop keeps running, the execution-layer
+economy need not be rebuilt in touchstone") and boundary item 5 (邊界 5) of the Decision
+("dispatch economy — tokens / tier — belongs to conductor's loop") no longer hold: conductor
+is retired and anvil builds on one path with no dispatch engine. The only dispatch-economy
+record touchstone keeps is the per-build `build/verdict.yaml` beside the build report's cost
+lines (builder-session USD, each dispatch's USD, their ratio) — no precedent loop, no tier
+ledger, no constants file. Everything else in this ADR stands.

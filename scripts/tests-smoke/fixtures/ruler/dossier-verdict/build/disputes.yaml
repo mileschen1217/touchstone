@@ -1,0 +1,5 @@
+- ac: AC-4
+  test: build/ruler/test_greet.py::test_ac_3
+  asserts: stdout is exactly HELLO, BOB with --shout
+  spec_says: the greeting is upper-cased — the AC names no exact form
+  conflict: the test pins one rendering the AC does not

@@ -361,6 +361,12 @@ scan_files = []
 for dirpath, dirnames, filenames in os.walk(root):
     if '.git' in dirnames:
         dirnames.remove('.git')
+    # a nested repository or linked worktree (its top dir carries a .git
+    # file or dir) is another tree's snapshot, never this tree's consumer
+    # evidence -- e.g. .claude/worktrees/<name>/ or .worktrees/<name>/
+    for d in list(dirnames):
+        if os.path.exists(os.path.join(dirpath, d, '.git')):
+            dirnames.remove(d)
     # synthetic checker fixture trees are not a real reference graph -- a
     # fixture's own load-when is validated by this checker's own rail run
     # (TOUCHSTONE_CHECK_ROOT pointed AT that fixture case), never by being

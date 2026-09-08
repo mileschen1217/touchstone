@@ -1,0 +1,2 @@
+# python dependencies of this repo's scripts and ruler tests (held-out installs from here)
+PyYAML>=6.0

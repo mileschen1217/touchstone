@@ -100,8 +100,52 @@ PY
 
 report="$(printf '%s' "$json_out" | python3 "$pyfile")"
 rc2=$?
-if [ "$rc2" -ne 0 ]; then
-  [ -n "$report" ] && printf '%s\n' "$report"
+[ -n "$report" ] && printf '%s\n' "$report"
+
+# ---- model-pin rule: every Agent() call site in skills/**/*.md names an agent whose
+# definition (agents/<name>.md) pins `model:` in its frontmatter, or passes `model`
+# explicitly on the call line. A call site naming an agent with no definition, or one
+# whose definition and call both leave the model to inheritance, blocks the commit —
+# the dispatching session's model must never leak into a build-path dispatch.
+pinfile="$(mktemp "${TMPDIR:-/tmp}/check-plugin-graph.pin.XXXXXX")"
+trap 'rm -f "$errfile" "$pyfile" "$pinfile"' EXIT
+cat >"$pinfile" <<'PY'
+import os, re, sys
+root = sys.argv[1]
+CALL = re.compile(r'Agent\(\s*subagent_type\s*[:=]\s*["\']?(?:[\w-]+:)?([\w-]+)')
+MODEL_PARAM = re.compile(r'\bmodel\s*[:=]\s*["\']?[\w.-]+')
+out = []
+skills = os.path.join(root, 'skills')
+for dp, dns, fns in os.walk(skills):
+    dns[:] = sorted(d for d in dns if d not in ('fixtures', 'tests', '__pycache__'))
+    for fn in sorted(fns):
+        if not fn.endswith('.md'):
+            continue
+        p = os.path.join(dp, fn)
+        rel = os.path.relpath(p, root)
+        with open(p, encoding='utf-8', errors='replace') as f:
+            for i, line in enumerate(f, 1):
+                for m in CALL.finditer(line):
+                    name = m.group(1)
+                    defn = os.path.join(root, 'agents', name + '.md')
+                    if not os.path.isfile(defn):
+                        out.append("[check-plugin-graph] model-pin: %s:%d dispatches Agent %r with no definition agents/%s.md" % (rel, i, name, name))
+                        continue
+                    txt = open(defn, encoding='utf-8', errors='replace').read()
+                    fm = re.match(r'^---\r?\n(.*?)\r?\n---', txt, re.S)
+                    pinned = bool(fm and re.search(r'^\s*model\s*:\s*\S+', fm.group(1), re.M))
+                    if not pinned and MODEL_PARAM.search(line):
+                        pinned = True
+                    if not pinned:
+                        out.append("[check-plugin-graph] model-pin: %s:%d dispatches Agent %r -- agents/%s.md pins no model: and the call passes none" % (rel, i, name, name))
+if out:
+    print("\n".join(out))
+    sys.exit(1)
+PY
+pin_report="$(python3 "$pinfile" "$root")"
+rc3=$?
+[ -n "$pin_report" ] && printf '%s\n' "$pin_report"
+if [ "$rc2" -ne 0 ] || [ "$rc3" -ne 0 ]; then
   exit 1
 fi
 exit 0

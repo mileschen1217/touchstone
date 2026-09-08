@@ -194,3 +194,15 @@ memory `markdown-plugin-no-statemachine-overspec`).
 - memory `workflow-of-honesty-bedrock` — root logic + settled P1 design.
 - ADR-0003 (Baseline mechanism), ADR-0004 (Discipline sibling), ADR-0005
   (verification layering).
+
+## Amendment 2026-09-07 — a per-build frozen ruler is not the rejected mapping
+
+§2c rejects a *maintained* AC→test mapping (a Test column kept current across the life of a
+spec) because such a mapping rots. The anvil build path now writes one `build/ruler.yaml`
+per build — authored by a non-builder context from the spec before the implementation
+exists, sha-frozen once every node fails on the pre-build tree, re-run held-out for the
+verdict, and archived with the epic at ship. It is never edited after freeze and never
+carried forward to the next build, so it cannot rot the way the rejected column does; §2c's
+reasoning is scoped to maintained mappings and leaves this per-build artifact admitted.
+Reviewer-derived coverage at deliverable-review — the fresh-context reviewer reading the
+test source and judging each AC's Then — is unchanged and remains the coverage judgment.

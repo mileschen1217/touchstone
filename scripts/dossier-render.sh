@@ -55,7 +55,7 @@
 #                    phase's spec wins, else the first with a title listing the rest.
 set -uo pipefail
 
-root_override=""; pr_body=0
+root_override=""; pr_body=0; open_after=0
 while [ $# -gt 1 ]; do
   case "$1" in
     --root)
@@ -63,10 +63,11 @@ while [ $# -gt 1 ]; do
       [ -d "$2" ] || { printf 'dossier-render.sh: --root is not a directory: %s\n' "$2" >&2; exit 1; }
       root_override="$2"; shift 2 ;;
     --pr-body) pr_body=1; shift ;;
-    *) printf 'usage: dossier-render.sh [--root <dir>] [--pr-body] <epic-dir>\n' >&2; exit 1 ;;
+    --open) open_after=1; shift ;;
+    *) printf 'usage: dossier-render.sh [--root <dir>] [--pr-body] [--open] <epic-dir>\n' >&2; exit 1 ;;
   esac
 done
-[ $# -eq 1 ] || { printf 'usage: dossier-render.sh [--root <dir>] [--pr-body] <epic-dir>\n' >&2; exit 1; }
+[ $# -eq 1 ] || { printf 'usage: dossier-render.sh [--root <dir>] [--pr-body] [--open] <epic-dir>\n' >&2; exit 1; }
 epic_dir="$1"
 [ -e "$epic_dir" ] || { printf 'dossier-render.sh: path does not exist: %s\n' "$epic_dir" >&2; exit 1; }
 [ -d "$epic_dir" ] || { printf 'dossier-render.sh: not a directory: %s\n' "$epic_dir" >&2; exit 1; }
@@ -301,7 +302,9 @@ def excluded_dir(name):
     reader content — excluded from the walk itself so every consumer of `files` (phases,
     spec_files, defs, ...) inherits the exclusion, not just the metrics phase set."""
     n = name.lower()
-    return n == 'live' or n.startswith('build-') or n.startswith('discovery-')
+    # `build/` is the ruler / freeze / verdict home — projected explicitly below (verdict and
+    # ruler index on the 首頁), never walked as reader content
+    return n == 'live' or n == 'build' or n.startswith('build-') or n.startswith('discovery-')
 
 files = []
 for dp, dns, fns in os.walk(epic_dir):
@@ -862,6 +865,147 @@ for rel in files:
     if os.path.basename(rel) == 'quiz.yaml' and not in_record_dir(rel):
         yaml_quiz = load_yaml(os.path.join(epic_dir, rel)) or {'waived': False, 'items': []}
         break
+# build/verdict.yaml + the ruler index (build/ruler.yaml, or build/ruler/ruler.yaml for a
+# fixture-layout epic) — the held-out verdict and the AC → nodes index projected on the 首頁
+yaml_verdict = None
+yaml_ruler = None
+_vp = os.path.join(epic_dir, 'build', 'verdict.yaml')
+if os.path.isfile(_vp):
+    yaml_verdict = load_yaml(_vp) or {}
+for _rp in (os.path.join(epic_dir, 'build', 'ruler.yaml'), os.path.join(epic_dir, 'build', 'ruler', 'ruler.yaml')):
+    if os.path.isfile(_rp):
+        yaml_ruler = load_yaml(_rp) or {}
+        break
+def verdict_rows():
+    return [a for a in ((yaml_verdict or {}).get('acs') or []) if isinstance(a, dict)]
+def ac_rulings():
+    """{AC: set of rulings} from deviation.yaml waiting_on_human — only an item that carries a
+    ruling counts (a `ruling:` / `disposition:` / `resolved:` key, or a title opening with RULED):
+    'deferred' for every AC its refs name, plus 'test-wrong' / 'builder-wrong' when its text says
+    so. An open item (a question still waiting) defers nothing."""
+    out = {}
+    for w in ((yaml_dev or {}).get('waiting_on_human') or []):
+        if not isinstance(w, dict): continue
+        ruled = any(sval(w.get(k)) for k in ('ruling', 'disposition', 'resolved')) or sval(w.get('title')).upper().startswith('RULED')
+        if not ruled: continue
+        text = ' '.join(sval(w.get(k)) for k in ('title', 'detail', 'ruling', 'disposition')).lower()
+        for r in (w.get('refs') or []):
+            if not isinstance(r, str): continue
+            s = out.setdefault(sval(r), set()); s.add('deferred')
+            if 'builder-wrong' in text: s.add('builder-wrong')
+            if 'test-wrong' in text: s.add('test-wrong')
+    return out
+def live_acs(s):
+    """The spec's live_bearing AC ids (empty when the phase has no YAML spec)."""
+    yd = (s or {}).get('yaml') if isinstance(s, dict) else None
+    if not isinstance(yd, dict): return set()
+    return {sval(a.get('id')) for r in (yd.get('requirements') or []) if isinstance(r, dict)
+            for a in (r.get('acs') or []) if isinstance(a, dict) and a.get('live_bearing') is True}
+def verdict_rows_classified(s):
+    """[(ac, label, reason, blocks)] — every non-PASS row. blocks: a FAIL row; a DISPUTED row until a
+    waiting_on_human ruling names its AC (test-wrong → deferred, listed but not blocking;
+    builder-wrong → blocks, labelled FAIL); an UNVERIFIED row whose AC the spec marks
+    live_bearing and no waiting_on_human item defers. The rest are listed for the reader, unchecked."""
+    live = live_acs(s)
+    rul = ac_rulings()
+    out = []
+    for a in verdict_rows():
+        ac, v, reason = sval(a.get('ac')), sval(a.get('verdict')), sval(a.get('reason'))
+        r = rul.get(ac, set())
+        if v == 'FAIL':
+            out.append((ac, 'FAIL', reason, True))
+        elif v == 'DISPUTED':
+            if 'builder-wrong' in r:
+                out.append((ac, 'FAIL', 'ruled builder-wrong — ' + reason, True))
+            else:
+                out.append((ac, 'DISPUTED', reason, 'test-wrong' not in r))
+        elif v == 'UNVERIFIED':
+            out.append((ac, 'UNVERIFIED', reason, ac in live and 'deferred' not in r))
+    return out
+def verdict_blockers(s):
+    return [(ac, v, reason) for ac, v, reason, blocks in verdict_rows_classified(s) if blocks]
+def node_source(test):
+    """The named function's source (verbatim) from the ruler test file, or ''."""
+    m = re.match(r'^(.*\.(py|sh))::(.+)$', sval(test))
+    if not m: return ''
+    path, ext, name = m.group(1), m.group(2), m.group(3).split('::')[0]
+    cands = ([os.path.join(root, path)] if root else []) + [os.path.join(epic_dir, path)]
+    i = path.find('build/ruler/')
+    if i >= 0: cands.append(os.path.join(epic_dir, path[i:]))
+    src = None
+    for c in cands:
+        if os.path.isfile(c):
+            src = read(c); break
+    if src is None: return ''
+    lines = src.splitlines()
+    start = re.compile(r'^\s*(?:async\s+)?def\s+' + re.escape(name) + r'\b' if ext == 'py' else r'^\s*(?:function\s+)?' + re.escape(name) + r'\s*\(\)\s*\{')
+    out = []
+    for j, line in enumerate(lines):
+        if not out:
+            if start.match(line): out.append(line)
+            continue
+        if ext == 'py' and line.strip() and not line[0].isspace(): break
+        out.append(line)
+        if ext == 'sh' and re.match(r'^\}', line): break
+    return '\n'.join(out).rstrip()
+def dispute_fields(reason):
+    d = {}
+    for line in sval(reason).splitlines():
+        m = re.match(r'^(asserts|spec_says|conflict):\s*(.*)$', line)
+        if m: d[m.group(1)] = m.group(2)
+    return d
+def dispute_html(ac, reason, k):
+    tests = [sval(n.get('test')) for a in verdict_rows() if sval(a.get('ac')) == ac for n in (a.get('nodes') or []) if isinstance(n, dict)]
+    src = next((node_source(x) for x in tests if node_source(x)), '')
+    f = dispute_fields(reason)
+    dl = ''.join(f'<div><dt>{lab(zh_k)}</dt><dd>{yv(f.get(key), k)}</dd></div>' for key, zh_k in (('asserts', '測試斷言'), ('spec_says', 'spec 說'), ('conflict', '衝突'))) if f else f'<div><dt>{lab("理由")}</dt><dd>{yv(reason, k)}</dd></div>'
+    return (f'<div class="dispute"><div class="src"><p class="meta">{lab("測試原文")} <code>{html.escape(tests[0] if tests else "")}</code></p><pre>{html.escape(src, quote=False) or "(test source not found)"}</pre></div>'
+            f'<dl class="dec">{dl}</dl></div>')
+def verdict_ruler_projection(k):
+    """(html, text) — the held-out verdict: PASS rows in the how-verified table (how each AC was
+    verified outside the builder's tree), non-blocking UNVERIFIED rows listed with their reasons,
+    and the ruler index (AC → nodes); absent files render explicit lines. FAIL / DISPUTED /
+    blocking UNVERIFIED rows live in the blocker checklist, never here."""
+    h, t = '', ''
+    if yaml_verdict is None:
+        h += '<p class="placeholder">no verdict yet</p>'; t += '\nverdict: no verdict yet'
+    else:
+        env = yaml_verdict.get('environment') if isinstance(yaml_verdict.get('environment'), dict) else {}
+        summ = yaml_verdict.get('summary') if isinstance(yaml_verdict.get('summary'), dict) else {}
+        h += (f'<p class="meta">{lab("held-out 判決")} {zpill(yaml_verdict.get("sha_check"), "ok" if sval(yaml_verdict.get("sha_check")) == "ok" else "crit")} · PASS <span class="num">{yv(summ.get("pass"), k)}</span> · FAIL <span class="num">{yv(summ.get("fail"), k)}</span> · DISPUTED <span class="num">{yv(summ.get("disputed"), k)}</span> · UNVERIFIED <span class="num">{yv(summ.get("unverified"), k)}</span> · {lab("隔離")} {yv(env.get("isolation"), k)} · {lab("commit")} <code>{html.escape(sval(env.get("commit"))[:12])}</code></p>')
+        passed = [a for a in verdict_rows() if sval(a.get('verdict')) == 'PASS']
+        rows_html = ''.join(f'<tr><td class="num">{link_codes(sval(a.get("ac")), k)}</td><td>{zpill("PASS", "ok")}</td><td>{"<br>".join(html.escape(sval(n.get("test"))) + " · " + zpill(n.get("outcome")) for n in (a.get("nodes") or []) if isinstance(n, dict))}</td></tr>' for a in passed)
+        h += f'<div class="tbl"><table><tr><th>AC</th><th>判決</th><th>節點 · 結果</th></tr>{rows_html}</table></div>' if passed else '<p class="placeholder">no PASS row yet</p>'
+        unv = [a for a in verdict_rows() if sval(a.get('verdict')) == 'UNVERIFIED']
+        if unv:
+            h += f'<p class="meta">{lab("未驗證（附理由）")} <span class="num">{len(unv)}</span></p><ul>' + capped([f'<li>{link_codes(sval(a.get("ac")), k)} {zpill("UNVERIFIED", "warn")} {yv(a.get("reason"), k)}</li>' for a in unv]) + '</ul>'
+        t += f"\nverdict: sha_check {sval(yaml_verdict.get('sha_check'))} · PASS {sval(summ.get('pass'))} · FAIL {sval(summ.get('fail'))} · DISPUTED {sval(summ.get('disputed'))} · UNVERIFIED {sval(summ.get('unverified'))} · isolation {sval(env.get('isolation'))}" + ''.join(f"\n- {sval(a.get('ac'))} PASS: " + ', '.join(sval(n.get('test')) for n in (a.get('nodes') or []) if isinstance(n, dict)) for a in passed) + ''.join(f"\n- {sval(a.get('ac'))} UNVERIFIED — {sval(a.get('reason'))}" for a in unv)
+    rt = ''
+    if yaml_ruler is None:
+        h += '<p class="placeholder">no ruler yet</p>'; rt += 'ruler: no ruler yet'
+    else:
+        r_rows = [a for a in (yaml_ruler.get('acs') or []) if isinstance(a, dict)]
+        idx = ''.join(f'<tr><td class="num">{link_codes(sval(a.get("ac")), k)}</td><td>{zpill(a.get("status"))}</td><td>{"<br>".join(html.escape(sval(n.get("test"))) for n in (a.get("nodes") or []) if isinstance(n, dict)) or (yv(a.get("unverified_reason"), k) if a.get("unverified_reason") else "")}</td></tr>' for a in r_rows)
+        h += collapsed(f'<span class="lead">{lab("尺索引")}</span> <span class="num">{len(r_rows)}</span> {lab("AC → 節點")}', f'<div class="tbl"><table><tr><th>AC</th><th>狀態</th><th>節點</th></tr>{idx}</table></div>')
+        rt += f"ruler index: {len(r_rows)} ACs" + ''.join(f"\n- {sval(a.get('ac'))} {sval(a.get('status'))}: " + ', '.join(sval(n.get('test')) for n in (a.get('nodes') or []) if isinstance(n, dict)) for a in r_rows)
+    return h, t, rt
+def verdict_blocker_items(k, s):
+    """The blocker checklist's verdict items: blocking rows as checkboxes, non-blocking rows
+    (a ruled dispute, an UNVERIFIED AC that is not live-bearing or is deferred) listed muted."""
+    rows = verdict_rows_classified(s)
+    vb = [(ac, v, reason) for ac, v, reason, blocks in rows if blocks]
+    items, txt = [], []
+    for ac, v, reason, blocks in rows:
+        body = dispute_html(ac, reason, k) if v == 'DISPUTED' else (yv(reason, k) if reason else '')
+        if blocks:
+            items.append(f'<li><label><input type="checkbox" data-check="{attr(k + "|verdict|" + ac)}"> {zpill(v, "crit" if v == "FAIL" else "warn")} {link_codes(ac, k)} {lab("判決")}</label> {body}</li>')
+            txt.append(f"- [ ] {v} {ac} — {sval(reason).splitlines()[0] if reason else ''}")
+        else:
+            note = '已裁 test-wrong，延後' if v == 'DISPUTED' else '不阻擋（非 live-bearing 或已延後）'
+            items.append(f'<li class="muted">{zpill(v, "muted")} {link_codes(ac, k)} {lab("判決")} <span class="muted">{lab(note)}</span> {body}</li>')
+            txt.append(f"- {v} {ac} ({note}) — {sval(reason).splitlines()[0] if reason else ''}")
+    return vb, items, txt
+
 reviews = []   # [(rel, dict)] every review.yaml, sorted by path
 for rel in files:
     if os.path.basename(rel) == 'review.yaml':
@@ -1349,7 +1493,9 @@ def waiting_union(p, s):
             out += [(rel, sval(d.get('gate')) or gate, w) for w in d.get('waiting_on_human') or [] if isinstance(w, dict)]
     if yaml_dev:
         out += [('deviation.yaml', 'build', w) for w in yaml_dev.get('waiting_on_human') or [] if isinstance(w, dict)]
-    return out
+    # a ruled item is no longer waiting: it carries a ruling / disposition / resolved key, or
+    # its title opens with RULED — the verdict row it rules shows the outcome instead
+    return [x for x in out if not (x[2].get('ruling') or x[2].get('disposition') or x[2].get('resolved') or sval(x[2].get('title')).startswith('RULED'))]
 
 # ---------- zh-TW label table (enum → label; identifiers never translated) ----------
 LAB_ZH = {'Retrospective': '回顧', 'Evidence Reckoning': '證據清算', 'Disposition': '處置', 'Pivots': '轉向', 'Open Questions': '未決問題', 'Foundation': '基礎'}
@@ -1373,6 +1519,7 @@ ZH = {
     'owner': '擁有者', 'builder': '建置者', 'author': '作者 session', 'complete': '完成', 'partial': '部分',
     'ruling': '裁決', 'answer': '回答', 'accept': '接受', 'fix': '修',
     'unanswered': '未答', 'miss': '未過',
+    'PASS': '通過', 'FAIL': '未過', 'DISPUTED': '有異議', 'UNVERIFIED': '未驗證',
 }
 def zh(v):
     """Enum value → zh-TW label with the English key kept as an abbr title."""
@@ -1456,7 +1603,7 @@ def gate_rows(p):
         rows.append((gate, st, d, rel, ''))
     return rows
 def decision(p, s):
-    n_block = len(open_blockers(p)) + len(waiting_union(p, s))
+    n_block = len(open_blockers(p)) + len(waiting_union(p, s)) + (len(verdict_blockers(s)) if p is current else 0)
     if n_block: return 'blocked', n_block
     if any(st == 'pending' and g in KNOWN_GATES for g, st, *_ in gate_rows(p)): return 'not-reviewed', 0
     return 'approvable', 0
@@ -1526,8 +1673,11 @@ def front_sections(p, s):
     bl = open_blockers(p); wu = waiting_union(p, s)
     items = [f'<li><label><input type="checkbox" data-check="{attr(k + "|" + sval(f.get("id")))}"> {zpill(f.get("severity"))} <a class="code" data-jump="{attr("finding--" + sval(f.get("id")))}" tabindex="0">{html.escape(sval(f.get("id")))}</a> {yv(f.get("summary"), k)}</label></li>' for rel, f in bl]
     items += [waiting_item_html(rel, gate, w, k) for rel, gate, w in wu]
+    # held-out verdict: every FAIL row and every undeferred UNVERIFIED live-bearing row is a blocker
+    vb, vb_items, vb_txt = verdict_blocker_items(k, s) if p is current else ([], [], [])
+    items += vb_items
     bl_html = f'<ul class="todo check">{capped(items)}</ul>' if items else f'<p class="placeholder">沒有阻擋項</p>'
-    bl_txt = '\n'.join([f"- [ ] {sval(f.get('severity'))} {sval(f.get('id'))} {sval(f.get('summary'))}" for rel, f in bl] + [f"- [ ] {sval(w.get('title'))} ({rel})" for rel, gate, w in wu]) or '(none)'
+    bl_txt = '\n'.join([f"- [ ] {sval(f.get('severity'))} {sval(f.get('id'))} {sval(f.get('summary'))}" for rel, f in bl] + [f"- [ ] {sval(w.get('title'))} ({rel})" for rel, gate, w in wu] + vb_txt) or '(none)'
     secs.append(('阻擋清單', bl_html, bl_txt))
     rel, d = newest_review(p, 'deliverable-review')
     acs = [a for r in yd.get('requirements') or [] if isinstance(r, dict) for a in (r.get('acs') or []) if isinstance(a, dict)]
@@ -1565,10 +1715,16 @@ def front_sections(p, s):
     if nb:
         v_html += f'<p class="meta">{lab("建置帳")} <a class="code" data-jump="{attr(k + "--ledger")}" tabindex="0">{nb}</a> {lab("則（含每個 prose commit 的 m-skill-review 裁決）")}</p>'
     v_html += quiz_html(p)
-    v_txt = f"ACs {len(acs)} · unverified {len(unv)}" + (f" · deliverable-review {sval(d.get('verdict'))}" if d else ' · deliverable-review pending') + f"\nquiz: {ZH[qs]}" + (f" {qpass}/{len(qitems)}" if qitems else '') + ''.join(f"\n- {sval(f.get('field'))} · {sval(f.get('summary'))}" for f in unv)
+    # the held-out verdict and the ruler index beneath it (absent files render explicit lines)
+    vd_txt = ''; rl_txt = ''
+    if p is current:
+        vd_html, vd_txt, rl_txt = verdict_ruler_projection(k)
+        v_html += vd_html
+    v_txt =f"ACs {len(acs)} · unverified {len(unv)}" + (f" · deliverable-review {sval(d.get('verdict'))}" if d else ' · deliverable-review pending') + f"\nquiz: {ZH[qs]}" + (f" {qpass}/{len(qitems)}" if qitems else '') + ''.join(f"\n- {sval(f.get('field'))} · {sval(f.get('summary'))}" for f in unv) + vd_txt
     if qs == 'n/a': v_txt += '\nquiz waived: zero delta'
     v_txt += ''.join(f"\n- {sval(i.get('id'))} · {sval(i.get('question'))}" for i in qitems)
     secs.append(('怎麼驗的', v_html, v_txt))
+    if p is current: secs.append(('尺索引', None, rl_txt or 'ruler: no ruler yet'))
     dn = [e for e in (yaml_dev.get('entries') or []) if isinstance(e, dict)] if yaml_dev else []
     by_panel = {}
     for e in dn: by_panel.setdefault(sval(e.get('panel')), []).append(sval(e.get('id')))
@@ -1579,9 +1735,10 @@ def front_sections(p, s):
     ck_items = [f'<li>{zpill(st)} {zh(g)}</li>' for g, st, d, rel, _ in gate_rows(p) if st in ('fail', 'pending')]
     ck_items += [f'<li>{zpill(f.get("severity"))} {html.escape(sval(f.get("id")))}</li>' for rel, f in bl]
     ck_items += [f'<li>{zpill("pending")} {yv(w.get("title"), k)}</li>' for rel, gate, w in wu]
+    ck_items += [f'<li>{zpill(v, "crit" if v == "FAIL" else "warn")} {link_codes(ac, k)} {lab("held-out 判決")}</li>' for ac, v, reason in vb]
     footer = zpill('approvable') if state == 'approvable' else f'{zpill("blocked")} <span class="num">{n}</span>' if state == 'blocked' else zpill('not-reviewed')
     ck_html = f'<ol class="checklist">{capped(ck_items)}</ol><p class="footer">{lab("結論")} {footer}</p>'
-    ck_txt = '\n'.join(f"- [ ] {ZH.get(g, g)}: {ZH[st]}" for g, st, *_ in gate_rows(p) if st in ('fail', 'pending')) + ''.join(f"\n- [ ] {sval(f.get('severity'))} {sval(f.get('id'))}" for rel, f in bl) + ''.join(f"\n- [ ] {sval(w.get('title'))}" for rel, gate, w in wu) + f"\n\n結論: {ZH[state]}{f' ({n})' if n else ''}"
+    ck_txt = '\n'.join(f"- [ ] {ZH.get(g, g)}: {ZH[st]}" for g, st, *_ in gate_rows(p) if st in ('fail', 'pending')) + ''.join(f"\n- [ ] {sval(f.get('severity'))} {sval(f.get('id'))}" for rel, f in bl) + ''.join(f"\n- [ ] {sval(w.get('title'))}" for rel, gate, w in wu) + ''.join(f"\n- [ ] {v} {ac} (held-out verdict)" for ac, v, reason in vb) + f"\n\n結論: {ZH[state]} ({state}){f' {n}' if n else ''}"
     secs.append(('檢查表', ck_html, ck_txt))
     return secs
 
@@ -1624,7 +1781,11 @@ else:
             waiting.append(f'{specs[sp]["markers"]} <code>[NEEDS CLARIFICATION]</code> / <code>[unverified]</code> <code>{html.escape(os.path.basename(sp))}</code>')
     for q in bullets(index_sections.get('Open Questions', '')):
         if not q.startswith('*('): waiting.append(inline(q, 'epic'))
-    front.append('<article class="front"><section class="fs"><h3>阻擋清單</h3>' + (f'<ul class="todo">{capped([f"<li>{w}</li>" for w in waiting])}</ul>' if waiting else '<p class="placeholder">沒有阻擋項</p>') + '</section></article>')
+    # an epic with no YAML phase still projects its build/ verdict and ruler index
+    _vb, _vb_items, _ = verdict_blocker_items('epic', None)
+    _vd_html, _, _ = verdict_ruler_projection('epic')
+    front.append('<article class="front"><section class="fs"><h3>阻擋清單</h3>' + (f'<ul class="todo">{capped([f"<li>{w}</li>" for w in waiting] + _vb_items)}</ul>' if (waiting or _vb_items) else '<p class="placeholder">沒有阻擋項</p>') + '</section>'
+                 + f'<section class="fs"><h3>怎麼驗的</h3>{_vd_html}</section></article>')
 tab['首頁']['epic'] = front
 
 # 契約 — the newest YAML phase open, older phases and legacy md folded; epic-level: aim, foundation, ledger, ADRs (folded)
@@ -1929,6 +2090,7 @@ details.fold{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.5re
 body{overflow-wrap:anywhere}.top>*,.strip>*,.tabs{min-width:0}.tabs{flex:1 1 auto}.top h1{flex:1 1 100%}.file,code,a.code,[data-jump]{overflow-wrap:anywhere;word-break:break-word}
 .strip .g{white-space:nowrap;display:inline-flex;align-items:center;gap:.3rem;border:1px solid var(--line);border-radius:999px;padding:.1rem .55rem .1rem .6rem;background:var(--bg)}.strip .g .gl{font-weight:600}.strip .g a{margin-left:.15rem}.panels{grid-template-columns:1fr}svg.structure{max-width:100%}
 @media (max-width:640px){html{font-size:15px}.top{padding:.5rem .75rem;gap:.5rem}.strip{top:auto;position:static;padding:.4rem .75rem;font-size:var(--fs-label)}main{padding:.75rem .6rem 3rem}article{padding:.75rem .8rem}.decision{font-size:var(--fs-title)}.aim{font-size:var(--fs-section)}.tbl table{font-size:var(--fs-mono)}th,td{padding:.3rem .4rem}}
+.dispute{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin:.3rem 0 .6rem 1.6rem}.dispute pre{margin:0;font-size:.78rem;white-space:pre-wrap;border:1px solid var(--line,#ddd);padding:.4rem}.dispute .meta{margin:0 0 .2rem}
 """
 JS = """
 (function(){var root=document.documentElement;var key='dossier-theme';
@@ -2006,3 +2168,20 @@ if want_pr_body:
         fh.write(pr_body_text)
     print(os.path.join(epic_dir, 'pr-body.md'))
 PYTHON_EOF
+rc=$?
+[ "$rc" -eq 0 ] || exit "$rc"
+# --open: hand the rendered page to the desktop opener (macOS `open`, else `xdg-open`).
+# The render above has already landed; no opener on PATH is a named non-zero exit so the
+# caller can open the path by hand.
+if [ "$open_after" -eq 1 ]; then
+  opener=""
+  for cand in open xdg-open; do
+    if command -v "$cand" >/dev/null 2>&1; then opener="$cand"; break; fi
+  done
+  if [ -z "$opener" ]; then
+    printf 'dossier-render.sh: rendered %s/dossier.html but no opener (open / xdg-open) is on PATH — open it by hand\n' "$epic_dir" >&2
+    exit 1
+  fi
+  "$opener" "$epic_dir/dossier.html" || { printf 'dossier-render.sh: opener %s failed for %s/dossier.html\n' "$opener" "$epic_dir" >&2; exit 1; }
+fi
+exit 0

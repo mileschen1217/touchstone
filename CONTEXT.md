@@ -84,14 +84,17 @@ pointer names the single home of any longer rule.
   short form and the gate's single round. Single home: `skills/crucible/SKILL.md`.
 - **crucible** — front-end orchestrator: explore → assay → design-spec →
   design-review, terminating at the contract accept.
-- **anvil** — back-end orchestrator: entry check → conductor orchestration-mode →
-  deliverable-review → hand-off to phase-ship. Task decomposition, grading, dispatch, and
-  per-task acceptance belong to conductor; task-contract/result schemas have their
-  single home in the conductor plugin.
-- **AC-coverage floor** — before dispatch, every AC-N maps to ≥1 conductor task
-  contract (or an explicit deferred row); blocks industrialising a dropped AC.
-- **light loop** — the no-orchestrator path (direct work + dispatch) used when
-  conductor is absent.
+- **anvil** — back-end orchestrator, one path: entry check → ruler (a non-builder
+  context, `agents/ruler-author.md`, writes `build/ruler.yaml` + `build/ruler/` from the
+  spec) → freeze (`build/freeze.json`, the ruler's sha record written once every node
+  fails on the pre-build tree; `hooks/guard-ruler.sh` then blocks edits) → session build
+  (a wrong test is a `build/disputes.yaml` entry, never an edit) → held-out (a clean
+  worktree re-runs the frozen ruler and writes `build/verdict.yaml` — PASS / FAIL /
+  DISPUTED / UNVERIFIED per AC, the artifact the ship accept reads) → deliverable-review
+  → hand-off to phase-ship. Schemas: `skills/.shared/schemas/{ruler,verdict}.schema.yaml`.
+- **AC-coverage floor** — `ruler.py check` before freeze: every spec AC has exactly one
+  ruler row (ruled, regression, or unverified with a reason) and every node's check
+  command is the runner form; blocks a dropped AC.
 - **phase metrics** — one entry per phase in `deviation.yaml.metrics`, printed by
   `scripts/phase-metrics.sh` at phase-ship; the only instrument phase 4 added.
 

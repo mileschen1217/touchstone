@@ -69,3 +69,14 @@ interviews, contract grounding) rather than to add more feedback lenses.
   names its deletion.
 - The three ceilings are honest claims — skills describe them as instructions
   to the executing agent, never as system-enforced mechanisms.
+
+## Amendment 2026-09-07 — one ceiling mechanised
+
+Decision item 3's third ceiling — *anvil's AC status handling relies on prose ("never
+promote to verified"), not a mechanised diff over AC markers* — is closed by the ruler:
+`ruler.py held-out` writes each AC's PASS / FAIL / DISPUTED / UNVERIFIED into
+`build/verdict.yaml` from a frozen, non-builder-authored ruler re-run in a clean worktree,
+and the builder session cannot edit the frozen files (`hooks/guard-ruler.sh`) or the
+verdict's inputs. The other two ceilings remain as stated: *review-before-commit* has no
+event-bound enforcement, and *design-review's C+H Build-block* is still an instruction the
+caller follows. The band-exit hook (item 4) is unchanged.

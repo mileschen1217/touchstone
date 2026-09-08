@@ -1,0 +1,5 @@
+- ac: AC-3
+  test: build/ruler/test_greet.py::test_ac_3
+  asserts: stdout is exactly HELLO, BOB when --shout is passed
+  spec_says: the greeter prints a greeting for the given name; --shout is named nowhere in REQ-1
+  conflict: the test binds a flag the requirement never introduces, so the AC and the requirement cannot both be the contract

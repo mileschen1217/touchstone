@@ -1,0 +1,17 @@
+kind: ruler
+spec: spec.yaml
+deps: {manifest: pyproject.toml, install_cmd: "python3 -c \"import tomllib,sys; d=tomllib.load(open('pyproject.toml','rb')); sys.exit(0 if not d['project']['dependencies'] else 1)\""}
+acs:
+  - ac: AC-1
+    status: ruled
+    interface: ["src/greet.py::def main()"]
+    nodes:
+      - {test: "build/ruler/test_greet.py::test_ac_1", check_command: "python3 scripts/ruler.py run --ruler build/ruler.yaml build/ruler/test_greet.py::test_ac_1"}
+  - ac: AC-2
+    status: ruled
+    interface: ["src/greet.py::def main()"]
+    nodes:
+      - {test: "build/ruler/test_greet.py::test_ac_2", check_command: "python3 scripts/ruler.py run --ruler build/ruler.yaml build/ruler/test_greet.py::test_ac_2"}
+  - ac: AC-3
+    status: unverified
+    unverified_reason: a real terminal is not a boundary the repo owns

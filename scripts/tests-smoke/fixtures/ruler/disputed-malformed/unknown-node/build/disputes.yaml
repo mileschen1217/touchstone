@@ -1,0 +1,5 @@
+- ac: AC-3
+  test: build/ruler/test_greet.py::test_nope
+  asserts: a
+  spec_says: b
+  conflict: c

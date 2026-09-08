@@ -140,3 +140,14 @@ test, …), which is itself the checklist smell touchstone's altitude doctrine
 - **Fold the checks in as an enumerated checklist.** Rejected: skills carry
   invariants, not checklists (ADR-0020 pt4). The enumerated anti-patterns are
   instances of one force (green must witness behavior); encode the force.
+
+## Amendment 2026-09-07 — the kill-on fired
+
+`kill-on: touchstone-owns-an-out-of-band-test-runner` fired with `scripts/ruler.py`: anvil
+now runs a per-build ruler out of band — `red-first` on a worktree at the pre-build commit,
+`held-out` in a detached worktree with an isolated venv — and writes `build/verdict.yaml`
+from those runs. What stays: the test-evidence lens inside deliverable-review (the
+reviewer's question "if the named behaviour silently broke, would this test go red?" is
+still how a hollow frozen test is caught), and there is still no `test-quality-audit`
+skill. What the runner does not revive: flaky detection, reorder isolation and coverage
+trend — the ruler runs each node once, in one order, and reports pass / fail per AC.

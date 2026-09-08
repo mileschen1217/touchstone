@@ -1,0 +1,14 @@
+gate: design-review
+target: 2026-01-01-greet.spec.yaml
+sha: fixture
+round: 1
+providers:
+  - {lens: challenger, arms: [cc], fragments_read: [challenger-catalogue]}
+  - {lens: verification-honesty, arms: [codex], fragments_read: [doc-lens-honesty]}
+challenger: cc
+degraded: false
+verdict: approve
+counts: {C: 0, H: 0, M: 0, L: 0}
+rulings: [Q-20]
+findings: []
+waiting_on_human: []

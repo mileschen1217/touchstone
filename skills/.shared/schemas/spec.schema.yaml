@@ -17,8 +17,9 @@
 #                            phase-matched design spec (deviation)
 #
 # Waiting item (shared shape used by every kind that carries a waiting_on_human list):
-# {id: W-<n>, kind: ruling|answer|accept|fix, owner, title, detail?, refs?} — required
-# [id, kind, owner, title]. `refs` (here and everywhere else it appears) is a refs-list: an
+# {id: W-<n>, kind: ruling|answer|accept|fix, owner, title, detail?, ruling?, disposition?,
+# resolved?, refs?} — required [id, kind, owner, title]; the three optional ruling keys mark a
+# ruled item. `refs` (here and everywhere else it appears) is a refs-list: an
 # array of strings, each matching the id grammar and resolved per spec_ref.
 kind: spec
 resolves: self
@@ -205,6 +206,12 @@ properties:
         owner: {type: string}
         title: {type: string}
         detail: {type: string}
+        # a ruled item carries its ruling (test-wrong | builder-wrong | …), its disposition
+        # (deferred | …) and/or `resolved` (date or text); the dossier treats an item as ruled only
+        # when one of these is set or the title opens with RULED
+        ruling: {type: string}
+        disposition: {type: string}
+        resolved: {type: date}                # a date (quoted or bare) or text
         refs:
           type: array
           items:

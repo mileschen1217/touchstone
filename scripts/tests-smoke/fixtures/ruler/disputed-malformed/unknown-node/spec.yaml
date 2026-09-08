@@ -1,0 +1,6 @@
+requirements:
+  - id: REQ-1
+    acs:
+      - {id: AC-1, given: g, when: w, then: t, live_bearing: false}
+      - {id: AC-2, given: g, when: w, then: t, live_bearing: false}
+      - {id: AC-3, given: g, when: w, then: t, live_bearing: false}

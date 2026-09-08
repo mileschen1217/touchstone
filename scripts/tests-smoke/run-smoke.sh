@@ -229,8 +229,8 @@ printf '%s\n' '<!-- generated: projection of epic.yaml -->' > "$epic_marker_root
 expect_exit "check-artifact epic: generated-marker index.md beside epic.yaml is legal" zero bash "$ca" epic "$epic_marker_root/epic.yaml" --root "$epic_marker_root"
 rm -rf "$epic_marker_root"
 
-# AC-14: the usage line lists exactly the seven kinds
-expect_out "check-artifact usage lists exactly seven kinds" "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic> <file> [--root <dir>]" bash "$ca" bogus "$ax/spec-green.yaml"
+# the usage line lists exactly the nine kinds
+expect_out "check-artifact usage lists exactly nine kinds" "usage: check-artifact.sh <spec|review|deviation|quiz|assay|explore|epic|ruler|verdict> <file> [--root <dir>]" bash "$ca" bogus "$ax/spec-green.yaml"
 
 # AC-15: the three hard-coded resolution branches (spec/review/deviation dispatched by
 # `kind ==`) are gone — resolution reads each schema's declared `resolves` value instead.
@@ -342,16 +342,16 @@ shutil.rmtree(t)
 print('PASS: check-artifact existential [*], root escape rejected, ledger id boundary, date type, refs resolution (AC-4), locator rule (AC-48), quiz kind refs/result rule, metrics duplicate/sha (AC-20), coverage-row resolution + non-conformance covered stays a plain enum rejection (AC-14)')
 PY3
 expect_out "check-artifact usage error" "usage:" bash "$ca" bogus "$ax/spec-green.yaml"
-# the eight schema files exist and every top-level field carries a reader tag
+# the ten schema files exist and every top-level field carries a reader tag
 python3 - "$scripts_dir/../skills/.shared/schemas" <<'PY2' || { echo "FAIL: schema reader tags"; fail=1; }
 import sys, os, yaml
 d = sys.argv[1]
-assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'epic.schema.yaml', 'explore.schema.yaml', 'metrics.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'spec.schema.yaml'], os.listdir(d)
+assert sorted(os.listdir(d)) == ['assay.schema.yaml', 'deviation.schema.yaml', 'epic.schema.yaml', 'explore.schema.yaml', 'metrics.schema.yaml', 'quiz.schema.yaml', 'review.schema.yaml', 'ruler.schema.yaml', 'spec.schema.yaml', 'verdict.schema.yaml'], os.listdir(d)
 for f in os.listdir(d):
     s = yaml.safe_load(open(os.path.join(d, f)))
     for k, v in s['properties'].items():
         assert v.get('reader') in ('human', 'agent'), f'{f}: {k} has no reader tag'
-print('PASS: eight schemas, every top-level field reader-tagged')
+print('PASS: ten schemas, every top-level field reader-tagged')
 PY2
 
 # AC-10 / INV-4: every field in the three new schemas names its consumer file in the
@@ -580,7 +580,7 @@ heads = re.findall(r'<section class="fs"><h3>([^<]*)</h3>', front)
 want = ['決策', '阻擋清單', '怎麼驗的', '檢查表']
 assert heads == want, heads
 pr = open(sys.argv[2], encoding='utf-8').read()
-assert [x for x in re.findall(r'^## (.+)$', pr, re.M) if x != 'gate 條'] == want, 'pr-body sections differ from the page order'
+assert [x for x in re.findall(r'^## (.+)$', pr, re.M) if x not in ('gate 條', '尺索引')] == want, 'pr-body sections differ from the page order'
 assert 'D-1' in pr, 'pr-body lacks the D-1 overlay'
 # no whole-file pre block in the YAML phase's sections (Map + Ship + 契約)
 for tab_id in ('1', '2'):
@@ -805,253 +805,173 @@ PY
 
 rm -rf "$tmp_root"
 
-# ---- render-on-write.sh (shipped hook):
-# hooks/render-on-write.sh: the shipped PostToolUse re-render hook, against
-# scratch project roots. Payload shapes fed (steering, anvil duty 2): a
-# non-yaml write; a yaml write outside any epics dir; a yaml under an epic
-# (A vs B isolation); a yaml nested under an epic sub/dir; a relative
-# file_path resolved via payload cwd; empty stdin; stdin that is not JSON; a
-# .yaml naming an epic dir that does not exist on disk; a traversal payload
-# (`epics/../../x.yaml`) against a stub renderer + a control fire that proves
-# the stub is reachable; a custom `workspace_root` in touchstone.yaml; the
-# epic archive mirror (W/archive/epics/<epic>/); a malformed *.spec.yaml
-# (AC-34); a PATH with no python3 (AC-49); and a 100-invocation timing loop
-# on a non-epic path (AC-35). AC-32/AC-36 are asserted directly against the
-# shipped hooks.json / waivers.yaml / plugin-map.sh output.
+# ---- render-on-write.sh (shipped hook): the dossier staleness sweep on
+# PostToolUse(Write|Edit|Bash). The decision is never the written path: every
+# epic dir under W/epics and W/archive/epics is stale when dossier.html is
+# absent beside an epic.yaml, or any entry is newer than dossier.html. Payload
+# shapes fed: a Bash payload with no file_path; a second fire on fresh dirs
+# (no subprocess, no write); one dir touched among several; empty and non-JSON
+# stdin; a zero-epic project; a custom workspace_root; the archive mirror; a
+# malformed *.spec.yaml (old dossier byte-identical, one failure line); a PATH
+# with no python3; a 100-invocation timing loop on a fresh project. The
+# hooks.json matcher / waivers / plugin-map reachability are asserted directly.
 if command -v jq >/dev/null 2>&1; then
   ro_hook="$hooks_dir/render-on-write.sh"
   ro_repo_root="$(cd "$hooks_dir/.." && pwd)"
 
-  # <label> <scratch-root> <written-file-path> [<cwd-override>]
-  ro_fire() {
-    local label="$1" root="$2" fp="$3" cwd out rc
-    cwd="${4:-$root}"
-    out="$(jq -nc --arg fp "$fp" --arg cwd "$cwd" '{tool_input:{file_path:$fp}, cwd:$cwd}' \
-      | CLAUDE_PROJECT_DIR="$root" bash "$root/hooks/render-on-write.sh" 2>&1)"; rc=$?
-    if [ "$rc" -eq 0 ]; then echo "PASS: render-on-write $label (exit 0)"
-    else echo "FAIL: render-on-write $label (rc=$rc): $out"; fail=1; fi
+  # <scratch-root> <epic-dir-relative-to-root>... : a project with the real renderer
+  ro_project() {
+    local root="$1"; shift
+    mkdir -p "$root/scripts" "$root/hooks"
+    cp "$scripts_dir/dossier-render.sh" "$root/scripts/dossier-render.sh"
+    cp "$ro_hook" "$root/hooks/render-on-write.sh"
+    local d
+    for d in "$@"; do
+      mkdir -p "$(dirname "$root/$d")"
+      cp -R "$fx/dossier-epic" "$root/$d"
+      rm -f "$root/$d/dossier.html"
+      printf 'id: %s\nslug: %s\ntitle: %s\n' "$(basename "$d")" "$(basename "$d")" "$(basename "$d")" > "$root/$d/epic.yaml"
+    done
   }
+  # <root> [payload]: fire the hook; prints its output, returns its exit code
+  ro_fire_raw() {
+    local root="$1" payload="${2-}"
+    printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$root" bash "$root/hooks/render-on-write.sh" 2>&1
+  }
+  ro_bash_payload() { jq -nc --arg cwd "$1" '{tool_name:"Bash", tool_input:{command:"python3 - <<PY\nprint(1)\nPY"}, cwd:$cwd}'; }
+  ro_mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"; }
 
-  # ---- scratch A/B project: two epics, real renderer at the scratch's own
-  # plugin root ($ro_root/scripts, $ro_root/hooks — decision 4: the renderer
-  # resolves relative to the hook's OWN directory, never <root>/scripts/).
   ro_root="$(mktemp -d)"
-  mkdir -p "$ro_root/.touchstone/epics" "$ro_root/scripts" "$ro_root/hooks"
-  cp -R "$fx/dossier-epic" "$ro_root/.touchstone/epics/2026-02-01-alpha"
-  cp -R "$fx/dossier-epic" "$ro_root/.touchstone/epics/2026-02-02-beta"
-  rm -f "$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html" \
-        "$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
-  cp "$scripts_dir/dossier-render.sh" "$ro_root/scripts/dossier-render.sh"
-  cp "$ro_hook" "$ro_root/hooks/render-on-write.sh"
+  ro_project "$ro_root" .touchstone/epics/2026-02-01-alpha .touchstone/epics/2026-02-02-beta
   ro_a="$ro_root/.touchstone/epics/2026-02-01-alpha/dossier.html"
   ro_b="$ro_root/.touchstone/epics/2026-02-02-beta/dossier.html"
 
-  ro_fire "non-yaml write" "$ro_root" "$ro_root/.touchstone/epics/2026-02-01-alpha/index.md"
-  if [ ! -f "$ro_a" ] && [ ! -f "$ro_b" ]; then
-    echo "PASS: render-on-write non-yaml renders nothing"
-  else echo "FAIL: render-on-write non-yaml rendered a dossier"; fail=1; fi
+  ro_out="$(ro_fire_raw "$ro_root" "$(ro_bash_payload "$ro_root")")"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ -f "$ro_a" ] && [ -f "$ro_b" ] \
+     && [ "$(printf '%s\n' "$ro_out" | wc -l | tr -d ' ')" -eq 1 ] \
+     && printf '%s' "$ro_out" | grep -q '"systemMessage"' \
+     && printf '%s' "$ro_out" | grep -q '2026-02-01-alpha' && printf '%s' "$ro_out" | grep -q '2026-02-02-beta'; then
+    echo "PASS: render-on-write Bash payload (no file_path) renders both stale epics, one line names both"
+  else echo "FAIL: render-on-write Bash payload rc=$ro_rc A=$([ -f "$ro_a" ] && echo yes || echo no) B=$([ -f "$ro_b" ] && echo yes || echo no) out=$ro_out"; fail=1; fi
 
-  ro_fire "yaml under epic A" "$ro_root" "$ro_root/.touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml"
-  if [ -f "$ro_a" ] && [ ! -f "$ro_b" ]; then
-    echo "PASS: render-on-write renders A's dossier and leaves B untouched"
-  else echo "FAIL: render-on-write A=$([ -f "$ro_a" ] && echo yes || echo no) B=$([ -f "$ro_b" ] && echo yes || echo no)"; fail=1; fi
+  sleep 1
+  ro_a_bytes="$(cat "$ro_a")"; ro_a_m="$(ro_mtime "$ro_a")"; ro_b_m="$(ro_mtime "$ro_b")"
+  ro_out="$(ro_fire_raw "$ro_root" "$(ro_bash_payload "$ro_root")")"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ -z "$ro_out" ] && [ "$(ro_mtime "$ro_a")" = "$ro_a_m" ] && [ "$(ro_mtime "$ro_b")" = "$ro_b_m" ]; then
+    echo "PASS: render-on-write fresh dirs: no output, no write"
+  else echo "FAIL: render-on-write fresh dirs rc=$ro_rc out=$ro_out a=$(ro_mtime "$ro_a")/$ro_a_m b=$(ro_mtime "$ro_b")/$ro_b_m"; fail=1; fi
 
-  # nested subdir under epic A still resolves to A (epic = first path
-  # component below "epics/", regardless of depth)
-  mkdir -p "$ro_root/.touchstone/epics/2026-02-01-alpha/sub/dir"
-  rm -f "$ro_a"
-  ro_fire "yaml nested under epic A/sub/dir" "$ro_root" "$ro_root/.touchstone/epics/2026-02-01-alpha/sub/dir/x.yaml"
-  if [ -f "$ro_a" ]; then echo "PASS: render-on-write nested path resolves epic A"
-  else echo "FAIL: render-on-write nested path did not render A"; fail=1; fi
+  # one dir touched (a file of any extension, nested) -> only that dir re-renders
+  mkdir -p "$ro_root/.touchstone/epics/2026-02-01-alpha/build"
+  printf '{}\n' > "$ro_root/.touchstone/epics/2026-02-01-alpha/build/freeze.json"
+  ro_out="$(ro_fire_raw "$ro_root" "$(jq -nc --arg fp "$ro_root/.touchstone/epics/2026-02-01-alpha/build/freeze.json" --arg cwd "$ro_root" '{tool_name:"Write", tool_input:{file_path:$fp}, cwd:$cwd}')")"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ "$(ro_mtime "$ro_a")" != "$ro_a_m" ] && [ "$(ro_mtime "$ro_b")" = "$ro_b_m" ] \
+     && printf '%s' "$ro_out" | grep -q '2026-02-01-alpha' && ! printf '%s' "$ro_out" | grep -q '2026-02-02-beta'; then
+    echo "PASS: render-on-write a newer build/*.json re-renders its epic and leaves the other untouched"
+  else echo "FAIL: render-on-write touched-dir rc=$ro_rc out=$ro_out"; fail=1; fi
 
-  # relative file_path, resolved via payload cwd (not the hook's own cwd)
-  rm -f "$ro_a"
-  ro_fire "relative file_path via cwd" "$ro_root" ".touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml" "$ro_root"
-  if [ -f "$ro_a" ]; then echo "PASS: render-on-write relative file_path resolves via cwd"
-  else echo "FAIL: render-on-write relative file_path did not render"; fail=1; fi
+  # a deletion below the root counts through its parent directory's mtime (the root itself is excluded)
+  sleep 1; ro_a_m="$(ro_mtime "$ro_a")"
+  rm -f "$ro_root/.touchstone/epics/2026-02-01-alpha/build/freeze.json"
+  ro_out="$(ro_fire_raw "$ro_root" "$(ro_bash_payload "$ro_root")")"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ "$(ro_mtime "$ro_a")" != "$ro_a_m" ] && printf '%s' "$ro_out" | grep -q '2026-02-01-alpha'; then
+    echo "PASS: render-on-write a deleted file re-renders its epic"
+  else echo "FAIL: render-on-write deletion rc=$ro_rc out=$ro_out"; fail=1; fi
 
-  # Codex apply_patch reports the patch in tool_input.command. A multi-file
-  # edit renders each affected epic once.
-  rm -f "$ro_a" "$ro_b"
-  ro_patch="*** Begin Patch
-*** Update File: .touchstone/epics/2026-02-01-alpha/2026-01-04-gamma.spec.yaml
-*** Update File: .touchstone/epics/2026-02-02-beta/deviation.yaml
-*** End Patch"
-  ro_codex_out="$(jq -nc --arg command "$ro_patch" --arg cwd "$ro_root" \
-    '{tool_input:{command:$command}, cwd:$cwd}' \
-    | bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_codex_rc=$?
-  if [ "$ro_codex_rc" -eq 0 ] && [ -z "$ro_codex_out" ] \
-     && [ -f "$ro_a" ] && [ -f "$ro_b" ]; then
-    echo "PASS: render-on-write Codex multi-file apply_patch renders both epics"
-  else
-    echo "FAIL: render-on-write Codex patch rc=$ro_codex_rc A=$([ -f "$ro_a" ] && echo yes || echo no) B=$([ -f "$ro_b" ] && echo yes || echo no) out=$ro_codex_out"; fail=1
-  fi
-
-  # yaml outside any epics dir -> silent no-op, no dossier
-  rm -f "$ro_a"
-  mkdir -p "$ro_root/outside"
-  ro_out_noise="$(jq -nc --arg fp "$ro_root/outside/x.yaml" --arg cwd "$ro_root" '{tool_input:{file_path:$fp}, cwd:$cwd}' \
-    | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_out_rc=$?
-  if [ "$ro_out_rc" -eq 0 ] && [ -z "$ro_out_noise" ]; then
-    echo "PASS: render-on-write yaml outside epics dir is a silent no-op"
-  else echo "FAIL: render-on-write yaml outside epics dir rc=$ro_out_rc out=$ro_out_noise"; fail=1; fi
-
-  # empty stdin -> silent no-op
-  ro_empty_out="$(printf '' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_empty_rc=$?
-  if [ "$ro_empty_rc" -eq 0 ] && [ -z "$ro_empty_out" ]; then
-    echo "PASS: render-on-write empty stdin is a silent no-op"
-  else echo "FAIL: render-on-write empty stdin rc=$ro_empty_rc out=$ro_empty_out"; fail=1; fi
-
-  # stdin that is not JSON -> silent no-op (jq's own failure is swallowed)
-  ro_badjson_out="$(printf 'not json at all' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_badjson_rc=$?
-  if [ "$ro_badjson_rc" -eq 0 ] && [ -z "$ro_badjson_out" ]; then
-    echo "PASS: render-on-write non-JSON stdin is a silent no-op"
-  else echo "FAIL: render-on-write non-JSON stdin rc=$ro_badjson_rc out=$ro_badjson_out"; fail=1; fi
-
-  # a .yaml naming an epic dir that does not exist on disk -> silent no-op
-  ro_missing_out="$(jq -nc --arg fp "$ro_root/.touchstone/epics/2099-01-01-ghost/x.yaml" --arg cwd "$ro_root" '{tool_input:{file_path:$fp}, cwd:$cwd}' \
-    | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_missing_rc=$?
-  if [ "$ro_missing_rc" -eq 0 ] && [ -z "$ro_missing_out" ]; then
-    echo "PASS: render-on-write missing epic dir is a silent no-op"
-  else echo "FAIL: render-on-write missing epic dir rc=$ro_missing_rc out=$ro_missing_out"; fail=1; fi
-
-  # Traversal: swap in a stub renderer at the scratch's own scripts/ dir that
-  # leaves a marker when invoked — the real renderer also fails on
-  # `epics/..` (no index.md), so "no dossier appeared" would pass with or
-  # without the path guard. The guard is proven only by the renderer never
-  # being called, and by the hook printing nothing.
-  printf '#!/usr/bin/env bash\ntouch "%s/RENDERER-INVOKED"\nexit 0\n' "$ro_root" > "$ro_root/scripts/dossier-render.sh"
-  ro_trav_out="$(jq -nc --arg fp "$ro_root/.touchstone/epics/../../x.yaml" --arg cwd "$ro_root" \
-    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" 2>&1)"; ro_trav_rc=$?
-  if [ "$ro_trav_rc" -eq 0 ] && [ -z "$ro_trav_out" ] && [ ! -e "$ro_root/RENDERER-INVOKED" ]; then
-    echo "PASS: render-on-write traversal payload never invokes the renderer (exit 0, silent)"
-  else echo "FAIL: render-on-write traversal payload rc=$ro_trav_rc invoked=$([ -e "$ro_root/RENDERER-INVOKED" ] && echo yes || echo no) out=$ro_trav_out"; fail=1; fi
-  # control: the stub IS invoked for a legitimate yaml write
-  jq -nc --arg fp "$ro_root/.touchstone/epics/2026-02-02-beta/deviation.yaml" --arg cwd "$ro_root" \
-    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root" bash "$ro_root/hooks/render-on-write.sh" >/dev/null 2>&1
-  if [ -e "$ro_root/RENDERER-INVOKED" ]; then echo "PASS: render-on-write control: stub renderer invoked for a real epic yaml"
-  else echo "FAIL: render-on-write control: stub renderer never invoked"; fail=1; fi
-
+  # empty stdin and non-JSON stdin still sweep; nothing stale -> silent
+  ro_out="$(ro_fire_raw "$ro_root" "")"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ -z "$ro_out" ]; then echo "PASS: render-on-write empty stdin on fresh dirs is silent"
+  else echo "FAIL: render-on-write empty stdin rc=$ro_rc out=$ro_out"; fail=1; fi
+  ro_out="$(ro_fire_raw "$ro_root" "not json at all")"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ -z "$ro_out" ]; then echo "PASS: render-on-write non-JSON stdin on fresh dirs is silent"
+  else echo "FAIL: render-on-write non-JSON stdin rc=$ro_rc out=$ro_out"; fail=1; fi
   rm -rf "$ro_root"
 
-  # ---- custom workspace_root: touchstone.yaml sets workspace_root: ws
+  # zero epic dirs -> exit 0, no output, no render
+  ro_root0="$(mktemp -d)"
+  ro_project "$ro_root0"; mkdir -p "$ro_root0/.touchstone/epics"
+  ro_out="$(ro_fire_raw "$ro_root0" "$(ro_bash_payload "$ro_root0")")"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ -z "$ro_out" ]; then echo "PASS: render-on-write zero epic dirs is a silent no-op"
+  else echo "FAIL: render-on-write zero epic dirs rc=$ro_rc out=$ro_out"; fail=1; fi
+  rm -rf "$ro_root0"
+
+  # custom workspace_root: touchstone.yaml sets workspace_root: ws
   ro_root2="$(mktemp -d)"
-  mkdir -p "$ro_root2/ws/epics" "$ro_root2/scripts" "$ro_root2/.claude" "$ro_root2/hooks"
-  cp -R "$fx/dossier-epic" "$ro_root2/ws/epics/2026-03-01-cust"
-  rm -f "$ro_root2/ws/epics/2026-03-01-cust/dossier.html"
-  cp "$scripts_dir/dossier-render.sh" "$ro_root2/scripts/dossier-render.sh"
-  cp "$ro_hook" "$ro_root2/hooks/render-on-write.sh"
-  printf 'workspace_root: ws\n' > "$ro_root2/.claude/touchstone.yaml"
-  ro_c="$ro_root2/ws/epics/2026-03-01-cust/dossier.html"
-  ro_fire "custom workspace_root" "$ro_root2" "$ro_root2/ws/epics/2026-03-01-cust/2026-01-04-gamma.spec.yaml"
-  if [ -f "$ro_c" ]; then echo "PASS: render-on-write custom workspace_root renders under ws/epics"
-  else echo "FAIL: render-on-write custom workspace_root did not render"; fail=1; fi
+  ro_project "$ro_root2" ws/epics/2026-03-01-cust
+  mkdir -p "$ro_root2/.claude"; printf 'workspace_root: ws\n' > "$ro_root2/.claude/touchstone.yaml"
+  ro_out="$(ro_fire_raw "$ro_root2" "$(ro_bash_payload "$ro_root2")")"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ -f "$ro_root2/ws/epics/2026-03-01-cust/dossier.html" ]; then
+    echo "PASS: render-on-write custom workspace_root renders under ws/epics"
+  else echo "FAIL: render-on-write custom workspace_root rc=$ro_rc out=$ro_out"; fail=1; fi
   rm -rf "$ro_root2"
 
-  # ---- archive mirror: W/archive/epics/<epic>/ — the epic archive shared
-  # with dossier-render.sh, NOT config-resolver's bundle.archive = W/archive/specs
+  # archive mirror: W/archive/epics/<epic>/
   ro_root3="$(mktemp -d)"
-  mkdir -p "$ro_root3/.touchstone/archive/epics" "$ro_root3/scripts" "$ro_root3/hooks"
-  cp -R "$fx/dossier-epic" "$ro_root3/.touchstone/archive/epics/2026-01-01-old"
-  rm -f "$ro_root3/.touchstone/archive/epics/2026-01-01-old/dossier.html"
-  cp "$scripts_dir/dossier-render.sh" "$ro_root3/scripts/dossier-render.sh"
-  cp "$ro_hook" "$ro_root3/hooks/render-on-write.sh"
-  ro_d="$ro_root3/.touchstone/archive/epics/2026-01-01-old/dossier.html"
-  ro_fire "archive epic path" "$ro_root3" "$ro_root3/.touchstone/archive/epics/2026-01-01-old/2026-01-04-gamma.spec.yaml"
-  if [ -f "$ro_d" ]; then echo "PASS: render-on-write renders the archived epic and only it"
-  else echo "FAIL: render-on-write archive epic path did not render"; fail=1; fi
+  ro_project "$ro_root3" .touchstone/archive/epics/2026-01-01-old
+  ro_out="$(ro_fire_raw "$ro_root3" "$(ro_bash_payload "$ro_root3")")"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ -f "$ro_root3/.touchstone/archive/epics/2026-01-01-old/dossier.html" ]; then
+    echo "PASS: render-on-write renders the archived epic"
+  else echo "FAIL: render-on-write archive epic rc=$ro_rc out=$ro_out"; fail=1; fi
   rm -rf "$ro_root3"
 
-  # ---- AC-34: a malformed *.spec.yaml written beside an already-rendered
-  # dossier -> exactly one 'dossier-render failed: ' line, exit 0, the
-  # previous dossier.html byte-identical.
+  # a malformed *.spec.yaml beside a rendered dossier -> one 'dossier-render failed: '
+  # line, exit 0, the previous dossier.html byte-identical
   ro_root4="$(mktemp -d)"
-  mkdir -p "$ro_root4/.touchstone/epics" "$ro_root4/scripts" "$ro_root4/hooks"
-  cp -R "$fx/dossier-epic" "$ro_root4/.touchstone/epics/2026-02-05-fail"
-  cp "$scripts_dir/dossier-render.sh" "$ro_root4/scripts/dossier-render.sh"
-  cp "$ro_hook" "$ro_root4/hooks/render-on-write.sh"
+  ro_project "$ro_root4" .touchstone/epics/2026-02-05-fail
   ro_e="$ro_root4/.touchstone/epics/2026-02-05-fail/dossier.html"
-  jq -nc --arg fp "$ro_root4/.touchstone/epics/2026-02-05-fail/2026-01-04-gamma.spec.yaml" --arg cwd "$ro_root4" \
-    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root4" bash "$ro_root4/hooks/render-on-write.sh" >/dev/null 2>&1
+  ro_fire_raw "$ro_root4" "$(ro_bash_payload "$ro_root4")" >/dev/null
   if [ -f "$ro_e" ]; then
-    ro_e_before="$(cat "$ro_e")"
+    sleep 1; ro_e_before="$(cat "$ro_e")"; ro_e_m="$(ro_mtime "$ro_e")"
     printf 'id: [unclosed\n' > "$ro_root4/.touchstone/epics/2026-02-05-fail/2026-02-05-bad.spec.yaml"
-    ro_ac34_out="$(jq -nc --arg fp "$ro_root4/.touchstone/epics/2026-02-05-fail/2026-02-05-bad.spec.yaml" --arg cwd "$ro_root4" \
-      '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root4" bash "$ro_root4/hooks/render-on-write.sh" 2>&1)"; ro_ac34_rc=$?
-    ro_ac34_lines="$(printf '%s\n' "$ro_ac34_out" | wc -l | tr -d ' ')"
-    ro_e_after="$(cat "$ro_e")"
-    if [ "$ro_ac34_rc" -eq 0 ] && [ "$ro_ac34_lines" -eq 1 ] \
-       && printf '%s' "$ro_ac34_out" | grep -qE '^\{"systemMessage":"dossier-render failed: ' \
-       && [ "$ro_e_before" = "$ro_e_after" ]; then
-      echo "PASS: render-on-write AC-34 malformed yaml: one line, exit 0, previous dossier byte-identical"
-    else
-      echo "FAIL: render-on-write AC-34 rc=$ro_ac34_rc lines=$ro_ac34_lines out=$ro_ac34_out changed=$([ "$ro_e_before" = "$ro_e_after" ] && echo no || echo yes)"; fail=1
-    fi
-  else
-    echo "FAIL: render-on-write AC-34 setup: initial dossier never rendered"; fail=1
-  fi
+    ro_out="$(ro_fire_raw "$ro_root4" "$(ro_bash_payload "$ro_root4")")"
+    if [ "$ro_rc" -eq 0 ] && [ "$(printf '%s\n' "$ro_out" | wc -l | tr -d ' ')" -eq 1 ] \
+       && printf '%s' "$ro_out" | grep -q 'dossier-render failed: ' \
+       && [ "$ro_e_before" = "$(cat "$ro_e")" ] && [ "$ro_e_m" = "$(ro_mtime "$ro_e")" ]; then
+      echo "PASS: render-on-write malformed yaml: one failure line, exit 0, previous dossier untouched"
+    else echo "FAIL: render-on-write malformed yaml rc=$ro_rc out=$ro_out changed=$([ "$ro_e_before" = "$(cat "$ro_e")" ] && echo no || echo yes)"; fail=1; fi
+  else echo "FAIL: render-on-write malformed-yaml setup: initial dossier never rendered"; fail=1; fi
   rm -rf "$ro_root4"
 
-  # ---- AC-49: PATH with no python3 -> exactly one skip line, exit 0, no dossier
+  # PATH with no python3 -> exactly one skip line, exit 0, no dossier
   ro_root5="$(mktemp -d)"
-  mkdir -p "$ro_root5/.touchstone/epics" "$ro_root5/scripts" "$ro_root5/hooks"
-  cp -R "$fx/dossier-epic" "$ro_root5/.touchstone/epics/2026-02-06-nopy"
-  rm -f "$ro_root5/.touchstone/epics/2026-02-06-nopy/dossier.html"
-  cp "$scripts_dir/dossier-render.sh" "$ro_root5/scripts/dossier-render.sh"
-  cp "$ro_hook" "$ro_root5/hooks/render-on-write.sh"
+  ro_project "$ro_root5" .touchstone/epics/2026-02-06-nopy
   ro_nopy_dir="$(mktemp -d)"
-  for ro_tool in bash jq git dirname cat sed grep basename head printf mktemp env; do
+  for ro_tool in bash jq git dirname cat sed grep basename head printf mktemp env find stat; do
     ro_tp="$(command -v "$ro_tool" 2>/dev/null || true)"
     [ -n "$ro_tp" ] && ln -sf "$ro_tp" "$ro_nopy_dir/$ro_tool"
   done
-  ro_ac49_out="$(jq -nc --arg fp "$ro_root5/.touchstone/epics/2026-02-06-nopy/2026-01-04-gamma.spec.yaml" --arg cwd "$ro_root5" \
-    '{tool_input:{file_path:$fp}, cwd:$cwd}' | CLAUDE_PROJECT_DIR="$ro_root5" PATH="$ro_nopy_dir" bash "$ro_root5/hooks/render-on-write.sh" 2>&1)"; ro_ac49_rc=$?
-  if [ "$ro_ac49_rc" -eq 0 ] \
-     && [ "$ro_ac49_out" = '{"systemMessage":"dossier-render skipped: python3 not found"}' ] \
+  ro_out="$(ro_bash_payload "$ro_root5" | CLAUDE_PROJECT_DIR="$ro_root5" PATH="$ro_nopy_dir" bash "$ro_root5/hooks/render-on-write.sh" 2>&1)"; ro_rc=$?
+  if [ "$ro_rc" -eq 0 ] && [ "$ro_out" = '{"systemMessage":"dossier-render skipped: python3 not found"}' ] \
      && [ ! -f "$ro_root5/.touchstone/epics/2026-02-06-nopy/dossier.html" ]; then
-    echo "PASS: render-on-write AC-49 no python3: exactly one skip line, exit 0, no dossier"
-  else
-    echo "FAIL: render-on-write AC-49 rc=$ro_ac49_rc out=$ro_ac49_out"; fail=1
-  fi
+    echo "PASS: render-on-write no python3: exactly one skip line, exit 0, no dossier"
+  else echo "FAIL: render-on-write no python3 rc=$ro_rc out=$ro_out"; fail=1; fi
   rm -rf "$ro_root5" "$ro_nopy_dir"
 
-  # ---- AC-35: 100 sequential invocations on a non-epic path; mean
-  # wall-clock per invocation <= 50ms (proxy for median — a tight,
-  # low-variance loop of cheap subprocess calls has no long tail to separate
-  # from the median; stated here as the PASS/FAIL line documents).
+  # timing: 100 sequential invocations on a project whose one epic is fresh;
+  # mean wall-clock per invocation <= 50ms (one find per epic dir, first hit)
   ro_root6="$(mktemp -d)"
-  mkdir -p "$ro_root6/.touchstone/epics" "$ro_root6/scripts" "$ro_root6/hooks" "$ro_root6/outside"
-  cp "$scripts_dir/dossier-render.sh" "$ro_root6/scripts/dossier-render.sh"
-  cp "$ro_hook" "$ro_root6/hooks/render-on-write.sh"
-  ro_payload="$(jq -nc --arg fp "$ro_root6/outside/x.yaml" --arg cwd "$ro_root6" '{tool_input:{file_path:$fp}, cwd:$cwd}')"
-  if command -v python3 >/dev/null 2>&1; then
-    ro_t0="$(python3 -c 'import time; print(time.time())')"
-    ro_i=0
-    ro_ac35_bad=0
-    while [ "$ro_i" -lt 100 ]; do
-      if ! printf '%s' "$ro_payload" | CLAUDE_PROJECT_DIR="$ro_root6" bash "$ro_root6/hooks/render-on-write.sh" >/dev/null 2>&1; then
-        ro_ac35_bad=$((ro_ac35_bad+1))
-      fi
-      ro_i=$((ro_i+1))
-    done
-    ro_t1="$(python3 -c 'import time; print(time.time())')"
-    ro_mean_ms="$(python3 -c "print('%.2f' % ((${ro_t1}-${ro_t0})*1000/100))")"
-    ro_within="$(python3 -c "print(1 if (${ro_t1}-${ro_t0})*1000/100 <= 50.0 else 0)")"
-    if [ "$ro_within" = "1" ] && [ "$ro_ac35_bad" -eq 0 ]; then
-      echo "PASS: render-on-write AC-35 timing: mean ${ro_mean_ms}ms/invocation over 100 runs (median proxy), all exit 0"
-    else
-      echo "FAIL: render-on-write AC-35 timing: mean ${ro_mean_ms}ms/invocation (want <=50ms), nonzero-exit-count=$ro_ac35_bad"; fail=1
-    fi
-  else
-    echo "FAIL: render-on-write AC-35 skipped — python3 not found for timing"; fail=1
-  fi
+  ro_project "$ro_root6" .touchstone/epics/2026-02-07-fresh
+  ro_fire_raw "$ro_root6" "$(ro_bash_payload "$ro_root6")" >/dev/null
+  ro_payload="$(ro_bash_payload "$ro_root6")"
+  ro_t0="$(python3 -c 'import time; print(time.time())')"
+  ro_i=0; ro_bad=0
+  while [ "$ro_i" -lt 100 ]; do
+    if ! printf '%s' "$ro_payload" | CLAUDE_PROJECT_DIR="$ro_root6" bash "$ro_root6/hooks/render-on-write.sh" >/dev/null 2>&1; then ro_bad=$((ro_bad+1)); fi
+    ro_i=$((ro_i+1))
+  done
+  ro_t1="$(python3 -c 'import time; print(time.time())')"
+  ro_mean_ms="$(python3 -c "print('%.2f' % ((${ro_t1}-${ro_t0})*1000/100))")"
+  ro_within="$(python3 -c "print(1 if (${ro_t1}-${ro_t0})*1000/100 <= 50.0 else 0)")"
+  if [ "$ro_within" = "1" ] && [ "$ro_bad" -eq 0 ]; then
+    echo "PASS: render-on-write timing: mean ${ro_mean_ms}ms/invocation over 100 runs on a fresh epic, all exit 0"
+  else echo "FAIL: render-on-write timing: mean ${ro_mean_ms}ms/invocation (want <=50ms), nonzero-exit-count=$ro_bad"; fail=1; fi
   rm -rf "$ro_root6"
 
-  # ---- AC-32: hooks.json contract + old standalone path gone + waiver removed
-  if jq -e '.hooks.PostToolUse[] | select(.matcher=="Write|Edit") | .hooks[] | select(.command=="${CLAUDE_PLUGIN_ROOT}/hooks/render-on-write.sh")' \
+  # hooks.json contract: matcher Write|Edit|Bash, this hook's entry
+  if jq -e '.hooks.PostToolUse[] | select(.matcher=="Write|Edit|Bash") | .hooks[] | select(.command=="${CLAUDE_PLUGIN_ROOT}/hooks/render-on-write.sh")' \
       "$hooks_dir/hooks.json" >/dev/null 2>&1; then
-    echo "PASS: render-on-write hooks.json carries the contract hook-entry"
-  else echo "FAIL: render-on-write hooks.json missing the contract hook-entry"; fail=1; fi
+    echo "PASS: render-on-write hooks.json carries the Write|Edit|Bash hook-entry"
+  else echo "FAIL: render-on-write hooks.json missing the Write|Edit|Bash hook-entry"; fail=1; fi
 
   if [ ! -e "$ro_repo_root/.touchstone/checker/standalone/render-on-write.sh" ]; then
     echo "PASS: render-on-write old standalone path no longer exists"
@@ -1063,8 +983,7 @@ if command -v jq >/dev/null 2>&1; then
     echo "PASS: render-on-write waivers.yaml no longer names render-on-write.sh"
   else echo "FAIL: render-on-write waivers.yaml still names render-on-write.sh ($ro_waiver_count line(s))"; fail=1; fi
 
-  # ---- AC-36: plugin-map.sh reachability — reached from hooks.json, not an
-  # orphan, no waiver (stale or invalid) names it.
+  # plugin-map.sh reachability — reached from hooks.json, not an orphan, no waiver names it
   ro_map_json="$(bash "$scripts_dir/plugin-map.sh" 2>&1)"; ro_map_rc=$?
   if [ "$ro_map_rc" -eq 0 ]; then
     ro_map_check="$(printf '%s' "$ro_map_json" | python3 -c '
@@ -1078,9 +997,7 @@ print("ok" if (reached and not orphan and not waived) else "bad:reached=%s,orpha
 ')"
     if [ "$ro_map_check" = "ok" ]; then
       echo "PASS: render-on-write reached from hooks.json, not an orphan, no waiver names it"
-    else
-      echo "FAIL: render-on-write plugin-map check: $ro_map_check"; fail=1
-    fi
+    else echo "FAIL: render-on-write plugin-map check: $ro_map_check"; fail=1; fi
   else
     echo "FAIL: render-on-write plugin-map.sh exit $ro_map_rc: $ro_map_json"; fail=1
   fi
@@ -1931,5 +1848,243 @@ expect_exit "external-reviewer: Claude transport succeeds" zero env PATH="$revie
 expect_out "external-reviewer: Claude normalized result" "CLAUDE_OK" \
   cat "$review_root/claude-out/last-message-claude.txt"
 rm -rf "$review_root"
+# ---- ruler tool (scripts/ruler.py) over its fixture suite (fixtures/ruler/): every mini
+# fixture is a project root (spec.yaml + build/ruler.yaml + build/ruler/ + src/) whose content
+# is the pre-build tree, copied to a scratch git repo with one pre-build commit; an optional
+# `_post/` overlay holds the files the build adds and is committed as the build commit.
+rl="$scripts_dir/ruler.py"; rfx="$fx/ruler"; rl_scratch="$(mktemp -d)"
+rl_git() { ( cd "$1" && shift && git -c user.name=smoke -c user.email=smoke@localhost "$@" ) >/dev/null 2>&1; }
+rl_copy() {  # <fixture> -> scratch project with the pre-build commit
+  local d="$rl_scratch/${1//\//__}"; mkdir -p "$(dirname "$d")"; cp -R "$rfx/$1" "$d"
+  ( cd "$d" && git init -q && git add -A ) >/dev/null 2>&1; rl_git "$d" commit -qm pre-build
+  printf '%s' "$d"
+}
+rl_build() {  # <project>: overlay _post/ and commit the build
+  local d="$1"
+  if [ -d "$d/_post" ]; then ( cd "$d/_post" && find . -type f | while IFS= read -r f; do mkdir -p "$d/$(dirname "$f")"; cp -p "$f" "$d/$f"; done ); rm -rf "$d/_post"; fi
+  ( cd "$d" && git add -A ) >/dev/null 2>&1; rl_git "$d" commit -qm build || rl_git "$d" commit -q --allow-empty -m build
+}
+rl_freeze() {  # <project> [red-first args...]: red-first on the pre-build tree, then freeze
+  local d="$1"; shift
+  python3 "$rl" red-first --ruler "$d/build/ruler.yaml" --tree "$d" --root "$d" "$@" >"$d/.red-first.out" 2>&1
+  python3 "$rl" freeze --ruler "$d/build/ruler.yaml" --root "$d" >"$d/.freeze.out" 2>&1
+}
+rl_heldout() {  # <project> [args...]: held-out into build/verdict.yaml
+  python3 "$rl" held-out --ruler "$1/build/ruler.yaml" --freeze "$1/build/freeze.json" --out "$1/build/verdict.yaml" --root "$1" --scratch "$rl_scratch/scr" "${@:2}"
+}
+rl_verdict() {  # <project> <python assertion body over d (verdict) and v (rows by ac)>
+  python3 -c "
+import sys,yaml; d=yaml.safe_load(open(sys.argv[1])); v={a['ac']:a for a in d['acs']}
+$2" "$1/build/verdict.yaml"
+}
+
+# --help lists exactly the five subcommands and the 300 s default; no retired vocabulary in the tool
+expect_out "ruler --help lists exactly check, run, red-first, freeze, held-out" "{check,run,red-first,freeze,held-out}" python3 "$rl" --help
+expect_out "ruler --help names the 300 s per-node timeout default" "300" python3 "$rl" --help
+expect_exit "ruler freeze accepts no --reader" nonzero python3 "$rl" freeze --ruler "$rfx/trace-ok/build/ruler.yaml" --reader x
+expect_exit "ruler.py carries no stub / reader / hollow / red-assert vocabulary" nonzero grep -qiE "stub|reader|hollow|red-assert" "$rl"
+
+# check: trace both ways, three node forms, labels resolved against the harness file, runner form
+expect_exit "ruler check: python + shell + smoke nodes trace (fixtures/ruler/trace-ok)" zero python3 "$rl" check --ruler "$rfx/trace-ok/build/ruler.yaml" --spec "$rfx/trace-ok/spec.yaml"
+expect_out "ruler check: last line is the files_sha" "files_sha: " python3 "$rl" check --ruler "$rfx/trace-ok/build/ruler.yaml" --spec "$rfx/trace-ok/spec.yaml"
+expect_out "ruler check: spec AC with no node and no unverified names the AC" "AC-2: no ruler row" python3 "$rl" check --ruler "$rfx/trace-missing-ac/build/ruler.yaml" --spec "$rfx/trace-missing-ac/spec.yaml"
+expect_out "ruler check: dangling node names AC-99" "AC-99: names no AC" python3 "$rl" check --ruler "$rfx/trace-dangling/build/ruler.yaml" --spec "$rfx/trace-dangling/spec.yaml"
+expect_exit "ruler check: a check_command outside the runner form exits 1" nonzero python3 "$rl" check --ruler "$rfx/trace-bad-command/build/ruler.yaml" --spec "$rfx/trace-bad-command/spec.yaml"
+expect_out "ruler check: \`true\` named with the required command" "AC-1: node 'build/ruler/test_greet.py::test_ac_1' — check_command 'true' is not the runner form; required: python3 scripts/ruler.py run --ruler build/ruler.yaml build/ruler/test_greet.py::test_ac_1" python3 "$rl" check --ruler "$rfx/trace-bad-command/build/ruler.yaml" --spec "$rfx/trace-bad-command/spec.yaml"
+expect_out "ruler check: a command naming another test file is named" "AC-2: node 'build/ruler/test_greet.py::test_ac_2' — check_command names node 'build/ruler/test_other.py::test_ac_2'" python3 "$rl" check --ruler "$rfx/trace-bad-command/build/ruler.yaml" --spec "$rfx/trace-bad-command/spec.yaml"
+expect_out "ruler check: bare python3 <file> <name> is named" "AC-3: node 'build/ruler/test_greet.py::test_ac_3' — check_command 'python3 build/ruler/test_greet.py test_ac_3' is not the runner form" python3 "$rl" check --ruler "$rfx/trace-bad-command/build/ruler.yaml" --spec "$rfx/trace-bad-command/spec.yaml"
+# a smoke label absent from THIS repo's harness file does not resolve (root = the repo)
+rl_wo="$rl_scratch/retired-label"; mkdir -p "$rl_wo"
+printf 'requirements:\n  - id: REQ-1\n    acs:\n      - {id: AC-1, given: g, when: w, then: t, live_bearing: false}\n' >"$rl_wo/spec.yaml"
+printf 'kind: ruler\nspec: %s/spec.yaml\ndeps: {manifest: none, install_cmd: none}\nacs:\n  - ac: AC-1\n    status: ruled\n    interface: ["scripts/tests-smoke/run-smoke.sh::text"]\n    nodes:\n      - {test: "smoke::no such label anywhere", check_command: "python3 scripts/ruler.py run --ruler %s/ruler.yaml smoke::no such label anywhere"}\n' "$rl_wo" "$rl_wo" >"$rl_wo/ruler.yaml"
+expect_out "ruler check: an absent smoke label is named" "smoke::no such label anywhere" python3 "$rl" check --ruler "$rl_wo/ruler.yaml" --spec "$rl_wo/spec.yaml" --root "$scripts_dir/.."
+expect_exit "ruler check: an absent smoke label exits 1" nonzero python3 "$rl" check --ruler "$rl_wo/ruler.yaml" --spec "$rl_wo/spec.yaml" --root "$scripts_dir/.."
+
+# run: the one executor — a failing body with no dispatcher is fail; a missing symbol is not-run; the root is inferred
+expect_out "ruler run: a defined function with a failing body and no dispatcher fails" "ruler.py run: fail — AssertionError" python3 "$rl" run --ruler "$rfx/no-dispatcher/build/ruler.yaml" build/ruler/test_nd.py::test_ac_1
+expect_out "ruler run: a missing symbol is fail reason not-run" "ruler.py run: fail — not-run — test_ac_2 not defined in build/ruler/test_nd.py" python3 "$rl" run --ruler "$rfx/no-dispatcher/build/ruler.yaml" build/ruler/test_nd.py::test_ac_2
+
+# red-first → freeze: a passing ruled node refuses; an import failure admits; brownfield; edit between; timeout
+rl_p="$(rl_copy redfirst-green)"; rl_freeze "$rl_p"
+expect_out "ruler freeze: a ruled node passing on the pre-build tree is refused by name" "REFUSED AC-1 build/ruler/test_greet.py::test_ac_1: passes on the pre-build tree" cat "$rl_p/.freeze.out"
+expect_exit "ruler freeze: no freeze.json after the refusal" nonzero test -f "$rl_p/build/freeze.json"
+rl_p="$(rl_copy redfirst-ok)"; rl_freeze "$rl_p"
+expect_out "ruler red-first: an import of a not-yet-existing symbol is fail" "AC-1 build/ruler/test_greet.py::test_ac_1 → fail" cat "$rl_p/.red-first.out"
+expect_exit "ruler freeze: every ruled node fail writes freeze.json" zero test -f "$rl_p/build/freeze.json"
+expect_exit "ruler freeze: a sha for every ruler file + files_sha + commit + red-first log" zero python3 -c "
+import json,sys; d=json.load(open(sys.argv[1])); f=d['files']
+assert set(f)=={'build/ruler.yaml','build/ruler/test_greet.py'}, f
+assert len(d['files_sha'])==64 and len(d['commit'])==40 and d['red_first']['log']=='build/red-first.json', d" "$rl_p/build/freeze.json"
+rl_p="$(rl_copy edit-between)"
+python3 "$rl" red-first --ruler "$rl_p/build/ruler.yaml" --tree "$rl_p" --root "$rl_p" >/dev/null 2>&1
+printf '\n# edited after red-first\n' >>"$rl_p/build/ruler/test_greet.py"
+expect_out "ruler freeze: a file edited between red-first and freeze is named" "changed since red-first: build/ruler/test_greet.py" python3 "$rl" freeze --ruler "$rl_p/build/ruler.yaml" --root "$rl_p"
+expect_exit "ruler freeze: no freeze.json after the edit-between refusal" nonzero test -f "$rl_p/build/freeze.json"
+rl_p="$(rl_copy brownfield/regression)"; rl_freeze "$rl_p"
+expect_out "ruler red-first: brownfield regression node passes on the untouched tree" "AC-1 build/ruler/test_greet.py::test_ac_1 → pass" cat "$rl_p/.red-first.out"
+expect_exit "ruler freeze: pass admitted under status regression" zero test -f "$rl_p/build/freeze.json"
+rl_p="$(rl_copy brownfield/ruled)"; rl_freeze "$rl_p"
+expect_out "ruler freeze: the same passing node refused under status ruled" "REFUSED AC-1 build/ruler/test_greet.py::test_ac_1: passes on the pre-build tree" cat "$rl_p/.freeze.out"
+rl_hang="$(rl_copy hang)"; rl_freeze "$rl_hang" --timeout 3
+expect_out "ruler red-first: hanging node recorded timeout" '"outcome": "timeout"' cat "$rl_hang/build/red-first.json"
+expect_out "ruler red-first: the hanging node's file is named in the log" 'build/ruler/test_hang.sh::test_ac_1' cat "$rl_hang/build/red-first.json"
+expect_exit "ruler freeze: proceeds when every ruled node is fail (timeout included)" zero test -f "$rl_hang/build/freeze.json"
+rl_p="$(rl_copy smoke-node)"; rl_freeze "$rl_p"
+expect_out "ruler red-first: smoke label fails while the target script is absent" "smoke::target says ok → fail" cat "$rl_p/.red-first.out"
+rl_build "$rl_p"
+expect_exit "ruler held-out: smoke node passes once the target exists" zero rl_heldout "$rl_p"
+expect_out "ruler held-out: smoke node outcome pass" "outcome: pass" cat "$rl_p/build/verdict.yaml"
+
+# held-out: environment, sha check before any node, undeclared dep, no manifest, timeout, mixed, contamination, disputes
+rl_p="$(rl_copy heldout-green)"; rl_freeze "$rl_p"; rl_build "$rl_p"
+expect_exit "ruler held-out: pyproject manifest + gitignored ruler dir → verdict written" zero rl_heldout "$rl_p"
+expect_exit "ruler held-out: verdict validates (check-artifact verdict)" zero bash "$ca" verdict "$rl_p/build/verdict.yaml"
+expect_out "ruler held-out: isolation venv" "isolation: venv" cat "$rl_p/build/verdict.yaml"
+expect_out "ruler held-out: worktree under the scratch dir" "worktree: $rl_scratch/scr/held-out-" cat "$rl_p/build/verdict.yaml"
+expect_out "ruler held-out: commit = HEAD" "commit: $(git -C "$rl_p" rev-parse HEAD)" cat "$rl_p/build/verdict.yaml"
+expect_exit "ruler held-out: every ruled AC PASS, the unverified AC carried verbatim" zero rl_verdict "$rl_p" "
+assert v['AC-1']['verdict']=='PASS' and v['AC-2']['verdict']=='PASS', v
+assert v['AC-3']['verdict']=='UNVERIFIED' and v['AC-3']['reason']=='a real terminal is not a boundary the repo owns', v['AC-3']"
+rl_wt="$(python3 -c "import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))['environment']['worktree'])" "$rl_p/build/verdict.yaml")"
+expect_exit "ruler held-out: the worktree survives and holds a read-only copy of every frozen ruler file" zero bash -c "test -f '$rl_wt/build/ruler/test_greet.py' && test ! -w '$rl_wt/build/ruler/test_greet.py' && test -f '$rl_wt/build/ruler.yaml' && test ! -w '$rl_wt/build/ruler.yaml'"
+printf '\n# one byte\n' >>"$rl_p/build/ruler/test_greet.py"
+expect_exit "ruler held-out: edited frozen file → exit non-zero before any node" nonzero rl_heldout "$rl_p"
+expect_out "ruler held-out: sha_check violated" "sha_check: violated" cat "$rl_p/build/verdict.yaml"
+expect_out "ruler held-out: violated file named" "- build/ruler/test_greet.py" cat "$rl_p/build/verdict.yaml"
+rm -f "$rl_p/build/ruler/test_greet.py"
+expect_exit "ruler held-out: deleted frozen file → exit non-zero" nonzero rl_heldout "$rl_p"
+expect_out "ruler held-out: deleted file named as missing" "build/ruler/test_greet.py (missing)" cat "$rl_p/build/verdict.yaml"
+rl_p="$(rl_copy undeclared-dep)"; rl_freeze "$rl_p"; rl_build "$rl_p"; rl_heldout "$rl_p" >/dev/null 2>&1
+expect_exit "ruler held-out: undeclared dependency → FAIL with the import error, never UNVERIFIED" zero rl_verdict "$rl_p" "
+assert v['AC-1']['verdict']=='FAIL' and \"No module named 'yaml'\" in v['AC-1']['reason'] and 'no-dependency-declaration' not in v['AC-1']['reason'], v['AC-1']"
+expect_exit "ruler held-out: the same test passes in the builder's tree (control)" zero bash -c "cd '$rl_p' && python3 '$rl' run --ruler build/ruler.yaml build/ruler/test_greet.py::test_ac_1"
+rl_p="$(rl_copy no-manifest)"; rl_freeze "$rl_p"; rl_build "$rl_p"; rl_heldout "$rl_p" >/dev/null 2>&1
+expect_exit "ruler held-out: no manifest → venv with install_cmd none; third-party import UNVERIFIED naming the module; stdlib sibling PASS" zero rl_verdict "$rl_p" "
+assert d['environment']['isolation']=='venv' and d['environment']['install_cmd']=='none', d['environment']
+assert v['AC-1']['verdict']=='UNVERIFIED' and v['AC-1']['reason']=='no-dependency-declaration: yaml', v['AC-1']
+assert v['AC-2']['verdict']=='PASS', v['AC-2']"
+rl_build "$rl_hang"
+expect_exit "ruler held-out: hanging node → verdict still written (timeout 3s stands in for the 300s default)" zero rl_heldout "$rl_hang" --timeout 3
+expect_exit "ruler held-out: hung node timeout, its AC FAIL reason timeout, the other node still ran" zero rl_verdict "$rl_hang" "
+assert v['AC-1']['verdict']=='FAIL' and v['AC-1']['reason'].startswith('timeout') and v['AC-1']['nodes'][0]['outcome']=='timeout', v['AC-1']
+assert v['AC-2']['verdict']=='PASS', v['AC-2']"
+rl_p="$(rl_copy mixed-nodes)"; rl_freeze "$rl_p"; rl_build "$rl_p"; rl_heldout "$rl_p" >/dev/null 2>&1
+expect_exit "ruler held-out: mixed nodes → sha ok, AC FAIL, nodes pass / fail / not-run" zero rl_verdict "$rl_p" "
+a=d['acs'][0]; assert d['sha_check']=='ok' and a['verdict']=='FAIL', (d['sha_check'], a['verdict'])
+assert sorted(n['outcome'] for n in a['nodes'])==['fail','not-run','pass'], a['nodes']"
+rl_p="$(rl_copy contaminating-node/source)"; rl_freeze "$rl_p"; rl_build "$rl_p"; rl_heldout "$rl_p" >/dev/null 2>&1
+expect_exit "ruler held-out: a node that dirties the tree passes; the next AC is FAIL contaminated-by naming it" zero rl_verdict "$rl_p" "
+assert v['AC-1']['verdict']=='PASS', v['AC-1']
+assert v['AC-2']['verdict']=='FAIL' and 'contaminated-by: build/ruler/test_side.py::test_ac_1' in v['AC-2']['reason'] and 'src/app.py' in v['AC-2']['reason'], v['AC-2']"
+rl_p="$(rl_copy contaminating-node/ruler)"; rl_freeze "$rl_p"; rl_build "$rl_p"; rl_heldout "$rl_p" >/dev/null 2>&1
+expect_out "ruler held-out: a node that rewrites a ruler file makes the next AC FAIL naming that file" "build/ruler/test_greet.py sha changed" cat "$rl_p/build/verdict.yaml"
+rl_p="$(rl_copy disputed)"; rl_freeze "$rl_p"; rl_build "$rl_p"
+expect_exit "ruler held-out: a disputed node still runs; verdict written" zero rl_heldout "$rl_p"
+expect_exit "ruler held-out: DISPUTED row carries outcome fail + the entry verbatim; summary.disputed 1; siblings PASS" zero rl_verdict "$rl_p" "
+assert v['AC-3']['verdict']=='DISPUTED' and v['AC-3']['nodes'][0]['outcome']=='fail', v['AC-3']
+assert v['AC-3']['reason']=='asserts: stdout is exactly HELLO, BOB when --shout is passed\nspec_says: the greeter prints a greeting for the given name; --shout is named nowhere in REQ-1\nconflict: the test binds a flag the requirement never introduces, so the AC and the requirement cannot both be the contract', repr(v['AC-3']['reason'])
+assert v['AC-1']['verdict']=='PASS' and v['AC-2']['verdict']=='PASS' and d['summary']=={'pass':2,'fail':0,'disputed':1,'unverified':0}, d['summary']"
+expect_exit "ruler held-out: the DISPUTED verdict validates (check-artifact verdict)" zero bash "$ca" verdict "$rl_p/build/verdict.yaml"
+for rl_v in missing-field unknown-ac unknown-node duplicate; do
+  rl_p="$(rl_copy disputed-malformed/$rl_v)"; rl_freeze "$rl_p"; rl_build "$rl_p"
+  expect_exit "ruler held-out: malformed disputes ($rl_v) exits non-zero before any node" nonzero rl_heldout "$rl_p"
+  expect_exit "ruler held-out: malformed disputes ($rl_v) writes no verdict" nonzero test -f "$rl_p/build/verdict.yaml"
+done
+expect_out "ruler held-out: malformed disputes names the entry and the defect" "disputes.yaml entry 2: second entry for node" rl_heldout "$rl_p"
+
+# check-artifact: the two kinds, green and red
+expect_exit "check-artifact ruler green" zero bash "$ca" ruler "$rfx/trace-ok/build/ruler.yaml"
+expect_exit "check-artifact ruler red: node outside the three forms" nonzero bash "$ca" ruler "$ax/ruler-red-form.yaml"
+expect_out "check-artifact ruler: bad form names the AC" "acs[AC-1]" bash "$ca" ruler "$ax/ruler-red-form.yaml"
+expect_out "check-artifact ruler: ruled AC with empty check_command named" "acs[AC-2]" bash "$ca" ruler "$ax/ruler-red-form.yaml"
+expect_out "check-artifact ruler: ruled AC with no interface named" "acs[AC-3]" bash "$ca" ruler "$ax/ruler-red-form.yaml"
+expect_out "check-artifact ruler: unverified without reason named" "acs[AC-4]" bash "$ca" ruler "$ax/ruler-red-form.yaml"
+expect_out "check-artifact ruler: missing deps" "deps: required" bash "$ca" ruler "$ax/ruler-red-nodeps.yaml"
+expect_exit "check-artifact verdict green (fixture)" zero bash "$ca" verdict "$rfx/dossier-verdict/build/verdict.yaml"
+expect_out "check-artifact verdict: sha_check required" "sha_check: required" bash "$ca" verdict "$ax/verdict-red.yaml"
+expect_out "check-artifact verdict: summary count disagreeing with the rows named" "summary.pass: 2 ≠ 1 rows" bash "$ca" verdict "$ax/verdict-red-counts.yaml"
+expect_exit "check-artifact freeze kind retired" nonzero bash "$ca" freeze "$ax/verdict-red.yaml"
+
+# guard hook (hooks/guard-ruler.sh): frozen paths blocked with the path named, everything else silent
+gd="$rl_scratch/guard"; cp -R "$rfx/guard" "$gd"
+gpay() { jq -nc --arg t "$1" --arg f "$gd/$2" --arg c "$gd" '{tool_name:$t, tool_input:{file_path:$f}, cwd:$c}'; }
+for gcase in "Edit build/ruler/test_x.py" "Write build/ruler/new.py" "Edit build/ruler.yaml" "Write build/freeze.json"; do
+  set -- $gcase
+  g_out="$(gpay "$1" "$2" | bash "$hooks_dir/guard-ruler.sh" 2>&1)"; g_rc=$?
+  if [ "$g_rc" -eq 2 ] && printf '%s' "$g_out" | grep -q "$gd/$2" && printf '%s' "$g_out" | grep -q "build/disputes.yaml"; then
+    echo "PASS: guard-ruler blocks $1 on $2 (exit 2, path + disputes.yaml named)"
+  else echo "FAIL: guard-ruler $1 $2 rc=$g_rc out=$g_out"; fail=1; fi
+done
+for gcase in "Write build/disputes.yaml" "Edit src/x.py"; do
+  set -- $gcase
+  g_out="$(gpay "$1" "$2" | bash "$hooks_dir/guard-ruler.sh" 2>&1)"; g_rc=$?
+  if [ "$g_rc" -eq 0 ] && [ -z "$g_out" ]; then echo "PASS: guard-ruler passes $1 on $2 silently"
+  else echo "FAIL: guard-ruler $1 $2 rc=$g_rc out=$g_out"; fail=1; fi
+done
+gd2="$rl_scratch/guard-nofreeze"; cp -R "$rfx/guard" "$gd2"; rm -f "$gd2/build/freeze.json"
+g_out="$(jq -nc --arg f "$gd2/build/ruler/test_x.py" --arg c "$gd2" '{tool_name:"Edit", tool_input:{file_path:$f}, cwd:$c}' | bash "$hooks_dir/guard-ruler.sh" 2>&1)"; g_rc=$?
+if [ "$g_rc" -eq 0 ] && [ -z "$g_out" ]; then echo "PASS: guard-ruler passes a ruler path with no freeze.json"
+else echo "FAIL: guard-ruler no-freeze rc=$g_rc out=$g_out"; fail=1; fi
+expect_exit "guard-ruler bound in hooks.json under PreToolUse Edit|Write" zero bash -c "jq -e '.hooks.PreToolUse[] | select(.matcher==\"Edit|Write\") | .hooks[] | select(.command==\"\${CLAUDE_PLUGIN_ROOT}/hooks/guard-ruler.sh\")' '$hooks_dir/hooks.json' >/dev/null"
+
+# dossier projection: verdict + ruler index on the 首頁; DISPUTED rows; rulings; --open
+dv="$rl_scratch/dossier-verdict"; cp -R "$rfx/dossier-verdict" "$dv"
+dv_section() { python3 -c "
+import re,sys; t=open(sys.argv[1],encoding='utf-8').read(); m=re.search(r'## '+sys.argv[2]+r'\n(.*?)(?=\n## |\Z)',t,re.S); print(m.group(1) if m else '')" "$dv/pr-body.md" "$1"; }
+expect_exit "dossier-render: epic with verdict.yaml + ruler.yaml renders" zero bash "$scripts_dir/dossier-render.sh" --pr-body "$dv"
+expect_out "dossier: blocker checklist carries the FAIL AC with its reason" "- [ ] FAIL AC-2 — fail: test_ac_2 — AssertionError: usage line missing" dv_section 阻擋清單
+expect_out "dossier: blocker checklist lists the non-live UNVERIFIED AC with its reason, unchecked" "- UNVERIFIED AC-3 (不阻擋（非 live-bearing 或已延後）) — a real terminal is not a boundary the repo owns" dv_section 阻擋清單
+expect_out "dossier: blocker checklist lists the ruled DISPUTED AC" "- DISPUTED AC-4 (已裁 test-wrong，延後)" dv_section 阻擋清單
+expect_out "dossier: how-verified table carries the PASS AC" "AC-1 PASS: build/ruler/test_greet.py::test_ac_1" dv_section 怎麼驗的
+expect_exit "dossier: a DISPUTED row never appears in the how-verified table" nonzero bash -c "dv_section 怎麼驗的 | grep -q 'AC-4'"
+expect_out "dossier: ruler index renders as its own section" "ruler index: 4 ACs" dv_section 尺索引
+expect_out "dossier: do-confirm checklist reports blocked naming the FAIL AC" "- [ ] FAIL AC-2 (held-out verdict)" dv_section 檢查表
+expect_out "dossier: conclusion blocked" "結論: 被擋住 (blocked)" dv_section 檢查表
+expect_exit "dossier: DISPUTED row labelled 有異議 with the test source beside the entry" zero bash -c "grep -q '有異議' '$dv/dossier.html' && grep -q 'def test_ac_3' '$dv/dossier.html' && grep -q 'class=\"dispute\"' '$dv/dossier.html' && grep -q 'the test pins one rendering' '$dv/dossier.html'"
+# FAIL → PASS: nothing blocks (control); a builder-wrong ruling on the disputed AC blocks it again as FAIL
+python3 - "$dv/build/verdict.yaml" <<'PY'
+import sys; p=sys.argv[1]; t=open(p).read()
+t=t.replace('    verdict: FAIL\n    reason: "fail: test_ac_2 — AssertionError: usage line missing"\n    nodes:\n      - {test: build/ruler/test_greet.py::test_ac_2, outcome: fail,', '    verdict: PASS\n    nodes:\n      - {test: build/ruler/test_greet.py::test_ac_2, outcome: pass,')
+t=t.replace('summary: {pass: 1, fail: 1, disputed: 1, unverified: 1}', 'summary: {pass: 2, fail: 0, disputed: 1, unverified: 1}')
+open(p,'w').write(t)
+PY
+bash "$scripts_dir/dossier-render.sh" --pr-body "$dv" >/dev/null
+expect_exit "dossier: FAIL → PASS clears the checklist of held-out rows (control)" nonzero bash -c "dv_section 檢查表 | grep -q 'held-out verdict'"
+expect_exit "dossier: conclusion no longer blocked (control)" nonzero bash -c "dv_section 檢查表 | grep -q '被擋住'"
+printf '  - {id: W-2, kind: ruling, owner: human, title: "RULED builder-wrong: AC-4 stays a FAIL to fix", ruling: builder-wrong, refs: [AC-4]}\n' >>"$dv/deviation.yaml"
+bash "$scripts_dir/dossier-render.sh" --pr-body "$dv" >/dev/null
+expect_out "dossier: a builder-wrong ruling keeps the DISPUTED AC blocked as FAIL" "- [ ] FAIL AC-4 (held-out verdict)" dv_section 檢查表
+dv2="$rl_scratch/dossier-noverdict"; cp -R "$rfx/dossier-verdict" "$dv2"; rm -rf "$dv2/build"
+bash "$scripts_dir/dossier-render.sh" --pr-body "$dv2" >/dev/null
+expect_out "dossier: no verdict yet line when build/ is absent" "verdict: no verdict yet" cat "$dv2/pr-body.md"
+expect_out "dossier: no ruler yet line" "ruler: no ruler yet" cat "$dv2/pr-body.md"
+# --open: a PATH-stubbed opener records its argument; no opener → render lands, exit non-zero naming it
+op_bin="$rl_scratch/opener-bin"; mkdir -p "$op_bin"
+for op_tool in bash python3 jq git dirname basename cat sed grep head mktemp env find stat awk sort printf tr wc date cp rm mkdir readlink realpath uname; do op_p="$(command -v "$op_tool" 2>/dev/null || true)"; [ -n "$op_p" ] && ln -sf "$op_p" "$op_bin/$op_tool"; done
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$1" >"%s/opened.txt"\n' "$rl_scratch" >"$op_bin/open"; chmod +x "$op_bin/open"
+rm -f "$dv/dossier.html"
+expect_exit "dossier-render --open: renders and calls the opener" zero env PATH="$op_bin" bash "$scripts_dir/dossier-render.sh" --open "$dv"
+expect_exit "dossier-render --open: the opener received dossier.html" zero bash -c "test -f '$dv/dossier.html' && [ \"\$(cat '$rl_scratch/opened.txt')\" = '$dv/dossier.html' ]"
+rm -f "$op_bin/open" "$dv/dossier.html"
+op_out="$(env PATH="$op_bin" bash "$scripts_dir/dossier-render.sh" --open "$dv" 2>&1)"; op_rc=$?
+if [ "$op_rc" -ne 0 ] && [ -f "$dv/dossier.html" ] && printf '%s' "$op_out" | grep -q "no opener (open / xdg-open)"; then
+  echo "PASS: dossier-render --open with no opener: render lands, exit non-zero naming the opener"
+else echo "FAIL: dossier-render --open no opener rc=$op_rc out=$op_out"; fail=1; fi
+expect_exit "dossier skill is user-invocable and its body is the one command" zero bash -c "grep -q '^user-invocable: true' '$scripts_dir/../skills/dossier/SKILL.md' && grep -q 'dossier-render.sh\" --open' '$scripts_dir/../skills/dossier/SKILL.md'"
+expect_exit "dossier skill listed in plugin-map.entries" zero grep -q '^skills/dossier/SKILL.md' "$scripts_dir/../.touchstone/checker/plugin-map.entries"
+
+# probe-anvil.sh: the self-test only — a live probe spends model tokens (self-build only)
+expect_exit "probe-anvil.sh --self-test" zero bash "$here/probe-anvil.sh" --self-test
+
+# the author definition and the anvil skill, as text; the retired paths
+expect_exit "ruler-author pins model opus, omits Edit, names the rulings: input" zero bash -c "grep -q '^model: opus' '$scripts_dir/../agents/ruler-author.md' && grep -q '^tools: Read, Grep, Glob, Write$' '$scripts_dir/../agents/ruler-author.md' && grep -q 'rulings:' '$scripts_dir/../agents/ruler-author.md'"
+expect_exit "anvil SKILL.md names no retired path" nonzero grep -qiE "conductor|orchestration-mode|light-loop|ruler-reader|stub|hollow" "$scripts_dir/../skills/anvil/SKILL.md"
+expect_exit "anvil SKILL.md 2.1 appends rulings: from deviation.yaml" zero grep -q 'Append `rulings: <epic-dir>/deviation.yaml`' "$scripts_dir/../skills/anvil/SKILL.md"
+for rl_gone in skills/.shared/light-loop.md agents/ruler-reader.md skills/.shared/schemas/freeze.schema.yaml; do
+  expect_exit "retired path absent: $rl_gone" nonzero test -e "$scripts_dir/../$rl_gone"
+done
+expect_exit "retired dispatch-engine directory absent (skills/.shared/work-*)" nonzero bash -c "ls -d '$scripts_dir/../skills/.shared/'work-* 2>/dev/null | grep -q ."
+for rl_p in "$rl_scratch"/*/; do git -C "$rl_p" worktree prune >/dev/null 2>&1; done
+rm -rf "$rl_scratch"
 
 exit "$fail"

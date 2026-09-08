@@ -1,7 +1,7 @@
 {
   "name": "touchstone",
-  "description": "Workflow-discipline skill family for Claude Code — 11 skills + 2 agents around the honesty spine (claim ≤ evidence): contract front-end (crucible/assay/design-spec/design-review), conductor-backed build (anvil), lens × arm deliverable review.",
-  "version": "3.6.0",
+  "description": "Workflow-discipline skill family for Claude Code — 12 skills + 3 agents around the honesty spine (claim ≤ evidence): contract front-end (crucible/assay/design-spec/design-review), frozen-ruler build with a held-out verdict (anvil), lens × arm deliverable review.",
+  "version": "3.7.0",
   "author": { "name": "miles_chen", "email": "mileschen1217@gmail.com" },
   "license": "MIT",
   "keywords": ["workflow", "spec", "review", "epic", "discipline", "honesty"]

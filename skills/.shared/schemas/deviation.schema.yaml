@@ -65,6 +65,12 @@ properties:
         owner: {type: string}
         title: {type: string}
         detail: {type: string}
+        # a ruled item carries its ruling (test-wrong | builder-wrong | …), its disposition
+        # (deferred | …) and/or `resolved` (date or text); the dossier treats an item as ruled only
+        # when one of these is set or the title opens with RULED
+        ruling: {type: string}
+        disposition: {type: string}
+        resolved: {type: date}                # a date (quoted or bare) or text
         refs:
           type: array
           items:

@@ -1,0 +1,9 @@
+kind: ruler
+spec: spec.yaml
+deps: {manifest: none, install_cmd: "none"}
+acs:
+  - ac: AC-1
+    status: ruled
+    interface: ["src/greet.py::def main()"]
+    nodes:
+      - {test: "build/ruler/test_greet.py::test_ac_1", check_command: "python3 scripts/ruler.py run --ruler build/ruler.yaml build/ruler/test_greet.py::test_ac_1"}
