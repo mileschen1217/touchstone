@@ -11,6 +11,18 @@ kill-on: lever-discipline-mechanisation
   - **breadth** — the rule's case-domain: every branch / case, partitioned EP/BVA/Nagy-style.
   - **reach** — every party / site the change touches: producer / consumer / all call-sites (the Scope-resolution bullet below). **Forcing question (run it per unit, not optional): for each thing the unit asserts *present / named*, name its consumer and check the unit covers what that consumer must be able to *do* with it — presence ≠ usability.** (e.g. an AC that asserts a review *lens is named* but not *defined for the cold reviewer that consumes it* is reach-incomplete — the named lens is unusable by its consumer.)
   Saturating one axis while leaving the other (e.g. all cases enumerated but only the validator updated, not the producer; or a thing named but not made usable by its consumer) is a first-hit false-green — the most common real miss.
+- **Channel integrity (a channel's zero has to be earned):** the plateau reads a channel's
+  zero-increment as evidence, so a channel that silently under-reports manufactures a *false*
+  plateau — and a false one is indistinguishable from a real one at the point of reading it. Two
+  narrowings do this and neither is visible in the result: searching **one name form** when the
+  artifact is referenceable by several (its key, its file name, a constant or macro that spells
+  either — a party that refers to it by another form answers zero), and running under a
+  **file-type filter** (an `--include`/glob that excludes the kind of file a party lives in).
+  Before a channel's zero counts toward the plateau, say which name forms it covered and confirm
+  it ran unfiltered. A channel that cannot answer that is not a channel, and its zero is not
+  evidence. Symptom that this is the missing mechanism rather than a shortage of rounds: the same
+  sweep miss recurs each round wearing a different pattern, so each round's fix closes only the
+  instance it saw.
 - **Root — intension-extension floor:** a requirement's intension does not finitely enumerate its extension; coverage is asymptotic and saturation is the only honest stopping criterion.
 - **Scope-resolution (the reach axis):** when an AC's true subject set is a superset of the delivery diff, the reviewer/author must cover the full subject set, not just the diff. **Shared-artifact case** (the most common violation): when a requirement changes an artifact that crosses an actor/module boundary — a record / schema / message / file / wire-format / config — its true subject is *every party that touches that artifact*, not the one party in the diff. Sweep the party set to saturation; producer / consumer / migrator are common roles to jog the sweep, NOT an exhaustive checklist (a logger, cache, replicator, or downstream transformer may also touch it). First-hit on the validator-only (or producer-only) party is the named failure.
 
